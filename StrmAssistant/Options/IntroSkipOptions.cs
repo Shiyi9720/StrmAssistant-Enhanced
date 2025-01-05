@@ -5,6 +5,7 @@ using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 
 namespace StrmAssistant.Options
 {
@@ -87,5 +88,23 @@ namespace StrmAssistant.Options
         [Required]
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public string ClientScope { get; set; } = "Emby,Infuse,SenPlayer";
+
+        public enum IntroSkipPreference
+        {
+            [DescriptionL("IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite", typeof(Resources))]
+            ResetAndOverwrite
+        }
+
+        [Browsable(false)]
+        public List<EditorSelectOption> IntroSkipPreferenceList { get; set; } = new List<EditorSelectOption>();
+
+        [DisplayNameL("IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences", typeof(Resources))]
+        [EditMultilSelect]
+        [SelectItemsSource(nameof(IntroSkipPreferenceList))]
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
+        public string IntroSkipPreferences { get; set; } = string.Empty;
+
+        [Browsable(false)]
+        public bool IsModSupported { get; } = RuntimeInformation.ProcessArchitecture == Architecture.X64;
     }
 }

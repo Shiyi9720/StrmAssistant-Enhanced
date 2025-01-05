@@ -105,7 +105,7 @@
     <value>自動合併多版本</value>
   </data>
   <data name="GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_" xml:space="preserve">
-    <value>自動合併同目錄影片為多版本，不需符合官方嚴格的命名要求，預設為關閉。</value>
+    <value>掃庫時自動合併同目錄影片為多版本，不需符合官方嚴格的命名要求，預設為關閉。</value>
   </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>搜尋</value>
@@ -477,6 +477,21 @@
     <value>避免合集庫自動創建</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>避免掃庫時自動建立合集媒體庫，預設為關閉。</value>
+    <value>避免掃庫時自動建立合集媒體庫，搭配刪除使​​用，預設為關閉。</value>
+  </data>
+  <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
+    <value>伺服器首選元資料語言未設定為中文，刷新演員任務已中止。</value>
+  </data>
+  <data name="IntroDetectionEnhancedNotEnabled" xml:space="preserve">
+    <value>原生片頭偵測增強未啟用，擷取聲紋任務已中止。</value>
+  </data>
+  <data name="ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange" xml:space="preserve">
+    <value>忽略外掛字幕變更</value>
+  </data>
+  <data name="ExclusiveControl_NoPersistIntegration_NoPersistIntegration" xml:space="preserve">
+    <value>無持久化整合</value>
+  </data>
+  <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
+    <value>可選偏好設定</value>
   </data>
 </root>

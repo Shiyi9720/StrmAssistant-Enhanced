@@ -33,7 +33,10 @@ namespace StrmAssistant.ScheduledTask
             if (!unlockIntroSkip)
             {
                 progress.Report(100.0);
-                _logger.Warn("UnlockIntroSkip is not enabled.");
+                _ = Plugin.NotificationApi.SendMessageToAdmins(
+                    $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.IntroDetectionEnhancedNotEnabled}",
+                    10000);
+                _logger.Warn("Built-in Intro Detection Enhanced is not enabled.");
                 _logger.Warn("IntroFingerprintExtract - Scheduled Task Aborted");
                 return;
             }
@@ -119,7 +122,7 @@ namespace StrmAssistant.ScheduledTask
 
                                 if (result1 is null)
                                 {
-                                    _logger.Info("IntroFingerprintExtract - Episode Skipped: " + taskEpisode.Name +
+                                    _logger.Info("IntroFingerprintExtract - Episode skipped or non-existent: " + taskEpisode.Name +
                                                 " - " + taskEpisode.Path);
                                     seasonSkip = true;
                                     return;
@@ -170,7 +173,7 @@ namespace StrmAssistant.ScheduledTask
                     if (seasonSkip)
                     {
                         Interlocked.Increment(ref seasonSkipCount);
-                        _logger.Info("Fingerprint - Season Skipped: " + taskSeason.Name + " - " + taskSeason.Path);
+                        _logger.Info("IntroFingerprintExtract - Season Skipped: " + taskSeason.Name + " - " + taskSeason.Path);
                         break;
                     }
                 }

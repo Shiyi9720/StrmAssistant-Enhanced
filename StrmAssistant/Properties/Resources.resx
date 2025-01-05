@@ -192,7 +192,7 @@
     <value>Auto Merge Multi-version</value>
   </data>
   <data name="GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_" xml:space="preserve">
-    <value>Auto merge multiple versions stored in the same folder. Default is OFF.</value>
+    <value>Auto merge multiple versions in the same folder while library scan. Default is OFF.</value>
   </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>Search</value>
@@ -564,6 +564,24 @@
     <value>Prevent Boxsets Auto Creation</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>Prevent automatic boxset library creation. Default is OFF.</value>
+    <value>Prevent automatic boxset library creation, used along with removal. Default is OFF.</value>
+  </data>
+  <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
+    <value>Server Preferred Metadata Language is not set to Chinese. RefreshPerson Task Aborted.</value>
+  </data>
+  <data name="IntroDetectionEnhancedNotEnabled" xml:space="preserve">
+    <value>Built-in Intro Detection Enhanced is not enabled. IntroFingerprintExtract task aborted.</value>
+  </data>
+  <data name="ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange" xml:space="preserve">
+    <value>IgnoreExtSubChange</value>
+  </data>
+  <data name="ExclusiveControl_NoPersistIntegration_NoPersistIntegration" xml:space="preserve">
+    <value>NoPersistIntegration</value>
+  </data>
+  <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
+    <value>ResetAndOverwrite</value>
+  </data>
+  <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
+    <value>Optional Preferences</value>
   </data>
 </root>

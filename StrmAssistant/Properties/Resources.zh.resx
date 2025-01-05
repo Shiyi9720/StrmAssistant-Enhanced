@@ -105,7 +105,7 @@
     <value>自动合并多版本</value>
   </data>
   <data name="GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_" xml:space="preserve">
-    <value>自动合并同目录视频为多版本，不需符合官方严格的命名要求，默认关闭。</value>
+    <value>扫库时自动合并同目录视频为多版本，不需符合官方严格的命名要求，默认关闭。</value>
   </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>搜索</value>
@@ -477,6 +477,24 @@
     <value>避免合集库自动创建</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>避免扫库时自动创建合集媒体库，默认关闭。</value>
+    <value>避免扫库时自动创建合集媒体库，搭配删除使用，默认关闭。</value>
+  </data>
+  <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
+    <value>服务器首选元数据语言未设置为中文，刷新演员任务已中止。</value>
+  </data>
+  <data name="IntroDetectionEnhancedNotEnabled" xml:space="preserve">
+    <value>原生片头探测增强未启用，提取声纹任务已中止。</value>
+  </data>
+  <data name="ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange" xml:space="preserve">
+    <value>忽略外挂字幕变更</value>
+  </data>
+  <data name="ExclusiveControl_NoPersistIntegration_NoPersistIntegration" xml:space="preserve">
+    <value>无持久化整合</value>
+  </data>
+  <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
+    <value>重置操作覆盖后续各集原生片头标记</value>
+  </data>
+  <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
+    <value>可选偏好设置</value>
   </data>
 </root>

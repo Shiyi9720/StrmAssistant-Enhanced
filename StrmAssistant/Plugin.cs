@@ -38,8 +38,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using static StrmAssistant.Options.GeneralOptions;
+using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant
@@ -116,7 +116,12 @@ namespace StrmAssistant
                 UpdateCatchupScope();
                 QueueManager.Initialize();
             }
-            if (_currentEnableIntroSkip) PlaySessionMonitor.Initialize();
+
+            if (_currentEnableIntroSkip)
+            {
+                UpdateIntroSkipPreferences();
+                PlaySessionMonitor.Initialize();
+            }
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
@@ -195,7 +200,7 @@ namespace StrmAssistant
         {
             if (_currentPersistMediaInfo && (e.Item is Video || e.Item is Audio))
             {
-                Task.Run(() => LibraryApi.DeleteMediaInfoJson(e.Item, CancellationToken.None));
+                _ = LibraryApi.DeleteMediaInfoJson(e.Item, "Item Removed Event", CancellationToken.None);
             }
         }
 
@@ -249,7 +254,17 @@ namespace StrmAssistant
         protected override bool OnOptionsSaving(PluginOptions options)
         {
             if (string.IsNullOrEmpty(options.GeneralOptions.CatchupTaskScope))
+            {
                 options.GeneralOptions.CatchupTaskScope = CatchupTask.MediaInfo.ToString();
+            }
+            else if (!options.IntroSkipOptions.UnlockIntroSkip)
+            {
+                var taskScope = options.GeneralOptions.CatchupTaskScope;
+                var selectedTasks = taskScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Where(f => f != CatchupTask.Fingerprint.ToString())
+                    .ToList();
+                options.GeneralOptions.CatchupTaskScope = string.Join(",", selectedTasks);
+            }
 
             options.MediaInfoExtractOptions.LibraryScope = string.Join(",",
                 options.MediaInfoExtractOptions.LibraryScope
@@ -368,6 +383,8 @@ namespace StrmAssistant
                 }
             }
 
+            UpdateIntroSkipPreferences();
+
             if (!suppressLogger)
             {
                 var intoSkipLibraryScope = string.Join(", ",
@@ -387,6 +404,10 @@ namespace StrmAssistant
                         string.IsNullOrEmpty(introSkipUserScope) ? "ALL" : introSkipUserScope);
 
                 Logger.Info("IntroSkip - ClientScope is set to {0}", options.IntroSkipOptions.ClientScope);
+                var introSkipPreferences = GetSelectedIntroSkipPreferenceDescription();
+
+                Logger.Info("IntroSkipPreferences is set to {0}",
+                    string.IsNullOrEmpty(introSkipPreferences) ? "EMPTY" : introSkipPreferences);
             }
             PlaySessionMonitor.UpdateLibraryPathsInScope();
             PlaySessionMonitor.UpdateUsersInScope();
@@ -478,6 +499,21 @@ namespace StrmAssistant
             }
 
             options.GeneralOptions.CatchupTaskList = catchTaskList;
+
+            var introSkipPreferenceList = new List<EditorSelectOption>();
+            foreach (Enum item in Enum.GetValues(typeof(IntroSkipPreference)))
+            {
+                var selectPreference = new EditorSelectOption
+                {
+                    Value = item.ToString(),
+                    Name = EnumExtensions.GetDescription(item),
+                    IsEnabled = true,
+                };
+
+                introSkipPreferenceList.Add(selectPreference);
+            }
+
+            options.IntroSkipOptions.IntroSkipPreferenceList = introSkipPreferenceList;
 
             options.AboutOptions.VersionInfoList.Clear();
             options.AboutOptions.VersionInfoList.Add(

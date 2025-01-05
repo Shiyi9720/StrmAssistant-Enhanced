@@ -106,7 +106,7 @@ namespace StrmAssistant.IntroSkip
             if (_introSkipProcessTask == null || _introSkipProcessTask.IsCompleted)
             {
                 QueueManager.IntroSkipItemQueue.Clear();
-                _introSkipProcessTask = Task.Run(QueueManager.IntroSkip_ProcessItemQueueAsync);
+                _introSkipProcessTask = QueueManager.IntroSkip_ProcessItemQueueAsync();
             }
         }
 

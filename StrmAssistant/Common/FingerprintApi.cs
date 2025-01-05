@@ -190,8 +190,9 @@ namespace StrmAssistant.Common
                 }
             }
 
-            var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => !i.IsShortcut).OfType<Episode>()
-                .ToList();
+            var isModSupported = Plugin.Instance.GetPluginOptions().IntroSkipOptions.IsModSupported;
+            var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
+                .OfType<Episode>().ToList();
 
             return items;
         }
@@ -226,8 +227,9 @@ namespace StrmAssistant.Common
                 }
             }
 
-            var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => !i.IsShortcut).OfType<Episode>()
-                .ToList();
+            var isModSupported = Plugin.Instance.GetPluginOptions().IntroSkipOptions.IsModSupported;
+            var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
+                .OfType<Episode>().ToList();
 
             return items;
         }

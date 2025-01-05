@@ -1,5 +1,6 @@
 using Emby.Media.Common.Extensions;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
@@ -226,6 +227,8 @@ namespace StrmAssistant.Common
         {
             if (!item.RunTimeTicks.HasValue) return false;
 
+            if (item.Size == 0) return false;
+
             var mediaStreamCount = item.GetMediaStreams()
                 .FindAll(i => i.Type == MediaStreamType.Video || i.Type == MediaStreamType.Audio).Count;
 
@@ -268,7 +271,7 @@ namespace StrmAssistant.Common
             {
                 if (includeFavorites) resultItems = ExpandFavorites(items, true, true);
 
-                var incomingItems = items.OfType<Video>().Cast<BaseItem>().ToList();
+                var incomingItems = items.Where(item => item is Video || item is Audio).ToList();
 
                 if (libraryIds == null || !libraryIds.Any())
                 {
@@ -632,8 +635,18 @@ namespace StrmAssistant.Common
             {
                 filePath = await GetStrmMountPath(filePath).ConfigureAwait(false);
             }
+
+            if (string.IsNullOrEmpty(filePath)) return null;
+
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
             if (ExcludeMediaExtensions.Contains(fileExtension)) return null;
+
+            if (Uri.TryCreate(filePath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
+                uri.Scheme == Uri.UriSchemeFile)
+            {
+                var file = directoryService.GetFile(filePath);
+                if (file?.Exists != true) return null;
+            }
 
             var deserializeResult = false;
 
@@ -828,7 +841,7 @@ namespace StrmAssistant.Common
             return await DeserializeMediaInfo(item, directoryService, source, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task DeleteMediaInfoJson(BaseItem item, CancellationToken cancellationToken)
+        public async Task DeleteMediaInfoJson(BaseItem item, string source, CancellationToken cancellationToken)
         {
             var directoryService = new DirectoryService(_logger, _fileSystem);
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
@@ -840,11 +853,11 @@ namespace StrmAssistant.Common
                 {
                     await Task.Run(() => _fileSystem.DeleteFile(mediaInfoJsonPath), cancellationToken)
                         .ConfigureAwait(false);
-                    _logger.Info("MediaInfoPersist - Delete Success: " + mediaInfoJsonPath);
+                    _logger.Info("MediaInfoPersist - Delete Success (" + source + "): " + mediaInfoJsonPath);
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("MediaInfoPersist - Delete Failed: " + mediaInfoJsonPath);
+                    _logger.Error("MediaInfoPersist - Delete Failed (" + source + "): " + mediaInfoJsonPath);
                     _logger.Error(e.Message);
                     _logger.Debug(e.StackTrace);
                 }

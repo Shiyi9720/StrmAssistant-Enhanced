@@ -10,6 +10,7 @@ using StrmAssistant.Properties;
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace StrmAssistant.Common
 {
@@ -116,13 +117,13 @@ namespace StrmAssistant.Common
             _notificationManager.SendNotification(request);
         }
 
-        public async void SendPluginNoUpdateMessage()
+        public async Task SendMessageToAdmins(string text, long? timeout)
         {
             var message = new MessageCommand
             {
                 Header = Resources.PluginOptions_EditorTitle_Strm_Assistant,
-                Text = Resources.PluginOptions_EditorTitle_Strm_Assistant + " " + Resources.No_Update_Message,
-                TimeoutMs = 500
+                Text = text,
+                TimeoutMs = timeout
             };
 
             var admins = LibraryApi.AllUsers.Where(kvp => kvp.Value).Select(kvp => kvp.Key);
