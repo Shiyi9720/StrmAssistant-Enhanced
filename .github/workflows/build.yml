@@ -1,0 +1,43 @@
+name: Build Plugin
+
+on:
+  push:
+    branches:
+      - tab-ui
+      - simple-ui
+      - lite
+  pull_request:
+    branches:
+      - tab-ui
+      - simple-ui
+      - lite
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '6.x'
+
+      - name: Set up local NuGet source
+        run: |
+          copy .github\nuget\nuget.config .
+        shell: cmd
+        
+      - name: Restore dependencies
+        run: dotnet restore --configfile nuget.config
+
+      - name: Build the project
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StrmAssistant
+          path: C:\Users\runneradmin\AppData\Roaming\Emby-Server\programdata\plugins\StrmAssistant.dll
