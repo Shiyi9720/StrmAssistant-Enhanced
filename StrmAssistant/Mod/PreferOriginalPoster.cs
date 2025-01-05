@@ -417,7 +417,9 @@ namespace StrmAssistant.Mod
             if (itemLookup != null && !string.IsNullOrEmpty(itemLookup.OriginalLanguage))
                 return itemLookup.OriginalLanguage;
 
-            var fallbackItem = item is Movie || item is Series ? item : item is Season season ? season.Series : null;
+            var fallbackItem = item is Movie || item is Series ? item :
+                item is Season season ? season.Series :
+                item is Episode episode ? episode.Series : null;
 
             if (fallbackItem != null)
             {
