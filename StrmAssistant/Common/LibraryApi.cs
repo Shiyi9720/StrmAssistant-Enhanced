@@ -644,8 +644,18 @@ namespace StrmAssistant.Common
             {
                 filePath = await GetStrmMountPath(filePath).ConfigureAwait(false);
             }
+
+            if (string.IsNullOrEmpty(filePath)) return null;
+
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
             if (ExcludeMediaExtensions.Contains(fileExtension)) return null;
+
+            if (Uri.TryCreate(filePath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
+                uri.Scheme == Uri.UriSchemeFile)
+            {
+                var file = directoryService.GetFile(filePath);
+                if (file?.Exists != true) return null;
+            }
 
             var imageCapture = false;
 

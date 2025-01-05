@@ -91,7 +91,7 @@ namespace StrmAssistant.ScheduledTask
 
                         if (result is null)
                         {
-                            _logger.Info("MediaInfoExtract - Item skipped: " + taskItem.Name + " - " + taskItem.Path);
+                            _logger.Info("MediaInfoExtract - Item skipped or non-existent: " + taskItem.Name + " - " + taskItem.Path);
                             return;
                         }
 

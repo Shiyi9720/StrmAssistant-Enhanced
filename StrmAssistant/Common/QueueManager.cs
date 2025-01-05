@@ -197,7 +197,7 @@ namespace StrmAssistant.Common
                                 {
                                     if (cancellationToken.IsCancellationRequested)
                                     {
-                                        Logger.Info("MediaInfoExtract - Item Cancelled: " + taskItem.Name + " - " +
+                                        Logger.Info("MediaInfoExtract - Item cancelled: " + taskItem.Name + " - " +
                                                     taskItem.Path);
                                         return;
                                     }
@@ -208,7 +208,7 @@ namespace StrmAssistant.Common
 
                                     if (result is null)
                                     {
-                                        Logger.Info("MediaInfoExtract - Item Skipped: " + taskItem.Name + " - " +
+                                        Logger.Info("MediaInfoExtract - Item skipped or non-existent: " + taskItem.Name + " - " +
                                                     taskItem.Path);
                                         return;
                                     }
@@ -219,17 +219,17 @@ namespace StrmAssistant.Common
                                         IntroSkipItemQueue.Enqueue(taskItem as Episode);
                                     }
 
-                                    Logger.Info("MediaInfoExtract - Item Processed: " + taskItem.Name + " - " +
+                                    Logger.Info("MediaInfoExtract - Item processed: " + taskItem.Name + " - " +
                                                 taskItem.Path);
                                 }
                                 catch (TaskCanceledException)
                                 {
-                                    Logger.Info("MediaInfoExtract - Item Cancelled: " + taskItem.Name + " - " +
+                                    Logger.Info("MediaInfoExtract - Item cancelled: " + taskItem.Name + " - " +
                                                 taskItem.Path);
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Error("MediaInfoExtract - Item Failed: " + taskItem.Name + " - " +
+                                    Logger.Error("MediaInfoExtract - Item failed: " + taskItem.Name + " - " +
                                                  taskItem.Path);
                                     Logger.Error(e.Message);
                                     Logger.Debug(e.StackTrace);
@@ -374,7 +374,7 @@ namespace StrmAssistant.Common
 
                             if (cancellationToken.IsCancellationRequested)
                             {
-                                Logger.Info("FingerprintExtract - Season Cancelled: " + taskSeason.Name + " - " +
+                                Logger.Info("FingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                             taskSeason.Path);
                                 break;
                             }
@@ -410,7 +410,7 @@ namespace StrmAssistant.Common
                                     {
                                         if (cancellationToken.IsCancellationRequested)
                                         {
-                                            Logger.Info("FingerprintExtract - Episode Cancelled: " + taskItem.Name + " - " +
+                                            Logger.Info("FingerprintExtract - Episode cancelled: " + taskItem.Name + " - " +
                                                         taskItem.Path);
                                             return;
                                         }
@@ -423,7 +423,7 @@ namespace StrmAssistant.Common
 
                                             if (result1 is null)
                                             {
-                                                Logger.Info("FingerprintExtract - Episode Skipped: " + taskItem.Name +
+                                                Logger.Info("FingerprintExtract - Episode skipped or non-existent: " + taskItem.Name +
                                                             " - " + taskItem.Path);
                                                 seasonSkip = true;
                                                 return;
@@ -440,17 +440,17 @@ namespace StrmAssistant.Common
                                             .ExtractIntroFingerprint(taskItem, cancellationToken)
                                             .ConfigureAwait(false);
 
-                                        Logger.Info("FingerprintExtract - Episode Processed: " + taskItem.Name + " - " +
+                                        Logger.Info("FingerprintExtract - Episode processed: " + taskItem.Name + " - " +
                                                     taskItem.Path);
                                     }
                                     catch (TaskCanceledException)
                                     {
-                                        Logger.Info("FingerprintExtract - Episode Cancelled: " + taskItem.Name + " - " +
+                                        Logger.Info("FingerprintExtract - Episode cancelled: " + taskItem.Name + " - " +
                                                     taskItem.Path);
                                     }
                                     catch (Exception e)
                                     {
-                                        Logger.Error("FingerprintExtract - Episode Failed: " + taskItem.Name + " - " +
+                                        Logger.Error("FingerprintExtract - Episode failed: " + taskItem.Name + " - " +
                                                      taskItem.Path);
                                         Logger.Error(e.Message);
                                         Logger.Debug(e.StackTrace);
@@ -484,14 +484,14 @@ namespace StrmAssistant.Common
 
                                     if (cancellationToken.IsCancellationRequested)
                                     {
-                                        Logger.Info("FingerprintExtract - Season Cancelled: " + taskSeason.Name + " - " +
+                                        Logger.Info("FingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                                     taskSeason.Path);
                                         return;
                                     }
 
                                     if (seasonSkip)
                                     {
-                                        Logger.Info("FingerprintExtract - Season Skipped: " + taskSeason.Name + " - " +
+                                        Logger.Info("FingerprintExtract - Season skipped: " + taskSeason.Name + " - " +
                                                     taskSeason.Path);
                                         return;
                                     }
@@ -504,12 +504,12 @@ namespace StrmAssistant.Common
                                 }
                                 catch (TaskCanceledException)
                                 {
-                                    Logger.Info("FingerprintExtract - Season Cancelled: " + taskSeason.Name + " - " +
+                                    Logger.Info("FingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                                 taskSeason.Path);
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Error("FingerprintExtract - Season Failed: " + taskSeason.Name + " - " +
+                                    Logger.Error("FingerprintExtract - Season failed: " + taskSeason.Name + " - " +
                                                  taskSeason.Path);
                                     Logger.Error(e.Message);
                                     Logger.Debug(e.StackTrace);

@@ -121,7 +121,7 @@ namespace StrmAssistant.ScheduledTask
 
                                 if (result1 is null)
                                 {
-                                    _logger.Info("IntroFingerprintExtract - Episode Skipped: " + taskEpisode.Name +
+                                    _logger.Info("IntroFingerprintExtract - Episode skipped or non-existent: " + taskEpisode.Name +
                                                 " - " + taskEpisode.Path);
                                     seasonSkip = true;
                                     return;
