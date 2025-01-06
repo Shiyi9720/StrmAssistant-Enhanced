@@ -133,7 +133,7 @@ namespace StrmAssistant.Common
 
                     if (deferredItems.Count > 0)
                     {
-                        Logger.Debug("MediaInfoExtract - Enqueue Deferred Count: " + deferredItems.Count);
+                        Logger.Info("MediaInfoExtract - Enqueue Deferred Count: " + deferredItems.Count);
                         
                         foreach (var deferredItem in deferredItems)
                         {
@@ -323,7 +323,7 @@ namespace StrmAssistant.Common
 
                     if (deferredItems.Count > 0)
                     {
-                        Logger.Debug("FingerprintExtract - Enqueue Deferred Count: " + deferredItems.Count);
+                        Logger.Info("FingerprintExtract - Enqueue Deferred Count: " + deferredItems.Count);
 
                         foreach (var deferredItem in deferredItems)
                         {
