@@ -495,7 +495,7 @@
     <value>Support MovieDb Episode Group</value>
   </data>
   <data name="MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_" xml:space="preserve">
-    <value>Scrape TV show by specified episode group. Default is OFF.</value>
+    <value>Scrape TV show by specified episode group. Support external source. Default is OFF.</value>
   </data>
   <data name="ExclusiveControl_IgnoreFileChange_IgnoreFileChange" xml:space="preserve">
     <value>Ignore File Change</value>

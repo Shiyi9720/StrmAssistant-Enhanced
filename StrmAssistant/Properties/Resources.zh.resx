@@ -408,7 +408,7 @@
     <value>支持剧集组刮削 TMDB</value>
   </data>
   <data name="MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_" xml:space="preserve">
-    <value>用指定的剧集组刮削剧集，默认关闭。</value>
+    <value>用指定的剧集组刮削剧集，支持外部源，默认关闭。</value>
   </data>
   <data name="ExclusiveControl_IgnoreFileChange_IgnoreFileChange" xml:space="preserve">
     <value>忽略文件变更</value>
