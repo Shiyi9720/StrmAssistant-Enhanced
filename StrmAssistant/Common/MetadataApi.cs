@@ -19,6 +19,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Common.CommonUtility;
 using static StrmAssistant.Common.LanguageUtility;
 
 namespace StrmAssistant.Common
@@ -322,9 +323,17 @@ namespace StrmAssistant.Common
         public async Task<EpisodeGroupResponse> FetchOnlineEpisodeGroup(string seriesTmdbId,
             string episodeGroupId, string localEpisodeGroupPath, CancellationToken cancellationToken)
         {
-            var url =
-                $"{AltMovieDbConfig.CurrentMovieDbApiUrl}/3/tv/episode_group/{episodeGroupId}?api_key={AltMovieDbConfig.CurrentMovieDbApiKey}";
+            var isExternalEpisodeGroup = IsValidHttpUrl(episodeGroupId);
+            
+            var url = isExternalEpisodeGroup
+                ? episodeGroupId
+                : $"{AltMovieDbConfig.CurrentMovieDbApiUrl}/3/tv/episode_group/{episodeGroupId}?api_key={AltMovieDbConfig.CurrentMovieDbApiKey}";
 
+            if (isExternalEpisodeGroup)
+            {
+                episodeGroupId = GenerateFixedCode(episodeGroupId, "external_", 24);
+            }
+            
             var cacheKey = "tmdb_episode_group_" + seriesTmdbId + "_" + episodeGroupId;
 
             var cachePath = Path.Combine(Plugin.Instance.ApplicationPaths.CachePath, "tmdb-tv", seriesTmdbId,
@@ -336,6 +345,11 @@ namespace StrmAssistant.Common
 
             if (episodeGroupResponse != null && !string.IsNullOrEmpty(localEpisodeGroupPath))
             {
+                if (isExternalEpisodeGroup && string.IsNullOrEmpty(episodeGroupResponse.id))
+                {
+                    episodeGroupResponse.id = url;
+                }
+
                 try
                 {
                     _jsonSerializer.SerializeToFile(episodeGroupResponse, localEpisodeGroupPath);

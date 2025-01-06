@@ -270,10 +270,8 @@ namespace StrmAssistant.Mod
 
                 var localEpisodeGroupPath = Path.Combine(series.ContainingFolderPath, LocalEpisodeGroupFileName);
                 var episodeGroupInfo = Task.Run(
-                        () => Plugin.MetadataApi.FetchLocalEpisodeGroup(localEpisodeGroupPath),
-                        cancellationToken)
-                    .GetAwaiter()
-                    .GetResult();
+                    () => Plugin.MetadataApi.FetchLocalEpisodeGroup(localEpisodeGroupPath),
+                    cancellationToken).Result;
 
                 if (episodeGroupInfo != null && !string.IsNullOrEmpty(episodeGroupInfo.id))
                 {
@@ -316,9 +314,7 @@ namespace StrmAssistant.Mod
 
                 localEpisodeGroupPath = Path.Combine(series.ContainingFolderPath, LocalEpisodeGroupFileName);
                 episodeGroupInfo = Task.Run(() => Plugin.MetadataApi.FetchLocalEpisodeGroup(localEpisodeGroupPath),
-                        cancellationToken)
-                    .GetAwaiter()
-                    .GetResult();
+                    cancellationToken).Result;
 
                 if (episodeGroupInfo != null && !string.IsNullOrEmpty(episodeGroupInfo.id) &&
                     string.IsNullOrEmpty(episodeGroupId))
@@ -334,9 +330,7 @@ namespace StrmAssistant.Mod
                 episodeGroupInfo = Task
                     .Run(
                         () => Plugin.MetadataApi.FetchOnlineEpisodeGroup(seriesTmdbId, episodeGroupId, localEpisodeGroupPath,
-                            cancellationToken), cancellationToken)
-                    .GetAwaiter()
-                    .GetResult();
+                            cancellationToken), cancellationToken).Result;
             }
 
             if (episodeGroupInfo != null)
@@ -409,10 +403,8 @@ namespace StrmAssistant.Mod
                 episodeGroupId = episodeGroupId?.Trim();
 
                 var matchingEpisode = Task.Run(() => MapSeasonEpisode(seriesTmdbId, episodeGroupId,
-                            episode.ParentIndexNumber, episode.IndexNumber, localEpisodeGroupPath, cancellationToken),
-                        cancellationToken)
-                    .GetAwaiter()
-                    .GetResult();
+                        episode.ParentIndexNumber, episode.IndexNumber, localEpisodeGroupPath, cancellationToken),
+                    cancellationToken).Result;
 
                 if (matchingEpisode != null)
                 {
@@ -460,9 +452,8 @@ namespace StrmAssistant.Mod
                 {
                     var episodeGroupId = episode.Series.GetProviderId(MovieDbEpisodeGroupExternalId.StaticName)?.Trim();
                     var matchingEpisode = Task.Run(() => MapSeasonEpisode(seriesTmdbId, episodeGroupId,
-                            episode.ParentIndexNumber, episode.IndexNumber, localEpisodeGroupPath, cancellationToken), cancellationToken)
-                        .GetAwaiter()
-                        .GetResult();
+                            episode.ParentIndexNumber, episode.IndexNumber, localEpisodeGroupPath, cancellationToken),
+                        cancellationToken).Result;
 
                     if (matchingEpisode != null)
                     {
