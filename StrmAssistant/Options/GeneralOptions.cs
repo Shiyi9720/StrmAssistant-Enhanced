@@ -1,6 +1,7 @@
 using Emby.Media.Common.Extensions;
 using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Common;
+using Emby.Web.GenericEdit.Validation;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
@@ -54,6 +55,15 @@ namespace StrmAssistant.Options
         [DescriptionL("GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_", typeof(Resources))]
         [Required, MinValue(1), MaxValue(20)]
         public int Tier2MaxConcurrentCount { get; set; } = 1;
+
+        protected override void Validate(ValidationContext context)
+        {
+            if (CatchupTaskScope.Contains(CatchupTask.Fingerprint.ToString()) &&
+                !Plugin.Instance.IntroSkipStore.GetOptions().UnlockIntroSkip)
+            {
+                context.AddValidationError(Resources.InvalidFingerprintCatchup);
+            }
+        }
 
         public void Initialize()
         {

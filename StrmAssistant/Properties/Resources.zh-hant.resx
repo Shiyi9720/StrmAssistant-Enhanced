@@ -494,4 +494,7 @@
   <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
     <value>可選偏好設定</value>
   </data>
+  <data name="InvalidFingerprintCatchup" xml:space="preserve">
+    <value>原生片頭探測增強未啟用，設定追更無效</value>
+  </data>
 </root>

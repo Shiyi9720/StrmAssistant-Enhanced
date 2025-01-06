@@ -29,6 +29,7 @@ namespace StrmAssistant.Options.View
         {
             if (ContentData is PluginOptions options)
             {
+                options.GeneralOptions.ValidateOrThrow();
                 options.NetworkOptions.ValidateOrThrow();
             }
 
