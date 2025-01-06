@@ -107,13 +107,14 @@ namespace StrmAssistant.Common
                     }
                 }
 
+                var deferredItems = new List<BaseItem>();
+
                 if (!MediaInfoExtractItemQueue.IsEmpty)
                 {
                     var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
                     var currentQueueCount = MediaInfoExtractItemQueue.Count;
                     var dequeueItems = new List<BaseItem>();
-                    var deferredItems = new List<BaseItem>();
-
+                    
                     while (MediaInfoExtractItemQueue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
@@ -128,16 +129,6 @@ namespace StrmAssistant.Common
                         else
                         {
                             dequeueItems.Add(dequeueItem);
-                        }
-                    }
-
-                    if (deferredItems.Count > 0)
-                    {
-                        Logger.Info("MediaInfoExtract - Enqueue Deferred Count: " + deferredItems.Count);
-                        
-                        foreach (var deferredItem in deferredItems)
-                        {
-                            MediaInfoExtractItemQueue.Enqueue(deferredItem);
                         }
                     }
 
@@ -263,6 +254,16 @@ namespace StrmAssistant.Common
                     Logger.Info("MediaInfoExtract - Clear Item Queue Stopped");
                 }
 
+                if (deferredItems.Count > 0)
+                {
+                    Logger.Info("MediaInfoExtract - Enqueue Deferred Count: " + deferredItems.Count);
+                        
+                    foreach (var deferredItem in deferredItems)
+                    {
+                        MediaInfoExtractItemQueue.Enqueue(deferredItem);
+                    }
+                }
+
                 _mediaInfoProcessLastRunTime = DateTime.UtcNow;
             }
 
@@ -297,13 +298,14 @@ namespace StrmAssistant.Common
                     }
                 }
 
+                var deferredItems = new List<BaseItem>();
+
                 if (!FingerprintItemQueue.IsEmpty)
                 {
                     var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
                     var currentQueueCount = FingerprintItemQueue.Count;
                     var dequeueItems = new List<BaseItem>();
-                    var deferredItems = new List<BaseItem>();
-
+                    
                     while (FingerprintItemQueue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
@@ -318,16 +320,6 @@ namespace StrmAssistant.Common
                         else
                         {
                             dequeueItems.Add(dequeueItem);
-                        }
-                    }
-
-                    if (deferredItems.Count > 0)
-                    {
-                        Logger.Info("FingerprintExtract - Enqueue Deferred Count: " + deferredItems.Count);
-
-                        foreach (var deferredItem in deferredItems)
-                        {
-                            FingerprintItemQueue.Enqueue(deferredItem);
                         }
                     }
 
@@ -527,6 +519,16 @@ namespace StrmAssistant.Common
                     }
 
                     Logger.Info("FingerprintExtract - Clear Item Queue Stopped");
+                }
+
+                if (deferredItems.Count > 0)
+                {
+                    Logger.Info("FingerprintExtract - Enqueue Deferred Count: " + deferredItems.Count);
+
+                    foreach (var deferredItem in deferredItems)
+                    {
+                        FingerprintItemQueue.Enqueue(deferredItem);
+                    }
                 }
 
                 _fingerprintProcessLastRunTime = DateTime.UtcNow;

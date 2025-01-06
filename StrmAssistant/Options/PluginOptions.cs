@@ -1,11 +1,13 @@
 using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Elements;
+using Emby.Web.GenericEdit.Validation;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
 using System;
 using System.ComponentModel;
 using System.Linq;
+using static StrmAssistant.Options.GeneralOptions;
 
 namespace StrmAssistant.Options
 {
@@ -38,5 +40,14 @@ namespace StrmAssistant.Options
         public bool IsConflictPluginLoaded { get; } = AppDomain.CurrentDomain.GetAssemblies()
             .Select(a => a.GetName().Name)
             .Any(n => n == "StrmExtract" || n == "InfuseSync");
+
+        protected override void Validate(ValidationContext context)
+        {
+            if (GeneralOptions.CatchupTaskScope.Contains(CatchupTask.Fingerprint.ToString()) &&
+                !IntroSkipOptions.UnlockIntroSkip)
+            {
+                context.AddValidationError(Resources.InvalidFingerprintCatchup);
+            }
+        }
     }
 }

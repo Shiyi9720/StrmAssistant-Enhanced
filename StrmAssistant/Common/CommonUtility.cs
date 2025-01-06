@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -147,6 +149,13 @@ namespace StrmAssistant.Common
             }
 
             return (httpPing.HasValue, httpPing);
+        }
+
+        public static string GenerateFixedCode(string input, string prefix, int length)
+        {
+            using var md5 = MD5.Create();
+            var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
+            return prefix + BitConverter.ToString(hash).Replace("-", "").Substring(0, length).ToLower();
         }
     }
 }

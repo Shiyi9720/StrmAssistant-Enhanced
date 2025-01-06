@@ -365,7 +365,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to IntroSkip Preferences.
+        ///   Looks up a localized string similar to Optional Preferences.
         /// </summary>
         public static string IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences {
             get {
@@ -439,25 +439,6 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Enable overwriting following intro markers during reset. Default is OFF..
-        /// </summary>
-        public static string IntroSkipOptions_OverwriteIntroMarkers_Enables_overwriting_following_intro_markers_during_reset__Default_is_OFF_ {
-            get {
-                return ResourceManager.GetString("IntroSkipOptions_OverwriteIntroMarkers_Enables_overwriting_following_intro_marker" +
-                        "s_during_reset__Default_is_OFF_", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Allow Reset to Overwrite.
-        /// </summary>
-        public static string IntroSkipOptions_OverwriteIntroMarkers_Overwrite_Following_Intro_Markers {
-            get {
-                return ResourceManager.GetString("IntroSkipOptions_OverwriteIntroMarkers_Overwrite_Following_Intro_Markers", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Built-in Intro Detection Enhanced.
         /// </summary>
         public static string IntroSkipOptions_UnlockIntroSkip_Built_in_Intro_Skip_Enhanced {
@@ -527,6 +508,15 @@ namespace StrmAssistant.Properties {
         public static string InvalidBlacklistShowIds {
             get {
                 return ResourceManager.GetString("InvalidBlacklistShowIds", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string InvalidFingerprintCatchup {
+            get {
+                return ResourceManager.GetString("InvalidFingerprintCatchup", resourceCulture);
             }
         }
         

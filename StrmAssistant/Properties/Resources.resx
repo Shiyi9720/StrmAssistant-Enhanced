@@ -584,4 +584,7 @@
   <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
     <value>Optional Preferences</value>
   </data>
+  <data name="InvalidFingerprintCatchup" xml:space="preserve">
+    <value>Fingerprint catchup is invalid because built-in intro detection enhanced is not enabled.</value>
+  </data>
 </root>
