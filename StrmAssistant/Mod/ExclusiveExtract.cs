@@ -421,9 +421,10 @@ namespace StrmAssistant.Mod
             }
 
             if (item.HasImage(ImageType.Primary) && provider is IRemoteImageProvider &&
+                refreshOptions is MetadataRefreshOptions && !refreshOptions.IsAutomated &&
                 (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
                  !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && item.IsShortcut &&
-                 refreshOptions is MetadataRefreshOptions && !refreshOptions.ReplaceAllImages))
+                 !refreshOptions.ReplaceAllImages))
             {
                 __result = false;
                 return false;
