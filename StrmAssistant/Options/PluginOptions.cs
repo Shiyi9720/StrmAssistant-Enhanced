@@ -15,7 +15,7 @@ namespace StrmAssistant.Options
 
         public override string EditorDescription => string.Empty;
 
-        [VisibleCondition(nameof(IsConflictPluginLoaded), SimpleCondition.IsTrue)]
+        [VisibleCondition(nameof(ShowConflictPluginLoadedStatus), SimpleCondition.IsTrue)]
         public StatusItem ConflictPluginLoadedStatus { get; set; } = new StatusItem();
 
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
@@ -31,13 +31,14 @@ namespace StrmAssistant.Options
         public AboutOptions AboutOptions { get; set; } = new AboutOptions();
 
         [Browsable(false)]
-        public bool IsConflictPluginLoaded { get; } = AppDomain.CurrentDomain.GetAssemblies()
-            .Select(a => a.GetName().Name)
-            .Any(n => n == "StrmExtract" || n == "InfuseSync");
+        public bool ShowConflictPluginLoadedStatus =>
+            AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetName().Name)
+                .Any(n => n == "StrmExtract" || n == "InfuseSync");
 
         public void Initialize()
         {
-            if (IsConflictPluginLoaded)
+            if (ShowConflictPluginLoadedStatus)
             {
                 ConflictPluginLoadedStatus.Caption = Resources
                     .PluginOptions_IncompatibleMessage_Please_uninstall_the_conflict_plugin_Strm_Extract;
@@ -46,7 +47,7 @@ namespace StrmAssistant.Options
             }
             else
             {
-                ConflictPluginLoadedStatus.Caption=string.Empty;
+                ConflictPluginLoadedStatus.Caption = string.Empty;
                 ConflictPluginLoadedStatus.StatusText = string.Empty;
                 ConflictPluginLoadedStatus.Status = ItemStatus.None;
             }

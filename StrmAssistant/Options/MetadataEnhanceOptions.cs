@@ -131,17 +131,17 @@ namespace StrmAssistant.Options
         public string AltMovieDbApiKey { get; set; } = string.Empty;
 
         [Browsable(false)]
-        public bool IsMovieDbPluginLoaded { get; } =
+        public bool IsMovieDbPluginLoaded =>
             AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "MovieDb") &&
             RuntimeInformation.ProcessArchitecture == Architecture.X64;
 
         [Browsable(false)]
-        public bool IsNfoMetadataPluginLoaded { get; } =
+        public bool IsNfoMetadataPluginLoaded =>
             AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "NfoMetadata") &&
             RuntimeInformation.ProcessArchitecture == Architecture.X64;
 
         [Browsable(false)]
-        public bool IsModSupported { get; } = RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
 
         protected override void Validate(ValidationContext context)
         {

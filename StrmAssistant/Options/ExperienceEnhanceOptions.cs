@@ -22,6 +22,6 @@ namespace StrmAssistant.Options
         public UIFunctionOptions UIFunctionOptions { get; set; } = new UIFunctionOptions();
 
         [Browsable(false)]
-        public bool IsModSupported { get; } = RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
     }
 }

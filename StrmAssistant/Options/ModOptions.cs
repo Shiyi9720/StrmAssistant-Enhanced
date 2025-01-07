@@ -19,7 +19,7 @@ namespace StrmAssistant.Options
         [DisplayNameL("ModOptions_EnhanceChineseSearch_Enhance_Chinese_Search", typeof(Resources))]
         [DescriptionL("ModOptions_EnhanceChineseSearch_Support_Chinese_fuzzy_search_and_Pinyin_search__Default_is_OFF_", typeof(Resources))]
         [Required]
-        [EnabledCondition(nameof(IsChineseSearchEnabled), SimpleCondition.IsTrue)]
+        [EnabledCondition(nameof(IsChineseSearchSupported), SimpleCondition.IsTrue)]
         public bool EnhanceChineseSearch { get; set; } = false;
 
         [Browsable(false)]
@@ -60,23 +60,15 @@ namespace StrmAssistant.Options
             string.Join(",", new[] { SearchItemType.Movie, SearchItemType.Collection, SearchItemType.Series });
 
         [Browsable(false)]
-        public bool IsModSupported { get; } = RuntimeInformation.ProcessArchitecture == Architecture.X64;
-
-        [Browsable(false)] public bool IsChineseSearchEnabled { get; private set; } = IsChineseSearchSupported();
-
-        private static bool IsChineseSearchSupported()
-        {
-            return RuntimeInformation.ProcessArchitecture == Architecture.X64 &&
-                   (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.8.3.0") &&
-                    Plugin.Instance.ApplicationHost.ApplicationVersion < new Version("4.9.0.0") ||
-                    Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.9.0.15") &&
-                    Plugin.Instance.ApplicationHost.ApplicationVersion <= new Version("4.9.0.35"));
-        }
+        public bool IsChineseSearchSupported =>
+            EnhanceChineseSearch || RuntimeInformation.ProcessArchitecture == Architecture.X64 &&
+            (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.8.3.0") &&
+             Plugin.Instance.ApplicationHost.ApplicationVersion < new Version("4.9.0.0") ||
+             Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.9.0.15") &&
+             Plugin.Instance.ApplicationHost.ApplicationVersion <= new Version("4.9.0.35"));
 
         public void Initialize()
         {
-            IsChineseSearchEnabled = EnhanceChineseSearch || IsChineseSearchSupported();
-
             SearchItemTypeList.Clear();
 
             foreach (Enum item in Enum.GetValues(typeof(SearchItemType)))

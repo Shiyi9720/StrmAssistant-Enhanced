@@ -163,7 +163,7 @@ namespace StrmAssistant.Mod
                     }
                 }
 
-                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Current tokenizer is " + CurrentTokenizerName);
+                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Current tokenizer (before) is " + CurrentTokenizerName);
 
                 if (!string.Equals(CurrentTokenizerName, "unknown", StringComparison.Ordinal))
                 {
@@ -199,6 +199,8 @@ namespace StrmAssistant.Mod
                         }
                     }
                 }
+
+                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Current tokenizer (after) is " + CurrentTokenizerName);
             }
             catch (Exception e)
             {
