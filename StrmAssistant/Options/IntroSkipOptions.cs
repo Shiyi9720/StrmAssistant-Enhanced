@@ -105,6 +105,6 @@ namespace StrmAssistant.Options
         public string IntroSkipPreferences { get; set; } = string.Empty;
 
         [Browsable(false)]
-        public bool IsModSupported { get; } = RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
     }
 }

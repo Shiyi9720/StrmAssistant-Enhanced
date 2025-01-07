@@ -439,6 +439,20 @@ namespace StrmAssistant
 
         protected override PluginOptions OnBeforeShowUI(PluginOptions options)
         {
+            if (options.ShowConflictPluginLoadedStatus)
+            {
+                options.ConflictPluginLoadedStatus.Caption = Resources
+                    .PluginOptions_IncompatibleMessage_Please_uninstall_the_conflict_plugin_Strm_Extract;
+                options.ConflictPluginLoadedStatus.StatusText = string.Empty;
+                options.ConflictPluginLoadedStatus.Status = ItemStatus.Warning;
+            }
+            else
+            {
+                options.ConflictPluginLoadedStatus.Caption = string.Empty;
+                options.ConflictPluginLoadedStatus.StatusText = string.Empty;
+                options.ConflictPluginLoadedStatus.Status = ItemStatus.None;
+            }
+
             var libraries = _libraryManager.GetVirtualFolders();
 
             var list = new List<EditorSelectOption>();

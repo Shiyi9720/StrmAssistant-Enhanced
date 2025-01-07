@@ -23,11 +23,7 @@ namespace StrmAssistant.Options
         [DescriptionL("PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_", typeof(Resources))]
         [Browsable(false)]
         [Required]
-        public bool EnableImageCapture
-        {
-            get => false;
-            set { }
-        }
+        public bool EnableImageCapture => false;
 
         [Browsable(false)]
         [Required]

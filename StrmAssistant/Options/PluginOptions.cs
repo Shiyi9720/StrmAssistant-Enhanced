@@ -17,7 +17,7 @@ namespace StrmAssistant.Options
 
         public override string EditorDescription => string.Empty;
 
-        [VisibleCondition(nameof(IsConflictPluginLoaded), SimpleCondition.IsTrue)]
+        [VisibleCondition(nameof(ShowConflictPluginLoadedStatus), SimpleCondition.IsTrue)]
         public StatusItem ConflictPluginLoadedStatus { get; set; } = new StatusItem();
 
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
@@ -37,9 +37,10 @@ namespace StrmAssistant.Options
         public AboutOptions AboutOptions { get; set; } = new AboutOptions();
 
         [Browsable(false)]
-        public bool IsConflictPluginLoaded { get; } = AppDomain.CurrentDomain.GetAssemblies()
-            .Select(a => a.GetName().Name)
-            .Any(n => n == "StrmExtract" || n == "InfuseSync");
+        public bool ShowConflictPluginLoadedStatus =>
+            AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetName().Name)
+                .Any(n => n == "StrmExtract" || n == "InfuseSync");
 
         protected override void Validate(ValidationContext context)
         {
