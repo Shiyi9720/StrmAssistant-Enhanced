@@ -44,6 +44,8 @@ namespace StrmAssistant.Options
         {
             [DescriptionL("ExclusiveControl_IgnoreFileChange_IgnoreFileChange", typeof(Resources))]
             IgnoreFileChange,
+            [DescriptionL("ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange", typeof(Resources))]
+            ExtractOnFileChange,
             [DescriptionL("ExclusiveControl_CatchAllAllow_CatchAllAllow", typeof(Resources))]
             CatchAllAllow,
             [DescriptionL("ExclusiveControl_CatchAllBlock_CatchAllBlock", typeof(Resources))]

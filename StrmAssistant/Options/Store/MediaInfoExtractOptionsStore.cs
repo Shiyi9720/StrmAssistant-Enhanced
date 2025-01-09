@@ -38,8 +38,12 @@ namespace StrmAssistant.Options.Store
 
                 var controlFeatures = options.ExclusiveControlFeatures;
                 var selectedFeatures = controlFeatures.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Where(f => !(f == ExclusiveControl.CatchAllAllow.ToString() &&
-                                  controlFeatures.Contains(ExclusiveControl.CatchAllBlock.ToString())))
+                    .Where(f =>
+                        !(controlFeatures.Contains(ExclusiveControl.CatchAllBlock.ToString()) &&
+                          (f == ExclusiveControl.CatchAllAllow.ToString() ||
+                           f == ExclusiveControl.ExtractOnFileChange.ToString())) &&
+                        !(controlFeatures.Contains(ExclusiveControl.IgnoreFileChange.ToString()) &&
+                          f == ExclusiveControl.ExtractOnFileChange.ToString()))
                     .ToList();
                 options.ExclusiveControlFeatures = string.Join(",", selectedFeatures);
 

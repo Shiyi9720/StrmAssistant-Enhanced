@@ -319,6 +319,12 @@ namespace StrmAssistant.Mod
             if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange) && CurrentRefreshContext.Value != null &&
                 Plugin.LibraryApi.HasFileChanged(item))
             {
+                if (IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) && item.IsShortcut &&
+                    Plugin.LibraryApi.HasMediaInfo(item))
+                {
+                    CurrentRefreshContext.Value.MetadataRefreshOptions.EnableRemoteContentProbe = true;
+                }
+
                 CurrentRefreshContext.Value.MediaInfoNeedsUpdate = true;
                 return true;
             }
@@ -444,7 +450,8 @@ namespace StrmAssistant.Mod
             {
                 if (CurrentRefreshContext.Value.MediaInfoNeedsUpdate)
                 {
-                    if (__instance.IsShortcut)
+                    if (__instance.IsShortcut &&
+                        !CurrentRefreshContext.Value.MetadataRefreshOptions.EnableRemoteContentProbe)
                     {
                         _ = Plugin.LibraryApi.DeleteMediaInfoJson(__instance, "Exclusive Delete on Change",
                             CancellationToken.None);

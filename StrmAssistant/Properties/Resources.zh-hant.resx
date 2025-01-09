@@ -497,4 +497,7 @@
   <data name="InvalidFingerprintCatchup" xml:space="preserve">
     <value>原生片頭探測增強未啟用，設定追更無效</value>
   </data>
+  <data name="ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange" xml:space="preserve">
+    <value>變更後自動提取</value>
+  </data>
 </root>

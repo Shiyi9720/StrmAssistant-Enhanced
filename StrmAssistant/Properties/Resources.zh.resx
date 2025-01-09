@@ -500,4 +500,7 @@
   <data name="InvalidFingerprintCatchup" xml:space="preserve">
     <value>原生片头探测增强未启用，设置追更无效</value>
   </data>
+  <data name="ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange" xml:space="preserve">
+    <value>变更后自动提取</value>
+  </data>
 </root>
