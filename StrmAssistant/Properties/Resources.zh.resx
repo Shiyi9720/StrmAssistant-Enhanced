@@ -503,4 +503,10 @@
   <data name="ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange" xml:space="preserve">
     <value>变更后自动提取</value>
   </data>
+  <data name="ModOptions_ExcludeOriginalTitle_Exclude_Original_Title" xml:space="preserve">
+    <value>排除原语言标题</value>
+  </data>
+  <data name="ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_" xml:space="preserve">
+    <value>排除原语言标题搜索，默认关闭。</value>
+  </data>
 </root>

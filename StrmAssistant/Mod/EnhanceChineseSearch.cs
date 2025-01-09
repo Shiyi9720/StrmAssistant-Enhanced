@@ -527,7 +527,14 @@ namespace StrmAssistant.Mod
         {
             if (!string.IsNullOrEmpty(query.SearchTerm) && __result.Contains("match @SearchTerm"))
             {
-                __result = __result.Replace("match @SearchTerm", "match simple_query(@SearchTerm)");
+                if (!Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.ExcludeOriginalTitleFromSearch)
+                {
+                    __result = __result.Replace("match @SearchTerm", "match simple_query(@SearchTerm)");
+                }
+                else
+                {
+                    __result = __result.Replace("match @SearchTerm", "match '-OriginalTitle:' || simple_query(@SearchTerm)");
+                }
             }
 
             if (!string.IsNullOrEmpty(query.Name) && __result.Contains("match @SearchTerm"))

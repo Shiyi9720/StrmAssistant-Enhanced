@@ -58,6 +58,12 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnhanceChineseSearch), SimpleCondition.IsTrue)]
         public string SearchScope { get; set; } =
             string.Join(",", new[] { SearchItemType.Movie, SearchItemType.Collection, SearchItemType.Series });
+        
+        [DisplayNameL("ModOptions_ExcludeOriginalTitle_Exclude_Original_Title", typeof(Resources))]
+        [DescriptionL("ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_", typeof(Resources))]
+        [Required]
+        [VisibleCondition(nameof(EnhanceChineseSearch), SimpleCondition.IsTrue)]
+        public bool ExcludeOriginalTitleFromSearch { get; set; } = false;
 
         [Browsable(false)]
         public bool IsChineseSearchSupported =>

@@ -134,7 +134,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to Auto Extract on File Change.
         /// </summary>
         public static string ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange {
             get {
@@ -143,7 +143,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to IgnoreExtSubChange.
+        ///   Looks up a localized string similar to Ignore External Subtitle Change.
         /// </summary>
         public static string ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange {
             get {
@@ -161,7 +161,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to NoPersistIntegration.
+        ///   Looks up a localized string similar to No Persist Integration.
         /// </summary>
         public static string ExclusiveControl_NoPersistIntegration_NoPersistIntegration {
             get {
@@ -942,6 +942,25 @@ namespace StrmAssistant.Properties {
             get {
                 return ResourceManager.GetString("ModOptions_EnhanceChineseSearch_Support_Chinese_fuzzy_search_and_Pinyin_search__D" +
                         "efault_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exclude Original Title.
+        /// </summary>
+        public static string ModOptions_ExcludeOriginalTitle_Exclude_Original_Title {
+            get {
+                return ResourceManager.GetString("ModOptions_ExcludeOriginalTitle_Exclude_Original_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exclude original title from search. Default is OFF..
+        /// </summary>
+        public static string ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OF" +
+                        "F_", resourceCulture);
             }
         }
         

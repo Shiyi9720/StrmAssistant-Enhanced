@@ -188,7 +188,6 @@ namespace StrmAssistant.Options.Store
                     _logger.Info("CatchupMode is set to {0}", options.GeneralOptions.CatchupMode);
 
                     _logger.Info("EnhanceChineseSearch is set to {0}", options.ModOptions.EnhanceChineseSearch);
-
                     var searchScope = string.Join(", ",
                         options.ModOptions.SearchScope
                             ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -199,6 +198,7 @@ namespace StrmAssistant.Options.Store
                             .Where(d => d != null) ?? Enumerable.Empty<string>());
                     _logger.Info("EnhanceChineseSearch - SearchScope is set to {0}",
                         string.IsNullOrEmpty(searchScope) ? "ALL" : searchScope);
+                    _logger.Info("ExcludeOriginalTitleFromSearch is set to {0}", options.ModOptions.ExcludeOriginalTitleFromSearch);
 
                     _logger.Info("EnableProxyServer is set to {0}", options.NetworkOptions.EnableProxyServer);
                     _logger.Info("ProxyServerUrl is set to {0}",
