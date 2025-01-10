@@ -579,7 +579,7 @@
     <value>No Persist Integration</value>
   </data>
   <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
-    <value>ResetAndOverwrite</value>
+    <value>Reset operation overwrites intro marks added by built-in intro detection</value>
   </data>
   <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
     <value>Optional Preferences</value>
@@ -595,5 +595,8 @@
   </data>
   <data name="ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_" xml:space="preserve">
     <value>Exclude original title from search. Default is OFF.</value>
+  </data>
+  <data name="IntroSkipPreference_NoDetectionButReset_NoDetectionButReset" xml:space="preserve">
+    <value>No detection but pause operation to set intro and/or credits markers</value>
   </data>
 </root>

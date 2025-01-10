@@ -506,4 +506,10 @@
   <data name="ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_" xml:space="preserve">
     <value>排除原語言標題搜索，預設為關閉。</value>
   </data>
+  <data name="IntroSkipPreference_NoDetectionButReset_NoDetectionButReset" xml:space="preserve">
+    <value>無自動偵測僅暫停操作設定片頭片尾標記</value>
+  </data>
+  <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
+    <value>重置操作涵蓋後續各集原生片頭標記</value>
+  </data>
 </root>

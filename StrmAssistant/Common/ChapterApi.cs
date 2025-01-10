@@ -284,7 +284,7 @@ namespace StrmAssistant.Common
                 {
                     var hasMarkers = chapters.Any(c =>
                         (c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
-                         c.MarkerType == MarkerType.CreditsStart) && AllowOverwrite(c));
+                         c.MarkerType == MarkerType.CreditsStart) && c.Name.EndsWith(MarkerSuffix));
                     if (hasMarkers)
                     {
                         items.Add(item);

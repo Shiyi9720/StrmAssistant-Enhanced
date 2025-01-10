@@ -308,7 +308,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ResetAndOverwrite.
+        ///   Looks up a localized string similar to Reset operation overwrites intro marks added by built-in intro detection.
         /// </summary>
         public static string IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite {
             get {
@@ -481,6 +481,15 @@ namespace StrmAssistant.Properties {
         public static string IntroSkipOptions_UserScope_Users_allowed_to_detect__Blank_includes_all {
             get {
                 return ResourceManager.GetString("IntroSkipOptions_UserScope_Users_allowed_to_detect__Blank_includes_all", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No detection but pause operation to set intro and credits markers.
+        /// </summary>
+        public static string IntroSkipPreference_NoDetectionButReset_NoDetectionButReset {
+            get {
+                return ResourceManager.GetString("IntroSkipPreference_NoDetectionButReset_NoDetectionButReset", resourceCulture);
             }
         }
         
@@ -955,7 +964,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exclude original title from search. Default is OFF..
+        ///   Looks up a localized string similar to Exclude original title to search. Default is OFF..
         /// </summary>
         public static string ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_ {
             get {

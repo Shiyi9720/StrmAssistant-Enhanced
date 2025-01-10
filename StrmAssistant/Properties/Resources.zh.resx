@@ -509,4 +509,7 @@
   <data name="ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_" xml:space="preserve">
     <value>排除原语言标题搜索，默认关闭。</value>
   </data>
+  <data name="IntroSkipPreference_NoDetectionButReset_NoDetectionButReset" xml:space="preserve">
+    <value>无自动探测仅暂停操作设置片头片尾标记</value>
+  </data>
 </root>
