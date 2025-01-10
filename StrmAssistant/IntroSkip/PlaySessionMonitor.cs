@@ -114,9 +114,26 @@ namespace StrmAssistant.IntroSkip
         {
             if (!e.PlaybackPositionTicks.HasValue || e.Item is null) return;
 
+            var options = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
+
             _logger.Info("IntroSkip - Client Name: " + e.ClientName);
-            _logger.Info("IntroSkip - Allowed Clients: " +
-                         Plugin.Instance.GetPluginOptions().IntroSkipOptions.ClientScope);
+            _logger.Info("IntroSkip - Allowed Clients: " + options.ClientScope);
+
+            var intoSkipLibraryScope = string.Join(", ",
+                options.LibraryScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(v => options.LibraryList
+                        .FirstOrDefault(option => option.Value == v)
+                        ?.Name) ?? Enumerable.Empty<string>());
+            _logger.Info("IntroSkip - LibraryScope is set to {0}",
+                string.IsNullOrEmpty(intoSkipLibraryScope) ? "ALL" : intoSkipLibraryScope);
+
+            var introSkipUserScope = string.Join(", ",
+                options.UserScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(v => options.UserList
+                        .FirstOrDefault(option => option.Value == v)
+                        ?.Name) ?? Enumerable.Empty<string>());
+            _logger.Info("IntroSkip - UserScope is set to {0}",
+                string.IsNullOrEmpty(introSkipUserScope) ? "ALL" : introSkipUserScope);
 
             _playSessionData.TryRemove(e.PlaySessionId, out _);
             var playSessionData = GetPlaySessionData(e);
@@ -125,6 +142,13 @@ namespace StrmAssistant.IntroSkip
             playSessionData.PlaybackStartTicks = e.PlaybackPositionTicks.Value;
             playSessionData.PreviousPositionTicks = e.PlaybackPositionTicks.Value;
             playSessionData.PreviousEventTime = DateTime.UtcNow;
+
+            if (playSessionData.NoDetectionButReset)
+            {
+                _logger.Info("IntroSkip - No detection but allows pause to reset");
+                return;
+            }
+
             if (Plugin.ChapterApi.HasIntro(e.Item) && Plugin.ChapterApi.HasCredits(e.Item))
             {
                 _logger.Info("IntroSkip - Intro marker and Credits marker already exist");
@@ -143,6 +167,8 @@ namespace StrmAssistant.IntroSkip
 
         private void OnPlaybackProgress(object sender, PlaybackProgressEventArgs e)
         {
+            //_logger.Debug("IntroSkip - EventName: " + e.EventName);
+
             if (e.Item == null || e.EventName != ProgressEvent.TimeUpdate && e.EventName != ProgressEvent.Unpause &&
                 e.EventName != ProgressEvent.PlaybackRateChange && e.EventName != ProgressEvent.Pause ||
                 !e.PlaybackPositionTicks.HasValue || e.PlaybackPositionTicks.Value == 0)
@@ -157,7 +183,7 @@ namespace StrmAssistant.IntroSkip
             var introStart = Plugin.ChapterApi.GetIntroStart(e.Item);
             var creditsStart = Plugin.ChapterApi.GetCreditsStart(e.Item);
 
-            if (e.EventName == ProgressEvent.TimeUpdate && !introEnd.HasValue)
+            if (!playSessionData.NoDetectionButReset && e.EventName == ProgressEvent.TimeUpdate && !introEnd.HasValue)
             {
                 var elapsedTime = (currentEventTime - playSessionData.PreviousEventTime).TotalSeconds;
                 var positionTimeDiff = TimeSpan.FromTicks(currentPositionTicks - playSessionData.PreviousPositionTicks)
@@ -230,7 +256,9 @@ namespace StrmAssistant.IntroSkip
                 return;
             }
 
-            if (e.EventName == ProgressEvent.Unpause && playSessionData.LastPauseEventTime.HasValue &&
+            if (!playSessionData.NoDetectionButReset && e.EventName == ProgressEvent.Unpause &&
+                playSessionData.LastPauseEventTime.HasValue &&
+                (currentEventTime - playSessionData.LastPauseEventTime.Value).TotalMilliseconds > 500 &&
                 (currentEventTime - playSessionData.LastPauseEventTime.Value).TotalMilliseconds < 5000 &&
                 introStart.HasValue && introStart.Value < currentPositionTicks && introEnd.HasValue &&
                 currentPositionTicks < Math.Max(playSessionData.MaxIntroDurationTicks, introEnd.Value) &&
@@ -240,11 +268,24 @@ namespace StrmAssistant.IntroSkip
                 UpdateIntroTask(e.Item as Episode, e.Session, introStart.Value, currentPositionTicks);
             }
 
+            if (playSessionData.NoDetectionButReset && e.EventName == ProgressEvent.Unpause &&
+                playSessionData.LastPauseEventTime.HasValue &&
+                (currentEventTime - playSessionData.LastPauseEventTime.Value).TotalMilliseconds > 500 &&
+                (currentEventTime - playSessionData.LastPauseEventTime.Value).TotalMilliseconds < 5000 &&
+                currentPositionTicks < playSessionData.MaxIntroDurationTicks &&
+                (!introEnd.HasValue ||
+                 Math.Abs(TimeSpan.FromTicks(currentPositionTicks - introEnd.Value).TotalMilliseconds) >
+                 (playSessionData.LastPlaybackRateChangeEventTime.HasValue ? 500 : 0)))
+            {
+                UpdateIntroTask(e.Item as Episode, e.Session, new TimeSpan(0, 0, 0).Ticks, currentPositionTicks);
+            }
+
             if (e.EventName == ProgressEvent.Unpause && e.Item.RunTimeTicks.HasValue &&
                 playSessionData.LastPauseEventTime.HasValue &&
+                (currentEventTime - playSessionData.LastPauseEventTime.Value).TotalMilliseconds > 500 &&
                 (currentEventTime - playSessionData.LastPauseEventTime.Value).TotalMilliseconds < 5000 &&
                 currentPositionTicks > e.Item.RunTimeTicks - playSessionData.MaxCreditsDurationTicks &&
-                creditsStart.HasValue)
+                (creditsStart.HasValue || playSessionData.NoDetectionButReset))
             {
                 if (e.Item.RunTimeTicks.Value > currentPositionTicks)
                 {
@@ -272,6 +313,7 @@ namespace StrmAssistant.IntroSkip
                     }
                 }
             }
+
             _playSessionData.TryRemove(e.PlaySessionId, out _);
         }
 

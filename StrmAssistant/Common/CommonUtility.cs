@@ -87,7 +87,7 @@ namespace StrmAssistant.Common
             {
                 using var tcpClient = new TcpClient();
                 var stopwatch = Stopwatch.StartNew();
-                if (tcpClient.ConnectAsync(host, port).Wait(666))
+                if (tcpClient.ConnectAsync(host, port).Wait(999))
                 {
                     stopwatch.Stop();
                     return (true, stopwatch.Elapsed.TotalMilliseconds);

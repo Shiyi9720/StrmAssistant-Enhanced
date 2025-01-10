@@ -381,7 +381,7 @@
     <value>代理服务器</value>
   </data>
   <data name="ModOptions_ProxyServer_Enable_http_proxy_server__Blank_is_OFF_" xml:space="preserve">
-    <value>支持 HTTP(S) 代理服务器，至 Google 的延迟必须小于 666 毫秒，测试失败或留空则禁用，设置变更后须重启生效。</value>
+    <value>支持 HTTP(S) 代理服务器，至 Google 的延迟必须小于 999 毫秒，测试失败或留空则禁用，设置变更后须重启生效。</value>
   </data>
   <data name="ProxyServer_Available" xml:space="preserve">
     <value>可用</value>
@@ -408,7 +408,7 @@
     <value>支持剧集组刮削 TMDB</value>
   </data>
   <data name="MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_" xml:space="preserve">
-    <value>用指定的剧集组刮削剧集，默认关闭。</value>
+    <value>用指定的剧集组刮削剧集，支持外部源，默认关闭。</value>
   </data>
   <data name="ExclusiveControl_IgnoreFileChange_IgnoreFileChange" xml:space="preserve">
     <value>忽略文件变更</value>
@@ -499,5 +499,17 @@
   </data>
   <data name="InvalidFingerprintCatchup" xml:space="preserve">
     <value>原生片头探测增强未启用，设置追更无效</value>
+  </data>
+  <data name="ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange" xml:space="preserve">
+    <value>变更后自动提取</value>
+  </data>
+  <data name="ModOptions_ExcludeOriginalTitle_Exclude_Original_Title" xml:space="preserve">
+    <value>排除原语言标题</value>
+  </data>
+  <data name="ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_" xml:space="preserve">
+    <value>排除原语言标题搜索，默认关闭。</value>
+  </data>
+  <data name="IntroSkipPreference_NoDetectionButReset_NoDetectionButReset" xml:space="preserve">
+    <value>无自动探测仅暂停操作设置片头片尾标记</value>
   </data>
 </root>

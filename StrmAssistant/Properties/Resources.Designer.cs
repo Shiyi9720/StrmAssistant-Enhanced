@@ -134,7 +134,16 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to IgnoreExtSubChange.
+        ///   Looks up a localized string similar to Auto Extract on File Change.
+        /// </summary>
+        public static string ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange {
+            get {
+                return ResourceManager.GetString("ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ignore External Subtitle Change.
         /// </summary>
         public static string ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange {
             get {
@@ -152,7 +161,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to NoPersistIntegration.
+        ///   Looks up a localized string similar to No Persist Integration.
         /// </summary>
         public static string ExclusiveControl_NoPersistIntegration_NoPersistIntegration {
             get {
@@ -299,7 +308,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ResetAndOverwrite.
+        ///   Looks up a localized string similar to Reset operation overwrites intro marks added by built-in intro detection.
         /// </summary>
         public static string IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite {
             get {
@@ -476,6 +485,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No detection but pause operation to set intro and credits markers.
+        /// </summary>
+        public static string IntroSkipPreference_NoDetectionButReset_NoDetectionButReset {
+            get {
+                return ResourceManager.GetString("IntroSkipPreference_NoDetectionButReset_NoDetectionButReset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Alternative MovieDb Api Key is invalid.
         /// </summary>
         public static string InvalidAltMovieDbApiKey {
@@ -512,7 +530,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to Fingerprint catchup is invalid because built-in intro detection enhanced is not enabled..
         /// </summary>
         public static string InvalidFingerprintCatchup {
             get {
@@ -890,7 +908,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Scrape TV show by specified episode group. Default is OFF..
+        ///   Looks up a localized string similar to Scrape TV show by specified episode group. Support external source. Default is OFF..
         /// </summary>
         public static string MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_ {
             get {
@@ -933,6 +951,25 @@ namespace StrmAssistant.Properties {
             get {
                 return ResourceManager.GetString("ModOptions_EnhanceChineseSearch_Support_Chinese_fuzzy_search_and_Pinyin_search__D" +
                         "efault_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exclude Original Title.
+        /// </summary>
+        public static string ModOptions_ExcludeOriginalTitle_Exclude_Original_Title {
+            get {
+                return ResourceManager.GetString("ModOptions_ExcludeOriginalTitle_Exclude_Original_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exclude original title to search. Default is OFF..
+        /// </summary>
+        public static string ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OF" +
+                        "F_", resourceCulture);
             }
         }
         
@@ -1029,7 +1066,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Support http(s) proxy server. Latency to Google must be less than 666 milliseconds. Disabled if unavailabe or leave blank. Restart if any changes..
+        ///   Looks up a localized string similar to Support http(s) proxy server. Latency to Google must be less than 999 milliseconds. Disabled if unavailabe or leave blank. Restart if any changes..
         /// </summary>
         public static string ModOptions_ProxyServer_Enable_http_proxy_server__Blank_is_OFF_ {
             get {

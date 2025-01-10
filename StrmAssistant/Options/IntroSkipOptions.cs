@@ -92,7 +92,9 @@ namespace StrmAssistant.Options
         public enum IntroSkipPreference
         {
             [DescriptionL("IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite", typeof(Resources))]
-            ResetAndOverwrite
+            ResetAndOverwrite,
+            [DescriptionL("IntroSkipPreference_NoDetectionButReset_NoDetectionButReset", typeof(Resources))]
+            NoDetectionButReset
         }
 
         [Browsable(false)]

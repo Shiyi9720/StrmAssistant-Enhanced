@@ -468,7 +468,7 @@
     <value>Proxy Server</value>
   </data>
   <data name="ModOptions_ProxyServer_Enable_http_proxy_server__Blank_is_OFF_" xml:space="preserve">
-    <value>Support http(s) proxy server. Latency to Google must be less than 666 milliseconds. Disabled if unavailabe or leave blank. Restart if any changes.</value>
+    <value>Support http(s) proxy server. Latency to Google must be less than 999 milliseconds. Disabled if unavailabe or leave blank. Restart if any changes.</value>
   </data>
   <data name="ProxyServer_Available" xml:space="preserve">
     <value>Available</value>
@@ -495,7 +495,7 @@
     <value>Support MovieDb Episode Group</value>
   </data>
   <data name="MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_" xml:space="preserve">
-    <value>Scrape TV show by specified episode group. Default is OFF.</value>
+    <value>Scrape TV show by specified episode group. Support external source. Default is OFF.</value>
   </data>
   <data name="ExclusiveControl_IgnoreFileChange_IgnoreFileChange" xml:space="preserve">
     <value>Ignore File Change</value>
@@ -573,18 +573,30 @@
     <value>Built-in Intro Detection Enhanced is not enabled. IntroFingerprintExtract task aborted.</value>
   </data>
   <data name="ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange" xml:space="preserve">
-    <value>IgnoreExtSubChange</value>
+    <value>Ignore External Subtitle Change</value>
   </data>
   <data name="ExclusiveControl_NoPersistIntegration_NoPersistIntegration" xml:space="preserve">
-    <value>NoPersistIntegration</value>
+    <value>No Persist Integration</value>
   </data>
   <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
-    <value>ResetAndOverwrite</value>
+    <value>Reset operation overwrites intro marks added by built-in intro detection</value>
   </data>
   <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
     <value>Optional Preferences</value>
   </data>
   <data name="InvalidFingerprintCatchup" xml:space="preserve">
     <value>Fingerprint catchup is invalid because built-in intro detection enhanced is not enabled.</value>
+  </data>
+  <data name="ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange" xml:space="preserve">
+    <value>Auto Extract on File Change</value>
+  </data>
+  <data name="ModOptions_ExcludeOriginalTitle_Exclude_Original_Title" xml:space="preserve">
+    <value>Exclude Original Title</value>
+  </data>
+  <data name="ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_" xml:space="preserve">
+    <value>Exclude original title from search. Default is OFF.</value>
+  </data>
+  <data name="IntroSkipPreference_NoDetectionButReset_NoDetectionButReset" xml:space="preserve">
+    <value>No detection but pause operation to set intro and/or credits markers</value>
   </data>
 </root>

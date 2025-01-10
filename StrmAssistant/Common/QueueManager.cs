@@ -89,8 +89,14 @@ namespace StrmAssistant.Common
         public static async Task MediaInfo_ProcessItemQueueAsync()
         {
             Logger.Info("MediaInfo - ProcessItemQueueAsync Started");
+
             MediaInfoTokenSource = new CancellationTokenSource();
             var cancellationToken = MediaInfoTokenSource.Token;
+
+            var dequeueItems = new List<BaseItem>();
+            var deferredItems = new List<BaseItem>();
+            var tasks = new List<Task>();
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 var timeSinceLastRun = DateTime.UtcNow - _mediaInfoProcessLastRunTime;
@@ -107,14 +113,14 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                var deferredItems = new List<BaseItem>();
-
                 if (!MediaInfoExtractItemQueue.IsEmpty)
                 {
                     var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
                     var currentQueueCount = MediaInfoExtractItemQueue.Count;
-                    var dequeueItems = new List<BaseItem>();
                     
+                    dequeueItems.Clear();
+                    deferredItems.Clear();
+
                     while (MediaInfoExtractItemQueue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
@@ -130,12 +136,6 @@ namespace StrmAssistant.Common
                         {
                             dequeueItems.Add(dequeueItem);
                         }
-                    }
-
-                    if (dequeueItems.Count == 0)
-                    {
-                        _mediaInfoProcessLastRunTime = DateTime.UtcNow;
-                        continue;
                     }
 
                     Logger.Info("MediaInfoExtract - Clear Item Queue Started");
@@ -156,7 +156,6 @@ namespace StrmAssistant.Common
                                     Plugin.Instance.GetPluginOptions().GeneralOptions
                                         .Tier2MaxConcurrentCount);
 
-                        var tasks = new List<Task>();
                         IsMediaInfoProcessTaskRunning = true;
 
                         foreach (var item in mediaInfoItems)
@@ -247,6 +246,7 @@ namespace StrmAssistant.Common
                         }
 
                         await Task.WhenAll(tasks).ConfigureAwait(false);
+                        tasks.Clear();
 
                         IsMediaInfoProcessTaskRunning = false;
                     }
@@ -258,9 +258,9 @@ namespace StrmAssistant.Common
                 {
                     Logger.Info("MediaInfoExtract - Enqueue Deferred Count: " + deferredItems.Count);
                         
-                    foreach (var deferredItem in deferredItems)
+                    foreach (var item in deferredItems)
                     {
-                        MediaInfoExtractItemQueue.Enqueue(deferredItem);
+                        MediaInfoExtractItemQueue.Enqueue(item);
                     }
                 }
 
@@ -280,8 +280,13 @@ namespace StrmAssistant.Common
         public static async Task Fingerprint_ProcessItemQueueAsync()
         {
             Logger.Info("Fingerprint - ProcessItemQueueAsync Started");
+
             FingerprintTokenSource = new CancellationTokenSource();
             var cancellationToken = FingerprintTokenSource.Token;
+
+            var dequeueItems = new List<BaseItem>();
+            var deferredItems = new List<BaseItem>();
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 var timeSinceLastRun = DateTime.UtcNow - _fingerprintProcessLastRunTime;
@@ -298,14 +303,14 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                var deferredItems = new List<BaseItem>();
-
                 if (!FingerprintItemQueue.IsEmpty)
                 {
                     var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
                     var currentQueueCount = FingerprintItemQueue.Count;
-                    var dequeueItems = new List<BaseItem>();
                     
+                    dequeueItems.Clear();
+                    deferredItems.Clear();
+
                     while (FingerprintItemQueue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
@@ -314,8 +319,8 @@ namespace StrmAssistant.Common
                         if (currentQueueCount < maxConcurrentCount && progress.HasValue)
                         {
                             deferredItems.Add(dequeueItem);
-                            //Logger.Debug("FingerprintExtract - Item Deferred: " + dequeueItem.Name + " - " + dequeueItem.Path);
-                            //Logger.Debug($"FingerprintExtract - Library Scan Running - Progress {progress:F2}% - {library.Path}");
+                            //Logger.Debug("IntroFingerprintExtract - Item Deferred: " + dequeueItem.Name + " - " + dequeueItem.Path);
+                            //Logger.Debug($"IntroFingerprintExtract - Library Scan Running - Progress {progress:F2}% - {library.Path}");
                         }
                         else
                         {
@@ -323,13 +328,7 @@ namespace StrmAssistant.Common
                         }
                     }
 
-                    if (dequeueItems.Count == 0)
-                    {
-                        _mediaInfoProcessLastRunTime = DateTime.UtcNow;
-                        continue;
-                    }
-
-                    Logger.Info("FingerprintExtract - Clear Item Queue Started");
+                    Logger.Info("IntroFingerprintExtract - Clear Item Queue Started");
 
                     var episodes = Plugin.FingerprintApi.FetchFingerprintQueueItems(dequeueItems);
 
@@ -338,13 +337,14 @@ namespace StrmAssistant.Common
                     {
                         var episodeIds = episodes.Select(e => e.InternalId).ToHashSet();
                         var mediaInfoItems = dequeueItems.Where(i => !episodeIds.Contains(i.InternalId));
+
                         foreach (var item in mediaInfoItems)
                         {
                             MediaInfoExtractItemQueue.Enqueue(item);
                         }
                     }
 
-                    Logger.Info("FingerprintExtract - Number of items: " + episodes.Count);
+                    Logger.Info("IntroFingerprintExtract - Number of items: " + episodes.Count);
 
                     if (episodes.Count > 0)
                     {
@@ -366,7 +366,7 @@ namespace StrmAssistant.Common
 
                             if (cancellationToken.IsCancellationRequested)
                             {
-                                Logger.Info("FingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
+                                Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                             taskSeason.Path);
                                 break;
                             }
@@ -402,7 +402,7 @@ namespace StrmAssistant.Common
                                     {
                                         if (cancellationToken.IsCancellationRequested)
                                         {
-                                            Logger.Info("FingerprintExtract - Episode cancelled: " + taskItem.Name + " - " +
+                                            Logger.Info("IntroFingerprintExtract - Episode cancelled: " + taskItem.Name + " - " +
                                                         taskItem.Path);
                                             return;
                                         }
@@ -410,12 +410,12 @@ namespace StrmAssistant.Common
                                         if (Plugin.LibraryApi.IsExtractNeeded(taskItem))
                                         {
                                             result1 = await Plugin.LibraryApi
-                                                .OrchestrateMediaInfoProcessAsync(taskItem, "Fingerprint Catchup",
+                                                .OrchestrateMediaInfoProcessAsync(taskItem, "IntroFingerprintExtract Catchup",
                                                     cancellationToken).ConfigureAwait(false);
 
                                             if (result1 is null)
                                             {
-                                                Logger.Info("FingerprintExtract - Episode skipped or non-existent: " + taskItem.Name +
+                                                Logger.Info("IntroFingerprintExtract - Episode skipped or non-existent: " + taskItem.Name +
                                                             " - " + taskItem.Path);
                                                 seasonSkip = true;
                                                 return;
@@ -432,17 +432,17 @@ namespace StrmAssistant.Common
                                             .ExtractIntroFingerprint(taskItem, cancellationToken)
                                             .ConfigureAwait(false);
 
-                                        Logger.Info("FingerprintExtract - Episode processed: " + taskItem.Name + " - " +
+                                        Logger.Info("IntroFingerprintExtract - Episode processed: " + taskItem.Name + " - " +
                                                     taskItem.Path);
                                     }
                                     catch (TaskCanceledException)
                                     {
-                                        Logger.Info("FingerprintExtract - Episode cancelled: " + taskItem.Name + " - " +
+                                        Logger.Info("IntroFingerprintExtract - Episode cancelled: " + taskItem.Name + " - " +
                                                     taskItem.Path);
                                     }
                                     catch (Exception e)
                                     {
-                                        Logger.Error("FingerprintExtract - Episode failed: " + taskItem.Name + " - " +
+                                        Logger.Error("IntroFingerprintExtract - Episode failed: " + taskItem.Name + " - " +
                                                      taskItem.Path);
                                         Logger.Error(e.Message);
                                         Logger.Debug(e.StackTrace);
@@ -476,14 +476,14 @@ namespace StrmAssistant.Common
 
                                     if (cancellationToken.IsCancellationRequested)
                                     {
-                                        Logger.Info("FingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
+                                        Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                                     taskSeason.Path);
                                         return;
                                     }
 
                                     if (seasonSkip)
                                     {
-                                        Logger.Info("FingerprintExtract - Season skipped: " + taskSeason.Name + " - " +
+                                        Logger.Info("IntroFingerprintExtract - Season skipped: " + taskSeason.Name + " - " +
                                                     taskSeason.Path);
                                         return;
                                     }
@@ -496,12 +496,12 @@ namespace StrmAssistant.Common
                                 }
                                 catch (TaskCanceledException)
                                 {
-                                    Logger.Info("FingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
+                                    Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                                 taskSeason.Path);
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Error("FingerprintExtract - Season failed: " + taskSeason.Name + " - " +
+                                    Logger.Error("IntroFingerprintExtract - Season failed: " + taskSeason.Name + " - " +
                                                  taskSeason.Path);
                                     Logger.Error(e.Message);
                                     Logger.Debug(e.StackTrace);
@@ -513,21 +513,21 @@ namespace StrmAssistant.Common
                             }, cancellationToken);
                             seasonTasks.Add(seasonTask);
                         }
-
                         await Task.WhenAll(seasonTasks).ConfigureAwait(false);
+
                         IsMediaInfoProcessTaskRunning = false;
                     }
 
-                    Logger.Info("FingerprintExtract - Clear Item Queue Stopped");
+                    Logger.Info("IntroFingerprintExtract - Clear Item Queue Stopped");
                 }
 
                 if (deferredItems.Count > 0)
                 {
-                    Logger.Info("FingerprintExtract - Enqueue Deferred Count: " + deferredItems.Count);
+                    Logger.Info("IntroFingerprintExtract - Enqueue Deferred Count: " + deferredItems.Count);
 
-                    foreach (var deferredItem in deferredItems)
+                    foreach (var item in deferredItems)
                     {
-                        FingerprintItemQueue.Enqueue(deferredItem);
+                        FingerprintItemQueue.Enqueue(item);
                     }
                 }
 
@@ -547,8 +547,12 @@ namespace StrmAssistant.Common
         public static async Task IntroSkip_ProcessItemQueueAsync()
         {
             Logger.Info("IntroSkip - ProcessItemQueueAsync Started");
+
             IntroSkipTokenSource = new CancellationTokenSource();
             var cancellationToken = IntroSkipTokenSource.Token;
+
+            var dequeueItems = new List<Episode>();
+
             while (!cancellationToken.IsCancellationRequested)
             {
                 var timeSinceLastRun = DateTime.UtcNow - _introSkipProcessLastRunTime;
@@ -567,7 +571,7 @@ namespace StrmAssistant.Common
 
                 if (!IntroSkipItemQueue.IsEmpty)
                 {
-                    var dequeueItems = new List<Episode>();
+                    dequeueItems.Clear();
                     while (IntroSkipItemQueue.TryDequeue(out var dequeueItem))
                     {
                         dequeueItems.Add(dequeueItem);
