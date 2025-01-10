@@ -5,10 +5,9 @@
 ## Purpose
 
 1. Improve initial playback start speed
-2. Solve potential no progress bar issue
-3. Image capture and thumbnail preview enhanced
-4. Playback behavior-based intro and credits detection
-5. Independent external subtitle scan
+2. Image capture and thumbnail preview enhanced
+3. Playback behavior-based intro and credits detection
+4. Independent external subtitle scan
 
 ## Update
 
