@@ -14,7 +14,8 @@ namespace StrmAssistant.Mod
 {
     public static class BeautifyMissingMetadata
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(BeautifyMissingMetadata));
 
         private static MethodInfo _getBaseItemDtos;
         private static MethodInfo _getBaseItemDto;

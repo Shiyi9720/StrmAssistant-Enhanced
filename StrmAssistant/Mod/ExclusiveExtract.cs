@@ -25,7 +25,8 @@ namespace StrmAssistant.Mod
 
     public static class ExclusiveExtract
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(ExclusiveExtract));
 
         private static Assembly _mediaEncodingAssembly;
         private static MethodInfo _canRefreshMetadata;
@@ -128,6 +129,7 @@ namespace StrmAssistant.Mod
                     Plugin.Instance.Logger.Debug("Patch RunFfProcess Failed by Harmony");
                     Plugin.Instance.Logger.Debug(he.Message);
                     Plugin.Instance.Logger.Debug(he.StackTrace);
+                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
                 }
             }
         }

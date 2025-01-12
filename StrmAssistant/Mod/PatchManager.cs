@@ -1,14 +1,18 @@
 using HarmonyLib;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace StrmAssistant.Mod
 {
     public static class PatchManager
     {
         public static Harmony HarmonyMod;
+
+        public static List<PatchApproachTracker> PatchTrackerList =new List<PatchApproachTracker>();
 
         public static void Initialize()
         {
@@ -63,6 +67,13 @@ namespace StrmAssistant.Mod
                 return true;
 
             return false;
+        }
+
+        public static bool? IsHarmonyModSuccess()
+        {
+            if (RuntimeInformation.ProcessArchitecture != Architecture.X64) return null;
+
+            return PatchTrackerList.All(p => p.FallbackPatchApproach == PatchApproach.Harmony);
         }
     }
 }

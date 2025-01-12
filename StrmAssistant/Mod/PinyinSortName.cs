@@ -14,7 +14,8 @@ namespace StrmAssistant.Mod
 {
     public static class PinyinSortName
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(PinyinSortName));
 
         private static MethodInfo _createSortName;
         private static MethodInfo _getPrefixes;

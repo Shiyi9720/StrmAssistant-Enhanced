@@ -15,7 +15,8 @@ namespace StrmAssistant.Mod
 {
     public static class AltMovieDbConfig
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(AltMovieDbConfig));
 
         private static Assembly _movieDbAssembly;
         private static MethodInfo _getMovieDbResponse;

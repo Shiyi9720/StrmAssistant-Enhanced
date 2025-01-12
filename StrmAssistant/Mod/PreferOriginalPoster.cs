@@ -29,7 +29,8 @@ namespace StrmAssistant.Mod
             public string OriginalLanguage { get; set; }
         }
 
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(PreferOriginalPoster));
 
         private static Assembly _movieDbAssembly;
         private static MethodInfo _getMovieInfo;

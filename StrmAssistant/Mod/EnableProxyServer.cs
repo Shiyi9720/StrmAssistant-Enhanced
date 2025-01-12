@@ -11,7 +11,8 @@ namespace StrmAssistant.Mod
 {
     public static class EnableProxyServer
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(EnableProxyServer));
 
         private static MethodInfo _createHttpClientHandler;
 

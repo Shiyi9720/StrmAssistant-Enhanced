@@ -13,7 +13,9 @@ namespace StrmAssistant.Mod
 {
     public static class UnlockIntroSkip
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(UnlockIntroSkip));
+
         private static MethodInfo _isIntroDetectionSupported;
         private static MethodInfo _createQueryForEpisodeIntroDetection;
         private static MethodInfo _logIntroDetectionFailureFailure;

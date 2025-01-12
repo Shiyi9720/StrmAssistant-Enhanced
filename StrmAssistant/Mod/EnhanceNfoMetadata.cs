@@ -19,7 +19,8 @@ namespace StrmAssistant.Mod
 {
     public static class EnhanceNfoMetadata
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(EnhanceNfoMetadata));
 
         private static Assembly _nfoMetadataAssembly;
         private static ConstructorInfo _genericBaseNfoParserConstructor;

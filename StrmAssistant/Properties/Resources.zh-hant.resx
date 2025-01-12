@@ -512,4 +512,7 @@
   <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
     <value>重置操作涵蓋後續各集原生片頭標記</value>
   </data>
+  <data name="PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed" xml:space="preserve">
+    <value>魔改失敗，請啟用調試模式日誌，重新啟動後查看日誌排查問題。</value>
+  </data>
 </root>

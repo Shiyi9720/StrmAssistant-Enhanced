@@ -5,14 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
     public static class ChapterChangeTracker
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(ChapterChangeTracker));
 
         private static MethodInfo _saveChapters;
         private static MethodInfo _deleteChapters;

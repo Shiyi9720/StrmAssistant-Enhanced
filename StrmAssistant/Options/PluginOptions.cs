@@ -2,6 +2,7 @@ using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Elements;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
+using StrmAssistant.Mod;
 using StrmAssistant.Properties;
 using System;
 using System.ComponentModel;
@@ -18,6 +19,9 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(ShowConflictPluginLoadedStatus), SimpleCondition.IsTrue)]
         public StatusItem ConflictPluginLoadedStatus { get; set; } = new StatusItem();
 
+        [VisibleCondition(nameof(IsHarmonyModFailed), SimpleCondition.IsTrue)]
+        public StatusItem HarmonyModStatus { get; set; } = new StatusItem();
+
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
 
@@ -29,6 +33,9 @@ namespace StrmAssistant.Options
 
         [DisplayNameL("AboutOptions_EditorTitle_About", typeof(Resources))]
         public AboutOptions AboutOptions { get; set; } = new AboutOptions();
+
+        [Browsable(false)]
+        public bool? IsHarmonyModFailed => !PatchManager.IsHarmonyModSuccess();
 
         [Browsable(false)]
         public bool ShowConflictPluginLoadedStatus =>
@@ -50,6 +57,19 @@ namespace StrmAssistant.Options
                 ConflictPluginLoadedStatus.Caption = string.Empty;
                 ConflictPluginLoadedStatus.StatusText = string.Empty;
                 ConflictPluginLoadedStatus.Status = ItemStatus.None;
+            }
+
+            if (IsHarmonyModFailed is true)
+            {
+                HarmonyModStatus.Caption = Resources.PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed;
+                HarmonyModStatus.StatusText = string.Empty;
+                HarmonyModStatus.Status = ItemStatus.Warning;
+            }
+            else
+            {
+                HarmonyModStatus.Caption = string.Empty;
+                HarmonyModStatus.StatusText = string.Empty;
+                HarmonyModStatus.Status = ItemStatus.None;
             }
         }
     }

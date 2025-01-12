@@ -14,7 +14,8 @@ namespace StrmAssistant.Mod
 {
     public static class EnhanceChineseSearch
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(EnhanceChineseSearch));
 
         private static Type raw;
         private static MethodInfo sqlite3_enable_load_extension;

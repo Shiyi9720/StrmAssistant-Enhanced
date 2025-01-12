@@ -10,7 +10,8 @@ namespace StrmAssistant.Mod
 {
     public static class EnforceLibraryOrder
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(EnforceLibraryOrder));
 
         private static MethodInfo _getUserViews;
 

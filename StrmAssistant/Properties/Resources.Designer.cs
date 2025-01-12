@@ -308,7 +308,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Reset operation overwrites intro marks added by built-in intro detection.
+        ///   Looks up a localized string similar to Reset operation overwrites intro markers added by built-in intro detection.
         /// </summary>
         public static string IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite {
             get {
@@ -485,7 +485,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No detection but pause operation to set intro and credits markers.
+        ///   Looks up a localized string similar to No detection but pause operation to set intro and/or credits markers.
         /// </summary>
         public static string IntroSkipPreference_NoDetectionButReset_NoDetectionButReset {
             get {
@@ -964,7 +964,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exclude original title to search. Default is OFF..
+        ///   Looks up a localized string similar to Exclude original title from search. Default is OFF..
         /// </summary>
         public static string ModOptions_ExcludeOriginalTitle_Exclude_original_title_from_search__Default_is_OFF_ {
             get {
@@ -1327,6 +1327,15 @@ namespace StrmAssistant.Properties {
         public static string PluginOptions_IntroSkipOptions_Intro_Credits_Detection {
             get {
                 return ResourceManager.GetString("PluginOptions_IntroSkipOptions_Intro_Credits_Detection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Harmony Mod Failed.
+        /// </summary>
+        public static string PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed {
+            get {
+                return ResourceManager.GetString("PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed", resourceCulture);
             }
         }
         

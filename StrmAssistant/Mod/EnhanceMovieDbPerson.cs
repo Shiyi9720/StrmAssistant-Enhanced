@@ -19,7 +19,8 @@ namespace StrmAssistant.Mod
 {
     public static class EnhanceMovieDbPerson
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(EnhanceMovieDbPerson));
 
         private static Assembly _movieDbAssembly;
 

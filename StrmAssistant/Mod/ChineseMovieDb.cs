@@ -17,7 +17,8 @@ namespace StrmAssistant.Mod
 {
     public static class ChineseMovieDb
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(ChineseMovieDb));
 
         private static Assembly _movieDbAssembly;
         private static MethodInfo _genericMovieDbInfoIsCompleteMovie;

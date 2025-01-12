@@ -19,7 +19,8 @@ namespace StrmAssistant.Mod
 {
     public static class EnableImageCapture
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(EnableImageCapture));
 
         private static ConstructorInfo _staticConstructor;
         private static FieldInfo _resourcePoolField;

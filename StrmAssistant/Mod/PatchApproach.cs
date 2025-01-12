@@ -9,6 +9,15 @@
 
     public class PatchApproachTracker
     {
+        public PatchApproachTracker(string name)
+        {
+            Name = name;
+
+            PatchManager.PatchTrackerList.Add(this);
+        }
+
+        public string Name { get; set; }
+
         public PatchApproach FallbackPatchApproach { get; set; } = PatchApproach.Harmony;
     }
 }

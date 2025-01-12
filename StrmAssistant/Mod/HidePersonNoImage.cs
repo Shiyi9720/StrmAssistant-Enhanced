@@ -11,7 +11,8 @@ namespace StrmAssistant.Mod
 {
     public static class HidePersonNoImage
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(HidePersonNoImage));
 
         private static MethodInfo _attachPeople;
 

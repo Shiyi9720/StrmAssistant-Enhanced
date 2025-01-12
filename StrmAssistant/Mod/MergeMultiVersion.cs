@@ -8,7 +8,9 @@ namespace StrmAssistant.Mod
 {
     public static class MergeMultiVersion
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(MergeMultiVersion));
+
         private static MethodInfo _isEligibleForMultiVersion;
 
         public static void Initialize()

@@ -15,7 +15,9 @@ namespace StrmAssistant.Mod
 {
     public static class EnhanceMissingEpisodes
     {
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(EnhanceMissingEpisodes));
+
         private static MethodInfo _getEnabledMetadataProviders;
 
         public static AsyncLocal<string> CurrentSeriesContainingFolderPath = new AsyncLocal<string>();

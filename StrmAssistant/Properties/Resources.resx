@@ -599,4 +599,7 @@
   <data name="IntroSkipPreference_NoDetectionButReset_NoDetectionButReset" xml:space="preserve">
     <value>No detection but pause operation to set intro and/or credits markers</value>
   </data>
+  <data name="PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed" xml:space="preserve">
+    <value>Mod failed. Please check log in debug mode after restart to troubleshoot.</value>
+  </data>
 </root>

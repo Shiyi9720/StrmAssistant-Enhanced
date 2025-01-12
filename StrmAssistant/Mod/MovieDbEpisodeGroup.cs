@@ -37,7 +37,8 @@ namespace StrmAssistant.Mod
             public int? MappedEpisodeNumber { get; set; }
         }
 
-        private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
+        private static readonly PatchApproachTracker PatchApproachTracker =
+            new PatchApproachTracker(nameof(MovieDbEpisodeGroup));
 
         private static Assembly _movieDbAssembly;
         private static MethodInfo _seriesGetMetadata;
