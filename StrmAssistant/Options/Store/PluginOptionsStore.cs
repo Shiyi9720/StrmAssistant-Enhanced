@@ -115,10 +115,14 @@ namespace StrmAssistant.Options.Store
 
                 if (changedProperties.Contains(nameof(PluginOptions.GeneralOptions.MaxConcurrentCount)))
                 {
-                    QueueManager.UpdateMasterSemaphore(options.GeneralOptions.MaxConcurrentCount);
+                    var maxConcurrentCount = options.GeneralOptions.MaxConcurrentCount;
+
+                    QueueManager.UpdateMasterSemaphore(maxConcurrentCount);
 
                     if (Plugin.Instance.MediaInfoExtractStore.GetOptions().EnableImageCapture)
-                        EnableImageCapture.UpdateResourcePool(options.GeneralOptions.MaxConcurrentCount);
+                        EnableImageCapture.UpdateResourcePool(maxConcurrentCount);
+
+                    Plugin.FingerprintApi.PatchTimeout(maxConcurrentCount);
                 }
 
                 if (changedProperties.Contains(nameof(PluginOptions.GeneralOptions.Tier2MaxConcurrentCount)))
