@@ -329,23 +329,21 @@ namespace StrmAssistant.Mod
             {
                 episodeGroupInfo = Task
                     .Run(
-                        () => Plugin.MetadataApi.FetchOnlineEpisodeGroup(seriesTmdbId, episodeGroupId, localEpisodeGroupPath,
-                            cancellationToken), cancellationToken).Result;
+                        () => Plugin.MetadataApi.FetchOnlineEpisodeGroup(seriesTmdbId, episodeGroupId,
+                            season.MetadataLanguage, localEpisodeGroupPath, cancellationToken), cancellationToken)
+                    .Result;
             }
 
-            if (episodeGroupInfo != null)
-            {
-                var matchingSeason = episodeGroupInfo.groups.FirstOrDefault(g => g.order == season.IndexNumber);
+            var matchingSeason = episodeGroupInfo?.groups.FirstOrDefault(g => g.order == season.IndexNumber);
 
-                if (matchingSeason != null)
+            if (matchingSeason != null)
+            {
+                __state = new SeasonGroupName
                 {
-                    __state = new SeasonGroupName
-                    {
-                        LookupSeasonNumber = season.IndexNumber,
-                        LookupLanguage = season.MetadataLanguage,
-                        GroupName = matchingSeason.name
-                    };
-                }
+                    LookupSeasonNumber = season.IndexNumber,
+                    LookupLanguage = season.MetadataLanguage,
+                    GroupName = matchingSeason.name
+                };
             }
 
             return true;
@@ -402,9 +400,13 @@ namespace StrmAssistant.Mod
                 episode.SeriesProviderIds.TryGetValue(MovieDbEpisodeGroupExternalId.StaticName, out var episodeGroupId);
                 episodeGroupId = episodeGroupId?.Trim();
 
-                var matchingEpisode = Task.Run(() => MapSeasonEpisode(seriesTmdbId, episodeGroupId,
-                        episode.ParentIndexNumber, episode.IndexNumber, localEpisodeGroupPath, cancellationToken),
-                    cancellationToken).Result;
+                var matchingEpisode =
+                    Task.Run(
+                            () => MapSeasonEpisode(seriesTmdbId, episodeGroupId, episode.MetadataLanguage,
+                                episode.ParentIndexNumber, episode.IndexNumber, localEpisodeGroupPath,
+                                cancellationToken),
+                            cancellationToken)
+                        .Result;
 
                 if (matchingEpisode != null)
                 {
@@ -451,7 +453,7 @@ namespace StrmAssistant.Mod
                 if (!string.IsNullOrEmpty(seriesTmdbId))
                 {
                     var episodeGroupId = episode.Series.GetProviderId(MovieDbEpisodeGroupExternalId.StaticName)?.Trim();
-                    var matchingEpisode = Task.Run(() => MapSeasonEpisode(seriesTmdbId, episodeGroupId,
+                    var matchingEpisode = Task.Run(() => MapSeasonEpisode(seriesTmdbId, episodeGroupId, null,
                             episode.ParentIndexNumber, episode.IndexNumber, localEpisodeGroupPath, cancellationToken),
                         cancellationToken).Result;
 
@@ -479,7 +481,8 @@ namespace StrmAssistant.Mod
         }
 
         private static async Task<SeasonEpisodeMapping> MapSeasonEpisode(string seriesTmdbId, string episodeGroupId,
-            int? lookupSeasonNumber, int? lookupEpisodeNumber, string localEpisodeGroupPath, CancellationToken cancellationToken)
+            string language, int? lookupSeasonNumber, int? lookupEpisodeNumber, string localEpisodeGroupPath,
+            CancellationToken cancellationToken)
         {
             if (!lookupSeasonNumber.HasValue || !lookupEpisodeNumber.HasValue) return null;
 
@@ -488,15 +491,17 @@ namespace StrmAssistant.Mod
             if (Plugin.Instance.MetadataEnhanceStore.GetOptions().LocalEpisodeGroup &&
                 !string.IsNullOrEmpty(localEpisodeGroupPath))
             {
-                episodeGroupInfo = await Plugin.MetadataApi.FetchLocalEpisodeGroup(localEpisodeGroupPath).ConfigureAwait(false);
+                episodeGroupInfo = await Plugin.MetadataApi.FetchLocalEpisodeGroup(localEpisodeGroupPath)
+                    .ConfigureAwait(false);
             }
 
             if (episodeGroupInfo is null && !string.IsNullOrEmpty(episodeGroupId))
             {
                 episodeGroupInfo =
-                    await Plugin.MetadataApi.FetchOnlineEpisodeGroup(seriesTmdbId, episodeGroupId, localEpisodeGroupPath, cancellationToken);
+                    await Plugin.MetadataApi.FetchOnlineEpisodeGroup(seriesTmdbId, episodeGroupId, language,
+                        localEpisodeGroupPath, cancellationToken);
             }
-            
+
             var matchingEpisode = episodeGroupInfo?.groups.Where(g => g.order == lookupSeasonNumber)
                 .SelectMany(g => g.episodes)
                 .FirstOrDefault(e => e.order + 1 == lookupEpisodeNumber.Value);

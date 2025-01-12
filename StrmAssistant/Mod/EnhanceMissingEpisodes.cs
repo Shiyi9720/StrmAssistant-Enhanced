@@ -8,6 +8,7 @@ using StrmAssistant.Provider;
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
@@ -16,6 +17,8 @@ namespace StrmAssistant.Mod
     {
         private static readonly PatchApproachTracker PatchApproachTracker = new PatchApproachTracker();
         private static MethodInfo _getEnabledMetadataProviders;
+
+        public static AsyncLocal<string> CurrentSeriesContainingFolderPath = new AsyncLocal<string>();
 
         public static void Initialize()
         {
@@ -111,6 +114,8 @@ namespace StrmAssistant.Mod
                 {
                     newResult.Add(provider);
                 }
+
+                CurrentSeriesContainingFolderPath.Value = item.ContainingFolderPath;
 
                 __result = newResult.ToArray();
             }

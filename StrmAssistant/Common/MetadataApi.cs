@@ -222,27 +222,13 @@ namespace StrmAssistant.Common
         public async Task<T> GetMovieDbResponse<T>(string url, string cacheKey, string cachePath,
             CancellationToken cancellationToken) where T : class
         {
-            T result;
+            var result = TryGetFromCache<T>(cacheKey, cachePath);
 
-            if (!string.IsNullOrEmpty(cacheKey) && !string.IsNullOrEmpty(cachePath))
-            {
-                if (LruCache.TryGetFromCache(cacheKey, out result))
-                {
-                    return result;
-                }
-
-                var cacheFile = _fileSystem.GetFileSystemInfo(cachePath);
-
-                if (cacheFile.Exists && DateTimeOffset.UtcNow - _fileSystem.GetLastWriteTimeUtc(cacheFile) <= CacheTime)
-                {
-                    result = _jsonSerializer.DeserializeFromFile<T>(cachePath);
-                    LruCache.AddOrUpdateCache(cacheKey, result);
-                    return result;
-                }
-            }
+            if (result != null) return result;
 
             var num = Math.Min((RequestIntervalMs * 10000 - (DateTimeOffset.UtcNow.Ticks - _lastRequestTicks)) / 10000L,
                 RequestIntervalMs);
+
             if (num > 0L)
             {
                 _logger.Debug("Throttling Tmdb by {0} ms", num);
@@ -274,12 +260,7 @@ namespace StrmAssistant.Common
 
                 if (result is null) return null;
 
-                if (!string.IsNullOrEmpty(cacheKey) && !string.IsNullOrEmpty(cachePath))
-                {
-                    _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(cachePath));
-                    _jsonSerializer.SerializeToFile(result, cachePath);
-                    LruCache.AddOrUpdateCache(cacheKey, result);
-                }
+                AddOrUpdateCache(result, cacheKey, cachePath);
 
                 return result;
             }
@@ -293,6 +274,34 @@ namespace StrmAssistant.Common
         public async Task<T> GetMovieDbResponse<T>(string url, CancellationToken cancellationToken) where T : class
         {
             return await GetMovieDbResponse<T>(url, null, null, cancellationToken);
+        }
+
+        public T TryGetFromCache<T>(string cacheKey, string cachePath) where T : class
+        {
+            if (string.IsNullOrEmpty(cacheKey) || string.IsNullOrEmpty(cachePath)) return null;
+
+            if (LruCache.TryGetFromCache(cacheKey, out T result)) return result;
+
+            var cacheFile = _fileSystem.GetFileSystemInfo(cachePath);
+
+            if (cacheFile.Exists && DateTimeOffset.UtcNow - _fileSystem.GetLastWriteTimeUtc(cacheFile) <= CacheTime)
+            {
+                result = _jsonSerializer.DeserializeFromFile<T>(cachePath);
+                LruCache.AddOrUpdateCache(cacheKey, result);
+
+                return result;
+            }
+
+            return null;
+        }
+
+        public void AddOrUpdateCache<T>(T result, string cacheKey, string cachePath)
+        {
+            if (result is null || string.IsNullOrEmpty(cacheKey) || string.IsNullOrEmpty(cachePath)) return;
+
+            _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(cachePath));
+            _jsonSerializer.SerializeToFile(result, cachePath);
+            LruCache.AddOrUpdateCache(cacheKey, result);
         }
 
         public Series GetSeriesByPath(string path)
@@ -319,21 +328,21 @@ namespace StrmAssistant.Common
 
             return null;
         }
-
+        
         public async Task<EpisodeGroupResponse> FetchOnlineEpisodeGroup(string seriesTmdbId,
-            string episodeGroupId, string localEpisodeGroupPath, CancellationToken cancellationToken)
+            string episodeGroupId, string language, string localEpisodeGroupPath, CancellationToken cancellationToken)
         {
             var isExternalEpisodeGroup = IsValidHttpUrl(episodeGroupId);
-            
+
             var url = isExternalEpisodeGroup
                 ? episodeGroupId
-                : $"{AltMovieDbConfig.CurrentMovieDbApiUrl}/3/tv/episode_group/{episodeGroupId}?api_key={AltMovieDbConfig.CurrentMovieDbApiKey}";
+                : BuildMovieDbApiUrl($"tv/episode_group/{episodeGroupId}", language);
 
             if (isExternalEpisodeGroup)
             {
                 episodeGroupId = GenerateFixedCode(episodeGroupId, "external_", 24);
             }
-            
+
             var cacheKey = "tmdb_episode_group_" + seriesTmdbId + "_" + episodeGroupId;
 
             var cachePath = Path.Combine(Plugin.Instance.ApplicationPaths.CachePath, "tmdb-tv", seriesTmdbId,
@@ -352,7 +361,8 @@ namespace StrmAssistant.Common
 
                 try
                 {
-                    _jsonSerializer.SerializeToFile(episodeGroupResponse, localEpisodeGroupPath);
+                    var compactEpisodeGroupResponse = ConvertToCompactResponse(episodeGroupResponse);
+                    _jsonSerializer.SerializeToFile(compactEpisodeGroupResponse, localEpisodeGroupPath);
                 }
                 catch (Exception e)
                 {
@@ -397,11 +407,41 @@ namespace StrmAssistant.Common
                         _logger.Debug("Failed to get local episode group - " + e.Message);
                         return null;
                     }
-                    
                 }
             }
 
             return result;
+        }
+        
+        public static string BuildMovieDbApiUrl(string endpoint, string language)
+        {
+            var url =
+                $"{AltMovieDbConfig.CurrentMovieDbApiUrl}/3/{endpoint}?api_key={AltMovieDbConfig.CurrentMovieDbApiKey}";
+            if (!string.IsNullOrEmpty(language))
+                url += $"&language={language}";
+            return url;
+        }
+
+        private static CompactEpisodeGroupResponse ConvertToCompactResponse(EpisodeGroupResponse response)
+        {
+            if (response == null) return null;
+
+            return new CompactEpisodeGroupResponse
+            {
+                id = response.id,
+                description = response.description,
+                groups = response.groups?.Select(group => new CompactEpisodeGroup
+                {
+                    name = group.name,
+                    order = group.order,
+                    episodes = group.episodes?.Select(episode => new CompactGroupEpisode
+                    {
+                        episode_number = episode.episode_number,
+                        season_number = episode.season_number,
+                        order = episode.order
+                    }).ToList()
+                }).ToList()
+            };
         }
     }
 }
