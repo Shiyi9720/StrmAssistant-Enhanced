@@ -579,7 +579,7 @@
     <value>No Persist Integration</value>
   </data>
   <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
-    <value>Reset operation overwrites intro marks added by built-in intro detection</value>
+    <value>Reset operation overwrites intro markers added by built-in intro detection</value>
   </data>
   <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
     <value>Optional Preferences</value>
