@@ -74,9 +74,8 @@ namespace StrmAssistant.Common
             }
         }
 
-        public bool HasExternalSubtitleChanged(BaseItem item)
+        public bool HasExternalSubtitleChanged(BaseItem item, IDirectoryService directoryService)
         {
-            var directoryService = new DirectoryService(_logger, _fileSystem);
             var currentExternalSubtitleFiles = _libraryManager.GetExternalSubtitleFiles(item.InternalId);
             var namingOptions = _libraryManager.GetNamingOptions();
 
@@ -134,11 +133,6 @@ namespace StrmAssistant.Common
                         .ConfigureAwait(false);
                 }
             }
-        }
-
-        private List<BaseItem> FilterUnprocessed(List<BaseItem> items)
-        {
-            return items.Where(HasExternalSubtitleChanged).ToList();
         }
     }
 }

@@ -1,3 +1,5 @@
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
@@ -12,10 +14,12 @@ namespace StrmAssistant.ScheduledTask
     public class ScanExternalSubtitleTask : IScheduledTask
     {
         private readonly ILogger _logger;
+        private readonly IFileSystem _fileSystem;
 
-        public ScanExternalSubtitleTask()
+        public ScanExternalSubtitleTask(IFileSystem fileSystem)
         {
             _logger = Plugin.Instance.Logger;
+            _fileSystem = fileSystem;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
@@ -29,6 +33,8 @@ namespace StrmAssistant.ScheduledTask
 
             var items = Plugin.LibraryApi.FetchPostExtractTaskItems(false);
             _logger.Info("ExternalSubtitle - Number of items: " + items.Count);
+
+            var directoryService = new DirectoryService(_logger, _fileSystem);
 
             double total = items.Count;
             var index = 0;
@@ -66,7 +72,7 @@ namespace StrmAssistant.ScheduledTask
                             return;
                         }
 
-                        if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem))
+                        if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService))
                         {
                             await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, cancellationToken).ConfigureAwait(false);
 

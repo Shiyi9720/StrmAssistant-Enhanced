@@ -317,7 +317,7 @@ namespace StrmAssistant.Mod
             }
 
             if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange) && CurrentRefreshContext.Value != null &&
-                Plugin.LibraryApi.HasFileChanged(item))
+                Plugin.LibraryApi.HasFileChanged(item, CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
             {
                 if (IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) && item.IsShortcut &&
                     Plugin.LibraryApi.HasMediaInfo(item))
@@ -337,7 +337,7 @@ namespace StrmAssistant.Mod
                     CurrentRefreshContext.Value.MetadataRefreshOptions.SearchResult != null))
             {
                 if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) && item is Video &&
-                    Plugin.SubtitleApi.HasExternalSubtitleChanged(item))
+                    Plugin.SubtitleApi.HasExternalSubtitleChanged(item, CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
                 {
                     _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None).ConfigureAwait(false);
                 }
@@ -357,7 +357,8 @@ namespace StrmAssistant.Mod
             if (!IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && Plugin.LibraryApi.HasMediaInfo(item))
             {
                 if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) && item is Video &&
-                    Plugin.SubtitleApi.HasExternalSubtitleChanged(item))
+                    CurrentRefreshContext.Value != null && Plugin.SubtitleApi.HasExternalSubtitleChanged(item,
+                        CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
                 {
                     _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None).ConfigureAwait(false);
                 }
@@ -448,29 +449,31 @@ namespace StrmAssistant.Mod
                 CurrentRefreshContext.Value != null &&
                 CurrentRefreshContext.Value.InternalId == __instance.InternalId && ExclusiveItem.Value == 0)
             {
+                var directoryService = CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService;
+
                 if (CurrentRefreshContext.Value.MediaInfoNeedsUpdate)
                 {
                     if (__instance.IsShortcut &&
                         !CurrentRefreshContext.Value.MetadataRefreshOptions.EnableRemoteContentProbe)
                     {
-                        _ = Plugin.LibraryApi.DeleteMediaInfoJson(__instance, "Exclusive Delete on Change",
-                            CancellationToken.None);
+                        _ = Plugin.LibraryApi.DeleteMediaInfoJson(__instance, directoryService,
+                            "Exclusive Delete on Change", CancellationToken.None);
                     }
                     else
                     {
-                        _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, true, "Exclusive Overwrite",
-                            CancellationToken.None);
+                        _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, directoryService, true,
+                            "Exclusive Overwrite", CancellationToken.None);
                     }
                 }
                 else if (!Plugin.LibraryApi.HasMediaInfo(__instance))
                 {
-                    _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, "Exclusive Restore",
+                    _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, directoryService, "Exclusive Restore",
                         CancellationToken.None);
                 }
                 else
                 {
-                    _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, false, "Exclusive Non-existence",
-                        CancellationToken.None);
+                    _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, directoryService, false,
+                        "Exclusive Non-existence", CancellationToken.None);
                 }
 
                 CurrentRefreshContext.Value = null;
