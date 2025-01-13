@@ -579,7 +579,7 @@
     <value>No Persist Integration</value>
   </data>
   <data name="IntroSkipControl_ResetAndOverwrite_ResetAndOverwrite" xml:space="preserve">
-    <value>Reset operation overwrites intro marks added by built-in intro detection</value>
+    <value>Reset operation overwrites intro markers added by built-in intro detection</value>
   </data>
   <data name="IntroSkipOptions_IntroSkipPreferences_IntroSkip_Preferences" xml:space="preserve">
     <value>Optional Preferences</value>
@@ -598,5 +598,8 @@
   </data>
   <data name="IntroSkipPreference_NoDetectionButReset_NoDetectionButReset" xml:space="preserve">
     <value>No detection but pause operation to set intro and/or credits markers</value>
+  </data>
+  <data name="PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed" xml:space="preserve">
+    <value>Mod failed. Please check log in debug mode after restart to troubleshoot.</value>
   </data>
 </root>

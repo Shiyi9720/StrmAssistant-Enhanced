@@ -140,9 +140,14 @@ namespace StrmAssistant.Common
             Plugin.NotificationApi.CreditsUpdateSendNotification(item, session, creditsDuration);
         }
 
+        private static bool IsMarkerAddedByIntroSkip(ChapterInfo chapter)
+        {
+            return chapter.Name.EndsWith(MarkerSuffix);
+        }
+
         private static bool AllowOverwrite(ChapterInfo chapter)
         {
-            return chapter.Name.EndsWith(MarkerSuffix) ||
+            return IsMarkerAddedByIntroSkip(chapter) ||
                    IsIntroSkipPreferenceSelected(IntroSkipPreference.ResetAndOverwrite);
         }
 
@@ -244,8 +249,8 @@ namespace StrmAssistant.Common
         {
             var chapters = _itemRepository.GetChapters(item);
             chapters.RemoveAll(c =>
-                c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
-                c.MarkerType == MarkerType.CreditsStart);
+                (c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
+                 c.MarkerType == MarkerType.CreditsStart) && IsMarkerAddedByIntroSkip(c));
             _itemRepository.SaveChapters(item.InternalId, chapters);
         }
 
@@ -284,7 +289,7 @@ namespace StrmAssistant.Common
                 {
                     var hasMarkers = chapters.Any(c =>
                         (c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
-                         c.MarkerType == MarkerType.CreditsStart) && c.Name.EndsWith(MarkerSuffix));
+                         c.MarkerType == MarkerType.CreditsStart) && IsMarkerAddedByIntroSkip(c));
                     if (hasMarkers)
                     {
                         items.Add(item);
@@ -312,10 +317,10 @@ namespace StrmAssistant.Common
             {
                 var chapters = _itemRepository.GetChapters(e);
                 var hasIntroMarkers =
-                    chapters.Any(c => c.MarkerType == MarkerType.IntroStart && AllowOverwrite(c)) &&
-                    chapters.Any(c => c.MarkerType == MarkerType.IntroEnd && AllowOverwrite(c));
+                    chapters.Any(c => c.MarkerType == MarkerType.IntroStart && IsMarkerAddedByIntroSkip(c)) &&
+                    chapters.Any(c => c.MarkerType == MarkerType.IntroEnd && IsMarkerAddedByIntroSkip(c));
                 var hasCreditsStart =
-                    chapters.Any(c => c.MarkerType == MarkerType.CreditsStart && AllowOverwrite(c));
+                    chapters.Any(c => c.MarkerType == MarkerType.CreditsStart && IsMarkerAddedByIntroSkip(c));
 
                 return hasIntroMarkers || hasCreditsStart;
             });
@@ -354,10 +359,10 @@ namespace StrmAssistant.Common
                     if (chapters != null && chapters.Any())
                     {
                         var hasIntroMarkers =
-                            chapters.Any(c => c.MarkerType == MarkerType.IntroStart && AllowOverwrite(c)) &&
-                            chapters.Any(c => c.MarkerType == MarkerType.IntroEnd && AllowOverwrite(c));
+                            chapters.Any(c => c.MarkerType == MarkerType.IntroStart && IsMarkerAddedByIntroSkip(c)) &&
+                            chapters.Any(c => c.MarkerType == MarkerType.IntroEnd && IsMarkerAddedByIntroSkip(c));
                         var hasCreditsMarker = chapters.Any(c =>
-                            c.MarkerType == MarkerType.CreditsStart && AllowOverwrite(c));
+                            c.MarkerType == MarkerType.CreditsStart && IsMarkerAddedByIntroSkip(c));
                         return hasIntroMarkers || hasCreditsMarker;
                     }
 
@@ -407,8 +412,8 @@ namespace StrmAssistant.Common
                     var chapters = _itemRepository.GetChapters(episode);
 
                     var hasIntroMarkers =
-                        chapters.Any(c => c.MarkerType == MarkerType.IntroStart && AllowOverwrite(c)) &&
-                        chapters.Any(c => c.MarkerType == MarkerType.IntroEnd && AllowOverwrite(c));
+                        chapters.Any(c => c.MarkerType == MarkerType.IntroStart && IsMarkerAddedByIntroSkip(c)) &&
+                        chapters.Any(c => c.MarkerType == MarkerType.IntroEnd && IsMarkerAddedByIntroSkip(c));
 
                     if (hasIntroMarkers && lastIntroEpisode == null)
                     {
@@ -416,7 +421,7 @@ namespace StrmAssistant.Common
                     }
 
                     var hasCreditsMarker =
-                        chapters.Any(c => c.MarkerType == MarkerType.CreditsStart && AllowOverwrite(c));
+                        chapters.Any(c => c.MarkerType == MarkerType.CreditsStart && IsMarkerAddedByIntroSkip(c));
 
                     if (hasCreditsMarker && lastCreditsEpisode == null && episode.RunTimeTicks.HasValue)
                     {

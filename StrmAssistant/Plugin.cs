@@ -75,7 +75,7 @@ namespace StrmAssistant
 
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
-            IItemRepository itemRepository, INotificationManager notificationManager,
+            IItemRepository itemRepository, INotificationManager notificationManager, ILibraryMonitor libraryMonitor,
             IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager,
             IMediaProbeManager mediaProbeManager, ILocalizationManager localizationManager, IUserManager userManager,
             IUserDataManager userDataManager, IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder,
@@ -99,7 +99,7 @@ namespace StrmAssistant
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
 
             LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaSourceManager, mediaMountManager,
-                itemRepository, jsonSerializer, userManager);
+                itemRepository, jsonSerializer, userManager, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths, ffmpegManager,
                 mediaEncoder, mediaMountManager, jsonSerializer, serverApplicationHost);
@@ -344,6 +344,8 @@ namespace StrmAssistant
                 _currentMaxConcurrentCount = options.GeneralOptions.MaxConcurrentCount;
 
                 QueueManager.UpdateMasterSemaphore(_currentMaxConcurrentCount);
+
+                FingerprintApi.PatchTimeout(_currentMaxConcurrentCount);
             }
             if (_currentTier2ConcurrentCount != options.GeneralOptions.Tier2MaxConcurrentCount)
             {

@@ -103,13 +103,10 @@ namespace StrmAssistant.Common
             public List<ChapterInfo> Chapters { get; set; } = new List<ChapterInfo>();
         }
 
-        public LibraryApi(ILibraryManager libraryManager,
-            IFileSystem fileSystem,
-            IMediaSourceManager mediaSourceManager,
-            IMediaMountManager mediaMountManager,
-            IItemRepository itemRepository,
-            IJsonSerializer jsonSerializer,
-            IUserManager userManager)
+        public LibraryApi(ILibraryManager libraryManager, IFileSystem fileSystem,
+            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager,
+            IItemRepository itemRepository, IJsonSerializer jsonSerializer, IUserManager userManager,
+            ILibraryMonitor libraryMonitor)
         {
             _libraryManager = libraryManager;
             _logger = Plugin.Instance.Logger;
@@ -175,6 +172,26 @@ namespace StrmAssistant.Common
                     _logger.Debug(e.Message);
                     _logger.Debug(e.StackTrace);
                 }
+            }
+
+            try
+            {
+                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+                var libraryMonitorImpl =
+                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.IO.LibraryMonitor");
+                var alwaysIgnoreExtensions = libraryMonitorImpl.GetField("_alwaysIgnoreExtensions",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                var currentArray = (string[])alwaysIgnoreExtensions.GetValue(libraryMonitor);
+                var newArray = new string[currentArray.Length + 1];
+                Array.Copy(currentArray, newArray, currentArray.Length);
+                newArray[newArray.Length - 1] = ".json";
+                alwaysIgnoreExtensions.SetValue(libraryMonitor, newArray);
+            }
+            catch (Exception e)
+            {
+                _logger.Debug("AlwaysIgnoreExtensions - Init Failed");
+                _logger.Debug(e.Message);
+                _logger.Debug(e.StackTrace);
             }
         }
 
@@ -612,11 +629,10 @@ namespace StrmAssistant.Common
             return users;
         }
 
-        public bool HasFileChanged(BaseItem item)
+        public bool HasFileChanged(BaseItem item, IDirectoryService directoryService)
         {
             if (item.IsFileProtocol)
             {
-                var directoryService = new DirectoryService(_logger, _fileSystem);
                 var file = directoryService.GetFile(item.Path);
                 if (file != null && item.HasDateModifiedChanged(file.LastWriteTimeUtc))
                     return true;
@@ -669,7 +685,7 @@ namespace StrmAssistant.Common
                     await SerializeMediaInfo(taskItem, directoryService, true, source, cancellationToken)
                         .ConfigureAwait(false);
                 }
-                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem))
+                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService))
                 {
                     await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, cancellationToken).ConfigureAwait(false);
                 }
@@ -717,7 +733,7 @@ namespace StrmAssistant.Common
             var mediaInfoJsonPath = GetMediaInfoJsonPath(workItem);
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
-            if (overwrite || file?.Exists != true || HasFileChanged(workItem))
+            if (overwrite || file?.Exists != true || HasFileChanged(workItem, directoryService))
             {
                 if (HasMediaInfo(workItem))
                 {
@@ -758,15 +774,6 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task SerializeMediaInfo(BaseItem item, bool overwrite, string source,
-            CancellationToken cancellationToken)
-        {
-            var directoryService = new DirectoryService(_logger, _fileSystem);
-
-            await SerializeMediaInfo(item, directoryService, overwrite, source, cancellationToken)
-                .ConfigureAwait(false);
-        }
-
         public async Task SerializeMediaInfo(long itemId, bool overwrite, string source, CancellationToken cancellationToken)
         {
             var item = _libraryManager.GetItemById(itemId);
@@ -798,7 +805,8 @@ namespace StrmAssistant.Common
                             .DeserializeFromFileAsync<List<MediaSourceWithChapters>>(mediaInfoJsonPath)
                             .ConfigureAwait(false)).ToArray()[0];
 
-                    if (mediaSourceWithChapters.MediaSourceInfo.RunTimeTicks.HasValue && !HasFileChanged(item))
+                    if (mediaSourceWithChapters.MediaSourceInfo.RunTimeTicks.HasValue &&
+                        !HasFileChanged(item, directoryService))
                     {
                         _itemRepository.SaveMediaStreams(item.InternalId,
                             mediaSourceWithChapters.MediaSourceInfo.MediaStreams, cancellationToken);
@@ -834,16 +842,9 @@ namespace StrmAssistant.Common
             return false;
         }
 
-        public async Task<bool> DeserializeMediaInfo(BaseItem item, string source, CancellationToken cancellationToken)
+        public async Task DeleteMediaInfoJson(BaseItem item, IDirectoryService directoryService, string source,
+            CancellationToken cancellationToken)
         {
-            var directoryService = new DirectoryService(_logger, _fileSystem);
-
-            return await DeserializeMediaInfo(item, directoryService, source, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async Task DeleteMediaInfoJson(BaseItem item, string source, CancellationToken cancellationToken)
-        {
-            var directoryService = new DirectoryService(_logger, _fileSystem);
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
@@ -862,6 +863,13 @@ namespace StrmAssistant.Common
                     _logger.Debug(e.StackTrace);
                 }
             }
+        }
+
+        public async Task DeleteMediaInfoJson(BaseItem item, string source, CancellationToken cancellationToken)
+        {
+            var directoryService = new DirectoryService(_logger, _fileSystem);
+
+            await DeleteMediaInfoJson(item, directoryService, source, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task ProbeMediaInfo(BaseItem item, CancellationToken cancellationToken)

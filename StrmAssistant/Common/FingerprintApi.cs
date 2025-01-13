@@ -32,6 +32,7 @@ namespace StrmAssistant.Common
         private readonly MethodInfo CreateTitleFingerprint;
         private readonly MethodInfo GetAllFingerprintFilesForSeason;
         private readonly MethodInfo UpdateSequencesForSeason;
+        private readonly FieldInfo TimeoutMs;
 
         public static List<string> LibraryPathsInScope;
 
@@ -74,6 +75,10 @@ namespace StrmAssistant.Common
                     BindingFlags.Public | BindingFlags.Instance);
                 UpdateSequencesForSeason = audioFingerprintManager.GetMethod("UpdateSequencesForSeason",
                     BindingFlags.Public | BindingFlags.Instance);
+
+                TimeoutMs = audioFingerprintManager.GetField("TimeoutMs",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                PatchTimeout(Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount);
             }
             catch (Exception e)
             {
@@ -81,6 +86,12 @@ namespace StrmAssistant.Common
                 _logger.Debug(e.Message);
                 _logger.Debug(e.StackTrace);
             }
+        }
+
+        public void PatchTimeout(int maxConcurrentCount)
+        {
+            var newTimeout = maxConcurrentCount * Convert.ToInt32(TimeSpan.FromMinutes(10.0).TotalMilliseconds);
+            TimeoutMs.SetValue(AudioFingerprintManager, newTimeout);
         }
 
         public bool IsLibraryInScope(BaseItem item)
