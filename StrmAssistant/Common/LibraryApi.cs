@@ -102,13 +102,10 @@ namespace StrmAssistant.Common
             public List<ChapterInfo> Chapters { get; set; } = new List<ChapterInfo>();
         }
 
-        public LibraryApi(ILibraryManager libraryManager,
-            IFileSystem fileSystem,
-            IMediaSourceManager mediaSourceManager,
-            IMediaMountManager mediaMountManager,
-            IItemRepository itemRepository,
-            IJsonSerializer jsonSerializer,
-            IUserManager userManager)
+        public LibraryApi(ILibraryManager libraryManager, IFileSystem fileSystem,
+            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager,
+            IItemRepository itemRepository, IJsonSerializer jsonSerializer, IUserManager userManager,
+            ILibraryMonitor libraryMonitor)
         {
             _libraryManager = libraryManager;
             _logger = Plugin.Instance.Logger;
@@ -174,6 +171,26 @@ namespace StrmAssistant.Common
                     _logger.Debug(e.Message);
                     _logger.Debug(e.StackTrace);
                 }
+            }
+
+            try
+            {
+                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+                var libraryMonitorImpl =
+                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.IO.LibraryMonitor");
+                var alwaysIgnoreExtensions = libraryMonitorImpl.GetField("_alwaysIgnoreExtensions",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                var currentArray = (string[])alwaysIgnoreExtensions.GetValue(libraryMonitor);
+                var newArray = new string[currentArray.Length + 1];
+                Array.Copy(currentArray, newArray, currentArray.Length);
+                newArray[newArray.Length - 1] = ".json";
+                alwaysIgnoreExtensions.SetValue(libraryMonitor, newArray);
+            }
+            catch (Exception e)
+            {
+                _logger.Debug("AlwaysIgnoreExtensions - Init Failed");
+                _logger.Debug(e.Message);
+                _logger.Debug(e.StackTrace);
             }
         }
 
