@@ -1,4 +1,5 @@
-﻿using Emby.Web.GenericEdit.PropertyDiff;
+﻿using Emby.Web.GenericEdit.Common;
+using Emby.Web.GenericEdit.PropertyDiff;
 using MediaBrowser.Common;
 using MediaBrowser.Model.Logging;
 using StrmAssistant.Mod;
@@ -110,6 +111,8 @@ namespace StrmAssistant.Options.Store
             {
                 _logger.Info("MergeMultiVersion is set to {0}", options.MergeMultiVersion);
                 _logger.Info("HidePersonNoImage is set to {0}", options.UIFunctionOptions.HidePersonNoImage);
+                _logger.Info("HidePersonPreference is set to {0}",
+                    options.UIFunctionOptions.HidePersonPreference.GetDescription());
                 _logger.Info("EnforceLibraryOrder is set to {0}", options.UIFunctionOptions.EnforceLibraryOrder);
                 _logger.Info("BeautifyMissingMetadata is set to {0}", options.UIFunctionOptions.BeautifyMissingMetadata);
                 _logger.Info("EnhanceMissingEpisodes is set to {0}", options.UIFunctionOptions.EnhanceMissingEpisodes);

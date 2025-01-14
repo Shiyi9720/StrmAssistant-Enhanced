@@ -18,6 +18,18 @@ namespace StrmAssistant.Options
         [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
         public bool HidePersonNoImage { get; set; } = false;
 
+        public enum HidePersonOption
+        {
+            [DescriptionL("HidePersonOption_NoImage_NoImage", typeof(Resources))]
+            NoImage,
+            [DescriptionL("HidePersonOption_NoDirector_NoDirector", typeof(Resources))]
+            NoDirector
+        }
+
+        [DisplayName("")]
+        [VisibleCondition(nameof(HidePersonNoImage), SimpleCondition.IsTrue)]
+        public HidePersonOption HidePersonPreference { get; set; } = HidePersonOption.NoImage;
+
         [DisplayNameL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata", typeof(Resources))]
         [DescriptionL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_", typeof(Resources))]
         [Required]

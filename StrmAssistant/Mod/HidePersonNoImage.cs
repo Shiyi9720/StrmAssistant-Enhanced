@@ -2,10 +2,12 @@
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Entities;
 using System;
 using System.Linq;
 using System.Reflection;
 using static StrmAssistant.Mod.PatchManager;
+using static StrmAssistant.Options.UIFunctionOptions;
 
 namespace StrmAssistant.Mod
 {
@@ -95,7 +97,17 @@ namespace StrmAssistant.Mod
         {
             if (dto.People == null) return;
 
-            dto.People = dto.People.Where(p => p.HasPrimaryImage).ToArray();
+            var option = Plugin.Instance.ExperienceEnhanceStore.GetOptions().UIFunctionOptions.HidePersonPreference;
+
+            if (option == HidePersonOption.NoImage)
+            {
+                dto.People = dto.People.Where(p => p.HasPrimaryImage).ToArray();
+            }
+
+            if (option == HidePersonOption.NoDirector)
+            {
+                dto.People = dto.People.Where(p => p.Type != PersonType.Director).ToArray();
+            }
         }
     }
 }
