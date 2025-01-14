@@ -515,11 +515,13 @@ namespace StrmAssistant.Common
 
         private List<BaseItem> FilterUnprocessed(List<BaseItem> items)
         {
+            var enableImageCapture = Plugin.Instance.MediaInfoExtractStore.GetOptions().EnableImageCapture;
+
             var results = new List<BaseItem>();
 
             foreach (var item in items)
             {
-                if (IsExtractNeeded(item))
+                if (IsExtractNeeded(item, enableImageCapture))
                 {
                     results.Add(item);
                 }
@@ -534,12 +536,13 @@ namespace StrmAssistant.Common
             return results;
         }
 
-        public bool IsExtractNeeded(BaseItem item)
+        public bool IsExtractNeeded(BaseItem item, bool enableImageCapture)
         {
             if (item.MediaContainer.HasValue && ExcludeMediaContainers.Contains(item.MediaContainer.Value))
                 return false;
 
-            return !HasMediaInfo(item) || (!item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item));
+            return !HasMediaInfo(item) ||
+                   enableImageCapture && !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item);
         }
 
         public List<BaseItem> ExpandFavorites(List<BaseItem> items, bool filterNeeded, bool? preExtract)
@@ -729,7 +732,7 @@ namespace StrmAssistant.Common
                 .ConfigureAwait(false);
         }
 
-        private string GetMediaInfoJsonPath(BaseItem item)
+        public static string GetMediaInfoJsonPath(BaseItem item)
         {
             var jsonRootFolder = Plugin.Instance.MediaInfoExtractStore.GetOptions().MediaInfoJsonRootFolder;
 
