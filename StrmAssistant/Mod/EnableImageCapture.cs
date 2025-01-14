@@ -3,6 +3,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.MediaInfo;
+using StrmAssistant.Common;
 using StrmAssistant.ScheduledTask;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
-using StrmAssistant.Common;
 using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
@@ -38,14 +38,14 @@ namespace StrmAssistant.Mod
         private static readonly AsyncLocal<BaseItem> ShortcutItem = new AsyncLocal<BaseItem>();
         private static readonly AsyncLocal<long> ImageCaptureItem = new AsyncLocal<long>();
         private static readonly AsyncLocal<bool> SupportsThumbnailsInstancePatched = new AsyncLocal<bool>();
-        private static int _currentMaxConcurrentCount;
         private static int _isShortcutPatchUsageCount;
 
         private static SemaphoreSlim SemaphoreFFmpeg;
+        public static int SemaphoreFFmpegMaxCount { get; private set; }
 
         public static void Initialize()
         {
-            _currentMaxConcurrentCount = Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount;
+            SemaphoreFFmpegMaxCount = Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount;
 
             try
             {
@@ -101,7 +101,7 @@ namespace StrmAssistant.Mod
             if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
                 Plugin.Instance.MediaInfoExtractStore.GetOptions().EnableImageCapture)
             {
-                SemaphoreFFmpeg = new SemaphoreSlim(_currentMaxConcurrentCount);
+                SemaphoreFFmpeg = new SemaphoreSlim(SemaphoreFFmpegMaxCount);
                 PatchResourcePool();
                 var resourcePool = (SemaphoreSlim)_resourcePoolField?.GetValue(null);
                 Plugin.Instance.Logger.Info(
@@ -314,9 +314,9 @@ namespace StrmAssistant.Mod
 
         public static void UpdateResourcePool(int maxConcurrentCount)
         {
-            if (_currentMaxConcurrentCount != maxConcurrentCount)
+            if (SemaphoreFFmpegMaxCount != maxConcurrentCount)
             {
-                _currentMaxConcurrentCount = maxConcurrentCount;
+                SemaphoreFFmpegMaxCount = maxConcurrentCount;
                 SemaphoreSlim newSemaphoreFFmpeg;
                 SemaphoreSlim oldSemaphoreFFmpeg;
 
