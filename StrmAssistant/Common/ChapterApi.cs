@@ -40,34 +40,34 @@ namespace StrmAssistant.Common
 
         public bool HasIntro(BaseItem item)
         {
-            return _itemRepository.GetChapters(item)
-                .Any(c => c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd);
+            return _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.IntroStart }).Any();
         }
 
         public long? GetIntroStart(BaseItem item)
         {
-            var introStart = _itemRepository.GetChapters(item)
-                .FirstOrDefault(c => c.MarkerType == MarkerType.IntroStart);
+            var introStart = _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.IntroStart })
+                .FirstOrDefault();
+
             return introStart?.StartPositionTicks;
         }
 
         public long? GetIntroEnd(BaseItem item)
         {
-            var introEnd = _itemRepository.GetChapters(item)
-                .FirstOrDefault(c => c.MarkerType == MarkerType.IntroEnd);
+            var introEnd = _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.IntroEnd }).FirstOrDefault();
+
             return introEnd?.StartPositionTicks;
         }
 
         public bool HasCredits(BaseItem item)
         {
-            return _itemRepository.GetChapters(item)
-                .Any(c => c.MarkerType is MarkerType.CreditsStart);
+            return _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.CreditsStart }).Any();
         }
 
         public long? GetCreditsStart(BaseItem item)
         {
-            var creditsStart = _itemRepository.GetChapters(item)
-                .FirstOrDefault(c => c.MarkerType == MarkerType.CreditsStart);
+            var creditsStart = _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.CreditsStart })
+                .FirstOrDefault();
+
             return creditsStart?.StartPositionTicks;
         }
 
