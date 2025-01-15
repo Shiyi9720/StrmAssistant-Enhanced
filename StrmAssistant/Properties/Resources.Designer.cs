@@ -161,6 +161,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No Intro Marker Protect.
+        /// </summary>
+        public static string ExclusiveControl_NoIntroProtect_NoIntroProtect {
+            get {
+                return ResourceManager.GetString("ExclusiveControl_NoIntroProtect_NoIntroProtect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No Persist Integration.
         /// </summary>
         public static string ExclusiveControl_NoPersistIntegration_NoPersistIntegration {
@@ -299,7 +308,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exclude Director.
+        ///   Looks up a localized string similar to Exclude Director Only.
         /// </summary>
         public static string HidePersonOption_NoDirector_NoDirector {
             get {

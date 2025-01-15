@@ -53,7 +53,9 @@ namespace StrmAssistant.Options
             [DescriptionL("ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange", typeof(Resources))]
             IgnoreExtSubChange,
             [DescriptionL("ExclusiveControl_NoPersistIntegration_NoPersistIntegration", typeof(Resources))]
-            NoPersistIntegration
+            NoPersistIntegration,
+            [DescriptionL("ExclusiveControl_NoIntroProtect_NoIntroProtect", typeof(Resources))]
+            NoIntroProtect
         }
 
         [Browsable(false)]

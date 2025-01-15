@@ -116,11 +116,7 @@ namespace StrmAssistant.Mod
 
         public static void BypassInstance(BaseItem item)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony &&
-                Plugin.Instance.MediaInfoExtractStore.GetOptions().IsModSupported)
-            {
-                BypassItem.Value = item.InternalId;
-            }
+            BypassItem.Value = item.InternalId;
         }
 
         [HarmonyPostfix]

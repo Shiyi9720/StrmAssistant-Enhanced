@@ -1,6 +1,7 @@
 using HarmonyLib;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
@@ -39,10 +40,14 @@ namespace StrmAssistant.Mod
         private static MethodInfo _addMediaPath;
         private static MethodInfo _removeMediaPath;
 
+        private static MethodInfo _saveChapters;
+        private static MethodInfo _deleteChapters;
+
         private static readonly Dictionary<Type, PropertyInfo> RefreshLibraryPropertyCache =
             new Dictionary<Type, PropertyInfo>();
 
-        private static AsyncLocal<long> ExclusiveItem { get; } = new AsyncLocal<long>();
+        private static readonly AsyncLocal<long> ExclusiveItem = new AsyncLocal<long>();
+        private static readonly AsyncLocal<long> ProtectIntroItem = new AsyncLocal<long>();
 
         private static AsyncLocal<RefreshContext> CurrentRefreshContext { get; } = new AsyncLocal<RefreshContext>();
 
@@ -85,6 +90,15 @@ namespace StrmAssistant.Mod
                     new[] { embyApi.GetType("Emby.Api.Library.AddMediaPath") });
                 _removeMediaPath = libraryStructureService.GetMethod("Any",
                     new[] { embyApi.GetType("Emby.Api.Library.RemoveMediaPath") });
+
+                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+                var sqliteItemRepository =
+                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
+                _saveChapters = sqliteItemRepository.GetMethod("SaveChapters",
+                    BindingFlags.Instance | BindingFlags.Public, null,
+                    new[] { typeof(long), typeof(bool), typeof(List<ChapterInfo>) }, null);
+                _deleteChapters =
+                    sqliteItemRepository.GetMethod("DeleteChapters", BindingFlags.Instance | BindingFlags.Public);
             }
             catch (Exception e)
             {
@@ -165,6 +179,8 @@ namespace StrmAssistant.Mod
                     {
                         HarmonyMod.Patch(_canRefreshMetadata,
                             prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("CanRefreshMetadataPrefix",
+                                BindingFlags.Static | BindingFlags.NonPublic)),
+                            postfix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("CanRefreshMetadataPostfix",
                                 BindingFlags.Static | BindingFlags.NonPublic)));
                         Plugin.Instance.Logger.Debug(
                             "Patch CanRefreshMetadata Success by Harmony");
@@ -216,6 +232,22 @@ namespace StrmAssistant.Mod
                         Plugin.Instance.Logger.Debug(
                             "Patch RemoveMediaPath Success by Harmony");
                     }
+                    if (!IsPatched(_saveChapters, typeof(ExclusiveExtract)))
+                    {
+                        HarmonyMod.Patch(_saveChapters,
+                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("SaveChaptersPrefix",
+                                BindingFlags.Static | BindingFlags.NonPublic)));
+                        Plugin.Instance.Logger.Debug(
+                            "Patch SaveChapters Success by Harmony");
+                    }
+                    if (!IsPatched(_deleteChapters, typeof(ExclusiveExtract)))
+                    {
+                        HarmonyMod.Patch(_deleteChapters,
+                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("DeleteChaptersPrefix",
+                                BindingFlags.Static | BindingFlags.NonPublic)));
+                        Plugin.Instance.Logger.Debug(
+                            "Patch DeleteChapters Success by Harmony");
+                    }
                 }
                 catch (Exception he)
                 {
@@ -237,6 +269,8 @@ namespace StrmAssistant.Mod
                     {
                         HarmonyMod.Unpatch(_canRefreshMetadata,
                             AccessTools.Method(typeof(ExclusiveExtract), "CanRefreshMetadataPrefix"));
+                        HarmonyMod.Unpatch(_canRefreshMetadata,
+                            AccessTools.Method(typeof(ExclusiveExtract), "CanRefreshMetadataPostfix"));
                         Plugin.Instance.Logger.Debug("Unpatch CanRefreshMetadata Success by Harmony");
                     }
                     if (IsPatched(_canRefreshImage, typeof(ExclusiveExtract)))
@@ -275,6 +309,18 @@ namespace StrmAssistant.Mod
                             AccessTools.Method(typeof(ExclusiveExtract), "RefreshLibraryPrefix"));
                         Plugin.Instance.Logger.Debug("Unpatch RemoveMediaPath Success by Harmony");
                     }
+                    if (IsPatched(_saveChapters, typeof(ExclusiveExtract)))
+                    {
+                        HarmonyMod.Unpatch(_saveChapters,
+                            AccessTools.Method(typeof(ExclusiveExtract), "SaveChaptersPrefix"));
+                        Plugin.Instance.Logger.Debug("Unpatch SaveChapters Success by Harmony");
+                    }
+                    if (IsPatched(_deleteChapters, typeof(ExclusiveExtract)))
+                    {
+                        HarmonyMod.Unpatch(_deleteChapters,
+                            AccessTools.Method(typeof(ExclusiveExtract), "DeleteChaptersPrefix"));
+                        Plugin.Instance.Logger.Debug("Unpatch DeleteChapters Success by Harmony");
+                    }
                 }
                 catch (Exception he)
                 {
@@ -302,11 +348,16 @@ namespace StrmAssistant.Mod
         [HarmonyPrefix]
         private static bool CanRefreshMetadataPrefix(IMetadataProvider provider, BaseItem item,
             LibraryOptions libraryOptions, bool includeDisabled, bool forceEnableInternetMetadata,
-            bool ignoreMetadataLock, ref bool __result)
+            bool ignoreMetadataLock, ref bool __result, out bool __state)
         {
             if ((item.Parent is null && item.ExtraType is null) || !(provider is IPreRefreshProvider) ||
                 !(provider is ICustomMetadataProvider<Video>))
+            {
+                __state = false;
                 return true;
+            }
+            
+            __state = true;
 
             ChapterChangeTracker.BypassInstance(item);
 
@@ -325,6 +376,7 @@ namespace StrmAssistant.Mod
                     Plugin.LibraryApi.HasMediaInfo(item))
                 {
                     CurrentRefreshContext.Value.MetadataRefreshOptions.EnableRemoteContentProbe = true;
+                    EnableImageCapture.AllowImageCaptureInstance(item);
                 }
 
                 CurrentRefreshContext.Value.MediaInfoNeedsUpdate = true;
@@ -338,12 +390,6 @@ namespace StrmAssistant.Mod
                     MetadataRefreshMode.Default || !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) &&
                     CurrentRefreshContext.Value.MetadataRefreshOptions.SearchResult != null))
             {
-                if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) && item is Video &&
-                    Plugin.SubtitleApi.HasExternalSubtitleChanged(item, CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
-                {
-                    _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None).ConfigureAwait(false);
-                }
-
                 __result = false;
                 return false;
             }
@@ -358,13 +404,6 @@ namespace StrmAssistant.Mod
 
             if (!IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && Plugin.LibraryApi.HasMediaInfo(item))
             {
-                if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) && item is Video &&
-                    CurrentRefreshContext.Value != null && Plugin.SubtitleApi.HasExternalSubtitleChanged(item,
-                        CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
-                {
-                    _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None).ConfigureAwait(false);
-                }
-
                 __result = false;
                 return false;
             }
@@ -391,6 +430,28 @@ namespace StrmAssistant.Mod
             return true;
         }
 
+        [HarmonyPostfix]
+        private static void CanRefreshMetadataPostfix(IMetadataProvider provider, BaseItem item,
+            LibraryOptions libraryOptions, bool includeDisabled, bool forceEnableInternetMetadata,
+            bool ignoreMetadataLock, ref bool __result, bool __state)
+        {
+            if (__state && item.DateLastRefreshed != DateTimeOffset.MinValue)
+            {
+                if (__result && !IsExclusiveFeatureSelected(ExclusiveControl.NoIntroProtect) &&
+                    item is Episode && Plugin.ChapterApi.HasIntro(item))
+                {
+                    ProtectIntroItem.Value = item.InternalId;
+                }
+
+                if (!__result && !IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) && item is Video &&
+                    CurrentRefreshContext.Value != null && Plugin.SubtitleApi.HasExternalSubtitleChanged(item,
+                        CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
+                {
+                    _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None).ConfigureAwait(false);
+                }
+            }
+        }
+
         [HarmonyPrefix]
         private static bool CanRefreshImagePrefix(IImageProvider provider, BaseItem item, LibraryOptions libraryOptions,
             ImageRefreshOptions refreshOptions, bool ignoreMetadataLock, bool ignoreLibraryOptions, ref bool __result)
@@ -399,44 +460,47 @@ namespace StrmAssistant.Mod
                 !(item is Video || item is Audio))
                 return true;
 
-            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId) return true;
-
-            if (CurrentRefreshContext.Value == null && refreshOptions is MetadataRefreshOptions options)
+            if (refreshOptions is MetadataRefreshOptions options)
             {
-                CurrentRefreshContext.Value = new RefreshContext
-                {
-                    InternalId = item.InternalId,
-                    MetadataRefreshOptions = options,
-                    MediaInfoNeedsUpdate = false
-                };
+                if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId) return true;
 
-                if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow))
+                if (CurrentRefreshContext.Value == null)
                 {
-                    options.EnableRemoteContentProbe = true;
+                    CurrentRefreshContext.Value = new RefreshContext
+                    {
+                        InternalId = item.InternalId,
+                        MetadataRefreshOptions = options,
+                        MediaInfoNeedsUpdate = false
+                    };
+
+                    if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow))
+                    {
+                        options.EnableRemoteContentProbe = true;
+                        EnableImageCapture.AllowImageCaptureInstance(item);
+                    }
                 }
-            }
 
-            if (item.DateLastRefreshed == DateTimeOffset.MinValue) return true;
+                if (item.DateLastRefreshed == DateTimeOffset.MinValue) return true;
 
-            if (!item.IsShortcut &&
-                item.HasImage(ImageType.Primary) && provider is IDynamicImageProvider &&
-                provider.GetType().Name == "VideoImageProvider" &&
-                (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
-                 !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) &&
-                 refreshOptions is MetadataRefreshOptions && !refreshOptions.ReplaceAllImages))
-            {
-                __result = false;
-                return false;
-            }
+                if (!item.IsShortcut &&
+                    item.HasImage(ImageType.Primary) && provider is IDynamicImageProvider &&
+                    provider.GetType().Name == "VideoImageProvider" &&
+                    (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
+                     !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) &&
+                     !refreshOptions.ReplaceAllImages))
+                {
+                    __result = false;
+                    return false;
+                }
 
-            if (item.HasImage(ImageType.Primary) && provider is IRemoteImageProvider &&
-                refreshOptions is MetadataRefreshOptions &&
-                (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
-                 !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && item.IsShortcut &&
-                 !refreshOptions.ReplaceAllImages))
-            {
-                __result = false;
-                return false;
+                if (item.HasImage(ImageType.Primary) && provider is IRemoteImageProvider &&
+                    (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
+                     !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && item.IsShortcut &&
+                     !refreshOptions.ReplaceAllImages))
+                {
+                    __result = false;
+                    return false;
+                }
             }
 
             return true;
@@ -499,6 +563,23 @@ namespace StrmAssistant.Mod
             {
                 refreshLibraryProperty.SetValue(request, false);
             }
+
+            return true;
+        }
+
+        [HarmonyPrefix]
+        private static bool SaveChaptersPrefix(long itemId, bool clearExtractionFailureResult,
+            List<ChapterInfo> chapters)
+        {
+            if (ProtectIntroItem.Value != 0 && ProtectIntroItem.Value == itemId) return false;
+
+            return true;
+        }
+
+        [HarmonyPrefix]
+        private static bool DeleteChaptersPrefix(long itemId, MarkerType[] markerTypes)
+        {
+            if (ProtectIntroItem.Value != 0 && ProtectIntroItem.Value == itemId) return false;
 
             return true;
         }
