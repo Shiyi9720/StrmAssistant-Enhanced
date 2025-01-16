@@ -10,7 +10,9 @@ using StrmAssistant.ScheduledTask;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using static StrmAssistant.Mod.PatchManager;
 using static StrmAssistant.Options.MediaInfoExtractOptions;
 using static StrmAssistant.Options.Utility;
@@ -29,11 +31,13 @@ namespace StrmAssistant.Mod
         private static readonly PatchApproachTracker PatchApproachTracker =
             new PatchApproachTracker(nameof(ExclusiveExtract));
 
-        private static Assembly _mediaEncodingAssembly;
         private static MethodInfo _canRefreshMetadata;
         private static MethodInfo _canRefreshImage;
         private static MethodInfo _afterMetadataRefresh;
+
         private static MethodInfo _runFfProcess;
+        private static PropertyInfo _standardOutput;
+        private static PropertyInfo _standardError;
 
         private static MethodInfo _addVirtualFolder;
         private static MethodInfo _removeVirtualFolder;
@@ -74,11 +78,15 @@ namespace StrmAssistant.Mod
                 _afterMetadataRefresh =
                     typeof(BaseItem).GetMethod("AfterMetadataRefresh", BindingFlags.Instance | BindingFlags.Public);
 
-                _mediaEncodingAssembly = Assembly.Load("Emby.Server.MediaEncoding");
+                var mediaEncodingAssembly = Assembly.Load("Emby.Server.MediaEncoding");
                 var mediaProbeManager =
-                    _mediaEncodingAssembly.GetType("Emby.Server.MediaEncoding.Probing.MediaProbeManager");
+                    mediaEncodingAssembly.GetType("Emby.Server.MediaEncoding.Probing.MediaProbeManager");
                 _runFfProcess =
                     mediaProbeManager.GetMethod("RunFfProcess", BindingFlags.Instance | BindingFlags.NonPublic);
+                var processRunAssembly = Assembly.Load("Emby.ProcessRun");
+                var processResult = processRunAssembly.GetType("Emby.ProcessRun.Common.ProcessResult");
+                _standardOutput = processResult.GetProperty("StandardOutput");
+                _standardError = processResult.GetProperty("StandardError");
 
                 var embyApi = Assembly.Load("Emby.Api");
                 var libraryStructureService = embyApi.GetType("Emby.Api.Library.LibraryStructureService");
@@ -112,7 +120,7 @@ namespace StrmAssistant.Mod
 
             if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None)
             {
-                PatchFFProbeTimeout();
+                PatchFFProbeProcess();
 
                 if (Plugin.Instance.MediaInfoExtractStore.GetOptions().ExclusiveExtract)
                 {
@@ -123,7 +131,7 @@ namespace StrmAssistant.Mod
             }
         }
 
-        private static void PatchFFProbeTimeout()
+        private static void PatchFFProbeProcess()
         {
             if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
             {
@@ -133,9 +141,10 @@ namespace StrmAssistant.Mod
                     {
                         HarmonyMod.Patch(_runFfProcess,
                             prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RunFfProcessPrefix",
+                                BindingFlags.Static | BindingFlags.NonPublic)),
+                            postfix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RunFfProcessPostfix",
                                 BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch RunFfProcess Success by Harmony");
+                        Plugin.Instance.Logger.Debug("Patch RunFfProcess Success by Harmony");
                     }
                 }
                 catch (Exception he)
@@ -148,7 +157,7 @@ namespace StrmAssistant.Mod
             }
         }
 
-        private static void UnpatchFFProbeTimeout()
+        private static void UnpatchFFProbeProcess()
         {
             if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
             {
@@ -156,7 +165,10 @@ namespace StrmAssistant.Mod
                 {
                     if (IsPatched(_runFfProcess, typeof(ExclusiveExtract)))
                     {
-                        HarmonyMod.Unpatch(_runFfProcess, HarmonyPatchType.Prefix);
+                        HarmonyMod.Unpatch(_runFfProcess,
+                            AccessTools.Method(typeof(ExclusiveExtract), "RunFfProcessPrefix"));
+                        HarmonyMod.Unpatch(_runFfProcess,
+                            AccessTools.Method(typeof(ExclusiveExtract), "RunFfProcessPostfix"));
                         Plugin.Instance.Logger.Debug("Unpatch RunFfProcess Success by Harmony");
                     }
                 }
@@ -342,6 +354,40 @@ namespace StrmAssistant.Mod
             if (ExtractMediaInfoTask.IsRunning || QueueManager.IsMediaInfoProcessTaskRunning)
             {
                 timeoutMs = 60000 * Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount;
+            }
+        }
+
+        [HarmonyPostfix]
+        private static void RunFfProcessPostfix(ref object __result)
+        {
+            if (__result is Task task)
+            {
+                var result = task.GetType().GetProperty("Result")?.GetValue(task);
+
+                if (result != null)
+                {
+                    var standardOutput = _standardOutput.GetValue(result) as string;
+                    var standardError = _standardError.GetValue(result) as string;
+
+                    if (standardOutput != null && standardError != null)
+                    {
+                        var partialOutput = standardOutput.Length > 20
+                            ? standardOutput.Substring(0, 20)
+                            : standardOutput;
+
+                        if (Regex.Replace(partialOutput, @"\s+", "") == "{}")
+                        {
+                            var lines = standardError.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                            if (lines.Length > 0)
+                            {
+                                var errorMessage = lines[lines.Length - 1].Trim();
+
+                                Plugin.Instance.Logger.Error("MediaInfoExtract - FfProbe Error: " + errorMessage);
+                            }
+                        }
+                    }
+                }
             }
         }
 
