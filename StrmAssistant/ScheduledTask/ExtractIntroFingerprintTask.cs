@@ -51,6 +51,9 @@ namespace StrmAssistant.ScheduledTask
             _logger.Info("Intro Detection Fingerprint Length (Minutes): " + Plugin.Instance.GetPluginOptions()
                 .IntroSkipOptions.IntroDetectionFingerprintMinutes);
 
+            var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
+            var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
+
             var preExtractEpisodes = Plugin.FingerprintApi.FetchIntroPreExtractTaskItems();
             var postExtractEpisodes = Plugin.FingerprintApi.FetchIntroFingerprintTaskItems();
             var episodes= preExtractEpisodes.Concat(postExtractEpisodes).ToList();
@@ -114,7 +117,9 @@ namespace StrmAssistant.ScheduledTask
                                 return;
                             }
 
-                            if (Plugin.LibraryApi.IsExtractNeeded(taskEpisode))
+                            var deserializeResult = false;
+
+                            if (Plugin.LibraryApi.IsExtractNeeded(taskEpisode, enableImageCapture))
                             {
                                 result1 = await Plugin.LibraryApi
                                     .OrchestrateMediaInfoProcessAsync(taskEpisode, directoryService,
@@ -129,10 +134,18 @@ namespace StrmAssistant.ScheduledTask
                                     return;
                                 }
                             }
+                            else if (persistMediaInfo)
+                            {
+                                deserializeResult = await Plugin.ChapterApi.DeserializeChapterInfo(taskEpisode,
+                                    directoryService, "IntroFingerprintExtract Task", cancellationToken);
+                            }
 
-                            result2 = await Plugin.FingerprintApi
-                                .ExtractIntroFingerprint(taskEpisode, directoryService, cancellationToken)
-                                .ConfigureAwait(false);
+                            if ((!persistMediaInfo || !deserializeResult) && !Plugin.ChapterApi.HasIntro(taskEpisode))
+                            {
+                                result2 = await Plugin.FingerprintApi
+                                    .ExtractIntroFingerprint(taskEpisode, directoryService, cancellationToken)
+                                    .ConfigureAwait(false);
+                            }
                         }
                         catch (TaskCanceledException)
                         {

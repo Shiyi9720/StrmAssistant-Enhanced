@@ -161,6 +161,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No Intro Marker Protect.
+        /// </summary>
+        public static string ExclusiveControl_NoIntroProtect_NoIntroProtect {
+            get {
+                return ResourceManager.GetString("ExclusiveControl_NoIntroProtect_NoIntroProtect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No Persist Integration.
         /// </summary>
         public static string ExclusiveControl_NoPersistIntegration_NoPersistIntegration {
@@ -295,6 +304,24 @@ namespace StrmAssistant.Properties {
         public static string GeneralOptions_Tier2MaxConcurrentCount_Tier_2_Max_Concurrent_Count {
             get {
                 return ResourceManager.GetString("GeneralOptions_Tier2MaxConcurrentCount_Tier_2_Max_Concurrent_Count", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exclude Director Only.
+        /// </summary>
+        public static string HidePersonOption_NoDirector_NoDirector {
+            get {
+                return ResourceManager.GetString("HidePersonOption_NoDirector_NoDirector", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Image Person.
+        /// </summary>
+        public static string HidePersonOption_NoImage_NoImage {
+            get {
+                return ResourceManager.GetString("HidePersonOption_NoImage_NoImage", resourceCulture);
             }
         }
         
@@ -1011,7 +1038,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hide Person without Image.
+        ///   Looks up a localized string similar to Hide Cast and Crew by Preference.
         /// </summary>
         public static string ModOptions_HidePersonNoImage_Hide_Person_without_Image {
             get {
@@ -1020,7 +1047,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Hide person without image. Default is OFF..
+        ///   Looks up a localized string similar to Hide cast and crew based on your preferences. Default is OFF..
         /// </summary>
         public static string ModOptions_HidePersonNoImage_Hide_person_without_image__Default_is_OFF_ {
             get {
@@ -1331,7 +1358,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Harmony Mod Failed.
+        ///   Looks up a localized string similar to Mod failed. Please check log in debug mode after restart to troubleshoot..
         /// </summary>
         public static string PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed {
             get {

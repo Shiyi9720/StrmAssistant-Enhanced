@@ -1,3 +1,4 @@
+using MediaBrowser.Controller.Entities;
 using System;
 using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
@@ -6,6 +7,19 @@ namespace StrmAssistant.IntroSkip
 {
     public class PlaySessionData
     {
+        public PlaySessionData(BaseItem item)
+        {
+            IntroStart = Plugin.ChapterApi.GetIntroStart(item);
+            IntroEnd = Plugin.ChapterApi.GetIntroEnd(item);
+            CreditsStart = Plugin.ChapterApi.GetCreditsStart(item);
+        }
+        
+        public long? IntroStart { get; }
+
+        public long? IntroEnd { get; }
+
+        public long? CreditsStart { get; }
+
         public long PlaybackStartTicks { get; set; } = 0;
 
         public long PreviousPositionTicks { get; set; } = 0;

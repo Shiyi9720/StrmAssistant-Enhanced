@@ -354,6 +354,7 @@ namespace StrmAssistant.Common
                             : (int?)null;
                         if (cooldownSeconds.HasValue)
                             Logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
+                        var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
                         var groupedBySeason = episodes.GroupBy(e => e.Season).ToList();
                         var seasonTasks = new List<Task>();
@@ -407,7 +408,7 @@ namespace StrmAssistant.Common
                                             return;
                                         }
 
-                                        if (Plugin.LibraryApi.IsExtractNeeded(taskItem))
+                                        if (Plugin.LibraryApi.IsExtractNeeded(taskItem, enableImageCapture))
                                         {
                                             result1 = await Plugin.LibraryApi
                                                 .OrchestrateMediaInfoProcessAsync(taskItem, "IntroFingerprintExtract Catchup",

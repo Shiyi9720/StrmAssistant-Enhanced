@@ -149,7 +149,7 @@ namespace StrmAssistant.IntroSkip
                 return;
             }
 
-            if (Plugin.ChapterApi.HasIntro(e.Item) && Plugin.ChapterApi.HasCredits(e.Item))
+            if (playSessionData.IntroStart.HasValue && playSessionData.CreditsStart.HasValue)
             {
                 _logger.Info("IntroSkip - Intro marker and Credits marker already exist");
             }
@@ -159,9 +159,9 @@ namespace StrmAssistant.IntroSkip
                              new TimeSpan(playSessionData.PlaybackStartTicks).ToString(@"hh\:mm\:ss\.fff"));
                 _logger.Info("IntroSkip - Detection Started");
                 _logger.Info("IntroSkip - Intro marker is " +
-                             (Plugin.ChapterApi.HasIntro(e.Item) ? "available" : "not available"));
+                             (playSessionData.IntroStart.HasValue ? "available" : "not available"));
                 _logger.Info("IntroSkip - Credits marker is " +
-                             (Plugin.ChapterApi.HasCredits(e.Item) ? "available" : "not available"));
+                             (playSessionData.CreditsStart.HasValue ? "available" : "not available"));
             }
         }
 
@@ -179,9 +179,9 @@ namespace StrmAssistant.IntroSkip
 
             var currentPositionTicks = e.PlaybackPositionTicks.Value;
             var currentEventTime = DateTime.UtcNow;
-            var introEnd = Plugin.ChapterApi.GetIntroEnd(e.Item);
-            var introStart = Plugin.ChapterApi.GetIntroStart(e.Item);
-            var creditsStart = Plugin.ChapterApi.GetCreditsStart(e.Item);
+            var introStart = playSessionData.IntroStart;
+            var introEnd = playSessionData.IntroEnd;
+            var creditsStart = playSessionData.CreditsStart;
 
             if (!playSessionData.NoDetectionButReset && e.EventName == ProgressEvent.TimeUpdate && !introEnd.HasValue)
             {
@@ -301,7 +301,7 @@ namespace StrmAssistant.IntroSkip
             var playSessionData = GetPlaySessionData(e);
             if (playSessionData is null) return;
 
-            if (!Plugin.ChapterApi.HasCredits(e.Item))
+            if (!playSessionData.CreditsStart.HasValue)
             {
                 var currentPositionTicks = e.PlaybackPositionTicks.Value;
                 if (currentPositionTicks > e.Item.RunTimeTicks - playSessionData.MaxCreditsDurationTicks)
@@ -323,12 +323,14 @@ namespace StrmAssistant.IntroSkip
                 !IsClientInScope(e.ClientName)) return null;
             
             var playSessionId = e.PlaySessionId;
+
             if (!_playSessionData.ContainsKey(playSessionId))
             {
-                _playSessionData[playSessionId] = new PlaySessionData();
+                _playSessionData[playSessionId] = new PlaySessionData(e.Item);
             }
 
             var playSessionData = _playSessionData[playSessionId];
+
             return playSessionData;
         }
 

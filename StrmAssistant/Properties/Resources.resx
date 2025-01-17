@@ -324,10 +324,10 @@
     <value>Add support to import actor image URL from Nfo. Default is OFF.</value>
   </data>
   <data name="ModOptions_HidePersonNoImage_Hide_Person_without_Image" xml:space="preserve">
-    <value>Hide Person without Image</value>
+    <value>Hide Cast and Crew by Preference</value>
   </data>
   <data name="ModOptions_HidePersonNoImage_Hide_person_without_image__Default_is_OFF_" xml:space="preserve">
-    <value>Hide person without image. Default is OFF.</value>
+    <value>Hide cast and crew based on your preferences. Default is OFF.</value>
   </data>
   <data name="ItemType_MusicArtist_MusicArtist" xml:space="preserve">
     <value>Music Artist</value>
@@ -601,5 +601,14 @@
   </data>
   <data name="PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed" xml:space="preserve">
     <value>Mod failed. Please check log in debug mode after restart to troubleshoot.</value>
+  </data>
+  <data name="HidePersonOption_NoImage_NoImage" xml:space="preserve">
+    <value>No Image Person</value>
+  </data>
+  <data name="HidePersonOption_NoDirector_NoDirector" xml:space="preserve">
+    <value>Exclude Director Only</value>
+  </data>
+  <data name="ExclusiveControl_NoIntroProtect_NoIntroProtect" xml:space="preserve">
+    <value>No Intro Marker Protect</value>
   </data>
 </root>

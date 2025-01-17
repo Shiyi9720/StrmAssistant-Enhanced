@@ -100,7 +100,7 @@ namespace StrmAssistant
 
             LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaSourceManager, mediaMountManager,
                 itemRepository, jsonSerializer, userManager, libraryMonitor);
-            ChapterApi = new ChapterApi(libraryManager, itemRepository);
+            ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths, ffmpegManager,
                 mediaEncoder, mediaMountManager, jsonSerializer, serverApplicationHost);
             PlaySessionMonitor = new PlaySessionMonitor(libraryManager, userManager, sessionManager);

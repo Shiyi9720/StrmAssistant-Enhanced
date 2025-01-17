@@ -2,14 +2,19 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Persistence;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
+using MediaBrowser.Model.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using static StrmAssistant.Common.LibraryApi;
 using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
 
@@ -17,49 +22,51 @@ namespace StrmAssistant.Common
 {
     public class ChapterApi
     {
+        private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
-        private readonly ILogger _logger;
+        private readonly IJsonSerializer _jsonSerializer;
 
         private const string MarkerSuffix = "#SA";
 
-        public ChapterApi(ILibraryManager libraryManager, IItemRepository itemRepository)
+        public ChapterApi(ILibraryManager libraryManager, IItemRepository itemRepository, IJsonSerializer jsonSerializer)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _itemRepository = itemRepository;
+            _jsonSerializer = jsonSerializer;
         }
 
         public bool HasIntro(BaseItem item)
         {
-            return _itemRepository.GetChapters(item)
-                .Any(c => c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd);
+            return _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.IntroStart }).Any();
         }
 
         public long? GetIntroStart(BaseItem item)
         {
-            var introStart = _itemRepository.GetChapters(item)
-                .FirstOrDefault(c => c.MarkerType == MarkerType.IntroStart);
+            var introStart = _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.IntroStart })
+                .FirstOrDefault();
+
             return introStart?.StartPositionTicks;
         }
 
         public long? GetIntroEnd(BaseItem item)
         {
-            var introEnd = _itemRepository.GetChapters(item)
-                .FirstOrDefault(c => c.MarkerType == MarkerType.IntroEnd);
+            var introEnd = _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.IntroEnd }).FirstOrDefault();
+
             return introEnd?.StartPositionTicks;
         }
 
         public bool HasCredits(BaseItem item)
         {
-            return _itemRepository.GetChapters(item)
-                .Any(c => c.MarkerType is MarkerType.CreditsStart);
+            return _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.CreditsStart }).Any();
         }
 
         public long? GetCreditsStart(BaseItem item)
         {
-            var creditsStart = _itemRepository.GetChapters(item)
-                .FirstOrDefault(c => c.MarkerType == MarkerType.CreditsStart);
+            var creditsStart = _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.CreditsStart })
+                .FirstOrDefault();
+
             return creditsStart?.StartPositionTicks;
         }
 
@@ -489,6 +496,54 @@ namespace StrmAssistant.Common
                     }
                 }
             }
+        }
+
+        public async Task<bool> DeserializeChapterInfo(Episode item, IDirectoryService directoryService, string source,
+            CancellationToken cancellationToken)
+        {
+            var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
+            var file = directoryService.GetFile(mediaInfoJsonPath);
+
+            if (file?.Exists == true)
+            {
+                try
+                {
+                    var mediaSourceWithChapters =
+                        (await _jsonSerializer
+                            .DeserializeFromFileAsync<List<MediaSourceWithChapters>>(mediaInfoJsonPath)
+                            .ConfigureAwait(false)).ToArray()[0];
+
+                    var introStart = mediaSourceWithChapters.Chapters
+                        .FirstOrDefault(c => c.MarkerType == MarkerType.IntroStart);
+
+                    var introEnd = mediaSourceWithChapters.Chapters
+                        .FirstOrDefault(c => c.MarkerType == MarkerType.IntroEnd);
+
+                    if (introStart != null && introEnd != null && introEnd.StartPositionTicks > introStart.StartPositionTicks)
+                    {
+                        var chapters = _itemRepository.GetChapters(item);
+                        chapters.RemoveAll(c =>
+                            c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd);
+                        chapters.Add(introStart);
+                        chapters.Add(introEnd);
+                        chapters.Sort((c1, c2) => c1.StartPositionTicks.CompareTo(c2.StartPositionTicks));
+
+                        _itemRepository.SaveChapters(item.InternalId, chapters);
+
+                        _logger.Info("ChapterInfoPersist - Deserialization Success (" + source + "): " + mediaInfoJsonPath);
+
+                        return true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.Error("ChapterInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
+                    _logger.Error(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
+            }
+
+            return false;
         }
     }
 }
