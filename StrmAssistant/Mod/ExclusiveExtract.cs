@@ -23,7 +23,10 @@ namespace StrmAssistant.Mod
     {
         public long InternalId { get; set; }
         public MetadataRefreshOptions MetadataRefreshOptions { get; set; }
-        public bool MediaInfoNeedsUpdate { get; set; }
+        public bool IsNewItem { get; set; }
+        public bool IsFileChanged { get; set; }
+        public bool IsPersistInScope { get; set; }
+        public bool MediaInfoUpdated { get; set; }
     }
 
     public static class ExclusiveExtract
@@ -390,87 +393,134 @@ namespace StrmAssistant.Mod
                 }
             }
         }
+        
+        [HarmonyPrefix]
+        private static bool CanRefreshImagePrefix(IImageProvider provider, BaseItem item, LibraryOptions libraryOptions,
+            ImageRefreshOptions refreshOptions, bool ignoreMetadataLock, bool ignoreLibraryOptions, ref bool __result)
+        {
+            if ((item.Parent is null && item.ExtraType is null) || !provider.Supports(item) ||
+                !(item is Video || item is Audio))
+            {
+                return true;
+            }
+
+            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId) return true;
+            
+            if (refreshOptions is MetadataRefreshOptions options)
+            {
+                if (CurrentRefreshContext.Value == null)
+                {
+                    CurrentRefreshContext.Value = new RefreshContext
+                    {
+                        InternalId = item.InternalId,
+                        MetadataRefreshOptions = options
+                    };
+
+                    if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && item.IsShortcut)
+                    {
+                        options.EnableRemoteContentProbe = true;
+                    }
+                }
+
+                if (item.DateLastRefreshed == DateTimeOffset.MinValue)
+                {
+                    CurrentRefreshContext.Value.IsNewItem= true;
+                    return true;
+                }
+
+                if (item.HasImage(ImageType.Primary) && (provider is IDynamicImageProvider &&
+                        provider.GetType().Name == "VideoImageProvider" || provider is IRemoteImageProvider) &&
+                    (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
+                     !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) &&
+                     !refreshOptions.ReplaceAllImages))
+                {
+                    __result = false;
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         [HarmonyPrefix]
         private static bool CanRefreshMetadataPrefix(IMetadataProvider provider, BaseItem item,
             LibraryOptions libraryOptions, bool includeDisabled, bool forceEnableInternetMetadata,
-            bool ignoreMetadataLock, ref bool __result, out bool __state)
+            bool ignoreMetadataLock, ref bool __result, out bool? __state)
         {
+            __state = null;
+
             if ((item.Parent is null && item.ExtraType is null) || !(provider is IPreRefreshProvider) ||
                 !(provider is ICustomMetadataProvider<Video>))
+            {
+                return true;
+            }
+
+            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId)
             {
                 __state = false;
                 return true;
             }
             
-            __state = true;
-
-            ChapterChangeTracker.BypassInstance(item);
-
-            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId) return true;
-
-            if (item.DateLastRefreshed == DateTimeOffset.MinValue)
+            if (CurrentRefreshContext.Value != null && CurrentRefreshContext.Value.InternalId == item.InternalId)
             {
-                __result = false;
-                return false;
-            }
+                __state = true;
 
-            if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange) && CurrentRefreshContext.Value != null &&
-                Plugin.LibraryApi.HasFileChanged(item, CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
-            {
-                if (IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) && item.IsShortcut &&
-                    Plugin.LibraryApi.HasMediaInfo(item))
+                if (CurrentRefreshContext.Value.IsNewItem)
                 {
-                    CurrentRefreshContext.Value.MetadataRefreshOptions.EnableRemoteContentProbe = true;
-                    EnableImageCapture.AllowImageCaptureInstance(item);
+                    __result = false;
+                    return false;
                 }
 
-                CurrentRefreshContext.Value.MediaInfoNeedsUpdate = true;
+                var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
+
+                if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange) &&
+                    Plugin.LibraryApi.HasFileChanged(item, refreshOptions.DirectoryService))
+                {
+                    if (IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) && item.IsShortcut &&
+                        Plugin.LibraryApi.HasMediaInfo(item))
+                    {
+                        refreshOptions.EnableRemoteContentProbe = true;
+                    }
+
+                    CurrentRefreshContext.Value.IsFileChanged = true;
+                    return true;
+                }
+
+                if (refreshOptions.MetadataRefreshMode <= MetadataRefreshMode.Default &&
+                    refreshOptions.ImageRefreshMode <= MetadataRefreshMode.Default ||
+                    !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && refreshOptions.SearchResult != null)
+                {
+                    __result = false;
+                    return false;
+                }
+
+                if (!IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) && !item.IsShortcut &&
+                    refreshOptions.ReplaceAllImages)
+                {
+                    return true;
+                }
+
+                if (!IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && Plugin.LibraryApi.HasMediaInfo(item))
+                {
+                    __result = false;
+                    return false;
+                }
+
+                if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) ||
+                    !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) && !item.IsShortcut)
+                {
+                    return true;
+                }
+
+                if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) &&
+                    !(refreshOptions.MetadataRefreshMode == MetadataRefreshMode.FullRefresh &&
+                      refreshOptions.ImageRefreshMode == MetadataRefreshMode.Default &&
+                      !refreshOptions.ReplaceAllMetadata && !refreshOptions.ReplaceAllImages))
+                {
+                    return false;
+                }
+
                 return true;
-            }
-
-            if (CurrentRefreshContext.Value != null && CurrentRefreshContext.Value.InternalId == item.InternalId &&
-                (CurrentRefreshContext.Value.MetadataRefreshOptions.MetadataRefreshMode <=
-                    MetadataRefreshMode.Default &&
-                    CurrentRefreshContext.Value.MetadataRefreshOptions.ImageRefreshMode <=
-                    MetadataRefreshMode.Default || !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) &&
-                    CurrentRefreshContext.Value.MetadataRefreshOptions.SearchResult != null))
-            {
-                __result = false;
-                return false;
-            }
-
-            if (!IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) && !item.IsShortcut &&
-                CurrentRefreshContext.Value != null &&
-                CurrentRefreshContext.Value.MetadataRefreshOptions.ReplaceAllImages)
-            {
-                CurrentRefreshContext.Value.MediaInfoNeedsUpdate = true;
-                return true;
-            }
-
-            if (!IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && Plugin.LibraryApi.HasMediaInfo(item))
-            {
-                __result = false;
-                return false;
-            }
-
-            if (CurrentRefreshContext.Value != null && (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) ||
-                                                        !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) &&
-                                                        !item.IsShortcut))
-            {
-                CurrentRefreshContext.Value.MediaInfoNeedsUpdate = true;
-                return true;
-            }
-
-            if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) &&
-                !(CurrentRefreshContext.Value != null && CurrentRefreshContext.Value.InternalId == item.InternalId &&
-                  CurrentRefreshContext.Value.MetadataRefreshOptions.MetadataRefreshMode ==
-                  MetadataRefreshMode.FullRefresh &&
-                  CurrentRefreshContext.Value.MetadataRefreshOptions.ImageRefreshMode == MetadataRefreshMode.Default &&
-                  !CurrentRefreshContext.Value.MetadataRefreshOptions.ReplaceAllMetadata &&
-                  !CurrentRefreshContext.Value.MetadataRefreshOptions.ReplaceAllImages))
-            {
-                return false;
             }
 
             return true;
@@ -479,94 +529,60 @@ namespace StrmAssistant.Mod
         [HarmonyPostfix]
         private static void CanRefreshMetadataPostfix(IMetadataProvider provider, BaseItem item,
             LibraryOptions libraryOptions, bool includeDisabled, bool forceEnableInternetMetadata,
-            bool ignoreMetadataLock, ref bool __result, bool __state)
+            bool ignoreMetadataLock, ref bool __result, bool? __state)
         {
-            if (__state && item.DateLastRefreshed != DateTimeOffset.MinValue)
-            {
-                if (__result && !IsExclusiveFeatureSelected(ExclusiveControl.NoIntroProtect) &&
-                    item is Episode && Plugin.ChapterApi.HasIntro(item))
-                {
-                    ProtectIntroItem.Value = item.InternalId;
-                }
+            if (__state is null) return;
 
-                if (!__result && !IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) && item is Video &&
-                    CurrentRefreshContext.Value != null && Plugin.SubtitleApi.HasExternalSubtitleChanged(item,
-                        CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService))
-                {
-                    _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None).ConfigureAwait(false);
-                }
+            if (__result && !IsExclusiveFeatureSelected(ExclusiveControl.NoIntroProtect) &&
+                (__state is false || !CurrentRefreshContext.Value.IsFileChanged && item is Episode &&
+                Plugin.ChapterApi.HasIntro(item)))
+            {
+                ProtectIntroItem.Value = item.InternalId;
             }
-        }
 
-        [HarmonyPrefix]
-        private static bool CanRefreshImagePrefix(IImageProvider provider, BaseItem item, LibraryOptions libraryOptions,
-            ImageRefreshOptions refreshOptions, bool ignoreMetadataLock, bool ignoreLibraryOptions, ref bool __result)
-        {
-            if ((item.Parent is null && item.ExtraType is null) || !provider.Supports(item) ||
-                !(item is Video || item is Audio))
-                return true;
-
-            if (refreshOptions is MetadataRefreshOptions options)
+            if (__state is true)
             {
-                if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId) return true;
+                var isPersistInScope = !IsExclusiveFeatureSelected(ExclusiveControl.NoPersistIntegration) &&
+                                       Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
+                                       (item is Video || item is Audio) && Plugin.LibraryApi.IsLibraryInScope(item);
+                CurrentRefreshContext.Value.IsPersistInScope = isPersistInScope;
 
-                if (CurrentRefreshContext.Value == null)
+                if (!__result)
                 {
-                    CurrentRefreshContext.Value = new RefreshContext
-                    {
-                        InternalId = item.InternalId,
-                        MetadataRefreshOptions = options,
-                        MediaInfoNeedsUpdate = false
-                    };
+                    var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
+                    refreshOptions.ForceSave = true;
 
-                    if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow))
+                    if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) &&
+                        !CurrentRefreshContext.Value.IsNewItem && item is Video)
                     {
-                        options.EnableRemoteContentProbe = true;
-                        EnableImageCapture.AllowImageCaptureInstance(item);
+                        if (Plugin.SubtitleApi.HasExternalSubtitleChanged(item, refreshOptions.DirectoryService))
+                        {
+                            _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None)
+                                .ConfigureAwait(false);
+                        }
                     }
                 }
-
-                if (item.DateLastRefreshed == DateTimeOffset.MinValue) return true;
-
-                if (!item.IsShortcut &&
-                    item.HasImage(ImageType.Primary) && provider is IDynamicImageProvider &&
-                    provider.GetType().Name == "VideoImageProvider" &&
-                    (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
-                     !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) &&
-                     !refreshOptions.ReplaceAllImages))
+                else if (isPersistInScope)
                 {
-                    __result = false;
-                    return false;
-                }
-
-                if (item.HasImage(ImageType.Primary) && provider is IRemoteImageProvider &&
-                    (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
-                     !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && item.IsShortcut &&
-                     !refreshOptions.ReplaceAllImages))
-                {
-                    __result = false;
-                    return false;
+                    ChapterChangeTracker.BypassInstance(item);
+                    CurrentRefreshContext.Value.MediaInfoUpdated = true;
                 }
             }
-
-            return true;
         }
 
         [HarmonyPrefix]
         private static bool AfterMetadataRefreshPrefix(BaseItem __instance)
         {
-            if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
-                !IsExclusiveFeatureSelected(ExclusiveControl.NoPersistIntegration) &&
-                (__instance is Video || __instance is Audio) && Plugin.LibraryApi.IsLibraryInScope(__instance) &&
-                CurrentRefreshContext.Value != null &&
-                CurrentRefreshContext.Value.InternalId == __instance.InternalId && ExclusiveItem.Value == 0)
+            if (CurrentRefreshContext.Value != null &&
+                CurrentRefreshContext.Value.InternalId == __instance.InternalId &&
+                CurrentRefreshContext.Value.IsPersistInScope)
             {
-                var directoryService = CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService;
+                var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
+                var directoryService = refreshOptions.DirectoryService;
 
-                if (CurrentRefreshContext.Value.MediaInfoNeedsUpdate)
+                if (CurrentRefreshContext.Value.MediaInfoUpdated)
                 {
-                    if (__instance.IsShortcut &&
-                        !CurrentRefreshContext.Value.MetadataRefreshOptions.EnableRemoteContentProbe)
+                    if (__instance.IsShortcut && !refreshOptions.EnableRemoteContentProbe)
                     {
                         _ = Plugin.LibraryApi.DeleteMediaInfoJson(__instance, directoryService,
                             "Exclusive Delete on Change", CancellationToken.None);
@@ -577,19 +593,19 @@ namespace StrmAssistant.Mod
                             "Exclusive Overwrite", CancellationToken.None);
                     }
                 }
-                else if (!Plugin.LibraryApi.HasMediaInfo(__instance))
+                else if (CurrentRefreshContext.Value.IsNewItem || !Plugin.LibraryApi.HasMediaInfo(__instance))
                 {
                     _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, directoryService, "Exclusive Restore",
                         CancellationToken.None);
                 }
-                else
+                else if (!CurrentRefreshContext.Value.IsNewItem)
                 {
                     _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, directoryService, false,
                         "Exclusive Non-existence", CancellationToken.None);
                 }
-
-                CurrentRefreshContext.Value = null;
             }
+
+            CurrentRefreshContext.Value = null;
 
             return true;
         }

@@ -680,11 +680,6 @@ namespace StrmAssistant.Common
 
             if (enableImageCapture && !taskItem.HasImage(ImageType.Primary))
             {
-                if (taskItem.IsShortcut)
-                {
-                    EnableImageCapture.AllowImageCaptureInstance(taskItem);
-                }
-
                 imageCapture = true;
                 var refreshOptions = ImageCaptureRefreshOptions;
                 await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);

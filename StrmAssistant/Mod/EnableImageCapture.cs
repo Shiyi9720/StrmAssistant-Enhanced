@@ -36,8 +36,6 @@ namespace StrmAssistant.Mod
         private static MethodInfo _logThumbnailImageExtractionFailure;
 
         private static readonly AsyncLocal<BaseItem> ShortcutItem = new AsyncLocal<BaseItem>();
-        private static readonly AsyncLocal<long> ImageCaptureItem = new AsyncLocal<long>();
-        private static readonly AsyncLocal<bool> SupportsThumbnailsInstancePatched = new AsyncLocal<bool>();
         private static int _isShortcutPatchUsageCount;
 
         private static SemaphoreSlim SemaphoreFFmpeg;
@@ -411,15 +409,7 @@ namespace StrmAssistant.Mod
                     break;
             }
         }
-
-        public static void AllowImageCaptureInstance(BaseItem item)
-        {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                ImageCaptureItem.Value = item.InternalId;
-            }
-        }
-
+        
         public static void UnpatchResourcePool()
         {
             if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
@@ -514,20 +504,23 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool SupportsImageCapturePrefix(BaseItem item, ref bool __result)
+        private static bool SupportsImageCapturePrefix(BaseItem item, ref bool __result, out bool __state)
         {
-            if (ImageCaptureItem.Value != 0 && item.InternalId == ImageCaptureItem.Value)
+            __state = false;
+
+            if (item.IsShortcut)
             {
                 PatchIsShortcutInstance(item);
+                __state= true;
             }
 
             return true;
         }
 
         [HarmonyPostfix]
-        private static void SupportsImageCapturePostfix(BaseItem item, ref bool __result)
+        private static void SupportsImageCapturePostfix(BaseItem item, ref bool __result, bool __state)
         {
-            if (ImageCaptureItem.Value != 0 && item.InternalId == ImageCaptureItem.Value)
+            if (__state)
             {
                 UnpatchIsShortcutInstance(item);
             }
@@ -581,24 +574,25 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool SupportsThumbnailsGetterPrefix(BaseItem __instance, ref bool __result)
+        private static bool SupportsThumbnailsGetterPrefix(BaseItem __instance, ref bool __result, out bool __state)
         {
+            __state = false;
+
             if (__instance.IsShortcut)
             {
                 PatchIsShortcutInstance(__instance);
-                SupportsThumbnailsInstancePatched.Value = true;
+                __state = true;
             }
 
             return true;
         }
 
         [HarmonyPostfix]
-        private static void SupportsThumbnailsGetterPostfix(BaseItem __instance, ref bool __result)
+        private static void SupportsThumbnailsGetterPostfix(BaseItem __instance, ref bool __result, bool __state)
         {
-            if (SupportsThumbnailsInstancePatched.Value)
+            if (__state)
             {
                 UnpatchIsShortcutInstance(__instance);
-                SupportsThumbnailsInstancePatched.Value = false;
             }
         }
     }
