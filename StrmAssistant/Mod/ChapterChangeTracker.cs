@@ -64,15 +64,14 @@ namespace StrmAssistant.Mod
                         Plugin.Instance.Logger.Debug(
                             "Patch SaveChapters Success by Harmony");
                     }
-
-                    if (!IsPatched(_deleteChapters, typeof(ChapterChangeTracker)))
-                    {
-                        HarmonyMod.Patch(_deleteChapters,
-                            postfix: new HarmonyMethod(typeof(ChapterChangeTracker).GetMethod("DeleteChaptersPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch DeleteChapters Success by Harmony");
-                    }
+                    //if (!IsPatched(_deleteChapters, typeof(ChapterChangeTracker)))
+                    //{
+                    //    HarmonyMod.Patch(_deleteChapters,
+                    //        postfix: new HarmonyMethod(typeof(ChapterChangeTracker).GetMethod("DeleteChaptersPostfix",
+                    //            BindingFlags.Static | BindingFlags.NonPublic)));
+                    //    Plugin.Instance.Logger.Debug(
+                    //        "Patch DeleteChapters Success by Harmony");
+                    //}
                 }
                 catch (Exception he)
                 {
@@ -97,13 +96,12 @@ namespace StrmAssistant.Mod
                             AccessTools.Method(typeof(ChapterChangeTracker), "SaveChaptersPostfix"));
                         Plugin.Instance.Logger.Debug("Unpatch SaveChapters Success by Harmony");
                     }
-
-                    if (IsPatched(_deleteChapters, typeof(ChapterChangeTracker)))
-                    {
-                        HarmonyMod.Unpatch(_deleteChapters,
-                            AccessTools.Method(typeof(ChapterChangeTracker), "DeleteChaptersPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch DeleteChapters Success by Harmony");
-                    }
+                    //if (IsPatched(_deleteChapters, typeof(ChapterChangeTracker)))
+                    //{
+                    //    HarmonyMod.Unpatch(_deleteChapters,
+                    //        AccessTools.Method(typeof(ChapterChangeTracker), "DeleteChaptersPostfix"));
+                    //    Plugin.Instance.Logger.Debug("Unpatch DeleteChapters Success by Harmony");
+                    //}
                 }
                 catch (Exception he)
                 {

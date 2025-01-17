@@ -802,7 +802,7 @@ namespace StrmAssistant.Common
         {
             var item = _libraryManager.GetItemById(itemId);
 
-            if (!HasMediaInfo(item)) return;
+            if (!IsLibraryInScope(item) || !HasMediaInfo(item)) return;
 
             var directoryService = new DirectoryService(_logger, _fileSystem);
 

@@ -263,6 +263,7 @@ namespace StrmAssistant.Common
                 GroupByPresentationUniqueKey = false,
                 WithoutChapterMarkers = new[] { MarkerType.IntroStart },
                 MinRunTimeTicks = TimeSpan.FromMinutes(introDetectionFingerprintMinutes).Ticks,
+                HasIntroDetectionFailure = false,
                 HasAudioStream = true
             };
 
@@ -346,6 +347,7 @@ namespace StrmAssistant.Common
                 GroupByPresentationUniqueKey = false,
                 EnableTotalRecordCount = false,
                 MinRunTimeTicks = TimeSpan.FromMinutes(introDetectionFingerprintMinutes).Ticks,
+                HasIntroDetectionFailure = false,
                 HasAudioStream = true
             };
             var allEpisodes = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToArray();

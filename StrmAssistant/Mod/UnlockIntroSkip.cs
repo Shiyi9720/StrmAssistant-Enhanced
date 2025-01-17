@@ -18,9 +18,11 @@ namespace StrmAssistant.Mod
 
         private static MethodInfo _isIntroDetectionSupported;
         private static MethodInfo _createQueryForEpisodeIntroDetection;
-        private static MethodInfo _logIntroDetectionFailureFailure;
+        private static MethodInfo _onFailedToFindIntro;
+        private static MethodInfo _detectSequences;
+        private static PropertyInfo _confidenceProperty;
 
-        private static readonly AsyncLocal<bool> IsIntroDetectionSupportedInstancePatched = new AsyncLocal<bool>();
+        private static readonly AsyncLocal<bool> LogZeroConfidence = new AsyncLocal<bool>();
 
         public static void Initialize()
         {
@@ -35,11 +37,14 @@ namespace StrmAssistant.Mod
                     "CreateQueryForEpisodeIntroDetection",
                     BindingFlags.Public | BindingFlags.Static);
 
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                var sqliteItemRepository =
-                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
-                _logIntroDetectionFailureFailure = sqliteItemRepository.GetMethod("LogIntroDetectionFailureFailure",
-                    BindingFlags.Public | BindingFlags.Instance);
+                var sequenceDetection = embyProviders.GetType("Emby.Providers.Markers.SequenceDetection");
+                _detectSequences = sequenceDetection.GetMethods(BindingFlags.Static | BindingFlags.Public)
+                    .FirstOrDefault(m => m.Name == "DetectSequences" && m.GetParameters().Length == 8);
+                var sequenceDetectionResult = embyProviders.GetType("Emby.Providers.Markers.SequenceDetectionResult");
+                _confidenceProperty =
+                    sequenceDetectionResult.GetProperty("Confidence", BindingFlags.Public | BindingFlags.Instance);
+                _onFailedToFindIntro = audioFingerprintManager.GetMethod("OnFailedToFindIntro",
+                    BindingFlags.NonPublic | BindingFlags.Static);
             }
             catch (Exception e)
             {
@@ -75,7 +80,6 @@ namespace StrmAssistant.Mod
                                 "IsIntroDetectionSupportedPostfix", BindingFlags.Static | BindingFlags.NonPublic)));
                         Plugin.Instance.Logger.Debug("Patch IsIntroDetectionSupported Success by Harmony");
                     }
-
                     if (!IsPatched(_createQueryForEpisodeIntroDetection, typeof(UnlockIntroSkip)))
                     {
                         HarmonyMod.Patch(_createQueryForEpisodeIntroDetection,
@@ -84,14 +88,21 @@ namespace StrmAssistant.Mod
                                 BindingFlags.Static | BindingFlags.NonPublic)));
                         Plugin.Instance.Logger.Debug("Patch CreateQueryForEpisodeIntroDetection Success by Harmony");
                     }
-
-                    if (!IsPatched(_logIntroDetectionFailureFailure, typeof(UnlockIntroSkip)))
+                    if (!IsPatched(_detectSequences, typeof(UnlockIntroSkip)))
                     {
-                        HarmonyMod.Patch(_logIntroDetectionFailureFailure,
-                            prefix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
-                                "LogIntroDetectionFailureFailurePrefix",
+                        HarmonyMod.Patch(_detectSequences,
+                            postfix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
+                                "DetectSequencesPostfix",
                                 BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch LogIntroDetectionFailureFailure Success by Harmony");
+                        Plugin.Instance.Logger.Debug("Patch DetectSequences Success by Harmony");
+                    }
+                    if (!IsPatched(_onFailedToFindIntro, typeof(UnlockIntroSkip)))
+                    {
+                        HarmonyMod.Patch(_onFailedToFindIntro,
+                            prefix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
+                                "OnFailedToFindIntroPrefix",
+                                BindingFlags.Static | BindingFlags.NonPublic)));
+                        Plugin.Instance.Logger.Debug("Patch OnFailedToFindIntro Success by Harmony");
                     }
                 }
                 catch (Exception he)
@@ -120,19 +131,23 @@ namespace StrmAssistant.Mod
                             AccessTools.Method(typeof(UnlockIntroSkip), "IsIntroDetectionSupportedPostfix"));
                         Plugin.Instance.Logger.Debug("Unpatch IsIntroDetectionSupported Success by Harmony");
                     }
-
                     if (IsPatched(_createQueryForEpisodeIntroDetection, typeof(UnlockIntroSkip)))
                     {
                         HarmonyMod.Unpatch(_createQueryForEpisodeIntroDetection,
                             AccessTools.Method(typeof(UnlockIntroSkip), "CreateQueryForEpisodeIntroDetectionPostfix"));
                         Plugin.Instance.Logger.Debug("Unpatch CreateQueryForEpisodeIntroDetection Success by Harmony");
                     }
-
-                    if (IsPatched(_logIntroDetectionFailureFailure, typeof(UnlockIntroSkip)))
+                    if (IsPatched(_detectSequences, typeof(UnlockIntroSkip)))
                     {
-                        HarmonyMod.Unpatch(_logIntroDetectionFailureFailure,
-                            AccessTools.Method(typeof(UnlockIntroSkip), "LogIntroDetectionFailureFailurePrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch LogIntroDetectionFailureFailure Success by Harmony");
+                        HarmonyMod.Unpatch(_detectSequences,
+                            AccessTools.Method(typeof(UnlockIntroSkip), "DetectSequencesPostfix"));
+                        Plugin.Instance.Logger.Debug("Unpatch DetectSequences Success by Harmony");
+                    }
+                    if (IsPatched(_onFailedToFindIntro, typeof(UnlockIntroSkip)))
+                    {
+                        HarmonyMod.Unpatch(_onFailedToFindIntro,
+                            AccessTools.Method(typeof(UnlockIntroSkip), "OnFailedToFindIntroPrefix"));
+                        Plugin.Instance.Logger.Debug("Unpatch OnFailedToFindIntro Success by Harmony");
                     }
                 }
                 catch (Exception he)
@@ -146,12 +161,14 @@ namespace StrmAssistant.Mod
 
         [HarmonyPrefix]
         private static bool IsIntroDetectionSupportedPrefix(Episode item, LibraryOptions libraryOptions,
-            ref bool __result)
+            ref bool __result, out bool __state)
         {
+            __state = false;
+
             if (item.IsShortcut)
             {
                 EnableImageCapture.PatchIsShortcutInstance(item);
-                IsIntroDetectionSupportedInstancePatched.Value = true;
+                __state = true;
             }
 
             return true;
@@ -159,12 +176,11 @@ namespace StrmAssistant.Mod
 
         [HarmonyPostfix]
         private static void IsIntroDetectionSupportedPostfix(Episode item, LibraryOptions libraryOptions,
-            ref bool __result)
+            ref bool __result, bool __state)
         {
-            if (IsIntroDetectionSupportedInstancePatched.Value)
+            if (__state)
             {
                 EnableImageCapture.UnpatchIsShortcutInstance(item);
-                IsIntroDetectionSupportedInstancePatched.Value = false;
             }
         }
 
@@ -190,13 +206,26 @@ namespace StrmAssistant.Mod
                     __result.ExcludeParentIds = blackListSeasons;
                 }
             }
+        }
 
-            __result.HasIntroDetectionFailure = null;
+        [HarmonyPostfix]
+        private static void DetectSequencesPostfix(object __result)
+        {
+            if (_confidenceProperty.GetValue(__result) is double confidence && confidence == 0)
+            {
+                LogZeroConfidence.Value = true;
+            }
         }
 
         [HarmonyPrefix]
-        private static bool LogIntroDetectionFailureFailurePrefix(long itemId, long dateModifiedUnixTimeSeconds)
+        private static bool OnFailedToFindIntroPrefix(Episode episode)
         {
+            if (LogZeroConfidence.Value)
+            {
+                BaseItem.ItemRepository.LogIntroDetectionFailureFailure(episode.InternalId,
+                    episode.DateModified.ToUnixTimeSeconds());
+            }
+
             return false;
         }
     }
