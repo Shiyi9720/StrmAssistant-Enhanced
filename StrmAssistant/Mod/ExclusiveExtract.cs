@@ -348,6 +348,13 @@ namespace StrmAssistant.Mod
 
         public static void AllowExtractInstance(BaseItem item)
         {
+            if (!IsExclusiveFeatureSelected(ExclusiveControl.NoIntroProtect) &&
+                item.DateLastRefreshed != DateTimeOffset.MinValue && item is Episode &&
+                Plugin.ChapterApi.HasIntro(item))
+            {
+                ProtectIntroItem.Value = item.InternalId;
+            }
+
             ExclusiveItem.Value = item.InternalId;
         }
 
@@ -445,9 +452,9 @@ namespace StrmAssistant.Mod
         [HarmonyPrefix]
         private static bool CanRefreshMetadataPrefix(IMetadataProvider provider, BaseItem item,
             LibraryOptions libraryOptions, bool includeDisabled, bool forceEnableInternetMetadata,
-            bool ignoreMetadataLock, ref bool __result, out bool? __state)
+            bool ignoreMetadataLock, ref bool __result, out bool __state)
         {
-            __state = null;
+            __state = false;
 
             if ((item.Parent is null && item.ExtraType is null) || !(provider is IPreRefreshProvider) ||
                 !(provider is ICustomMetadataProvider<Video>))
@@ -457,7 +464,6 @@ namespace StrmAssistant.Mod
 
             if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId)
             {
-                __state = false;
                 return true;
             }
             
@@ -529,40 +535,38 @@ namespace StrmAssistant.Mod
         [HarmonyPostfix]
         private static void CanRefreshMetadataPostfix(IMetadataProvider provider, BaseItem item,
             LibraryOptions libraryOptions, bool includeDisabled, bool forceEnableInternetMetadata,
-            bool ignoreMetadataLock, ref bool __result, bool? __state)
+            bool ignoreMetadataLock, ref bool __result, bool __state)
         {
-            if (__state is null) return;
+            if (!__state) return;
 
-            if (__result && !IsExclusiveFeatureSelected(ExclusiveControl.NoIntroProtect) &&
-                (__state is false || !CurrentRefreshContext.Value.IsFileChanged && item is Episode &&
-                Plugin.ChapterApi.HasIntro(item)))
+            var isPersistInScope = !IsExclusiveFeatureSelected(ExclusiveControl.NoPersistIntegration) &&
+                                   Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
+                                   (item is Video || item is Audio) && Plugin.LibraryApi.IsLibraryInScope(item);
+            CurrentRefreshContext.Value.IsPersistInScope = isPersistInScope;
+
+            if (!__result)
             {
-                ProtectIntroItem.Value = item.InternalId;
-            }
+                var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
+                refreshOptions.ForceSave = true;
 
-            if (__state is true)
-            {
-                var isPersistInScope = !IsExclusiveFeatureSelected(ExclusiveControl.NoPersistIntegration) &&
-                                       Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
-                                       (item is Video || item is Audio) && Plugin.LibraryApi.IsLibraryInScope(item);
-                CurrentRefreshContext.Value.IsPersistInScope = isPersistInScope;
-
-                if (!__result)
+                if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) &&
+                    !CurrentRefreshContext.Value.IsNewItem && item is Video &&
+                    Plugin.SubtitleApi.HasExternalSubtitleChanged(item, refreshOptions.DirectoryService))
                 {
-                    var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
-                    refreshOptions.ForceSave = true;
-
-                    if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) &&
-                        !CurrentRefreshContext.Value.IsNewItem && item is Video)
-                    {
-                        if (Plugin.SubtitleApi.HasExternalSubtitleChanged(item, refreshOptions.DirectoryService))
-                        {
-                            _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None)
-                                .ConfigureAwait(false);
-                        }
-                    }
+                    _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None)
+                        .ConfigureAwait(false);
                 }
-                else if (isPersistInScope)
+            }
+            else
+            {
+                if (!IsExclusiveFeatureSelected(ExclusiveControl.NoIntroProtect) &&
+                    !CurrentRefreshContext.Value.IsFileChanged && item is Episode &&
+                    Plugin.ChapterApi.HasIntro(item))
+                {
+                    ProtectIntroItem.Value = item.InternalId;
+                }
+
+                if (isPersistInScope)
                 {
                     ChapterChangeTracker.BypassInstance(item);
                     CurrentRefreshContext.Value.MediaInfoUpdated = true;
