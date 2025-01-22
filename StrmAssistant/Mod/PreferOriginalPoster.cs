@@ -9,6 +9,7 @@ using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Serialization;
 using StrmAssistant.Common;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,6 +54,10 @@ namespace StrmAssistant.Mod
         private static PropertyInfo _movieDataTvdbTaskResult;
         private static PropertyInfo _seriesDataTvdbTaskResult;
 
+        private static MethodInfo _getBackdrops;
+        private static PropertyInfo file_path;
+        private static PropertyInfo iso_639_1;
+
         private static MethodInfo _getAvailableRemoteImages;
         private static FieldInfo _remoteImageTaskResult;
 
@@ -62,6 +67,8 @@ namespace StrmAssistant.Mod
             new ConcurrentDictionary<string, ContextItem>();
         private static readonly ConcurrentDictionary<string, ContextItem> CurrentItemsByTvdbId =
             new ConcurrentDictionary<string, ContextItem>();
+        private static readonly ConcurrentDictionary<string, string> BackdropByLanguage =
+            new ConcurrentDictionary<string, string>();
 
         private static readonly AsyncLocal<ContextItem> CurrentLookupItem = new AsyncLocal<ContextItem>();
 
@@ -94,6 +101,13 @@ namespace StrmAssistant.Mod
                     var seriesRootObject = movieDbSeriesProvider.GetNestedType("SeriesRootObject", BindingFlags.Public);
                     _tmdbIdSeriesDataTmdb = seriesRootObject.GetProperty("id");
                     _languagesSeriesDataTmdb = seriesRootObject.GetProperty("languages");
+
+                    var movieDbProviderBase = _movieDbAssembly.GetType("MovieDb.MovieDbProviderBase");
+                    _getBackdrops = movieDbProviderBase.GetMethod("GetBackdrops",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                    var tmdbImage = _movieDbAssembly.GetType("MovieDb.TmdbImage");
+                    file_path = tmdbImage.GetProperty("file_path");
+                    iso_639_1 = tmdbImage.GetProperty("iso_639_1");
                 }
                 else
                 {
@@ -193,6 +207,16 @@ namespace StrmAssistant.Mod
                                 BindingFlags.Static | BindingFlags.NonPublic)));
                         Plugin.Instance.Logger.Debug(
                             "Patch MovieDbSeriesProvider.EnsureSeriesInfo Success by Harmony");
+                    }
+
+                    if (!IsPatched(_getBackdrops, typeof(PreferOriginalPoster)))
+                    {
+                        HarmonyMod.Patch(_getBackdrops,
+                            postfix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
+                                "GetBackdropsPostfix",
+                                BindingFlags.Static | BindingFlags.NonPublic)));
+                        Plugin.Instance.Logger.Debug(
+                            "Patch MovieDbProviderBase.GetBackdrops Success by Harmony");
                     }
                 }
                 catch (Exception he)
@@ -554,6 +578,27 @@ namespace StrmAssistant.Mod
                 .ConfigureAwait(false);
         }
 
+        [HarmonyPostfix]
+        private static void GetBackdropsPostfix(IEnumerable __result)
+        {
+            if (__result != null && file_path != null && iso_639_1 != null)
+            {
+                var resultList = __result.Cast<object>().ToList();
+
+                foreach (var item in resultList)
+                {
+                    var filePath = file_path.GetValue(item) as string;
+                    var language = iso_639_1.GetValue(item) as string;
+
+                    if (!string.IsNullOrEmpty(filePath) && !string.IsNullOrEmpty(language))
+                    {
+                        BackdropByLanguage[filePath] = language;
+                        iso_639_1.SetValue(item, null);
+                    }
+                }
+            }
+        }
+
         [HarmonyPrefix]
         private static bool GetAvailableRemoteImagesPrefix(IHasProviderIds item, LibraryOptions libraryOptions,
             ref RemoteImageQuery query, IDirectoryService directoryService, CancellationToken cancellationToken)
@@ -581,7 +626,19 @@ namespace StrmAssistant.Mod
                         var originalLanguage = GetOriginalLanguage(item);
                         var libraryPreferredImageLanguage = libraryOptions.PreferredImageLanguage?.Split('-')[0];
 
-                        var remoteImages = task.Result;
+                        var remoteImages = task.Result.ToList();
+
+                        foreach (var image in remoteImages.Where(image => image.Type == ImageType.Backdrop))
+                        {
+                            var match = BackdropByLanguage.FirstOrDefault(kvp =>
+                                image.Url.EndsWith(kvp.Key, StringComparison.Ordinal)).Key;
+
+                            if (match != null)
+                            {
+                                image.Language = BackdropByLanguage[match];
+                                BackdropByLanguage.TryRemove(match, out _);
+                            }
+                        }
 
                         var reorderedImages = remoteImages.OrderBy(i =>
                                 !string.IsNullOrEmpty(libraryPreferredImageLanguage) && string.Equals(i.Language,
