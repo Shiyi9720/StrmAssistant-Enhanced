@@ -90,7 +90,7 @@ namespace StrmAssistant.Mod
                 var processResult = processRunAssembly.GetType("Emby.ProcessRun.Common.ProcessResult");
                 _standardOutput = processResult.GetProperty("StandardOutput");
                 _standardError = processResult.GetProperty("StandardError");
-
+                
                 var embyApi = Assembly.Load("Emby.Api");
                 var libraryStructureService = embyApi.GetType("Emby.Api.Library.LibraryStructureService");
                 _addVirtualFolder = libraryStructureService.GetMethod("Post",
@@ -372,7 +372,17 @@ namespace StrmAssistant.Mod
         {
             if (__result is Task task)
             {
-                var result = task.GetType().GetProperty("Result")?.GetValue(task);
+                object result = null;
+
+                try
+                {
+                    result = task.GetType().GetProperty("Result")?.GetValue(task);
+                }
+                
+                catch
+                {
+                    // ignored
+                }
 
                 if (result != null)
                 {
@@ -387,7 +397,8 @@ namespace StrmAssistant.Mod
 
                         if (Regex.Replace(partialOutput, @"\s+", "") == "{}")
                         {
-                            var lines = standardError.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                            var lines = standardError.Split(new[] { '\r', '\n' },
+                                StringSplitOptions.RemoveEmptyEntries);
 
                             if (lines.Length > 0)
                             {
@@ -400,7 +411,7 @@ namespace StrmAssistant.Mod
                 }
             }
         }
-        
+
         [HarmonyPrefix]
         private static bool CanRefreshImagePrefix(IImageProvider provider, BaseItem item, LibraryOptions libraryOptions,
             ImageRefreshOptions refreshOptions, bool ignoreMetadataLock, bool ignoreLibraryOptions, ref bool __result)

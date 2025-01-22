@@ -17,10 +17,16 @@ namespace StrmAssistant.Mod
         private static readonly PatchApproachTracker PatchApproachTracker =
             new PatchApproachTracker(nameof(EnhanceChineseSearch));
 
+        private static readonly Version AppVer = Plugin.Instance.ApplicationHost.ApplicationVersion;
+        private static readonly Version Ver4830 = new Version("4.8.3.0");
+        private static readonly Version Ver4900 = new Version("4.9.0.0");
+        private static readonly Version Ver4937 = new Version("4.9.0.37");
+
         private static Type raw;
         private static MethodInfo sqlite3_enable_load_extension;
         private static FieldInfo sqlite3_db;
         private static MethodInfo _createConnection;
+        private static PropertyInfo _dbFilePath;
         private static MethodInfo _getJoinCommandText;
         private static MethodInfo _createSearchTerm;
         private static MethodInfo _cacheIdsFromTextParams;
@@ -28,6 +34,7 @@ namespace StrmAssistant.Mod
         public static string CurrentTokenizerName { get; private set; } = "unknown";
 
         private static string _tokenizerPath;
+        private static readonly object _lock = new object();
         private static bool _patchPhase2Initialized;
         private static string[] _includeItemTypes = Array.Empty<string>();
         private static readonly Dictionary<string, Regex> patterns = new Dictionary<string, Regex>
@@ -55,6 +62,8 @@ namespace StrmAssistant.Mod
                 var baseSqliteRepository = embySqlite.GetType("Emby.Sqlite.BaseSqliteRepository");
                 _createConnection = baseSqliteRepository.GetMethod("CreateConnection",
                     BindingFlags.NonPublic | BindingFlags.Instance);
+                _dbFilePath =
+                    baseSqliteRepository.GetProperty("DbFilePath", BindingFlags.NonPublic | BindingFlags.Instance);
 
                 var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
                 var sqliteItemRepository =
@@ -80,7 +89,7 @@ namespace StrmAssistant.Mod
                 (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch ||
                  Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore))
             {
-                if (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.8.3.0"))
+                if (AppVer >= Ver4830)
                 {
                     UpdateSearchScope(Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.SearchScope);
                     PatchPhase1();
@@ -109,6 +118,7 @@ namespace StrmAssistant.Mod
                                     BindingFlags.Static | BindingFlags.NonPublic)));
                             Plugin.Instance.Logger.Debug("Patch CreateConnection Success by Harmony");
                         }
+
                         return;
                     }
                     catch (Exception he)
@@ -129,7 +139,7 @@ namespace StrmAssistant.Mod
         {
             string ftsTableName;
 
-            if (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.8.3.0"))
+            if (AppVer >= Ver4830)
             {
                 ftsTableName = "fts_search9";
             }
@@ -221,7 +231,7 @@ namespace StrmAssistant.Mod
         {
             string populateQuery;
 
-            if (Plugin.Instance.ApplicationHost.ApplicationVersion < new Version("4.9.0.0"))
+            if (AppVer < Ver4900)
             {
                 populateQuery =
                     $"insert into {ftsTableName}(RowId, Name, OriginalTitle, SeriesName, Album) select id, " +
@@ -431,16 +441,29 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPostfix]
-        private static void CreateConnectionPostfix(bool isReadOnly, ref IDatabaseConnection __result)
+        private static void CreateConnectionPostfix(object __instance, bool isReadOnly,
+            ref IDatabaseConnection __result)
         {
             if (!isReadOnly && !_patchPhase2Initialized)
             {
-                var tokenizerLoaded = LoadTokenizerExtension(__result);
-
-                if (tokenizerLoaded)
+                lock (_lock)
                 {
-                    PatchPhase2(__result);
-                    _patchPhase2Initialized = true;
+                    if (!_patchPhase2Initialized)
+                    {
+                        var db = _dbFilePath.GetValue(__instance) as string;
+                        if (db?.EndsWith("library.db", StringComparison.OrdinalIgnoreCase) != true)
+                        {
+                            return;
+                        }
+
+                        var tokenizerLoaded = LoadTokenizerExtension(__result);
+
+                        if (tokenizerLoaded)
+                        {
+                            PatchPhase2(__result);
+                            _patchPhase2Initialized = true;
+                        }
+                    }
                 }
             }
         }
@@ -607,6 +630,11 @@ namespace StrmAssistant.Mod
                             break;
                         }
                     }
+                }
+
+                if (AppVer >= Ver4937 && !string.IsNullOrEmpty(query.SearchTerm))
+                {
+                    var result = LoadTokenizerExtension(db);
                 }
             }
 

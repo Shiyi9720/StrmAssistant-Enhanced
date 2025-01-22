@@ -31,8 +31,9 @@ namespace StrmAssistant.Mod
                 var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
                 var dtoService =
                     embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Dto.DtoService");
-                _getBaseItemDtos = dtoService.GetMethod("GetBaseItemDtos", BindingFlags.Public | BindingFlags.Instance,
-                    null, new[] { typeof(BaseItem[]), typeof(int), typeof(DtoOptions), typeof(User) }, null);
+                _getBaseItemDtos = dtoService.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(m => m.Name == "GetBaseItemDtos").OrderByDescending(m => m.GetParameters().Length)
+                    .FirstOrDefault();
                 _getBaseItemDto = dtoService.GetMethod("GetBaseItemDto", BindingFlags.Public | BindingFlags.Instance,
                     null, new[] { typeof(BaseItem), typeof(DtoOptions), typeof(User) }, null);
 
@@ -131,10 +132,9 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPostfix]
-        private static void GetBaseItemDtosPostfix(BaseItem[] items, int itemCount, DtoOptions options, User user,
-            ref BaseItemDto[] __result)
+        private static void GetBaseItemDtosPostfix(BaseItem[] items, ref BaseItemDto[] __result)
         {
-            if (itemCount == 0) return;
+            if (items.Length == 0) return;
 
             var checkItem = items.FirstOrDefault();
 

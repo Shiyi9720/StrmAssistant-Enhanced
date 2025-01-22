@@ -36,6 +36,7 @@ namespace StrmAssistant.Mod
         private static MethodInfo _logThumbnailImageExtractionFailure;
 
         private static readonly AsyncLocal<BaseItem> ShortcutItem = new AsyncLocal<BaseItem>();
+        private static readonly AsyncLocal<BaseItem> ImageCaptureItem = new AsyncLocal<BaseItem>();
         private static int _isShortcutPatchUsageCount;
 
         private static SemaphoreSlim SemaphoreFFmpeg;
@@ -65,7 +66,8 @@ namespace StrmAssistant.Mod
                 var videoImageProvider = embyProviders.GetType("Emby.Providers.MediaInfo.VideoImageProvider");
                 _supportsImageCapture =
                     videoImageProvider.GetMethod("Supports", BindingFlags.Instance | BindingFlags.Public);
-                _getImage = videoImageProvider.GetMethod("GetImage", BindingFlags.Public | BindingFlags.Instance);
+                _getImage = videoImageProvider.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(m => m.Name == "GetImage").OrderByDescending(m => m.GetParameters().Length).FirstOrDefault();
 
                 var supportsThumbnailsProperty =
                     typeof(Video).GetProperty("SupportsThumbnails", BindingFlags.Public | BindingFlags.Instance);
@@ -310,6 +312,11 @@ namespace StrmAssistant.Mod
             }
         }
 
+        public static void AllowImageCaptureInstance(BaseItem item)
+        {
+            ImageCaptureItem.Value = item;
+        }
+
         public static void UpdateResourcePool(int maxConcurrentCount)
         {
             if (SemaphoreFFmpegMaxCount != maxConcurrentCount)
@@ -504,23 +511,20 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool SupportsImageCapturePrefix(BaseItem item, ref bool __result, out bool __state)
+        private static bool SupportsImageCapturePrefix(BaseItem item, ref bool __result)
         {
-            __state = false;
-
-            if (item.IsShortcut)
+            if (ImageCaptureItem.Value != null && ImageCaptureItem.Value.InternalId == item.InternalId)
             {
                 PatchIsShortcutInstance(item);
-                __state= true;
             }
 
             return true;
         }
 
         [HarmonyPostfix]
-        private static void SupportsImageCapturePostfix(BaseItem item, ref bool __result, bool __state)
+        private static void SupportsImageCapturePostfix(BaseItem item, ref bool __result)
         {
-            if (__state)
+            if (ImageCaptureItem.Value != null && ImageCaptureItem.Value.InternalId == item.InternalId)
             {
                 UnpatchIsShortcutInstance(item);
             }
@@ -544,10 +548,16 @@ namespace StrmAssistant.Mod
             return path != null && string.Equals(Path.GetExtension(path), ".strm", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static long GetThumbnailPositionTicks(long runtimeTicks)
+        {
+            var min = Math.Min(Convert.ToInt64(runtimeTicks * 0.5), TimeSpan.FromSeconds(20.0).Ticks);
+            return Math.Max(Convert.ToInt64(runtimeTicks * 0.1), min);
+        }
+
         [HarmonyPrefix]
         private static bool RunExtractionPrefix(object __instance, ref string inputPath, MediaContainers? container,
             MediaStream videoStream, MediaProtocol? protocol, int? streamIndex, Video3DFormat? threedFormat,
-            TimeSpan? startOffset, TimeSpan? interval, string targetDirectory, string targetFilename, int? maxWidth,
+            ref TimeSpan? startOffset, TimeSpan? interval, string targetDirectory, string targetFilename, int? maxWidth,
             bool enableThumbnailFilter, CancellationToken cancellationToken)
         {
             if (__instance.GetType() == _quickImageSeriesExtractor && IsFileShortcut(inputPath))
@@ -562,6 +572,16 @@ namespace StrmAssistant.Mod
                 var newValue =
                     60000 * Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount;
                 _totalTimeoutMs.SetValue(__instance, newValue);
+
+                var timeSpan =
+                    ImageCaptureItem.Value.MediaContainer.GetValueOrDefault() == MediaContainers.Dvd ||
+                    !ImageCaptureItem.Value.RunTimeTicks.HasValue || ImageCaptureItem.Value.RunTimeTicks.Value <= 0L
+                        ? TimeSpan.FromSeconds(10.0)
+                        : TimeSpan.FromTicks(GetThumbnailPositionTicks(ImageCaptureItem.Value.RunTimeTicks.Value));
+
+                startOffset = timeSpan;
+
+                ImageCaptureItem.Value = null;
             }
 
             return true;
