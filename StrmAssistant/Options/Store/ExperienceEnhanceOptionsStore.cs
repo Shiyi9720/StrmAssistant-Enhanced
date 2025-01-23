@@ -13,6 +13,8 @@ namespace StrmAssistant.Options.Store
     {
         private readonly ILogger _logger;
 
+        private bool _currentSuppressOnOptionsSaved;
+
         public ExperienceEnhanceOptionsStore(IApplicationHost applicationHost, ILogger logger, string pluginFullName)
             : base(applicationHost, logger, pluginFullName)
         {
@@ -23,6 +25,12 @@ namespace StrmAssistant.Options.Store
         }
         
         public ExperienceEnhanceOptions ExperienceEnhanceOptions => GetOptions();
+
+        public void SavePluginOptionsSuppress()
+        {
+            _currentSuppressOnOptionsSaved = true;
+            SetOptions(ExperienceEnhanceOptions);
+        }
 
         private void OnFileSaving(object sender, FileSavingEventArgs e)
         {
@@ -109,14 +117,24 @@ namespace StrmAssistant.Options.Store
         {
             if (e.Options is ExperienceEnhanceOptions options)
             {
-                _logger.Info("MergeMultiVersion is set to {0}", options.MergeMultiVersion);
-                _logger.Info("HidePersonNoImage is set to {0}", options.UIFunctionOptions.HidePersonNoImage);
-                _logger.Info("HidePersonPreference is set to {0}",
-                    options.UIFunctionOptions.HidePersonPreference.GetDescription());
-                _logger.Info("EnforceLibraryOrder is set to {0}", options.UIFunctionOptions.EnforceLibraryOrder);
-                _logger.Info("BeautifyMissingMetadata is set to {0}", options.UIFunctionOptions.BeautifyMissingMetadata);
-                _logger.Info("EnhanceMissingEpisodes is set to {0}", options.UIFunctionOptions.EnhanceMissingEpisodes);
-                _logger.Info("NoBoxsetsAutoCreation is set to {0}", options.UIFunctionOptions.NoBoxsetsAutoCreation);
+                var suppressLogger = _currentSuppressOnOptionsSaved;
+
+                if (!suppressLogger)
+                {
+                    _logger.Info("MergeMultiVersion is set to {0}", options.MergeMultiVersion);
+                    _logger.Info("HidePersonNoImage is set to {0}", options.UIFunctionOptions.HidePersonNoImage);
+                    _logger.Info("HidePersonPreference is set to {0}",
+                        options.UIFunctionOptions.HidePersonPreference.GetDescription());
+                    _logger.Info("EnforceLibraryOrder is set to {0}", options.UIFunctionOptions.EnforceLibraryOrder);
+                    _logger.Info("BeautifyMissingMetadata is set to {0}",
+                        options.UIFunctionOptions.BeautifyMissingMetadata);
+                    _logger.Info("EnhanceMissingEpisodes is set to {0}",
+                        options.UIFunctionOptions.EnhanceMissingEpisodes);
+                    _logger.Info("NoBoxsetsAutoCreation is set to {0}",
+                        options.UIFunctionOptions.NoBoxsetsAutoCreation);
+                }
+
+                if (suppressLogger) _currentSuppressOnOptionsSaved = false;
             }
         }
     }

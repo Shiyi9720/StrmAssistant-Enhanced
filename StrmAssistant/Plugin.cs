@@ -219,6 +219,14 @@ namespace StrmAssistant
             {
                 _ = LibraryApi.DeleteMediaInfoJson(e.Item, "Item Removed Event", CancellationToken.None);
             }
+
+            if (e.Item is CollectionFolder library && library.CollectionType == "boxsets" &&
+                !ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation)
+            {
+                NoBoxsetsAutoCreation.Patch();
+                ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation = true;
+                ExperienceEnhanceStore.SavePluginOptionsSuppress();
+            }
         }
 
         private void OnUserDataSaved(object sender, UserDataSaveEventArgs e)

@@ -73,7 +73,8 @@ namespace StrmAssistant.Mod
         {
             if (RuntimeInformation.ProcessArchitecture != Architecture.X64) return null;
 
-            return PatchTrackerList.All(p => p.FallbackPatchApproach == PatchApproach.Harmony);
+            return PatchTrackerList.Where(p => p.IsSupported)
+                .All(p => p.FallbackPatchApproach == PatchApproach.Harmony);
         }
     }
 }

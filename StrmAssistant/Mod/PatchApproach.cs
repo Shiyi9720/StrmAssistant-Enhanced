@@ -19,5 +19,7 @@
         public string Name { get; set; }
 
         public PatchApproach FallbackPatchApproach { get; set; } = PatchApproach.Harmony;
+
+        public bool IsSupported { get; set; } = true;
     }
 }

@@ -14,29 +14,37 @@ namespace StrmAssistant.Mod
 
         public static void Initialize()
         {
-            try
+            if (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.8.4.0"))
             {
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                var collectionManager =
-                    embyServerImplementationsAssembly.GetType(
-                        "Emby.Server.Implementations.Collections.CollectionManager");
-                _ensureLibraryFolder = collectionManager.GetMethod("EnsureLibraryFolder",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
+                try
+                {
+                    var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+                    var collectionManager =
+                        embyServerImplementationsAssembly.GetType(
+                            "Emby.Server.Implementations.Collections.CollectionManager");
+                    _ensureLibraryFolder = collectionManager.GetMethod("EnsureLibraryFolder",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                }
+                catch (Exception e)
+                {
+                    Plugin.Instance.Logger.Warn("NoBoxsetsAutoCreation - Patch Init Failed");
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
+                }
+
+                if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
+
+                if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
+                    Plugin.Instance.ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation)
+                {
+                    Patch();
+                }
             }
-            catch (Exception e)
+            else
             {
-                Plugin.Instance.Logger.Warn("NoBoxsetsAutoCreation - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
                 PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation)
-            {
-                Patch();
+                PatchApproachTracker.IsSupported= false;
             }
         }
 
