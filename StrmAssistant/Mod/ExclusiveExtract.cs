@@ -25,6 +25,7 @@ namespace StrmAssistant.Mod
         public MetadataRefreshOptions MetadataRefreshOptions { get; set; }
         public bool IsNewItem { get; set; }
         public bool IsFileChanged { get; set; }
+        public bool IsExternalSubtitleChanged { get; set; }
         public bool IsPersistInScope { get; set; }
         public bool MediaInfoUpdated { get; set; }
     }
@@ -426,23 +427,42 @@ namespace StrmAssistant.Mod
             
             if (refreshOptions is MetadataRefreshOptions options)
             {
-                if (CurrentRefreshContext.Value == null)
+                if (CurrentRefreshContext.Value is null)
                 {
                     CurrentRefreshContext.Value = new RefreshContext
                     {
                         InternalId = item.InternalId,
-                        MetadataRefreshOptions = options
+                        MetadataRefreshOptions = options,
+                        IsNewItem = item.DateLastRefreshed == DateTimeOffset.MinValue
                     };
 
-                    if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && item.IsShortcut)
+                    if (!CurrentRefreshContext.Value.IsNewItem)
                     {
-                        options.EnableRemoteContentProbe = true;
+                        if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange) &&
+                            Plugin.LibraryApi.HasFileChanged(item, options.DirectoryService))
+                        {
+                            CurrentRefreshContext.Value.IsFileChanged = true;
+                        }
+
+                        if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) &&
+                            item is Video && Plugin.SubtitleApi.HasExternalSubtitleChanged(item, options.DirectoryService))
+                        {
+                            CurrentRefreshContext.Value.IsExternalSubtitleChanged = true;
+                        }
+
+                        if (item.IsShortcut && (CurrentRefreshContext.Value.IsFileChanged &&
+                                                IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) &&
+                                                Plugin.LibraryApi.HasMediaInfo(item) ||
+                                                IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow)))
+                        {
+                            options.EnableRemoteContentProbe = true;
+                            EnableImageCapture.AllowImageCaptureInstance(item);
+                        }
                     }
                 }
-
-                if (item.DateLastRefreshed == DateTimeOffset.MinValue)
+                
+                if (CurrentRefreshContext.Value.IsNewItem)
                 {
-                    CurrentRefreshContext.Value.IsNewItem= true;
                     return true;
                 }
 
@@ -450,7 +470,7 @@ namespace StrmAssistant.Mod
                         provider.GetType().Name == "VideoImageProvider" || provider is IRemoteImageProvider) &&
                     (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
                      !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) &&
-                     !refreshOptions.ReplaceAllImages))
+                     !options.ReplaceAllImages))
                 {
                     __result = false;
                     return false;
@@ -490,16 +510,8 @@ namespace StrmAssistant.Mod
 
                 var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
 
-                if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange) &&
-                    Plugin.LibraryApi.HasFileChanged(item, refreshOptions.DirectoryService))
+                if (CurrentRefreshContext.Value.IsFileChanged)
                 {
-                    if (IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) && item.IsShortcut &&
-                        Plugin.LibraryApi.HasMediaInfo(item))
-                    {
-                        refreshOptions.EnableRemoteContentProbe = true;
-                    }
-
-                    CurrentRefreshContext.Value.IsFileChanged = true;
                     return true;
                 }
 
@@ -560,9 +572,7 @@ namespace StrmAssistant.Mod
                 var refreshOptions = CurrentRefreshContext.Value.MetadataRefreshOptions;
                 refreshOptions.ForceSave = true;
 
-                if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) &&
-                    !CurrentRefreshContext.Value.IsNewItem && item is Video &&
-                    Plugin.SubtitleApi.HasExternalSubtitleChanged(item, refreshOptions.DirectoryService))
+                if (CurrentRefreshContext.Value.IsExternalSubtitleChanged)
                 {
                     _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None)
                         .ConfigureAwait(false);
@@ -599,8 +609,16 @@ namespace StrmAssistant.Mod
                 {
                     if (__instance.IsShortcut && !refreshOptions.EnableRemoteContentProbe)
                     {
-                        _ = Plugin.LibraryApi.DeleteMediaInfoJson(__instance, directoryService,
-                            "Exclusive Delete on Change", CancellationToken.None);
+                        if (CurrentRefreshContext.Value.IsFileChanged)
+                        {
+                            _ = Plugin.LibraryApi.DeleteMediaInfoJson(__instance, directoryService,
+                                "Exclusive Delete on Change", CancellationToken.None);
+                        }
+                        else
+                        {
+                            _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, directoryService,
+                                "Exclusive Restore", CancellationToken.None);
+                        }
                     }
                     else
                     {
