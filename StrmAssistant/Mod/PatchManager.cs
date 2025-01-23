@@ -46,6 +46,7 @@ namespace StrmAssistant.Mod
             ChapterChangeTracker.Initialize();
             MovieDbEpisodeGroup.Initialize();
             NoBoxsetsAutoCreation.Initialize();
+            EnhanceNotificationSystem.Initialize();
         }
 
         public static bool IsPatched(MethodBase methodInfo, Type type)

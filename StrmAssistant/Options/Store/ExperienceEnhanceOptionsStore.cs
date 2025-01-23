@@ -51,6 +51,18 @@ namespace StrmAssistant.Options.Store
                     }
                 }
 
+                if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.EnhanceNotificationSystem)))
+                {
+                    if (options.EnhanceNotificationSystem)
+                    {
+                        EnhanceNotificationSystem.Patch();
+                    }
+                    else
+                    {
+                        EnhanceNotificationSystem.Unpatch();
+                    }
+                }
+
                 if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.UIFunctionOptions.HidePersonNoImage)))
                 {
                     if (options.UIFunctionOptions.HidePersonNoImage)
@@ -122,6 +134,7 @@ namespace StrmAssistant.Options.Store
                 if (!suppressLogger)
                 {
                     _logger.Info("MergeMultiVersion is set to {0}", options.MergeMultiVersion);
+                    _logger.Info("EnhanceNotificationSystem is set to {0}", options.EnhanceNotificationSystem);
                     _logger.Info("HidePersonNoImage is set to {0}", options.UIFunctionOptions.HidePersonNoImage);
                     _logger.Info("HidePersonPreference is set to {0}",
                         options.UIFunctionOptions.HidePersonPreference.GetDescription());

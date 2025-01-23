@@ -188,6 +188,25 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Notification Enhanced.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EnhanceNotification_Enhance_Notification {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EnhanceNotification_Enhance_Notification", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show episode details in series notification. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notif" +
+                        "ication__Default_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Extracts intro fingerprint from episodes.
         /// </summary>
         public static string ExtractIntroFingerprintTask_Description_Extracts_intro_fingerprint_from_episodes {
@@ -765,7 +784,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Image Capture Offset.
+        ///   Looks up a localized string similar to Optional Image Capture Position.
         /// </summary>
         public static string MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset {
             get {
@@ -774,7 +793,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Image capture position as a percentage of runtime. Default is 10..
+        ///   Looks up a localized string similar to Image capture offset as a percentage of runtime. It must be between 10 and 90. Default is 10..
         /// </summary>
         public static string MediaInfoExtractOptions_ImageCaptureOffset_Image_capture_position_as_a_percentage_of_runtime__Default_is_10_ {
             get {
