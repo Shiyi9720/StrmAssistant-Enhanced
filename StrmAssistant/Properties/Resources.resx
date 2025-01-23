@@ -611,4 +611,16 @@
   <data name="ExclusiveControl_NoIntroProtect_NoIntroProtect" xml:space="preserve">
     <value>No Intro Marker Protect</value>
   </data>
+  <data name="MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset" xml:space="preserve">
+    <value>Customize Image Capture Position</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ImageCaptureOffset_Image_capture_position_as_a_percentage_of_runtime__Default_is_10_" xml:space="preserve">
+    <value>Image capture offset as a percentage of runtime. It must be between 10 and 90. Default is 10.</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EnhanceNotification_Enhance_Notification" xml:space="preserve">
+    <value>Notification Enhanced</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
+    <value>Show episode details in add/remove series group notification. Default is OFF.</value>
+  </data>
 </root>

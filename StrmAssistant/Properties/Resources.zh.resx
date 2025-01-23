@@ -524,4 +524,16 @@
   <data name="ExclusiveControl_NoIntroProtect_NoIntroProtect" xml:space="preserve">
     <value>无片头标记保护</value>
   </data>
+  <data name="MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset" xml:space="preserve">
+    <value>自定义视频截图位置</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ImageCaptureOffset_Image_capture_position_as_a_percentage_of_runtime__Default_is_10_" xml:space="preserve">
+    <value>视频截图的偏移位置，基于时长的百分比，必须在 10 至 90 之间，默认为 10。</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EnhanceNotification_Enhance_Notification" xml:space="preserve">
+    <value>通知系统增强</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
+    <value>按电视节目分组的新增和删除通知中添加集信息，默认关闭。</value>
+  </data>
 </root>

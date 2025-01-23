@@ -64,6 +64,8 @@ namespace StrmAssistant.Common
                             : (MediaContainers?)null)
                     .Where(container => container.HasValue)
                     .Select(container => container.Value)
+                    .Concat(new[] { MediaContainers.Iso })
+                    .Distinct()
                     .ToArray();
             }
         }
@@ -80,12 +82,14 @@ namespace StrmAssistant.Common
                         if (Enum.TryParse<MediaContainers>(c.Trim(), true, out var container))
                         {
                             var aliases = container.GetAliases();
-                            return aliases?.Where(a => !string.IsNullOrWhiteSpace(a)) ??
-                                   Array.Empty<string>();
+                            return aliases?.Where(a => !string.IsNullOrWhiteSpace(a)) ?? Array.Empty<string>();
                         }
 
                         return Array.Empty<string>();
                     })
+                    .Concat(MediaContainers.Iso.GetAliases())
+                    .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                    .Distinct()
                     .ToArray();
             }
         }
@@ -537,6 +541,12 @@ namespace StrmAssistant.Common
         {
             if (item.MediaContainer.HasValue && ExcludeMediaContainers.Contains(item.MediaContainer.Value))
                 return false;
+
+            if (!item.IsShortcut)
+            {
+                var fileExtension = Path.GetExtension(item.Path).TrimStart('.');
+                if (ExcludeMediaExtensions.Contains(fileExtension)) return false;
+            }
 
             return !HasMediaInfo(item) ||
                    enableImageCapture && !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item);
