@@ -23,7 +23,8 @@ namespace StrmAssistant.Mod
                 var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
                 var applicationHost =
                     embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.ApplicationHost");
-                _createHttpClientHandler=applicationHost.GetMethod("CreateHttpClientHandler", BindingFlags.NonPublic | BindingFlags.Instance);
+                _createHttpClientHandler = applicationHost.GetMethod("CreateHttpClientHandler",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
             }
             catch (Exception e)
             {
@@ -90,7 +91,7 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPostfix]
-        private static void CreateHttpClientHandlerPostfix(ref HttpClientHandler __result)
+        private static void CreateHttpClientHandlerPostfix(ref HttpMessageHandler __result)
         {
             var options = Plugin.Instance.MainOptionsStore.PluginOptions.NetworkOptions;
             var proxyStatus = options.ProxyServerStatus.Status;
@@ -100,7 +101,7 @@ namespace StrmAssistant.Mod
                 proxyStatus == ItemStatus.Succeeded && TryParseProxyUrl(options.ProxyServerUrl, out var schema,
                     out var host, out var port, out var username, out var password))
             {
-                __result.Proxy = new WebProxy(proxyUri)
+                var proxy = new WebProxy(proxyUri)
                 {
                     BypassProxyOnLocal = true,
                     Credentials = !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password)
@@ -108,12 +109,25 @@ namespace StrmAssistant.Mod
                         : null
                 };
 
-                __result.UseProxy = true;
-
-                if (ignoreCertificateValidation)
+                if (__result is HttpClientHandler httpClientHandler)
                 {
-                    __result.ServerCertificateCustomValidationCallback =
-                        (httpRequestMessage, cert, chain, sslErrors) => true;
+                    httpClientHandler.Proxy = proxy;
+                    httpClientHandler.UseProxy = true;
+                    if (ignoreCertificateValidation)
+                    {
+                        httpClientHandler.ServerCertificateCustomValidationCallback =
+                            (httpRequestMessage, cert, chain, sslErrors) => true;
+                    }
+                }
+                else if (__result is SocketsHttpHandler socketsHandler)
+                {
+                    socketsHandler.Proxy = proxy;
+                    socketsHandler.UseProxy = true;
+                    if (ignoreCertificateValidation)
+                    {
+                        socketsHandler.SslOptions.RemoteCertificateValidationCallback =
+                            (sender, cert, chain, sslErrors) => true;
+                    }
                 }
             }
         }
