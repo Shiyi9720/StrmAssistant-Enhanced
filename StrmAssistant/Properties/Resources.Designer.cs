@@ -765,6 +765,25 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Image Capture Offset.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Image capture position as a percentage of runtime. Default is 10..
+        /// </summary>
+        public static string MediaInfoExtractOptions_ImageCaptureOffset_Image_capture_position_as_a_percentage_of_runtime__Default_is_10_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ImageCaptureOffset_Image_capture_position_as_a_percentage" +
+                        "_of_runtime__Default_is_10_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Optional MediaInfo JSON Root Folder.
         /// </summary>
         public static string MediaInfoExtractOptions_MediaInfoJsonRootFolder_MediaInfo_Json_Root_Folder {
@@ -1147,7 +1166,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Enable proxy server for outgoing http requests. Default is OFF..
+        ///   Looks up a localized string similar to Enable proxy for server outgoing http requests. Default is OFF..
         /// </summary>
         public static string NetworkOptions_EnableProxyServer_Enable_Proxy_Server__Default_is_OFF_ {
             get {

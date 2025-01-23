@@ -29,6 +29,12 @@ namespace StrmAssistant.Options
         [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
         public bool EnableImageCapture { get; set; } = false;
 
+        [DisplayNameL("MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_ImageCaptureOffset_Image_capture_position_as_a_percentage_of_runtime__Default_is_10_", typeof(Resources))]
+        [Required, MinValue(10), MaxValue(90)]
+        [VisibleCondition(nameof(EnableImageCapture), SimpleCondition.IsTrue)]
+        public int ImageCapturePosition { get; set; } = 10;
+
         [Browsable(false)]
         [Required]
         public string ImageCaptureExcludeMediaContainers { get; set; } =

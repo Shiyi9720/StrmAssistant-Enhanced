@@ -550,8 +550,11 @@ namespace StrmAssistant.Mod
 
         private static long GetThumbnailPositionTicks(long runtimeTicks)
         {
+            var percent = Plugin.Instance.MediaInfoExtractStore.GetOptions().ImageCapturePosition / 100.0;
+
             var min = Math.Min(Convert.ToInt64(runtimeTicks * 0.5), TimeSpan.FromSeconds(20.0).Ticks);
-            return Math.Max(Convert.ToInt64(runtimeTicks * 0.1), min);
+
+            return Math.Max(Convert.ToInt64(runtimeTicks * percent), min);
         }
 
         [HarmonyPrefix]
@@ -566,7 +569,7 @@ namespace StrmAssistant.Mod
                 inputPath = Task.Run(async () => await Plugin.LibraryApi.GetStrmMountPath(strmPath)).Result;
             }
 
-            if ((ExtractMediaInfoTask.IsRunning || QueueManager.IsMediaInfoProcessTaskRunning) && _totalTimeoutMs != null &&
+            if (ImageCaptureItem.Value != null && _totalTimeoutMs != null &&
                 __instance.GetType() == _quickSingleImageExtractor)
             {
                 var newValue =
