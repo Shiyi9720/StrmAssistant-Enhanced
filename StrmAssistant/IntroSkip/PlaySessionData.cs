@@ -13,12 +13,12 @@ namespace StrmAssistant.IntroSkip
             IntroEnd = Plugin.ChapterApi.GetIntroEnd(item);
             CreditsStart = Plugin.ChapterApi.GetCreditsStart(item);
         }
-        
-        public long? IntroStart { get; }
 
-        public long? IntroEnd { get; }
+        public long? IntroStart { get; set; }
 
-        public long? CreditsStart { get; }
+        public long? IntroEnd { get; set; }
+
+        public long? CreditsStart { get; set; }
 
         public long PlaybackStartTicks { get; set; } = 0;
 

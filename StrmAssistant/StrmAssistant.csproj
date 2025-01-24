@@ -19,7 +19,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CHTCHSConv" Version="1.0.0">
-      <GeneratePathProperty>True</GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="ILRepack" Version="2.0.36">
       <PrivateAssets>all</PrivateAssets>
@@ -53,6 +52,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(ILRepack) /out:%25AppData%25\Emby-Server\programdata\plugins\$(TargetFileName) $(TargetPath) $(PkgCHTCHSConv)\lib\netstandard2.0\ChineseConverter.dll /lib:$(TargetDir)" />
+    <Exec Command="$(ILRepack) /out:%25AppData%25\Emby-Server\programdata\plugins\$(TargetFileName) $(TargetPath) $(TargetDir)ChineseConverter.dll /lib:$(TargetDir)" />
   </Target>
 </Project>
