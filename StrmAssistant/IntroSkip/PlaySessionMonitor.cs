@@ -226,7 +226,7 @@ namespace StrmAssistant.IntroSkip
                 {
                     if (playSessionData.LastJumpPositionTicks.HasValue)
                     {
-                        UpdateIntroTask(e.Item as Episode, e.Session,
+                        UpdateIntroTask(e.Item as Episode, e.Session, playSessionData,
                             playSessionData.FirstJumpPositionTicks.HasValue &&
                             playSessionData.FirstJumpPositionTicks.Value > playSessionData.MinOpeningPlotDurationTicks
                                 ? playSessionData.FirstJumpPositionTicks.Value
@@ -268,7 +268,7 @@ namespace StrmAssistant.IntroSkip
                 Math.Abs(TimeSpan.FromTicks(currentPositionTicks - introEnd.Value).TotalMilliseconds) >
                 (playSessionData.LastPlaybackRateChangeEventTime.HasValue ? 500 : 0))
             {
-                UpdateIntroTask(e.Item as Episode, e.Session, introStart.Value, currentPositionTicks);
+                UpdateIntroTask(e.Item as Episode, e.Session, playSessionData, introStart.Value, currentPositionTicks);
             }
 
             if (playSessionData.NoDetectionButReset && e.EventName == ProgressEvent.Unpause &&
@@ -280,7 +280,8 @@ namespace StrmAssistant.IntroSkip
                  Math.Abs(TimeSpan.FromTicks(currentPositionTicks - introEnd.Value).TotalMilliseconds) >
                  (playSessionData.LastPlaybackRateChangeEventTime.HasValue ? 500 : 0)))
             {
-                UpdateIntroTask(e.Item as Episode, e.Session, new TimeSpan(0, 0, 0).Ticks, currentPositionTicks);
+                UpdateIntroTask(e.Item as Episode, e.Session, playSessionData, new TimeSpan(0, 0, 0).Ticks,
+                    currentPositionTicks);
             }
 
             if (e.EventName == ProgressEvent.Unpause && e.Item.RunTimeTicks.HasValue &&
@@ -292,7 +293,8 @@ namespace StrmAssistant.IntroSkip
             {
                 if (e.Item.RunTimeTicks.Value > currentPositionTicks)
                 {
-                    UpdateCreditsTask(e.Item as Episode, e.Session, e.Item.RunTimeTicks.Value - currentPositionTicks);
+                    UpdateCreditsTask(e.Item as Episode, e.Session, playSessionData,
+                        e.Item.RunTimeTicks.Value - currentPositionTicks);
                 }
             }
         }
@@ -311,13 +313,15 @@ namespace StrmAssistant.IntroSkip
                 {
                     if (e.Item.RunTimeTicks.Value > currentPositionTicks)
                     {
-                        UpdateCreditsTask(e.Item as Episode, e.Session,
+                        UpdateCreditsTask(e.Item as Episode, e.Session, playSessionData,
                             e.Item.RunTimeTicks.Value - currentPositionTicks);
                     }
                 }
             }
 
             _playSessionData.TryRemove(e.PlaySessionId, out _);
+            _lastIntroUpdateTimes.TryRemove(e.Item as Episode, out _);
+            _lastCreditsUpdateTimes.TryRemove(e.Item as Episode, out _);
         }
 
         private PlaySessionData GetPlaySessionData(PlaybackProgressEventArgs e)
@@ -363,7 +367,8 @@ namespace StrmAssistant.IntroSkip
             return ClientsInScope.Any(c => clientName.Contains(c, StringComparison.OrdinalIgnoreCase));
         }
 
-        private void UpdateIntroTask(Episode episode, SessionInfo session, long introStartPositionTicks,
+        private void UpdateIntroTask(Episode episode, SessionInfo session, PlaySessionData playSessionData,
+            long introStartPositionTicks,
             long introEndPositionTicks)
         {
             var now = DateTime.UtcNow;
@@ -389,6 +394,8 @@ namespace StrmAssistant.IntroSkip
                     {
                         Plugin.ChapterApi.UpdateIntro(episode, session, introStartPositionTicks,
                             introEndPositionTicks);
+                        playSessionData.IntroStart = Plugin.ChapterApi.GetIntroStart(episode);
+                        playSessionData.IntroEnd = Plugin.ChapterApi.GetIntroEnd(episode);
                     }
                     catch (Exception e)
                     {
@@ -407,7 +414,8 @@ namespace StrmAssistant.IntroSkip
             }
         }
 
-        private void UpdateCreditsTask(Episode episode, SessionInfo session, long creditsDurationTicks)
+        private void UpdateCreditsTask(Episode episode, SessionInfo session, PlaySessionData playSessionData,
+            long creditsDurationTicks)
         {
             var now = DateTime.UtcNow;
 
@@ -431,6 +439,7 @@ namespace StrmAssistant.IntroSkip
                     try
                     {
                         Plugin.ChapterApi.UpdateCredits(episode, session, creditsDurationTicks);
+                        playSessionData.CreditsStart = Plugin.ChapterApi.GetCreditsStart(episode);
                     }
                     catch (Exception e)
                     {
