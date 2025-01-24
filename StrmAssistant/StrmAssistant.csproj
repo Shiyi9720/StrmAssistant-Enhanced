@@ -1,11 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
-    <AssemblyVersion>2.0.0.10</AssemblyVersion>
-    <FileVersion>2.0.0.10</FileVersion>
+    <AssemblyVersion>2.0.0.11</AssemblyVersion>
+    <FileVersion>2.0.0.11</FileVersion>
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
-    <NoWarn>IDE0051</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Tokenizer\linux\libsimple.so" />
