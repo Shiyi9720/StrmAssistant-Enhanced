@@ -5,6 +5,7 @@ using StrmAssistant.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
@@ -300,23 +301,37 @@ namespace StrmAssistant.Mod
                 if (File.Exists(_tokenizerPath))
                 {
                     var existingSha1 = ComputeSha1(_tokenizerPath);
-                    Plugin.Instance.Logger.Debug(existingSha1 == expectedSha1
-                        ? "EnhanceChineseSearch - Tokenizer exists with matching SHA-1"
-                        : "EnhanceChineseSearch - Tokenizer exists but SHA-1 does not match");
+
+                    if (expectedSha1.ContainsValue(existingSha1))
+                    {
+                        var highestVersion = expectedSha1.Keys.Max();
+                        var highestSha1 = expectedSha1[highestVersion];
+
+                        if (existingSha1 == highestSha1)
+                        {
+                            Plugin.Instance.Logger.Info(
+                                $"EnhanceChineseSearch - Tokenizer exists with matching SHA-1 for the highest version {highestVersion}");
+                        }
+                        else
+                        {
+                            var currentVersion = expectedSha1.FirstOrDefault(x => x.Value == existingSha1).Key;
+                            Plugin.Instance.Logger.Info(
+                                $"EnhanceChineseSearch - Tokenizer exists for version {currentVersion} but does not match the highest version {highestVersion}. Upgrading...");
+                            ExportTokenizer(resourceName);
+                        }
+
+                        return true;
+                    }
+
+                    Plugin.Instance.Logger.Info(
+                        "EnhanceChineseSearch - Tokenizer exists but SHA-1 is not recognized. No action taken.");
 
                     return true;
                 }
 
-                Plugin.Instance.Logger.Debug("EnhanceChineseSearch - Tokenizer does not exist. Exporting...");
-                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
-                {
-                    using (var fileStream = new FileStream(_tokenizerPath, FileMode.Create, FileAccess.Write))
-                    {
-                        stream.CopyTo(fileStream);
-                    }
-                }
+                Plugin.Instance.Logger.Info("EnhanceChineseSearch - Tokenizer does not exist. Exporting...");
+                ExportTokenizer(resourceName);
 
-                Plugin.Instance.Logger.Info($"EnhanceChineseSearch - Exported {resourceName} to {_tokenizerPath}");
                 return true;
             }
             catch (Exception e)
@@ -327,6 +342,19 @@ namespace StrmAssistant.Mod
             }
 
             return false;
+        }
+
+        private static void ExportTokenizer(string resourceName)
+        {
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName))
+            {
+                using (var fileStream = new FileStream(_tokenizerPath, FileMode.Create, FileAccess.Write))
+                {
+                    stream.CopyTo(fileStream);
+                }
+            }
+
+            Plugin.Instance.Logger.Info($"EnhanceChineseSearch - Exported {resourceName} to {_tokenizerPath}");
         }
 
         private static string GetTokenizerResourceName()
@@ -346,14 +374,22 @@ namespace StrmAssistant.Mod
             }
         }
 
-        private static string GetExpectedSha1()
+        private static Dictionary<Version, string> GetExpectedSha1()
         {
             switch (Environment.OSVersion.Platform)
             {
                 case PlatformID.Win32NT:
-                    return "a83d90af9fb88e75a1ddf2436c8b67954c761c83";
+                    return new Dictionary<Version, string>
+                    {
+                        { new Version(0, 4, 0), "a83d90af9fb88e75a1ddf2436c8b67954c761c83" },
+                        { new Version(0, 5, 0), "aed57350b46b51bb7d04321b7fe8e5e60b0cdbdc" }
+                    };
                 case PlatformID.Unix:
-                    return "f7fb8ba0b98e358dfaa87570dc3426ee7f00e1b6";
+                    return new Dictionary<Version, string>
+                    {
+                        { new Version(0, 4, 0), "f7fb8ba0b98e358dfaa87570dc3426ee7f00e1b6" },
+                        { new Version(0, 5, 0), "8e36162f96c67d77c44b36093f31ae4d297b15c0" }
+                    };
                 default:
                     return null;
             }
