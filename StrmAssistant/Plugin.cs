@@ -164,7 +164,7 @@ namespace StrmAssistant
             if ((e.Item is Video || e.Item is Audio) && MainOptionsStore.PluginOptions.GeneralOptions.CatchupMode)
             {
                 if (IntroSkipStore.IntroSkipOptions.UnlockIntroSkip && IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
-                    FingerprintApi.IsLibraryInScope(e.Item) && e.Item is Episode)
+                    e.Item is Episode && FingerprintApi.IsLibraryInScope(e.Item))
                 {
                     QueueManager.FingerprintItemQueue.Enqueue(e.Item);
                 }
@@ -177,7 +177,7 @@ namespace StrmAssistant
                     }
 
                     if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
-                        PlaySessionMonitor.IsLibraryInScope(e.Item))
+                        e.Item is Episode && PlaySessionMonitor.IsLibraryInScope(e.Item))
                     {
                         if (!LibraryApi.HasMediaInfo(e.Item))
                         {

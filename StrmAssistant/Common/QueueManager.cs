@@ -204,9 +204,9 @@ namespace StrmAssistant.Common
                                     }
 
                                     if (IsCatchupTaskSelected(GeneralOptions.CatchupTask.IntroSkip) &&
-                                        Plugin.PlaySessionMonitor.IsLibraryInScope(taskItem))
+                                        taskItem is Episode episode && Plugin.PlaySessionMonitor.IsLibraryInScope(episode))
                                     {
-                                        IntroSkipItemQueue.Enqueue(taskItem as Episode);
+                                        IntroSkipItemQueue.Enqueue(episode);
                                     }
 
                                     Logger.Info("MediaInfoExtract - Item processed: " + taskItem.Name + " - " +
