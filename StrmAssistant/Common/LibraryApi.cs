@@ -104,6 +104,7 @@ namespace StrmAssistant.Common
         {
             public MediaSourceInfo MediaSourceInfo { get; set; }
             public List<ChapterInfo> Chapters { get; set; } = new List<ChapterInfo>();
+            public bool? ZeroFingerprintConfidence { get; set; }
         }
 
         public LibraryApi(ILibraryManager libraryManager, IFileSystem fileSystem,
@@ -545,7 +546,7 @@ namespace StrmAssistant.Common
             if (item.MediaContainer.HasValue && ExcludeMediaContainers.Contains(item.MediaContainer.Value))
                 return false;
 
-            if (!item.IsShortcut)
+            if (!item.IsShortcut && item.IsFileProtocol && !string.IsNullOrEmpty(item.Path))
             {
                 var fileExtension = Path.GetExtension(item.Path).TrimStart('.');
                 if (ExcludeMediaExtensions.Contains(fileExtension)) return false;
@@ -788,6 +789,21 @@ namespace StrmAssistant.Common
                                             { MediaSourceInfo = mediaSource, Chapters = chapters })
                                     .ToList();
 
+                                foreach (var jsonItem in mediaSourcesWithChapters)
+                                {
+                                    jsonItem.MediaSourceInfo.Id = null;
+                                    jsonItem.MediaSourceInfo.ItemId = null;
+                                    jsonItem.MediaSourceInfo.Path = null;
+
+                                    if (workItem is Episode)
+                                    {
+                                        jsonItem.ZeroFingerprintConfidence =
+                                            !string.IsNullOrEmpty(
+                                                BaseItem.ItemRepository.GetIntroDetectionFailureResult(
+                                                    workItem.InternalId));
+                                    }
+                                }
+
                                 var parentDirectory = Path.GetDirectoryName(mediaInfoJsonPath);
                                 if (!string.IsNullOrEmpty(parentDirectory))
                                 {
@@ -862,6 +878,12 @@ namespace StrmAssistant.Common
                         {
                             ChapterChangeTracker.BypassInstance(workItem);
                             _itemRepository.SaveChapters(workItem.InternalId, true, mediaSourceWithChapters.Chapters);
+
+                            if (workItem is Episode && mediaSourceWithChapters.ZeroFingerprintConfidence is true)
+                            {
+                                BaseItem.ItemRepository.LogIntroDetectionFailureFailure(workItem.InternalId,
+                                    item.DateModified.ToUnixTimeSeconds());
+                            }
                         }
 
                         _logger.Info("MediaInfoPersist - Deserialization Success (" + source + "): " + mediaInfoJsonPath);

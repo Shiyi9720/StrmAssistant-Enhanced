@@ -118,7 +118,7 @@ namespace StrmAssistant.ScheduledTask
 
                             var deserializeResult = false;
 
-                            if (Plugin.LibraryApi.IsExtractNeeded(taskEpisode, enableImageCapture))
+                            if (!Plugin.LibraryApi.HasMediaInfo(taskEpisode))
                             {
                                 result1 = await Plugin.LibraryApi
                                     .OrchestrateMediaInfoProcessAsync(taskEpisode, directoryService,
@@ -128,7 +128,7 @@ namespace StrmAssistant.ScheduledTask
                                 if (result1 is null)
                                 {
                                     _logger.Info("IntroFingerprintExtract - Episode skipped or non-existent: " + taskEpisode.Name +
-                                                " - " + taskEpisode.Path);
+                                                 " - " + taskEpisode.Path);
                                     seasonSkip = true;
                                     return;
                                 }
