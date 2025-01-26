@@ -12,6 +12,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.Notifications;
 using MediaBrowser.Controller.Persistence;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Drawing;
@@ -67,6 +68,7 @@ namespace StrmAssistant
         private readonly ILibraryManager _libraryManager;
         private readonly IUserManager _userManager;
         private readonly IUserDataManager _userDataManager;
+        private readonly IDirectoryService _directoryService;
 
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
@@ -86,6 +88,7 @@ namespace StrmAssistant
             _libraryManager = libraryManager;
             _userManager = userManager;
             _userDataManager = userDataManager;
+            _directoryService = new DirectoryService(Logger, fileSystem);
 
             MainOptionsStore = new PluginOptionsStore(applicationHost, Logger, Name);
             MediaInfoExtractStore =
@@ -159,41 +162,69 @@ namespace StrmAssistant
             LibraryApi.UpdateLibraryPathsInScope();
         }
 
-        private void OnItemAdded(object sender, ItemChangeEventArgs e)
+        private async void OnItemAdded(object sender, ItemChangeEventArgs e)
         {
-            if ((e.Item is Video || e.Item is Audio) && MainOptionsStore.PluginOptions.GeneralOptions.CatchupMode)
+            try
             {
-                if (IntroSkipStore.IntroSkipOptions.UnlockIntroSkip && IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
-                    e.Item is Episode && FingerprintApi.IsLibraryInScope(e.Item))
-                {
-                    QueueManager.FingerprintItemQueue.Enqueue(e.Item);
-                }
-                else
-                {
-                    if (IsCatchupTaskSelected(CatchupTask.MediaInfo) &&
-                        (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut))
-                    {
-                        QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
-                    }
+                var deserializeResult = false;
 
-                    if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
-                        e.Item is Episode && PlaySessionMonitor.IsLibraryInScope(e.Item))
+                if (MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
+                    (e.Item is Video || e.Item is Audio) && LibraryApi.IsLibraryInScope(e.Item))
+                {
+                    if (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut)
                     {
-                        if (!LibraryApi.HasMediaInfo(e.Item))
+                        deserializeResult = await LibraryApi.DeserializeMediaInfo(e.Item, _directoryService,
+                            "Item Added Event", CancellationToken.None);
+                    }
+                    else
+                    {
+                        _ = LibraryApi.SerializeMediaInfo(e.Item, _directoryService, true, "Item Added Event",
+                            CancellationToken.None);
+                    }
+                }
+
+                if ((e.Item is Video || e.Item is Audio) && MainOptionsStore.PluginOptions.GeneralOptions.CatchupMode)
+                {
+                    if (IntroSkipStore.IntroSkipOptions.UnlockIntroSkip &&
+                        IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
+                        e.Item is Episode && FingerprintApi.IsLibraryInScope(e.Item) &&
+                        (!deserializeResult || FingerprintApi.IsExtractNeeded(e.Item)))
+                    {
+                        QueueManager.FingerprintItemQueue.Enqueue(e.Item);
+                    }
+                    else
+                    {
+                        if (IsCatchupTaskSelected(CatchupTask.MediaInfo) &&
+                            (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut) &&
+                            !deserializeResult)
                         {
                             QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
                         }
-                        else if (e.Item is Episode episode && ChapterApi.SeasonHasIntroCredits(episode))
+
+                        if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
+                            e.Item is Episode && PlaySessionMonitor.IsLibraryInScope(e.Item))
                         {
-                            QueueManager.IntroSkipItemQueue.Enqueue(episode);
+                            if (!LibraryApi.HasMediaInfo(e.Item))
+                            {
+                                QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                            }
+                            else if (e.Item is Episode episode && ChapterApi.SeasonHasIntroCredits(episode))
+                            {
+                                QueueManager.IntroSkipItemQueue.Enqueue(episode);
+                            }
                         }
                     }
                 }
-            }
 
-            if (e.Item is Movie || e.Item is Series || e.Item is Episode)
+                if (e.Item is Movie || e.Item is Series || e.Item is Episode)
+                {
+                    NotificationApi.FavoritesUpdateSendNotification(e.Item);
+                }
+            }
+            catch (Exception ex)
             {
-                NotificationApi.FavoritesUpdateSendNotification(e.Item);
+                Logger.Debug(ex.Message);
+                Logger.Debug(ex.StackTrace);
             }
         }
 
@@ -217,7 +248,8 @@ namespace StrmAssistant
         {
             if (MediaInfoExtractStore.GetOptions().PersistMediaInfo && (e.Item is Video || e.Item is Audio))
             {
-                _ = LibraryApi.DeleteMediaInfoJson(e.Item, "Item Removed Event", CancellationToken.None);
+                _ = LibraryApi.DeleteMediaInfoJson(e.Item, _directoryService, "Item Removed Event",
+                    CancellationToken.None);
             }
 
             if (e.Item is CollectionFolder library && library.CollectionType == "boxsets" &&

@@ -663,9 +663,8 @@ namespace StrmAssistant.Common
         {
             var persistMediaInfo = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo;
             var enableImageCapture = Plugin.Instance.MediaInfoExtractStore.GetOptions().EnableImageCapture;
-            var exclusiveExtract = Plugin.Instance.MediaInfoExtractStore.GetOptions().ExclusiveExtract;
 
-            if (exclusiveExtract) ExclusiveExtract.AllowExtractInstance(taskItem);
+            ExclusiveExtract.AllowExtractInstance(taskItem);
 
             if (persistMediaInfo) ChapterChangeTracker.BypassInstance(taskItem);
 
@@ -925,13 +924,6 @@ namespace StrmAssistant.Common
                     _logger.Debug(e.StackTrace);
                 }
             }
-        }
-
-        public async Task DeleteMediaInfoJson(BaseItem item, string source, CancellationToken cancellationToken)
-        {
-            var directoryService = new DirectoryService(_logger, _fileSystem);
-
-            await DeleteMediaInfoJson(item, directoryService, source, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task ProbeMediaInfo(BaseItem item, CancellationToken cancellationToken)

@@ -61,6 +61,8 @@ namespace StrmAssistant.ScheduledTask
             _logger.Info("IntroFingerprintExtract - Number of seasons: " + groupedBySeason.Count);
             _logger.Info("IntroFingerprintExtract - Number of episodes: " + episodes.Count);
 
+            if (episodes.Count > 0) IsRunning = true;
+
             var directoryService = new DirectoryService(_logger, _fileSystem);
 
             double total = episodes.Count;
@@ -194,6 +196,8 @@ namespace StrmAssistant.ScheduledTask
 
             await Task.WhenAll(episodeTasks).ConfigureAwait(false);
 
+            if (episodes.Count > 0) IsRunning = false;
+
             progress.Report(100.0);
 
             var markerTask = _taskManager.ScheduledTasks.FirstOrDefault(t =>
@@ -226,5 +230,7 @@ namespace StrmAssistant.ScheduledTask
         {
             return Array.Empty<TaskTriggerInfo>();
         }
+
+        public static bool IsRunning { get; private set; }
     }
 }

@@ -344,8 +344,6 @@ namespace StrmAssistant.Common
                         }
                     }
 
-                    Logger.Info("IntroFingerprintExtract - Number of items: " + episodes.Count);
-
                     if (episodes.Count > 0)
                     {
                         Logger.Info("Master Max Concurrent Count: " + maxConcurrentCount);
@@ -467,6 +465,13 @@ namespace StrmAssistant.Common
                                     }
                                 }, cancellationToken);
                                 episodeTasks.Add(task);
+                            }
+
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
+                                            taskSeason.Path);
+                                break;
                             }
 
                             var seasonTask = Task.Run(async () =>

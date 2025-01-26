@@ -362,7 +362,7 @@ namespace StrmAssistant.Mod
         [HarmonyPrefix]
         private static void RunFfProcessPrefix(ref int timeoutMs)
         {
-            if (ExtractMediaInfoTask.IsRunning || QueueManager.IsMediaInfoProcessTaskRunning)
+            if (ExclusiveItem.Value != 0)
             {
                 timeoutMs = 60000 * Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount;
             }
@@ -626,15 +626,18 @@ namespace StrmAssistant.Mod
                             "Exclusive Overwrite", CancellationToken.None);
                     }
                 }
-                else if (CurrentRefreshContext.Value.IsNewItem || !Plugin.LibraryApi.HasMediaInfo(__instance))
-                {
-                    _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, directoryService, "Exclusive Restore",
-                        CancellationToken.None);
-                }
                 else if (!CurrentRefreshContext.Value.IsNewItem)
                 {
-                    _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, directoryService, false,
-                        "Exclusive Non-existence", CancellationToken.None);
+                    if (!Plugin.LibraryApi.HasMediaInfo(__instance))
+                    {
+                        _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, directoryService, "Exclusive Restore",
+                            CancellationToken.None);
+                    }
+                    else
+                    {
+                        _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, directoryService, false,
+                            "Exclusive Non-existent", CancellationToken.None);
+                    }
                 }
             }
 
