@@ -1,7 +1,11 @@
+using Emby.Media.Common.Extensions;
 using Emby.Web.GenericEdit;
+using Emby.Web.GenericEdit.Common;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
@@ -22,13 +26,18 @@ namespace StrmAssistant.Options
         {
             [DescriptionL("HidePersonOption_NoImage_NoImage", typeof(Resources))]
             NoImage,
-            [DescriptionL("HidePersonOption_NoDirector_NoDirector", typeof(Resources))]
-            NoDirector
+            [DescriptionL("HidePersonOption_ActorOnly_ActorOnly", typeof(Resources))]
+            ActorOnly
         }
 
+        [Browsable(false)]
+        public List<EditorSelectOption> HidePersonOptionList { get; set; } = new List<EditorSelectOption>();
+
         [DisplayName("")]
+        [EditMultilSelect]
+        [SelectItemsSource(nameof(HidePersonOptionList))]
         [VisibleCondition(nameof(HidePersonNoImage), SimpleCondition.IsTrue)]
-        public HidePersonOption HidePersonPreference { get; set; } = HidePersonOption.NoImage;
+        public string HidePersonPreference { get; set; } = HidePersonOption.NoImage.ToString();
 
         [DisplayNameL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata", typeof(Resources))]
         [DescriptionL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_", typeof(Resources))]
@@ -56,5 +65,22 @@ namespace StrmAssistant.Options
 
         [Browsable(false)]
         public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
+
+        public void Initialize()
+        {
+            HidePersonOptionList.Clear();
+
+            foreach (Enum item in Enum.GetValues(typeof(HidePersonOption)))
+            {
+                var selectOption = new EditorSelectOption
+                {
+                    Value = item.ToString(),
+                    Name = EnumExtensions.GetDescription(item),
+                    IsEnabled = true,
+                };
+
+                HidePersonOptionList.Add(selectOption);
+            }
+        }
     }
 }

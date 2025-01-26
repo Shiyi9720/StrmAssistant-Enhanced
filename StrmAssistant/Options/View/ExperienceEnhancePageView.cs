@@ -15,6 +15,7 @@ namespace StrmAssistant.Options.View
         {
             _store = store;
             ContentData = store.GetOptions();
+            ExperienceEnhanceOptions.UIFunctionOptions.Initialize();
         }
 
         public ExperienceEnhanceOptions ExperienceEnhanceOptions => ContentData as ExperienceEnhanceOptions;

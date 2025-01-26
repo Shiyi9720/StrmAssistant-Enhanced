@@ -4,8 +4,10 @@ using MediaBrowser.Common;
 using MediaBrowser.Model.Logging;
 using StrmAssistant.Mod;
 using StrmAssistant.Options.UIBaseClasses.Store;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using static StrmAssistant.Options.UIFunctionOptions;
 
 namespace StrmAssistant.Options.Store
 {
@@ -36,6 +38,11 @@ namespace StrmAssistant.Options.Store
         {
             if (e.Options is ExperienceEnhanceOptions options)
             {
+                if (string.IsNullOrEmpty(options.UIFunctionOptions.HidePersonPreference))
+                {
+                    options.UIFunctionOptions.HidePersonPreference = HidePersonOption.NoImage.ToString();
+                }
+
                 var changes = PropertyChangeDetector.DetectObjectPropertyChanges(ExperienceEnhanceOptions, options);
                 var changedProperties = new HashSet<string>(changes.Select(c => c.PropertyName));
                 
@@ -136,8 +143,15 @@ namespace StrmAssistant.Options.Store
                     _logger.Info("MergeMultiVersion is set to {0}", options.MergeMultiVersion);
                     _logger.Info("EnhanceNotificationSystem is set to {0}", options.EnhanceNotificationSystem);
                     _logger.Info("HidePersonNoImage is set to {0}", options.UIFunctionOptions.HidePersonNoImage);
-                    _logger.Info("HidePersonPreference is set to {0}",
-                        options.UIFunctionOptions.HidePersonPreference.GetDescription());
+                    var hidePersonPreference = string.Join(", ",
+                        options.UIFunctionOptions.HidePersonPreference
+                            ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s =>
+                                Enum.TryParse(s.Trim(), true, out HidePersonOption option)
+                                    ? option.GetDescription()
+                                    : null)
+                            .Where(d => d != null) ?? Enumerable.Empty<string>());
+                    _logger.Info("HidePersonPreference is set to {0}", hidePersonPreference);
                     _logger.Info("EnforceLibraryOrder is set to {0}", options.UIFunctionOptions.EnforceLibraryOrder);
                     _logger.Info("BeautifyMissingMetadata is set to {0}",
                         options.UIFunctionOptions.BeautifyMissingMetadata);

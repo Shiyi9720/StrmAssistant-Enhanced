@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using System;
@@ -97,17 +99,21 @@ namespace StrmAssistant.Mod
         {
             if (dto.People == null) return;
 
-            var option = Plugin.Instance.ExperienceEnhanceStore.GetOptions().UIFunctionOptions.HidePersonPreference;
+            if (!(item is Movie) && !(item is Series) && !(item is Season) && !(item is Episode)) return;
 
-            if (option == HidePersonOption.NoImage)
-            {
-                dto.People = dto.People.Where(p => p.HasPrimaryImage).ToArray();
-            }
+            var preference = Plugin.Instance.ExperienceEnhanceStore.GetOptions().UIFunctionOptions.HidePersonPreference;
 
-            if (option == HidePersonOption.NoDirector)
-            {
-                dto.People = dto.People.Where(p => p.Type != PersonType.Director).ToArray();
-            }
+            var noImage =
+                preference?.Contains(HidePersonOption.NoImage.ToString(), StringComparison.OrdinalIgnoreCase) == true;
+            var actorOnly =
+                preference?.Contains(HidePersonOption.ActorOnly.ToString(), StringComparison.OrdinalIgnoreCase) == true;
+
+            if (!noImage && !actorOnly) return;
+
+            dto.People = dto.People.Where(p =>
+                    (!noImage || p.HasPrimaryImage) &&
+                    (!actorOnly || p.Type == PersonType.Actor || p.Type == PersonType.GuestStar))
+                .ToArray();
         }
     }
 }

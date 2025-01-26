@@ -518,8 +518,8 @@
   <data name="HidePersonOption_NoImage_NoImage" xml:space="preserve">
     <value>無頭像人員</value>
   </data>
-  <data name="HidePersonOption_NoDirector_NoDirector" xml:space="preserve">
-    <value>僅排除導演</value>
+  <data name="HidePersonOption_ActorOnly_ActorOnly" xml:space="preserve">
+    <value>僅顯示演員</value>
   </data>
   <data name="ExclusiveControl_NoIntroProtect_NoIntroProtect" xml:space="preserve">
     <value>無片頭標記保護</value>
