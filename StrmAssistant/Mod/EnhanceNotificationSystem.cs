@@ -20,8 +20,8 @@ namespace StrmAssistant.Mod
         private static MethodInfo _convertToGroups;
         private static MethodInfo _sendNotification;
 
-        private static readonly AsyncLocal<Dictionary<long, List<ItemChangeEventArgs>>> GroupDetails =
-            new AsyncLocal<Dictionary<long, List<ItemChangeEventArgs>>>();
+        private static readonly AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>
+            GroupDetails = new AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>();
 
         public static void Initialize()
         {
@@ -122,7 +122,8 @@ namespace StrmAssistant.Mod
 
             if (filteredItems.Length == 0) return;
 
-            GroupDetails.Value = filteredItems.GroupBy(i => i.Item.SeriesId).ToDictionary(g => g.Key, g => g.ToList());
+            GroupDetails.Value = filteredItems.GroupBy(i => i.Item.SeriesId)
+                .ToDictionary(g => g.Key, g => g.Select(i => (i.Item.IndexNumber, i.Item.ParentIndexNumber)).ToList());
         }
 
         [HarmonyPrefix]
@@ -131,11 +132,9 @@ namespace StrmAssistant.Mod
         {
             if (notifications.FirstOrDefault()?.GroupItems is true
                 && request.Item is Series series
-                && GroupDetails.Value.Remove(series.InternalId, out var groupDetails))
+                && GroupDetails.Value.TryGetValue(series.InternalId, out var groupDetails))
             {
-                var episodes = groupDetails
-                    .Select(d => d.Item)
-                    .OfType<Episode>()
+                var episodes = GroupDetails.Value.SelectMany(d => d.Value)
                     .Where(e => e.ParentIndexNumber.HasValue)
                     .ToList();
 
@@ -165,7 +164,7 @@ namespace StrmAssistant.Mod
                         {
                             episodeRanges.Add(rangeStart == lastEpisodeInRange
                                 ? $"E{rangeStart:D2}"
-                                : $"E{rangeStart:D2}-E{lastEpisodeInRange:D2}");  
+                                : $"E{rangeStart:D2}-E{lastEpisodeInRange:D2}");
                             rangeStart = current;
                         }
 
@@ -174,7 +173,7 @@ namespace StrmAssistant.Mod
 
                     episodeRanges.Add(rangeStart == lastEpisodeInRange
                         ? $"E{rangeStart:D2}"
-                        : $"E{rangeStart:D2}-E{lastEpisodeInRange:D2}");  
+                        : $"E{rangeStart:D2}-E{lastEpisodeInRange:D2}");
 
                     descriptions.Add($"S{seasonIndex:D2} {string.Join(", ", episodeRanges)}");
                 }
