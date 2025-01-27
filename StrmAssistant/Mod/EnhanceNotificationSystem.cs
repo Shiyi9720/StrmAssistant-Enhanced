@@ -131,14 +131,13 @@ namespace StrmAssistant.Mod
             NotificationRequest request, bool enableUserDataInDto)
         {
             if (notifications.FirstOrDefault()?.GroupItems is true
-                && request.Item is Series series
+                && request.Item is Series series && GroupDetails.Value != null
                 && GroupDetails.Value.TryGetValue(series.InternalId, out var groupDetails))
             {
-                var episodes = GroupDetails.Value.SelectMany(d => d.Value)
-                    .Where(e => e.ParentIndexNumber.HasValue)
+                var groupedBySeason = groupDetails.Where(e => e.ParentIndexNumber.HasValue)
+                    .GroupBy(e => e.ParentIndexNumber)
+                    .OrderBy(g => g.Key)
                     .ToList();
-
-                var groupedBySeason = episodes.GroupBy(e => e.ParentIndexNumber).OrderBy(g => g.Key);
 
                 var descriptions = new List<string>();
 
@@ -149,6 +148,7 @@ namespace StrmAssistant.Mod
                         .Where(e => e.IndexNumber.HasValue)
                         .OrderBy(e => e.IndexNumber.Value)
                         .Select(e => e.IndexNumber.Value)
+                        .Distinct()
                         .ToList();
 
                     if (!episodesBySeason.Any()) continue;
