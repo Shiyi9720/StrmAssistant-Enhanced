@@ -224,6 +224,9 @@ namespace StrmAssistant.Mod
             {
                 BaseItem.ItemRepository.LogIntroDetectionFailureFailure(episode.InternalId,
                     episode.DateModified.ToUnixTimeSeconds());
+
+                _ = Plugin.LibraryApi.SerializeMediaInfo(episode.InternalId, true, "Zero Fingerprint Confidence",
+                    CancellationToken.None);
             }
 
             return false;
