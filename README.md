@@ -22,7 +22,9 @@
 14. 支持代理服务器
 15. 支持`TMDB`剧集组刮削
 
-## 更新
+### 安装与使用说明请查看 [Wiki](https://github.com/sjtuross/StrmAssistant/wiki)
+
+### 更新历史
 
 1. 支持并发提取媒体信息 (默认最小为 1, 最大为 20), 说明查看 [Wiki](https://github.com/sjtuross/StrmAssistant/wiki/媒体信息提取-(MediaInfo-Extract))
 2. 包含分集和附加内容处理
@@ -59,14 +61,6 @@
 33. 查看缺少的集支持基于剧集组
 34. 支持自定义视频截图位置，基于时长的百分比
 35. 按电视节目分组的新增和删除通知中添加集信息
-
-## 安装
-
-1. 下载 `StrmAssistant.dll` 放入配置目录中的 `plugins` 目录
-2. 重启Emby
-3. 至插件页面检查版本及设置
-
-**注意**: Emby最低版本要求 `4.8.5.0`
 
 ## 赞赏
 
