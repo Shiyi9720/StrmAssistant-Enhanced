@@ -62,6 +62,8 @@ namespace StrmAssistant.ScheduledTask
             _logger.Info("IntroFingerprintExtract - Number of seasons: " + groupedBySeason.Count);
             _logger.Info("IntroFingerprintExtract - Number of episodes: " + episodes.Count);
 
+            if (episodes.Count > 0) IsRunning = true;
+
             var directoryService = new DirectoryService(_logger, _fileSystem);
 
             double total = episodes.Count;
@@ -119,7 +121,7 @@ namespace StrmAssistant.ScheduledTask
 
                             var deserializeResult = false;
 
-                            if (Plugin.LibraryApi.IsExtractNeeded(taskEpisode, enableImageCapture))
+                            if (!Plugin.LibraryApi.HasMediaInfo(taskEpisode))
                             {
                                 result1 = await Plugin.LibraryApi
                                     .OrchestrateMediaInfoProcessAsync(taskEpisode, directoryService,
@@ -129,7 +131,7 @@ namespace StrmAssistant.ScheduledTask
                                 if (result1 is null)
                                 {
                                     _logger.Info("IntroFingerprintExtract - Episode skipped or non-existent: " + taskEpisode.Name +
-                                                " - " + taskEpisode.Path);
+                                                 " - " + taskEpisode.Path);
                                     seasonSkip = true;
                                     return;
                                 }
@@ -195,6 +197,8 @@ namespace StrmAssistant.ScheduledTask
 
             await Task.WhenAll(episodeTasks).ConfigureAwait(false);
 
+            if (episodes.Count > 0) IsRunning = false;
+
             progress.Report(100.0);
 
             var markerTask = _taskManager.ScheduledTasks.FirstOrDefault(t =>
@@ -227,5 +231,7 @@ namespace StrmAssistant.ScheduledTask
         {
             return Array.Empty<TaskTriggerInfo>();
         }
+
+        public static bool IsRunning { get; private set; }
     }
 }

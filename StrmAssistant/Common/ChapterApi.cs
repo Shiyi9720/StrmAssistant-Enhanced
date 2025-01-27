@@ -513,6 +513,16 @@ namespace StrmAssistant.Common
                             .DeserializeFromFileAsync<List<MediaSourceWithChapters>>(mediaInfoJsonPath)
                             .ConfigureAwait(false)).ToArray()[0];
 
+                    if (mediaSourceWithChapters.ZeroFingerprintConfidence is true)
+                    {
+                        BaseItem.ItemRepository.LogIntroDetectionFailureFailure(item.InternalId,
+                            item.DateModified.ToUnixTimeSeconds());
+
+                        _logger.Info("ChapterInfoPersist - Log Zero Fingerprint Confidence (" + source + "): " + mediaInfoJsonPath);
+
+                        return true;
+                    }
+
                     var introStart = mediaSourceWithChapters.Chapters
                         .FirstOrDefault(c => c.MarkerType == MarkerType.IntroStart);
 

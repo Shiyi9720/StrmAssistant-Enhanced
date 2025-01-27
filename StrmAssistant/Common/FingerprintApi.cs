@@ -171,7 +171,38 @@ namespace StrmAssistant.Common
             resultItems = resultItems.Where(i => !i.IsShortcut).GroupBy(i => i.InternalId).Select(g => g.First())
                 .ToList();
 
-            return resultItems;
+            var unprocessedItems = FilterUnprocessed(resultItems);
+
+            return unprocessedItems;
+        }
+
+        private List<Episode> FilterUnprocessed(List<Episode> items)
+        {
+            var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
+
+            var results = new List<Episode>();
+
+            foreach (var item in items)
+            {
+                if (Plugin.LibraryApi.IsExtractNeeded(item, enableImageCapture))
+                {
+                    results.Add(item);
+                }
+                else if (IsExtractNeeded(item))
+                {
+                    results.Add(item);
+                }
+            }
+
+            _logger.Info("IntroFingerprintExtract - Number of items: " + results.Count);
+
+            return results;
+        }
+
+        public bool IsExtractNeeded(BaseItem item)
+        {
+            return !Plugin.ChapterApi.HasIntro(item) &&
+                   string.IsNullOrEmpty(BaseItem.ItemRepository.GetIntroDetectionFailureResult(item.InternalId));
         }
 
         public List<Episode> FetchIntroPreExtractTaskItems()

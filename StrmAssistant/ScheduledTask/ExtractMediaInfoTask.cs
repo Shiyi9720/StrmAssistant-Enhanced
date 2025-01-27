@@ -95,12 +95,11 @@ namespace StrmAssistant.ScheduledTask
                             return;
                         }
 
-                        if (enableIntroSkip && Plugin.PlaySessionMonitor.IsLibraryInScope(taskItem))
+                        if (enableIntroSkip && taskItem is Episode episode &&
+                            Plugin.PlaySessionMonitor.IsLibraryInScope(episode) &&
+                            Plugin.ChapterApi.SeasonHasIntroCredits(episode))
                         {
-                            if (taskItem is Episode episode && Plugin.ChapterApi.SeasonHasIntroCredits(episode))
-                            {
-                                QueueManager.IntroSkipItemQueue.Enqueue(episode);
-                            }
+                            QueueManager.IntroSkipItemQueue.Enqueue(episode);
                         }
                     }
                     catch (TaskCanceledException)

@@ -197,7 +197,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show episode details in series notification. Default is OFF..
+        ///   Looks up a localized string similar to Show episode details in add/remove series group notification. Default is OFF..
         /// </summary>
         public static string ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_ {
             get {
@@ -327,11 +327,11 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exclude Director Only.
+        ///   Looks up a localized string similar to Exclude Behind-the-scenes Staff.
         /// </summary>
-        public static string HidePersonOption_NoDirector_NoDirector {
+        public static string HidePersonOption_ActorOnly_ActorOnly {
             get {
-                return ResourceManager.GetString("HidePersonOption_NoDirector_NoDirector", resourceCulture);
+                return ResourceManager.GetString("HidePersonOption_ActorOnly_ActorOnly", resourceCulture);
             }
         }
         
@@ -784,7 +784,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Optional Image Capture Position.
+        ///   Looks up a localized string similar to Customize Image Capture Position.
         /// </summary>
         public static string MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset {
             get {
