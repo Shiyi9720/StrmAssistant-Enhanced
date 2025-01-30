@@ -360,7 +360,7 @@ namespace StrmAssistant.Mod
 
             var isZh = __state.LookupLanguage.StartsWith("zh", StringComparison.OrdinalIgnoreCase);
             var isJapaneseFallback = Plugin.Instance.MetadataEnhanceStore.GetOptions().ChineseMovieDb &&
-                                     GetFallbackLanguages().Contains("ja-jp", StringComparer.OrdinalIgnoreCase);
+                                     HasMovieDbJapaneseFallback();
 
             var shouldAssignSeasonName = !isZh || !isJapaneseFallback && IsChinese(__state.GroupName) ||
                                        isJapaneseFallback && (IsChinese(__state.GroupName) || IsJapanese(__state.GroupName));

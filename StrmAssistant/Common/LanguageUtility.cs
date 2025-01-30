@@ -17,6 +17,8 @@ namespace StrmAssistant.Common
         private static readonly Regex DefaultChineseCollectionNameRegex = new Regex(@"（系列）$", RegexOptions.Compiled);
         private static readonly Regex CleanPersonNameRegex = new Regex(@"\s+", RegexOptions.Compiled);
 
+        public static string[] MovieDbFallbackLanguages = { "zh-CN", "zh-SG", "zh-HK", "zh-TW", "ja-JP" };
+
         public static bool IsChinese(string input) => !string.IsNullOrEmpty(input) && ChineseRegex.IsMatch(input);
 
         public static bool IsJapanese(string input) => !string.IsNullOrEmpty(input) &&
@@ -64,12 +66,26 @@ namespace StrmAssistant.Common
             return input.Trim();
         }
 
-        public static List<string> GetFallbackLanguages()
+        public static List<string> GetMovieDbFallbackLanguages()
         {
-            var currentFallbackLanguages = Plugin.Instance.MetadataEnhanceStore.GetOptions().FallbackLanguages
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            var currentFallbackLanguages = Plugin.Instance.MetadataEnhanceStore.GetOptions().FallbackLanguages;
 
-            return currentFallbackLanguages;
+            if (string.IsNullOrWhiteSpace(currentFallbackLanguages)) return new List<string>();
+
+            var languages = currentFallbackLanguages.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            return MovieDbFallbackLanguages
+                .Where(l => languages.Contains(l, StringComparer.OrdinalIgnoreCase))
+                .Select(l => l.ToLowerInvariant())
+                .ToList();
+        }
+
+        public static bool HasMovieDbJapaneseFallback()
+        {
+            var currentFallbackLanguages = Plugin.Instance.MetadataEnhanceStore.GetOptions().FallbackLanguages;
+
+            return !string.IsNullOrWhiteSpace(currentFallbackLanguages) &&
+                   currentFallbackLanguages.IndexOf("ja-jp", StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

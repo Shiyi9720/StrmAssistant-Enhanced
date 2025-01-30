@@ -301,7 +301,7 @@ namespace StrmAssistant.Mod
 
         public static void Unpatch()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
+            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony && _movieDbAssembly != null)
             {
                 try
                 {
@@ -408,7 +408,7 @@ namespace StrmAssistant.Mod
 
         private static bool IsUpdateNeeded(string name, bool isEpisode)
         {
-            var isJapaneseFallback = GetFallbackLanguages().Contains("ja-jp", StringComparer.OrdinalIgnoreCase);
+            var isJapaneseFallback = HasMovieDbJapaneseFallback();
 
             return string.IsNullOrEmpty(name) || !isJapaneseFallback && !IsChinese(name) ||
                    isJapaneseFallback && !(IsChinese(name) && (!isEpisode || !IsDefaultChineseEpisodeName(name)) ||
@@ -434,7 +434,7 @@ namespace StrmAssistant.Mod
         {
             if (item is Movie || item is Series || item is Season || item is Episode)
             {
-                if (!GetFallbackLanguages().Contains("ja-jp", StringComparer.OrdinalIgnoreCase))
+                if (!HasMovieDbJapaneseFallback())
                 {
                     if (!IsChinese(item.Name) || !IsChinese(item.Overview))
                     {
@@ -525,8 +525,7 @@ namespace StrmAssistant.Mod
                 {
                     if (!WasCalledByFetchImages.Value)
                     {
-                        var isJapaneseFallback =
-                            GetFallbackLanguages().Contains("ja-jp", StringComparer.OrdinalIgnoreCase);
+                        var isJapaneseFallback = HasMovieDbJapaneseFallback();
 
                         if (_seriesInfoTaskResultProperty == null)
                             _seriesInfoTaskResultProperty = task.GetType().GetProperty("Result");
@@ -584,8 +583,7 @@ namespace StrmAssistant.Mod
         private static bool EpisodeImportDataPrefix(MetadataResult<Episode> result, EpisodeInfo info, object response,
             object settings, bool isFirstLanguage)
         {
-            var isJapaneseFallback =
-                GetFallbackLanguages().Contains("ja-jp", StringComparer.OrdinalIgnoreCase);
+            var isJapaneseFallback = HasMovieDbJapaneseFallback();
 
             var item = result.Item;
 
@@ -619,7 +617,7 @@ namespace StrmAssistant.Mod
                 var index = list.FindIndex(l => string.Equals(l, "en", StringComparison.OrdinalIgnoreCase) ||
                                                 string.Equals(l, "en-us", StringComparison.OrdinalIgnoreCase));
 
-                var currentFallbackLanguages = GetFallbackLanguages();
+                var currentFallbackLanguages = GetMovieDbFallbackLanguages();
 
                 foreach (var fallbackLanguage in currentFallbackLanguages)
                 {

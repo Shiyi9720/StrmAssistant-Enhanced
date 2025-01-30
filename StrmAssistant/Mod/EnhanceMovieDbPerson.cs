@@ -184,7 +184,7 @@ namespace StrmAssistant.Mod
 
         private static Tuple<string, bool> ProcessPersonInfoAsExpected(string input, string placeOfBirth)
         {
-            var isJapaneseFallback = GetFallbackLanguages().Contains("ja-jp", StringComparer.OrdinalIgnoreCase);
+            var isJapaneseFallback = HasMovieDbJapaneseFallback();
 
             var considerJapanese = isJapaneseFallback && placeOfBirth != null &&
                                    placeOfBirth.IndexOf("Japan", StringComparison.Ordinal) >= 0;

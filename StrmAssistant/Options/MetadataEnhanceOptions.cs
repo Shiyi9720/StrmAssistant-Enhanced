@@ -3,6 +3,7 @@ using Emby.Web.GenericEdit.Common;
 using Emby.Web.GenericEdit.Validation;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
+using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
@@ -31,46 +32,14 @@ namespace StrmAssistant.Options
         public bool ChineseMovieDb { get; set; } = false;
 
         [Browsable(false)]
-        public List<EditorSelectOption> LanguageList { get; set; } = new List<EditorSelectOption>
-        {
-            new EditorSelectOption
-            {
-                Value = "zh-cn",
-                Name = "zh-CN",
-                IsEnabled = true
-            },
-            new EditorSelectOption
-            {
-                Value = "zh-sg",
-                Name = "zh-SG",
-                IsEnabled = true
-            },
-            new EditorSelectOption
-            {
-                Value = "zh-hk",
-                Name = "zh-HK",
-                IsEnabled = true
-            },
-            new EditorSelectOption
-            {
-                Value = "zh-tw",
-                Name = "zh-TW",
-                IsEnabled = true
-            },
-            new EditorSelectOption
-            {
-                Value = "ja-jp",
-                Name = "ja-JP",
-                IsEnabled = true
-            }
-        };
+        public List<EditorSelectOption> LanguageList { get; set; } = new List<EditorSelectOption>();
 
         [DisplayNameL("ModOptions_FallbackLanguages_Fallback_Languages", typeof(Resources))]
         [DescriptionL("ModOptions_FallbackLanguages_Fallback_languages__Default_is_zh_SG_", typeof(Resources))]
         [EditMultilSelect]
         [SelectItemsSource(nameof(LanguageList))]
         [VisibleCondition(nameof(ChineseMovieDb), SimpleCondition.IsTrue)]
-        public string FallbackLanguages { get; set; }
+        public string FallbackLanguages { get; set; } = "zh-sg";
 
         [DisplayNameL("MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_Episode_Group", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_", typeof(Resources))]
@@ -142,6 +111,21 @@ namespace StrmAssistant.Options
 
         [Browsable(false)]
         public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
+
+        public void Initialize()
+        {
+            LanguageList.Clear();
+
+            foreach (var language in LanguageUtility.MovieDbFallbackLanguages)
+            {
+                LanguageList.Add(new EditorSelectOption
+                {
+                    Value = language.ToLowerInvariant(),
+                    Name = language,
+                    IsEnabled = true
+                });
+            }
+        }
 
         protected override void Validate(ValidationContext context)
         {

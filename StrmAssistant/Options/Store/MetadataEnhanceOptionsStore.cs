@@ -1,8 +1,10 @@
 ﻿using Emby.Web.GenericEdit.PropertyDiff;
 using MediaBrowser.Common;
 using MediaBrowser.Model.Logging;
+using StrmAssistant.Common;
 using StrmAssistant.Mod;
 using StrmAssistant.Options.UIBaseClasses.Store;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -27,6 +29,19 @@ namespace StrmAssistant.Options.Store
         {
             if (e.Options is MetadataEnhanceOptions options)
             {
+                if (string.IsNullOrEmpty(options.FallbackLanguages))
+                {
+                    options.FallbackLanguages = "zh-sg";
+                }
+                else
+                {
+                    var languages = options.FallbackLanguages.Split(',');
+                    options.FallbackLanguages = string.Join(",",
+                        LanguageUtility.MovieDbFallbackLanguages
+                            .Where(l => languages.Contains(l, StringComparer.OrdinalIgnoreCase))
+                            .Select(l => l.ToLowerInvariant()));
+                }
+
                 options.AltMovieDbApiUrl =
                     !string.IsNullOrWhiteSpace(options.AltMovieDbApiUrl)
                         ? options.AltMovieDbApiUrl.Trim().TrimEnd('/')
@@ -146,6 +161,7 @@ namespace StrmAssistant.Options.Store
             if (e.Options is MetadataEnhanceOptions options)
             {
                 _logger.Info("ChineseMovieDb is set to {0}", options.ChineseMovieDb);
+                _logger.Info("FallbackLanguages is set to {0}", options.FallbackLanguages);
                 _logger.Info("MovieDbEpisodeGroup is set to {0}", options.MovieDbEpisodeGroup);
                 _logger.Info("LocalEpisodeGroup is set to {0}", options.LocalEpisodeGroup);
                 _logger.Info("EnhanceMovieDbPerson is set to {0}", options.EnhanceMovieDbPerson);

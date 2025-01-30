@@ -15,6 +15,7 @@ namespace StrmAssistant.Options.View
         {
             _store = store;
             ContentData = store.GetOptions();
+            MetadataEnhanceOptions.Initialize();
         }
 
         public MetadataEnhanceOptions MetadataEnhanceOptions => ContentData as MetadataEnhanceOptions;
