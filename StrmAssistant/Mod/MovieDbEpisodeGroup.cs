@@ -362,8 +362,10 @@ namespace StrmAssistant.Mod
             var isJapaneseFallback = Plugin.Instance.MetadataEnhanceStore.GetOptions().ChineseMovieDb &&
                                      HasMovieDbJapaneseFallback();
 
-            var shouldAssignSeasonName = !isZh || !isJapaneseFallback && IsChinese(__state.GroupName) ||
-                                       isJapaneseFallback && (IsChinese(__state.GroupName) || IsJapanese(__state.GroupName));
+            var shouldAssignSeasonName = !isZh ||
+                                         (!isJapaneseFallback
+                                             ? IsChinese(__state.GroupName)
+                                             : IsChineseJapanese(__state.GroupName));
 
             if (metadataResult.Item is null) metadataResult.Item = new Season();
 

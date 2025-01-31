@@ -194,7 +194,7 @@ namespace StrmAssistant.Mod
                 input = ConvertTraditionalToSimplified(input);
             }
 
-            if (IsChinese(input) || considerJapanese && IsJapanese(input))
+            if (!considerJapanese ? IsChinese(input) : IsChineseJapanese(input))
             {
                 return new Tuple<string, bool>(input, true);
             }

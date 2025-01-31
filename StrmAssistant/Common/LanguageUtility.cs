@@ -19,10 +19,16 @@ namespace StrmAssistant.Common
 
         public static string[] MovieDbFallbackLanguages = { "zh-CN", "zh-SG", "zh-HK", "zh-TW", "ja-JP" };
 
-        public static bool IsChinese(string input) => !string.IsNullOrEmpty(input) && ChineseRegex.IsMatch(input);
+        public static bool IsChinese(string input) => !string.IsNullOrEmpty(input) && ChineseRegex.IsMatch(input) &&
+                                                      !JapaneseRegex.IsMatch(input.Replace("\u30FB", string.Empty));
 
         public static bool IsJapanese(string input) => !string.IsNullOrEmpty(input) &&
                                                        JapaneseRegex.IsMatch(input.Replace("\u30FB", string.Empty));
+
+        public static bool IsChineseJapanese(string input) => !string.IsNullOrEmpty(input) &&
+                                                              (ChineseRegex.IsMatch(input) ||
+                                                               JapaneseRegex.IsMatch(input.Replace("\u30FB",
+                                                                   string.Empty)));
 
         public static bool IsKorean(string input) => !string.IsNullOrEmpty(input) && KoreanRegex.IsMatch(input);
 
@@ -58,7 +64,7 @@ namespace StrmAssistant.Common
         {
             if (string.IsNullOrEmpty(input)) return input;
 
-            if (IsChinese(input) || IsJapanese(input) || IsKorean(input))
+            if (IsChineseJapanese(input) || IsKorean(input))
             {
                 return CleanPersonNameRegex.Replace(input, "");
             }
