@@ -623,4 +623,16 @@
   <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
     <value>Show episode details in add/remove series group notification. Default is OFF.</value>
   </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_" xml:space="preserve">
+    <value>Try to get Chinese or Japanese metadata from Tvdb. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language" xml:space="preserve">
+    <value>Customize Tvdb Fallback Language</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language" xml:space="preserve">
+    <value>Block Non Fallback Language</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_" xml:space="preserve">
+    <value>Block English such non fallback language for movie, series, season and episode overview. Default is OFF.</value>
+  </data>
 </root>

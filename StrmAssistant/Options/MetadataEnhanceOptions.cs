@@ -41,6 +41,31 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(ChineseMovieDb), SimpleCondition.IsTrue)]
         public string FallbackLanguages { get; set; } = "zh-sg";
 
+        [DisplayNameL("MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(IsTvdbPluginLoaded), SimpleCondition.IsTrue)]
+        [Required]
+        public bool ChineseTvdb { get; set; } = false;
+        
+        [Browsable(false)]
+        public List<EditorSelectOption> TvdbLanguageList { get; set; } = new List<EditorSelectOption>();
+
+        [DisplayNameL("ModOptions_FallbackLanguages_Fallback_Languages", typeof(Resources))]
+        [DescriptionL("ModOptions_FallbackLanguages_Fallback_languages__Default_is_zh_SG_", typeof(Resources))]
+        [EditMultilSelect]
+        [SelectItemsSource(nameof(TvdbLanguageList))]
+        [VisibleCondition(nameof(ChineseTvdb), SimpleCondition.IsTrue)]
+        public string TvdbFallbackLanguages { get; set; } = "zhtw";
+
+        [DisplayNameL("MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_", typeof(Resources))]
+        [Required]
+        [VisibleCondition(nameof(ShowBlockNonFallbackLanguage), SimpleCondition.IsTrue)]
+        public bool BlockNonFallbackLanguage { get; set; } = false;
+
+        [Browsable(false)]
+        public bool ShowBlockNonFallbackLanguage { get; set; } = false;
+
         [DisplayNameL("MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_Episode_Group", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_", typeof(Resources))]
         [EnabledCondition(nameof(IsMovieDbPluginLoaded), SimpleCondition.IsTrue)]
@@ -103,6 +128,11 @@ namespace StrmAssistant.Options
         public bool IsMovieDbPluginLoaded =>
             AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "MovieDb") &&
             RuntimeInformation.ProcessArchitecture == Architecture.X64;
+        
+        [Browsable(false)]
+        public bool IsTvdbPluginLoaded =>
+            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Tvdb") &&
+            RuntimeInformation.ProcessArchitecture == Architecture.X64;
 
         [Browsable(false)]
         public bool IsNfoMetadataPluginLoaded =>
@@ -125,6 +155,20 @@ namespace StrmAssistant.Options
                     IsEnabled = true
                 });
             }
+
+            TvdbLanguageList.Clear();
+
+            foreach (var language in LanguageUtility.TvdbFallbackLanguages)
+            {
+                TvdbLanguageList.Add(new EditorSelectOption
+                {
+                    Value = language,
+                    Name = language,
+                    IsEnabled = true
+                });
+            }
+
+            ShowBlockNonFallbackLanguage = ChineseMovieDb || ChineseTvdb;
         }
 
         protected override void Validate(ValidationContext context)

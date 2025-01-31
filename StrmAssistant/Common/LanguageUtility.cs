@@ -18,6 +18,7 @@ namespace StrmAssistant.Common
         private static readonly Regex CleanPersonNameRegex = new Regex(@"\s+", RegexOptions.Compiled);
 
         public static string[] MovieDbFallbackLanguages = { "zh-CN", "zh-SG", "zh-HK", "zh-TW", "ja-JP" };
+        public static string[] TvdbFallbackLanguages = { "zho", "zhtw", "jpn" };
 
         public static bool IsChinese(string input) => !string.IsNullOrEmpty(input) && ChineseRegex.IsMatch(input) &&
                                                       !JapaneseRegex.IsMatch(input.Replace("\u30FB", string.Empty));
@@ -92,6 +93,34 @@ namespace StrmAssistant.Common
 
             return !string.IsNullOrWhiteSpace(currentFallbackLanguages) &&
                    currentFallbackLanguages.IndexOf("ja-jp", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        public static List<string> GetTvDbFallbackLanguages()
+        {
+            var currentFallbackLanguages = Plugin.Instance.MetadataEnhanceStore.GetOptions().TvdbFallbackLanguages;
+
+            if (string.IsNullOrWhiteSpace(currentFallbackLanguages)) return new List<string>();
+
+            var languages = currentFallbackLanguages.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            return TvdbFallbackLanguages
+                .Where(l => languages.Contains(l, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        public static bool HasTvdbJapaneseFallback()
+        {
+            var currentFallbackLanguages = Plugin.Instance.MetadataEnhanceStore.GetOptions().TvdbFallbackLanguages;
+
+            return !string.IsNullOrWhiteSpace(currentFallbackLanguages) &&
+                   currentFallbackLanguages.IndexOf("jpn", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        public static bool BlockNonFallbackLanguage(string input)
+        {
+            return !string.IsNullOrEmpty(input) &&
+                   Plugin.Instance.MetadataEnhanceStore.GetOptions().BlockNonFallbackLanguage &&
+                   (!HasTvdbJapaneseFallback() || !IsJapanese(input));
         }
     }
 }

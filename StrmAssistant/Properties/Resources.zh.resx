@@ -536,4 +536,16 @@
   <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
     <value>按电视节目分组的新增和删除通知中添加集信息，默认关闭。</value>
   </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_" xml:space="preserve">
+    <value>尽可能从 TVDB 获取中文或日文元数据，默认关闭。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language" xml:space="preserve">
+    <value>自定义 TVDB 备选语言</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language" xml:space="preserve">
+    <value>屏蔽非备选语言</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_" xml:space="preserve">
+    <value>为电影，节目和剧集的简介屏蔽英文等非备选语言，支持 TMDB, TVDB，默认关闭。</value>
+  </data>
 </root>

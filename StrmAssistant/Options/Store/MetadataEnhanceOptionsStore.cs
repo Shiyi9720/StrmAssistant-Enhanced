@@ -42,6 +42,20 @@ namespace StrmAssistant.Options.Store
                             .Select(l => l.ToLowerInvariant()));
                 }
 
+                if (string.IsNullOrEmpty(options.TvdbFallbackLanguages))
+                {
+                    options.TvdbFallbackLanguages = "zhtw";
+                }
+                else
+                {
+                    var languages = options.TvdbFallbackLanguages.Split(',');
+                    options.TvdbFallbackLanguages = string.Join(",",
+                        LanguageUtility.TvdbFallbackLanguages
+                            .Where(l => languages.Contains(l, StringComparer.OrdinalIgnoreCase)));
+                }
+
+                options.ShowBlockNonFallbackLanguage = options.ChineseMovieDb || options.ChineseTvdb;
+
                 options.AltMovieDbApiUrl =
                     !string.IsNullOrWhiteSpace(options.AltMovieDbApiUrl)
                         ? options.AltMovieDbApiUrl.Trim().TrimEnd('/')
@@ -64,6 +78,18 @@ namespace StrmAssistant.Options.Store
                     else
                     {
                         ChineseMovieDb.Unpatch();
+                    }
+                }
+
+                if (changedProperties.Contains(nameof(MetadataEnhanceOptions.ChineseTvdb)))
+                {
+                    if (options.ChineseTvdb)
+                    {
+                        ChineseTvdb.Patch();
+                    }
+                    else
+                    {
+                        ChineseTvdb.Unpatch();
                     }
                 }
 
@@ -161,7 +187,10 @@ namespace StrmAssistant.Options.Store
             if (e.Options is MetadataEnhanceOptions options)
             {
                 _logger.Info("ChineseMovieDb is set to {0}", options.ChineseMovieDb);
-                _logger.Info("FallbackLanguages is set to {0}", options.FallbackLanguages);
+                _logger.Info("MovieDbFallbackLanguages is set to {0}", options.FallbackLanguages);
+                _logger.Info("ChineseTvdb is set to {0}", options.ChineseTvdb);
+                _logger.Info("TvdbFallbackLanguages is set to {0}", options.TvdbFallbackLanguages);
+                _logger.Info("BlockNonFallbackLanguage is set to {0}", options.BlockNonFallbackLanguage);
                 _logger.Info("MovieDbEpisodeGroup is set to {0}", options.MovieDbEpisodeGroup);
                 _logger.Info("LocalEpisodeGroup is set to {0}", options.LocalEpisodeGroup);
                 _logger.Info("EnhanceMovieDbPerson is set to {0}", options.EnhanceMovieDbPerson);

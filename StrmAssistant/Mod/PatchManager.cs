@@ -32,6 +32,7 @@ namespace StrmAssistant.Mod
             MergeMultiVersion.Initialize();
             ExclusiveExtract.Initialize();
             ChineseMovieDb.Initialize();
+            ChineseTvdb.Initialize();
             EnhanceMovieDbPerson.Initialize();
             AltMovieDbConfig.Initialize();
             EnableProxyServer.Initialize();
