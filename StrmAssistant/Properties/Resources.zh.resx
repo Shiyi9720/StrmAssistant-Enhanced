@@ -474,10 +474,10 @@
     <value>自定义片头声纹探测时长，必须在 2 至 20 之间，默认为 10。</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation" xml:space="preserve">
-    <value>避免合集库自动创建</value>
+    <value>隐藏合集媒体库</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>避免扫库时自动创建合集媒体库，搭配删除使用，默认关闭。</value>
+    <value>用户界面隐藏合集媒体库，若删除可避免扫库时自动创建，默认关闭。</value>
   </data>
   <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
     <value>服务器首选元数据语言未设置为中文，刷新演员任务已中止。</value>

@@ -1,5 +1,9 @@
 ﻿using HarmonyLib;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Library;
 using System;
+using System.Linq;
 using System.Reflection;
 using static StrmAssistant.Mod.PatchManager;
 
@@ -11,6 +15,7 @@ namespace StrmAssistant.Mod
             new PatchApproachTracker(nameof(NoBoxsetsAutoCreation));
 
         private static MethodInfo _ensureLibraryFolder;
+        private static MethodInfo _getUserViews;
 
         public static void Initialize()
         {
@@ -24,6 +29,12 @@ namespace StrmAssistant.Mod
                             "Emby.Server.Implementations.Collections.CollectionManager");
                     _ensureLibraryFolder = collectionManager.GetMethod("EnsureLibraryFolder",
                         BindingFlags.Instance | BindingFlags.NonPublic);
+                    var userViewManager =
+                        embyServerImplementationsAssembly.GetType(
+                            "Emby.Server.Implementations.Library.UserViewManager");
+                    _getUserViews = userViewManager.GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                        .FirstOrDefault(m => m.Name == "GetUserViews" &&
+                                             (m.GetParameters().Length == 3 || m.GetParameters().Length == 4));
                 }
                 catch (Exception e)
                 {
@@ -62,6 +73,14 @@ namespace StrmAssistant.Mod
                         Plugin.Instance.Logger.Debug(
                             "Patch EnsureLibraryFolder Success by Harmony");
                     }
+                    if (!IsPatched(_getUserViews, typeof(NoBoxsetsAutoCreation)))
+                    {
+                        HarmonyMod.Patch(_getUserViews,
+                            prefix: new HarmonyMethod(typeof(NoBoxsetsAutoCreation).GetMethod("GetUserViewsPrefix",
+                                BindingFlags.Static | BindingFlags.NonPublic)));
+                        Plugin.Instance.Logger.Debug(
+                            "Patch GetUserViews Success by Harmony");
+                    }
                 }
                 catch (Exception he)
                 {
@@ -85,6 +104,12 @@ namespace StrmAssistant.Mod
                             AccessTools.Method(typeof(NoBoxsetsAutoCreation), "EnsureLibraryFolderPrefix"));
                         Plugin.Instance.Logger.Debug("Unpatch EnsureLibraryFolder Success by Harmony");
                     }
+                    if (IsPatched(_getUserViews, typeof(NoBoxsetsAutoCreation)))
+                    {
+                        HarmonyMod.Unpatch(_getUserViews,
+                            AccessTools.Method(typeof(NoBoxsetsAutoCreation), "GetUserViewsPrefix"));
+                        Plugin.Instance.Logger.Debug("Unpatch GetUserViews Success by Harmony");
+                    }
                 }
                 catch (Exception he)
                 {
@@ -99,6 +124,16 @@ namespace StrmAssistant.Mod
         private static bool EnsureLibraryFolderPrefix()
         {
             return false;
+        }
+
+        [HarmonyPrefix]
+        private static bool GetUserViewsPrefix(UserViewQuery query, User user, ref Folder[] folders)
+        {
+            folders = folders.Where(i => !(i is CollectionFolder library) ||
+                                         library.CollectionType != CollectionType.BoxSets.ToString())
+                .ToArray();
+
+            return true;
         }
     }
 }

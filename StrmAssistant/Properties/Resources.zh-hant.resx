@@ -474,10 +474,10 @@
     <value>自訂片頭聲紋探測時長，必須在 2 至 20 之間，預設為 10。</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation" xml:space="preserve">
-    <value>避免合集庫自動創建</value>
+    <value>隱藏合集媒體庫</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>避免掃庫時自動建立合集媒體庫，搭配刪除使​​用，預設為關閉。</value>
+    <value>使用者介面隱藏合集媒體庫，若刪除可避免掃庫時自動創建，預設為關閉。</value>
   </data>
   <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
     <value>伺服器首選元資料語言未設定為中文，刷新演員任務已中止。</value>

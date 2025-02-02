@@ -561,10 +561,10 @@
     <value>Customize intro detection fingerprint length. It must be between 2 and 20. Default is 10.</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation" xml:space="preserve">
-    <value>Prevent Boxsets Auto Creation</value>
+    <value>Hide Collection Library</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>Prevent automatic boxset library creation, used along with removal. Default is OFF.</value>
+    <value>Hide collection library from user views, if removed, prevent auto creation. Default is OFF.</value>
   </data>
   <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
     <value>Server Preferred Metadata Language is not set to Chinese. RefreshPerson Task Aborted.</value>
