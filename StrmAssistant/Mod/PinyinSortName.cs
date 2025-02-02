@@ -53,7 +53,7 @@ namespace StrmAssistant.Mod
         {
             if (__instance.SupportsUserData && __instance.EnableAlphaNumericSorting && !(__instance is IHasSeries) &&
                 (__instance is Video || __instance is Audio || __instance is IItemByName ||
-                 __instance is Folder && !__instance.IsTopParent) && !__instance.IsFieldLocked(MetadataFields.SortName))
+                 __instance is Folder) && !__instance.IsFieldLocked(MetadataFields.SortName))
             {
                 var result = new string(__result);
 
