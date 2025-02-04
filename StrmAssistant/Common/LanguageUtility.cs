@@ -18,7 +18,7 @@ namespace StrmAssistant.Common
         private static readonly Regex CleanPersonNameRegex = new Regex(@"\s+", RegexOptions.Compiled);
 
         public static string[] MovieDbFallbackLanguages = { "zh-CN", "zh-SG", "zh-HK", "zh-TW", "ja-JP" };
-        public static string[] TvdbFallbackLanguages = { "zho", "zhtw", "jpn" };
+        public static string[] TvdbFallbackLanguages = { "zho", "zhtw", "yue", "jpn" };
 
         public static bool IsChinese(string input) => !string.IsNullOrEmpty(input) && ChineseRegex.IsMatch(input) &&
                                                       !JapaneseRegex.IsMatch(input.Replace("\u30FB", string.Empty));
@@ -95,7 +95,14 @@ namespace StrmAssistant.Common
                    currentFallbackLanguages.IndexOf("ja-jp", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        public static List<string> GetTvDbFallbackLanguages()
+        public static bool BlockMovieDbNonFallbackLanguage(string input)
+        {
+            return !string.IsNullOrEmpty(input) &&
+                   Plugin.Instance.MetadataEnhanceStore.GetOptions().BlockNonFallbackLanguage &&
+                   (!HasMovieDbJapaneseFallback() || !IsJapanese(input));
+        }
+
+        public static List<string> GetTvdbFallbackLanguages()
         {
             var currentFallbackLanguages = Plugin.Instance.MetadataEnhanceStore.GetOptions().TvdbFallbackLanguages;
 
@@ -116,7 +123,7 @@ namespace StrmAssistant.Common
                    currentFallbackLanguages.IndexOf("jpn", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        public static bool BlockNonFallbackLanguage(string input)
+        public static bool BlockTvdbNonFallbackLanguage(string input)
         {
             return !string.IsNullOrEmpty(input) &&
                    Plugin.Instance.MetadataEnhanceStore.GetOptions().BlockNonFallbackLanguage &&

@@ -240,7 +240,7 @@ namespace StrmAssistant.Mod
                 {
                     item.Overview = ConvertTraditionalToSimplified(item.Overview);
                 }
-                else if (BlockNonFallbackLanguage(item.Overview))
+                else if (BlockMovieDbNonFallbackLanguage(item.Overview))
                 {
                     item.Overview = null;
                 }

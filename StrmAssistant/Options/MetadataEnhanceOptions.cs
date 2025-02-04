@@ -55,7 +55,7 @@ namespace StrmAssistant.Options
         [EditMultilSelect]
         [SelectItemsSource(nameof(TvdbLanguageList))]
         [VisibleCondition(nameof(ChineseTvdb), SimpleCondition.IsTrue)]
-        public string TvdbFallbackLanguages { get; set; } = "zhtw";
+        public string TvdbFallbackLanguages { get; set; } = "zhtw,yue";
 
         [DisplayNameL("MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_", typeof(Resources))]
