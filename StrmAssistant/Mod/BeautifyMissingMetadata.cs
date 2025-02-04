@@ -4,6 +4,7 @@ using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Entities;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -60,20 +61,43 @@ namespace StrmAssistant.Mod
 
             var checkItem = items.FirstOrDefault();
 
-            if (!(checkItem is Episode episode) || !episode.GetPreferredMetadataLanguage()
-                    .Equals("zh-CN", StringComparison.OrdinalIgnoreCase)) return;
+            if (checkItem is null || !checkItem.GetPreferredMetadataLanguage()
+                    .Equals("zh-CN", StringComparison.OrdinalIgnoreCase))
+                return;
 
-            var episodes = !string.IsNullOrEmpty(checkItem.FileNameWithoutExtension)
-                ? items
-                : Plugin.LibraryApi.GetItemsByIds(items.Select(i => i.InternalId).ToArray());
-
-            foreach (var (currentItem, index) in episodes.Select((currentItem, index) => (currentItem, index)))
+            if (checkItem.ExtraType == ExtraType.AdditionalPart)
             {
-                if (currentItem.IndexNumber.HasValue && string.Equals(currentItem.Name,
-                        currentItem.FileNameWithoutExtension, StringComparison.Ordinal))
+                var videoCount = __result.Count(i => i.Type == nameof(Video));
+
+                foreach (var (currentItem, index) in __result.Where(i => i.Type == nameof(Video))
+                             .Select((currentItem, index) => (currentItem, index)))
                 {
-                    var matchItem = __result[index];
-                    matchItem.Name = $"第 {currentItem.IndexNumber} 集";
+                    if (videoCount == 1)
+                    {
+                        currentItem.Name = "下部分";
+                        return;
+                    }
+
+                    currentItem.Name = $"第{index + 2}部分";
+                }
+
+                return;
+            }
+
+            if (checkItem is Episode)
+            {
+                var episodes = !string.IsNullOrEmpty(checkItem.FileNameWithoutExtension)
+                    ? items
+                    : Plugin.LibraryApi.GetItemsByIds(items.Select(i => i.InternalId).ToArray());
+
+                foreach (var (currentItem, index) in episodes.Select((currentItem, index) => (currentItem, index)))
+                {
+                    if (currentItem.IndexNumber.HasValue && string.Equals(currentItem.Name,
+                            currentItem.FileNameWithoutExtension, StringComparison.Ordinal))
+                    {
+                        var matchItem = __result[index];
+                        matchItem.Name = $"第 {currentItem.IndexNumber} 集";
+                    }
                 }
             }
         }
