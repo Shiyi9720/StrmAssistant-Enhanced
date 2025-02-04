@@ -12,106 +12,40 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class EnhanceNotificationSystem
+    public class EnhanceNotificationSystem: PatchBase<EnhanceNotificationSystem>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(EnhanceNotificationSystem));
-
         private static MethodInfo _convertToGroups;
         private static MethodInfo _sendNotification;
 
         private static readonly AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>
             GroupDetails = new AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>();
 
-        public static void Initialize()
+        public EnhanceNotificationSystem()
         {
-            try
-            {
-                var notificationsAssembly = Assembly.Load("Emby.Notifications");
-                var notificationManager = notificationsAssembly.GetType("Emby.Notifications.NotificationManager");
-                _convertToGroups = notificationManager.GetMethod("ConvertToGroups",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                _sendNotification = notificationManager.GetMethod("SendNotification",
-                    BindingFlags.NonPublic | BindingFlags.Instance, null,
-                    new[] { typeof(INotifier), typeof(NotificationInfo[]), typeof(NotificationRequest), typeof(bool) },
-                    null);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("EnhanceNotificationSystem - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
+            Initialize();
 
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.ExperienceEnhanceStore.GetOptions().EnhanceNotificationSystem)
+            if (Plugin.Instance.ExperienceEnhanceStore.GetOptions().EnhanceNotificationSystem)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (!IsPatched(_convertToGroups, typeof(EnhanceNotificationSystem)))
-                    {
-                        HarmonyMod.Patch(_convertToGroups,
-                            postfix: new HarmonyMethod(typeof(EnhanceNotificationSystem).GetMethod("ConvertToGroupsPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch ConvertToGroups Success by Harmony");
-                    }
-                    if (!IsPatched(_sendNotification, typeof(EnhanceNotificationSystem)))
-                    {
-                        HarmonyMod.Patch(_sendNotification,
-                            prefix: new HarmonyMethod(typeof(EnhanceNotificationSystem).GetMethod("SendNotificationPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch SendNotification Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch EnhanceNotificationSystem Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
+            var notificationsAssembly = Assembly.Load("Emby.Notifications");
+            var notificationManager = notificationsAssembly.GetType("Emby.Notifications.NotificationManager");
+            _convertToGroups = notificationManager.GetMethod("ConvertToGroups",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            _sendNotification = notificationManager.GetMethod("SendNotification",
+                BindingFlags.NonPublic | BindingFlags.Instance, null,
+                new[] { typeof(INotifier), typeof(NotificationInfo[]), typeof(NotificationRequest), typeof(bool) },
+                null);
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_convertToGroups, typeof(EnhanceNotificationSystem)))
-                    {
-                        HarmonyMod.Unpatch(_convertToGroups,
-                            AccessTools.Method(typeof(EnhanceNotificationSystem), "ConvertToGroupsPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch ConvertToGroups Success by Harmony");
-                    }
-                    if (IsPatched(_sendNotification, typeof(EnhanceNotificationSystem)))
-                    {
-                        HarmonyMod.Unpatch(_sendNotification,
-                            AccessTools.Method(typeof(EnhanceNotificationSystem), "SendNotificationPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch SendNotification Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch EnhanceNotificationSystem Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _convertToGroups, postfix: nameof(ConvertToGroupsPostfix));
+            PatchUnpatch(PatchTracker, apply, _sendNotification, prefix: nameof(SendNotificationPrefix));
         }
 
         [HarmonyPostfix]

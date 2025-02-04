@@ -20,7 +20,7 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class PreferOriginalPoster
+    public class PreferOriginalPoster : PatchBase<PreferOriginalPoster>
     {
         internal class ContextItem
         {
@@ -29,9 +29,6 @@ namespace StrmAssistant.Mod
             public string TvdbId { get; set; }
             public string OriginalLanguage { get; set; }
         }
-
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(PreferOriginalPoster));
 
         private static Assembly _movieDbAssembly;
         private static MethodInfo _getMovieInfo;
@@ -74,310 +71,113 @@ namespace StrmAssistant.Mod
 
         private static readonly AsyncLocal<bool> WasCalledByImageProvider = new AsyncLocal<bool>();
 
-        public static void Initialize()
+        public PreferOriginalPoster()
         {
-            try
-            {
-                _movieDbAssembly = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "MovieDb");
+            Initialize();
 
-                if (_movieDbAssembly != null)
-                {
-                    var movieDbImageProvider = _movieDbAssembly.GetType("MovieDb.MovieDbImageProvider");
-                    _getMovieInfo = movieDbImageProvider.GetMethod("GetMovieInfo",
-                        BindingFlags.Instance | BindingFlags.NonPublic, null,
-                        new[] { typeof(BaseItem), typeof(string), typeof(IJsonSerializer), typeof(CancellationToken) },
-                        null);
-                    var completeMovieData = _movieDbAssembly.GetType("MovieDb.MovieDbProvider")
-                        .GetNestedType("CompleteMovieData", BindingFlags.NonPublic);
-                    _tmdbIdMovieDataTmdb = completeMovieData.GetProperty("id");
-                    _imdbIdMovieDataTmdb = completeMovieData.GetProperty("imdb_id");
-                    _originalLanguageMovieDataTmdb = completeMovieData.GetProperty("original_language");
-
-                    var movieDbSeriesProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeriesProvider");
-                    _ensureSeriesInfo = movieDbSeriesProvider.GetMethod("EnsureSeriesInfo",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-                    var seriesRootObject = movieDbSeriesProvider.GetNestedType("SeriesRootObject", BindingFlags.Public);
-                    _tmdbIdSeriesDataTmdb = seriesRootObject.GetProperty("id");
-                    _languagesSeriesDataTmdb = seriesRootObject.GetProperty("languages");
-
-                    var movieDbProviderBase = _movieDbAssembly.GetType("MovieDb.MovieDbProviderBase");
-                    _getBackdrops = movieDbProviderBase.GetMethod("GetBackdrops",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-                    var tmdbImage = _movieDbAssembly.GetType("MovieDb.TmdbImage");
-                    file_path = tmdbImage.GetProperty("file_path");
-                    iso_639_1 = tmdbImage.GetProperty("iso_639_1");
-                }
-                else
-                {
-                    Plugin.Instance.Logger.Info("OriginalPoster - MovieDb plugin is not installed");
-                }
-
-                _tvdbAssembly = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "Tvdb");
-                if (_tvdbAssembly != null)
-                {
-                    var tvdbMovieProvider = _tvdbAssembly.GetType("Tvdb.TvdbMovieProvider");
-                    _ensureMovieInfoTvdb = tvdbMovieProvider.GetMethod("EnsureMovieInfo",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-                    var tvdbSeriesProvider = _tvdbAssembly.GetType("Tvdb.TvdbSeriesProvider");
-                    _ensureSeriesInfoTvdb = tvdbSeriesProvider.GetMethod("EnsureSeriesInfo",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-                    var movieData = _tvdbAssembly.GetType("Tvdb.MovieData");
-                    _tvdbIdMovieDataTvdb = movieData.GetProperty("id");
-                    _originalLanguageMovieDataTvdb = movieData.GetProperty("originalLanguage");
-                    var seriesData = _tvdbAssembly.GetType("Tvdb.SeriesData");
-                    _tvdbIdSeriesDataTvdb = seriesData.GetProperty("id");
-                    _originalLanguageSeriesDataTvdb = seriesData.GetProperty("originalLanguage");
-                }
-                else
-                {
-                    Plugin.Instance.Logger.Info("OriginalPoster - Tvdb plugin is not installed");
-                }
-
-                var embyProvidersAssembly = Assembly.Load("Emby.Providers");
-                var providerManager =
-                    embyProvidersAssembly.GetType("Emby.Providers.Manager.ProviderManager");
-                _getAvailableRemoteImages = providerManager.GetMethod("GetAvailableRemoteImages",
-                    BindingFlags.Instance | BindingFlags.Public, null,
-                    new[]
-                    {
-                        typeof(BaseItem), typeof(LibraryOptions), typeof(RemoteImageQuery),
-                        typeof(IDirectoryService), typeof(CancellationToken)
-                    }, null);
-                _remoteImageTaskResult =
-                    typeof(Task<IEnumerable<RemoteImageInfo>>).GetField("m_result",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("OriginalPoster - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MetadataEnhanceStore.GetOptions().PreferOriginalPoster)
+            if (Plugin.Instance.MetadataEnhanceStore.GetOptions().PreferOriginalPoster)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            PatchMovieDb();
-            PatchTvdb();
-            PatchGetAvailableRemoteImages();
-        }
+            _movieDbAssembly = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "MovieDb");
 
-        public static void Unpatch()
-        {
-            UnpatchMovieDb();
-            UnpatchTvdb();
-            UnpatchGetAvailableRemoteImages();
-        }
-
-        private static void PatchMovieDb()
-        {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony &&
-                _movieDbAssembly != null)
+            if (_movieDbAssembly != null)
             {
-                try
-                {
-                    if (!IsPatched(_getMovieInfo, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Patch(_getMovieInfo,
-                            postfix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
-                                "GetMovieInfoTmdbPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbImageProvider.GetMovieInfo Success by Harmony");
-                    }
+                var movieDbImageProvider = _movieDbAssembly.GetType("MovieDb.MovieDbImageProvider");
+                _getMovieInfo = movieDbImageProvider.GetMethod("GetMovieInfo",
+                    BindingFlags.Instance | BindingFlags.NonPublic, null,
+                    new[] { typeof(BaseItem), typeof(string), typeof(IJsonSerializer), typeof(CancellationToken) },
+                    null);
+                var completeMovieData = _movieDbAssembly.GetType("MovieDb.MovieDbProvider")
+                    .GetNestedType("CompleteMovieData", BindingFlags.NonPublic);
+                _tmdbIdMovieDataTmdb = completeMovieData.GetProperty("id");
+                _imdbIdMovieDataTmdb = completeMovieData.GetProperty("imdb_id");
+                _originalLanguageMovieDataTmdb = completeMovieData.GetProperty("original_language");
 
-                    if (!IsPatched(_ensureSeriesInfo, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Patch(_ensureSeriesInfo,
-                            postfix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
-                                "EnsureSeriesInfoTmdbPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbSeriesProvider.EnsureSeriesInfo Success by Harmony");
-                    }
+                var movieDbSeriesProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeriesProvider");
+                _ensureSeriesInfo = movieDbSeriesProvider.GetMethod("EnsureSeriesInfo",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                var seriesRootObject = movieDbSeriesProvider.GetNestedType("SeriesRootObject", BindingFlags.Public);
+                _tmdbIdSeriesDataTmdb = seriesRootObject.GetProperty("id");
+                _languagesSeriesDataTmdb = seriesRootObject.GetProperty("languages");
 
-                    if (!IsPatched(_getBackdrops, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Patch(_getBackdrops,
-                            postfix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
-                                "GetBackdropsPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbProviderBase.GetBackdrops Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch PreferOriginalPoster for MovieDb Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
+                var movieDbProviderBase = _movieDbAssembly.GetType("MovieDb.MovieDbProviderBase");
+                _getBackdrops = movieDbProviderBase.GetMethod("GetBackdrops",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                var tmdbImage = _movieDbAssembly.GetType("MovieDb.TmdbImage");
+                file_path = tmdbImage.GetProperty("file_path");
+                iso_639_1 = tmdbImage.GetProperty("iso_639_1");
             }
-        }
-
-        private static void UnpatchMovieDb()
-        {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony &&
-                _movieDbAssembly != null)
+            else
             {
-                try
-                {
-                    if (IsPatched(_ensureSeriesInfo, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Unpatch(_ensureSeriesInfo,
-                            AccessTools.Method(typeof(PreferOriginalPoster), "EnsureSeriesInfoTmdbPostfix"));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch MovieDbSeriesProvider.EnsureSeriesInfo Success by Harmony");
-                    }
-
-                    if (IsPatched(_getMovieInfo, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Unpatch(_getMovieInfo,
-                            AccessTools.Method(typeof(PreferOriginalPoster), "GetMovieInfoTmdbPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbImageProvider.GetMovieInfo Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch PreferOriginalPoster for MovieDb Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
+                Plugin.Instance.Logger.Info("OriginalPoster - MovieDb plugin is not installed");
             }
-        }
 
-        private static void PatchTvdb()
-        {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony &&
-                _tvdbAssembly != null)
+            _tvdbAssembly = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "Tvdb");
+
+            if (_tvdbAssembly != null)
             {
-                try
-                {
-                    if (!IsPatched(_ensureMovieInfoTvdb, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Patch(_ensureMovieInfoTvdb,
-                            postfix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
-                                "EnsureMovieInfoTvdbPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch TvdbMovieProvider.EnsureMovieInfo Success by Harmony");
-                    }
-
-                    if (!IsPatched(_ensureSeriesInfoTvdb, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Patch(_ensureSeriesInfoTvdb,
-                            postfix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
-                                "EnsureSeriesInfoTvdbPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch TvdbSeriesProvider.EnsureSeriesInfo Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch PreferOriginalPoster for Tvdb Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
+                var tvdbMovieProvider = _tvdbAssembly.GetType("Tvdb.TvdbMovieProvider");
+                _ensureMovieInfoTvdb = tvdbMovieProvider.GetMethod("EnsureMovieInfo",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                var tvdbSeriesProvider = _tvdbAssembly.GetType("Tvdb.TvdbSeriesProvider");
+                _ensureSeriesInfoTvdb = tvdbSeriesProvider.GetMethod("EnsureSeriesInfo",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                var movieData = _tvdbAssembly.GetType("Tvdb.MovieData");
+                _tvdbIdMovieDataTvdb = movieData.GetProperty("id");
+                _originalLanguageMovieDataTvdb = movieData.GetProperty("originalLanguage");
+                var seriesData = _tvdbAssembly.GetType("Tvdb.SeriesData");
+                _tvdbIdSeriesDataTvdb = seriesData.GetProperty("id");
+                _originalLanguageSeriesDataTvdb = seriesData.GetProperty("originalLanguage");
             }
-        }
-
-        private static void UnpatchTvdb()
-        {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony &&
-                _tvdbAssembly != null)
+            else
             {
-                try
-                {
-                    if (IsPatched(_ensureMovieInfoTvdb, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Unpatch(_ensureMovieInfoTvdb,
-                            AccessTools.Method(typeof(PreferOriginalPoster), "EnsureMovieInfoTvdbPostfix"));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch TvdbMovieProvider.EnsureMovieInfo Success by Harmony");
-                    }
-
-                    if (IsPatched(_ensureSeriesInfoTvdb, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Unpatch(_ensureSeriesInfoTvdb,
-                            AccessTools.Method(typeof(PreferOriginalPoster), "EnsureSeriesInfoTvdbPostfix"));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch TvdbSeriesProvider.EnsureSeriesInfo Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch PreferOriginalPoster for Tvdb Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
+                Plugin.Instance.Logger.Info("OriginalPoster - Tvdb plugin is not installed");
             }
+
+            var embyProvidersAssembly = Assembly.Load("Emby.Providers");
+            var providerManager =
+                embyProvidersAssembly.GetType("Emby.Providers.Manager.ProviderManager");
+            _getAvailableRemoteImages = providerManager.GetMethod("GetAvailableRemoteImages",
+                BindingFlags.Instance | BindingFlags.Public, null,
+                new[]
+                {
+                    typeof(BaseItem), typeof(LibraryOptions), typeof(RemoteImageQuery),
+                    typeof(IDirectoryService), typeof(CancellationToken)
+                }, null);
+            _remoteImageTaskResult =
+                typeof(Task<IEnumerable<RemoteImageInfo>>).GetField("m_result",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
         }
-
-        private static void PatchGetAvailableRemoteImages()
+        
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
+            if (_movieDbAssembly != null)
             {
-                try
-                {
-                    if (!IsPatched(_getAvailableRemoteImages, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Patch(_getAvailableRemoteImages,
-                            prefix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
-                                "GetAvailableRemoteImagesPrefix", BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(PreferOriginalPoster).GetMethod(
-                                "GetAvailableRemoteImagesPostfix", BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch GetAvailableRemoteImages Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch GetAvailableRemoteImages Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
+                PatchUnpatch(PatchTracker, apply, _getMovieInfo, postfix: nameof(GetMovieInfoTmdbPostfix));
+                PatchUnpatch(PatchTracker, apply, _ensureSeriesInfo,
+                    postfix: nameof(EnsureSeriesInfoTmdbPostfix));
+                PatchUnpatch(PatchTracker, apply, _getBackdrops, postfix: nameof(GetBackdropsPostfix));
             }
-        }
 
-        private static void UnpatchGetAvailableRemoteImages()
-        {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
+            if (_tvdbAssembly != null)
             {
-                try
-                {
-                    if (IsPatched(_getAvailableRemoteImages, typeof(PreferOriginalPoster)))
-                    {
-                        HarmonyMod.Unpatch(_getAvailableRemoteImages,
-                            AccessTools.Method(typeof(PreferOriginalPoster), "GetAvailableRemoteImagesPrefix"));
-                        HarmonyMod.Unpatch(_getAvailableRemoteImages,
-                            AccessTools.Method(typeof(PreferOriginalPoster), "GetAvailableRemoteImagesPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch GetAvailableRemoteImages Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch GetAvailableRemoteImages Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
+                PatchUnpatch(PatchTracker, apply, _ensureMovieInfoTvdb,
+                    postfix: nameof(EnsureMovieInfoTvdbPostfix));
+                PatchUnpatch(PatchTracker, apply, _ensureSeriesInfoTvdb,
+                    postfix: nameof(EnsureSeriesInfoTvdbPostfix));
             }
+
+            PatchUnpatch(PatchTracker, apply, _getAvailableRemoteImages,
+                prefix: nameof(GetAvailableRemoteImagesPrefix), postfix: nameof(GetAvailableRemoteImagesPostfix));
         }
 
         private static void AddContextItem(string tmdbId, string imdbId, string tvdbId)
@@ -504,9 +304,8 @@ namespace StrmAssistant.Mod
                         if (seriesInfo != null && _tmdbIdSeriesDataTmdb != null &&
                             _languagesSeriesDataTmdb != null)
                         {
-                            var id = _tmdbIdSeriesDataTmdb.GetValue(seriesInfo).ToString();
-                            var originalLanguage =
-                                (_languagesSeriesDataTmdb.GetValue(seriesInfo) as List<string>)
+                            var id = _tmdbIdSeriesDataTmdb.GetValue(seriesInfo)?.ToString();
+                            var originalLanguage = (_languagesSeriesDataTmdb.GetValue(seriesInfo) as List<string>)
                                 ?.FirstOrDefault();
                             if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(originalLanguage))
                             {
@@ -535,7 +334,7 @@ namespace StrmAssistant.Mod
                         if (movieData != null && _tvdbIdMovieDataTvdb != null &&
                             _originalLanguageMovieDataTvdb != null)
                         {
-                            var id = _tvdbIdMovieDataTvdb.GetValue(movieData).ToString();
+                            var id = _tvdbIdMovieDataTvdb.GetValue(movieData)?.ToString();
                             var originalLanguage = _originalLanguageMovieDataTvdb.GetValue(movieData) as string;
                             if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(originalLanguage))
                             {
@@ -565,7 +364,7 @@ namespace StrmAssistant.Mod
                         if (seriesData != null && _tvdbIdSeriesDataTvdb != null &&
                             _originalLanguageSeriesDataTvdb != null)
                         {
-                            var id = _tvdbIdSeriesDataTvdb.GetValue(seriesData).ToString();
+                            var id = _tvdbIdSeriesDataTvdb.GetValue(seriesData)?.ToString();
                             var originalLanguage = _originalLanguageSeriesDataTvdb.GetValue(seriesData) as string;
                             if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(originalLanguage))
                             {

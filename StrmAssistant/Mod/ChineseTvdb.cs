@@ -12,11 +12,8 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class ChineseTvdb
+    public class ChineseTvdb : PatchBase<ChineseTvdb>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(ChineseTvdb));
-
         private static Assembly _tvdbAssembly;
         private static MethodInfo _convertToTvdbLanguages;
         private static MethodInfo _getTranslation;
@@ -34,174 +31,65 @@ namespace StrmAssistant.Mod
         private static PropertyInfo _tvdbEpisodeTaskResultProperty;
         private static PropertyInfo _tvdbEpisodeTupleItem1Property;
 
-        public static void Initialize()
+        public ChineseTvdb()
         {
-            try
-            {
-                _tvdbAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "Tvdb");
+            Initialize();
 
-                if (_tvdbAssembly != null)
-                {
-                    var entryPoint = _tvdbAssembly.GetType("Tvdb.EntryPoint");
-                    _convertToTvdbLanguages = entryPoint.GetMethod("ConvertToTvdbLanguages",
-                        BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(ItemLookupInfo) }, null);
-                    var translations = _tvdbAssembly.GetType("Tvdb.Translations");
-                    _getTranslation =
-                        translations.GetMethod("GetTranslation", BindingFlags.Instance | BindingFlags.NonPublic);
-                    var nameTranslation = _tvdbAssembly.GetType("Tvdb.NameTranslation");
-                    _translationName = nameTranslation.GetProperty("name");
-                    _translationOverview = nameTranslation.GetProperty("overview");
-                    _translationLanguage = nameTranslation.GetProperty("language");
-                    var tvdbMovieProvider = _tvdbAssembly.GetType("Tvdb.TvdbMovieProvider");
-                    _addMovieInfo = tvdbMovieProvider.GetMethod("AddMovieInfo",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-                    var tvdbSeriesProvider = _tvdbAssembly.GetType("Tvdb.TvdbSeriesProvider");
-                    _addSeriesInfo = tvdbSeriesProvider.GetMethod("AddSeriesInfo",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
-
-                    var tvdbEpisodeProvider = _tvdbAssembly.GetType("Tvdb.TvdbEpisodeProvider");
-                    _findEpisode = tvdbEpisodeProvider.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                        .FirstOrDefault(m => m.Name == "FindEpisode" && m.GetParameters().Length == 3);
-                    _getEpisodeData =
-                        tvdbEpisodeProvider.GetMethod("GetEpisodeData", BindingFlags.Instance | BindingFlags.Public);
-                    var tvdbEpisode = _tvdbAssembly.GetType("Tvdb.TvdbEpisode");
-                    _episodeName = tvdbEpisode.GetProperty("name");
-                    _episodeOverview = tvdbEpisode.GetProperty("overview");
-                }
-                else
-                {
-                    Plugin.Instance.Logger.Info("ChineseTvdb - Tvdb plugin is not installed");
-                }
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("ChineseTvdb - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MetadataEnhanceStore.GetOptions().ChineseTvdb)
+            if (Plugin.Instance.MetadataEnhanceStore.GetOptions().ChineseTvdb)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony && _tvdbAssembly != null)
+            _tvdbAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "Tvdb");
+
+            if (_tvdbAssembly != null)
             {
-                try
-                {
-                    if (!IsPatched(_convertToTvdbLanguages, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Patch(_convertToTvdbLanguages,
-                            postfix: new HarmonyMethod(typeof(ChineseTvdb), nameof(ConvertToTvdbLanguagesPostfix)));
-                        Plugin.Instance.Logger.Debug("Patch ConvertToTvdbLanguages Success by Harmony");
-                    }
-                    if (!IsPatched(_getTranslation, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Patch(_getTranslation,
-                            prefix: new HarmonyMethod(typeof(ChineseTvdb), nameof(GetTranslationPrefix)),
-                            postfix: new HarmonyMethod(typeof(ChineseTvdb), nameof(GetTranslationPostfix)));
-                        Plugin.Instance.Logger.Debug("Patch GetTranslation Success by Harmony");
-                    }
-                    if (!IsPatched(_addMovieInfo, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Patch(_addMovieInfo,
-                            postfix: new HarmonyMethod(typeof(ChineseTvdb), nameof(AddInfoPostfix)));
-                        Plugin.Instance.Logger.Debug("Patch AddMovieInfo Success by Harmony");
-                    }
-                    if (!IsPatched(_addSeriesInfo, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Patch(_addSeriesInfo,
-                            postfix: new HarmonyMethod(typeof(ChineseTvdb), nameof(AddInfoPostfix)));
-                        Plugin.Instance.Logger.Debug("Patch AddSeriesInfo Success by Harmony");
-                    }
-                    if (!IsPatched(_findEpisode, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Patch(_findEpisode,
-                            postfix: new HarmonyMethod(typeof(ChineseTvdb), nameof(FindEpisodePostfix)));
-                        Plugin.Instance.Logger.Debug("Patch FindEpisode Success by Harmony");
-                    }
-                    if (!IsPatched(_getEpisodeData, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Patch(_getEpisodeData,
-                            postfix: new HarmonyMethod(typeof(ChineseTvdb), nameof(GetEpisodeDataPostfix)));
-                        Plugin.Instance.Logger.Debug("Patch GetEpisodeData Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch ChineseTvdb Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
+                var entryPoint = _tvdbAssembly.GetType("Tvdb.EntryPoint");
+                _convertToTvdbLanguages = entryPoint.GetMethod("ConvertToTvdbLanguages",
+                    BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(ItemLookupInfo) }, null);
+                var translations = _tvdbAssembly.GetType("Tvdb.Translations");
+                _getTranslation =
+                    translations.GetMethod("GetTranslation", BindingFlags.Instance | BindingFlags.NonPublic);
+                var nameTranslation = _tvdbAssembly.GetType("Tvdb.NameTranslation");
+                _translationName = nameTranslation.GetProperty("name");
+                _translationOverview = nameTranslation.GetProperty("overview");
+                _translationLanguage = nameTranslation.GetProperty("language");
+                var tvdbMovieProvider = _tvdbAssembly.GetType("Tvdb.TvdbMovieProvider");
+                _addMovieInfo = tvdbMovieProvider.GetMethod("AddMovieInfo",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                var tvdbSeriesProvider = _tvdbAssembly.GetType("Tvdb.TvdbSeriesProvider");
+                _addSeriesInfo = tvdbSeriesProvider.GetMethod("AddSeriesInfo",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+
+                var tvdbEpisodeProvider = _tvdbAssembly.GetType("Tvdb.TvdbEpisodeProvider");
+                _findEpisode = tvdbEpisodeProvider.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                    .FirstOrDefault(m => m.Name == "FindEpisode" && m.GetParameters().Length == 3);
+                _getEpisodeData =
+                    tvdbEpisodeProvider.GetMethod("GetEpisodeData", BindingFlags.Instance | BindingFlags.Public);
+                var tvdbEpisode = _tvdbAssembly.GetType("Tvdb.TvdbEpisode");
+                _episodeName = tvdbEpisode.GetProperty("name");
+                _episodeOverview = tvdbEpisode.GetProperty("overview");
+            }
+            else
+            {
+                Plugin.Instance.Logger.Info("ChineseTvdb - Tvdb plugin is not installed");
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony && _tvdbAssembly != null)
-            {
-                try
-                {
-                    if (IsPatched(_convertToTvdbLanguages, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Unpatch(_convertToTvdbLanguages,
-                            AccessTools.Method(typeof(ChineseTvdb), nameof(ConvertToTvdbLanguagesPostfix)));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch ConvertToTvdbLanguages Success by Harmony");
-                    }
-                    if (IsPatched(_getTranslation, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Unpatch(_getTranslation,
-                            AccessTools.Method(typeof(ChineseTvdb), nameof(GetTranslationPrefix)));
-                        HarmonyMod.Unpatch(_getTranslation,
-                            AccessTools.Method(typeof(ChineseTvdb), nameof(GetTranslationPostfix)));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch GetTranslation Success by Harmony");
-                    }
-                    if (IsPatched(_addMovieInfo, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Unpatch(_addMovieInfo,
-                            AccessTools.Method(typeof(ChineseTvdb), nameof(AddInfoPostfix)));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch AddMovieInfo Success by Harmony");
-                    }
-                    if (IsPatched(_addSeriesInfo, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Unpatch(_addSeriesInfo,
-                            AccessTools.Method(typeof(ChineseTvdb), nameof(AddInfoPostfix)));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch AddSeriesInfo Success by Harmony");
-                    }
-                    if (IsPatched(_findEpisode, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Unpatch(_findEpisode,
-                            AccessTools.Method(typeof(ChineseTvdb), nameof(FindEpisodePostfix)));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch FindEpisode Success by Harmony");
-                    }
-                    if (IsPatched(_getEpisodeData, typeof(ChineseTvdb)))
-                    {
-                        HarmonyMod.Unpatch(_getEpisodeData,
-                            AccessTools.Method(typeof(ChineseTvdb), nameof(GetEpisodeDataPostfix)));
-                        Plugin.Instance.Logger.Debug(
-                            "Unpatch GetEpisodeData Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch ChineseTvdb Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _convertToTvdbLanguages,
+                postfix: nameof(ConvertToTvdbLanguagesPostfix));
+            PatchUnpatch(PatchTracker, apply, _getTranslation, prefix: nameof(GetTranslationPrefix),
+                postfix: nameof(GetTranslationPostfix));
+            PatchUnpatch(PatchTracker, apply, _addMovieInfo, postfix: nameof(AddInfoPostfix));
+            PatchUnpatch(PatchTracker, apply, _addSeriesInfo, postfix: nameof(AddInfoPostfix));
+            PatchUnpatch(PatchTracker, apply, _findEpisode, postfix: nameof(FindEpisodePostfix));
+            PatchUnpatch(PatchTracker, apply, _getEpisodeData, postfix: nameof(GetEpisodeDataPostfix));
         }
 
         [HarmonyPostfix]

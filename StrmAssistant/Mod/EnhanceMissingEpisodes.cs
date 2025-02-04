@@ -5,7 +5,6 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using StrmAssistant.Provider;
-using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -13,86 +12,34 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class EnhanceMissingEpisodes
+    public class EnhanceMissingEpisodes : PatchBase<EnhanceMissingEpisodes>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(EnhanceMissingEpisodes));
-
         private static MethodInfo _getEnabledMetadataProviders;
 
         public static AsyncLocal<string> CurrentSeriesContainingFolderPath = new AsyncLocal<string>();
 
-        public static void Initialize()
+        public EnhanceMissingEpisodes()
         {
-            try
-            {
-                var embyProviders = Assembly.Load("Emby.Providers");
-                var providerManager = embyProviders.GetType("Emby.Providers.Manager.ProviderManager");
-                _getEnabledMetadataProviders=providerManager.GetMethod("GetEnabledMetadataProviders",
-                    BindingFlags.Instance | BindingFlags.Public);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("MissingEpisodes - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
+            Initialize();
 
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.ExperienceEnhanceStore.GetOptions().UIFunctionOptions.EnhanceMissingEpisodes)
+            if (Plugin.Instance.ExperienceEnhanceStore.GetOptions().UIFunctionOptions.EnhanceMissingEpisodes)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (!IsPatched(_getEnabledMetadataProviders, typeof(EnhanceMissingEpisodes)))
-                    {
-                        HarmonyMod.Patch(_getEnabledMetadataProviders,
-                            postfix: new HarmonyMethod(typeof(EnhanceMissingEpisodes).GetMethod(
-                                "GetEnabledMetadataProvidersPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch GetEnabledMetadataProviders Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch GetEnabledMetadataProviders Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
+            var embyProviders = Assembly.Load("Emby.Providers");
+            var providerManager = embyProviders.GetType("Emby.Providers.Manager.ProviderManager");
+            _getEnabledMetadataProviders = providerManager.GetMethod("GetEnabledMetadataProviders",
+                BindingFlags.Instance | BindingFlags.Public);
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_getEnabledMetadataProviders, typeof(EnhanceMissingEpisodes)))
-                    {
-                        HarmonyMod.Unpatch(_getEnabledMetadataProviders,
-                            AccessTools.Method(typeof(EnhanceMissingEpisodes), "GetEnabledMetadataProvidersPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch GetEnabledMetadataProviders Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch GetEnabledMetadataProviders Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _getEnabledMetadataProviders,
+                postfix: nameof(GetEnabledMetadataProvidersPostfix));
         }
 
         [HarmonyPostfix]

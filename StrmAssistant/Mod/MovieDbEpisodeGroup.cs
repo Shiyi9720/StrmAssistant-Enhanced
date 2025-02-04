@@ -18,7 +18,7 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class MovieDbEpisodeGroup
+    public class MovieDbEpisodeGroup : PatchBase<MovieDbEpisodeGroup>
     {
         internal class SeasonGroupName
         {
@@ -37,9 +37,6 @@ namespace StrmAssistant.Mod
             public int? MappedEpisodeNumber { get; set; }
         }
 
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(MovieDbEpisodeGroup));
-
         private static Assembly _movieDbAssembly;
         private static MethodInfo _seriesGetMetadata;
         private static MethodInfo _seasonGetMetadata;
@@ -51,181 +48,68 @@ namespace StrmAssistant.Mod
 
         public const string LocalEpisodeGroupFileName = "episodegroup.json";
 
-        public static void Initialize()
+        public MovieDbEpisodeGroup()
         {
-            try
-            {
-                _movieDbAssembly = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "MovieDb");
+            Initialize();
 
-                if (_movieDbAssembly != null)
-                {
-                    var movieDbSeriesProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeriesProvider");
-                    _seriesGetMetadata =
-                        movieDbSeriesProvider.GetMethod("GetMetadata", BindingFlags.Public | BindingFlags.Instance);
-                    var movieDbSeasonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeasonProvider");
-                    _seasonGetMetadata = movieDbSeasonProvider.GetMethod("GetMetadata",
-                        BindingFlags.Public | BindingFlags.Instance, null,
-                        new[] { typeof(RemoteMetadataFetchOptions<SeasonInfo>), typeof(CancellationToken) }, null);
-                    var movieDbEpisodeProvider = _movieDbAssembly.GetType("MovieDb.MovieDbEpisodeProvider");
-                    _episodeGetMetadata = movieDbEpisodeProvider.GetMethod("GetMetadata",
-                        BindingFlags.Public | BindingFlags.Instance, null,
-                        new[] { typeof(RemoteMetadataFetchOptions<EpisodeInfo>), typeof(CancellationToken) }, null);
-                    var movieDbEpisodeImageProvider = _movieDbAssembly.GetType("MovieDb.MovieDbEpisodeImageProvider");
-                    _episodeGetImages = movieDbEpisodeImageProvider.GetMethod("GetImages",
-                        BindingFlags.Public | BindingFlags.Instance, null,
-                        new[] { typeof(RemoteImageFetchOptions), typeof(CancellationToken) }, null);
-
-                    var embyProviders = Assembly.Load("Emby.Providers");
-                    var providerManager = embyProviders.GetType("Emby.Providers.Manager.ProviderManager");
-                    _canRefreshMetadata = providerManager.GetMethod("CanRefresh",
-                        BindingFlags.Static | BindingFlags.NonPublic, null,
-                        new Type[]
-                        {
-                            typeof(IMetadataProvider), typeof(BaseItem), typeof(LibraryOptions), typeof(bool),
-                            typeof(bool), typeof(bool)
-                        }, null);
-                }
-                else
-                {
-                    Plugin.Instance.Logger.Info("MovieDbEpisodeGroup - MovieDb plugin is not installed");
-                }
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("MovieDbEpisodeGroup - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MetadataEnhanceStore.GetOptions().MovieDbEpisodeGroup)
+            if (Plugin.Instance.MetadataEnhanceStore.GetOptions().MovieDbEpisodeGroup)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony && _movieDbAssembly != null)
+            _movieDbAssembly = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "MovieDb");
+
+            if (_movieDbAssembly != null)
             {
-                try
-                {
-                    if (!IsPatched(_seriesGetMetadata, typeof(MovieDbEpisodeGroup)))
+                var movieDbSeriesProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeriesProvider");
+                _seriesGetMetadata =
+                    movieDbSeriesProvider.GetMethod("GetMetadata", BindingFlags.Public | BindingFlags.Instance);
+                var movieDbSeasonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeasonProvider");
+                _seasonGetMetadata = movieDbSeasonProvider.GetMethod("GetMetadata",
+                    BindingFlags.Public | BindingFlags.Instance, null,
+                    new[] { typeof(RemoteMetadataFetchOptions<SeasonInfo>), typeof(CancellationToken) }, null);
+                var movieDbEpisodeProvider = _movieDbAssembly.GetType("MovieDb.MovieDbEpisodeProvider");
+                _episodeGetMetadata = movieDbEpisodeProvider.GetMethod("GetMetadata",
+                    BindingFlags.Public | BindingFlags.Instance, null,
+                    new[] { typeof(RemoteMetadataFetchOptions<EpisodeInfo>), typeof(CancellationToken) }, null);
+                var movieDbEpisodeImageProvider = _movieDbAssembly.GetType("MovieDb.MovieDbEpisodeImageProvider");
+                _episodeGetImages = movieDbEpisodeImageProvider.GetMethod("GetImages",
+                    BindingFlags.Public | BindingFlags.Instance, null,
+                    new[] { typeof(RemoteImageFetchOptions), typeof(CancellationToken) }, null);
+
+                var embyProviders = Assembly.Load("Emby.Providers");
+                var providerManager = embyProviders.GetType("Emby.Providers.Manager.ProviderManager");
+                _canRefreshMetadata = providerManager.GetMethod("CanRefresh",
+                    BindingFlags.Static | BindingFlags.NonPublic, null,
+                    new Type[]
                     {
-                        HarmonyMod.Patch(_seriesGetMetadata,
-                            prefix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("SeriesGetMetadataPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("SeriesGetMetadataPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbSeriesProvider.GetMetadata Success by Harmony");
-                    }
-                    if (!IsPatched(_seasonGetMetadata, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Patch(_seasonGetMetadata,
-                            prefix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("SeasonGetMetadataPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("SeasonGetMetadataPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbSeasonProvider.GetMetadata Success by Harmony");
-                    }
-                    if (!IsPatched(_episodeGetMetadata, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Patch(_episodeGetMetadata,
-                            prefix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("EpisodeGetMetadataPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("EpisodeGetMetadataPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbEpisodeProvider.GetMetadata Success by Harmony");
-                    }
-                    if (!IsPatched(_episodeGetImages, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Patch(_episodeGetImages,
-                            prefix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("EpisodeGetImagesPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("EpisodeGetImagesPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbEpisodeImageProvider.GetImages Success by Harmony");
-                    }
-                    if (!IsPatched(_canRefreshMetadata, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Patch(_canRefreshMetadata,
-                            prefix: new HarmonyMethod(typeof(MovieDbEpisodeGroup).GetMethod("CanRefreshMetadataPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch CanRefreshMetadata Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Warn("MovieDbEpisodeGroup - Patch Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
+                        typeof(IMetadataProvider), typeof(BaseItem), typeof(LibraryOptions), typeof(bool),
+                        typeof(bool), typeof(bool)
+                    }, null);
+            }
+            else
+            {
+                Plugin.Instance.Logger.Info("MovieDbEpisodeGroup - MovieDb plugin is not installed");
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_seriesGetMetadata, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Unpatch(_seriesGetMetadata,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "SeriesGetMetadataPrefix"));
-                        HarmonyMod.Unpatch(_seriesGetMetadata,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "SeriesGetMetadataPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbSeriesProvider.GetMetadata Success by Harmony");
-                    }
-                    if (IsPatched(_seasonGetMetadata, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Unpatch(_seasonGetMetadata,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "SeasonGetMetadataPrefix"));
-                        HarmonyMod.Unpatch(_seasonGetMetadata,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "SeasonGetMetadataPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbSeasonProvider.GetMetadata Success by Harmony");
-                    }
-                    if (IsPatched(_episodeGetMetadata, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Unpatch(_episodeGetMetadata,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "EpisodeGetMetadataPrefix"));
-                        HarmonyMod.Unpatch(_episodeGetMetadata,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "EpisodeGetMetadataPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbEpisodeProvider.GetMetadata Success by Harmony");
-                    }
-                    if (IsPatched(_episodeGetImages, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Unpatch(_episodeGetImages,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "EpisodeGetImagesPrefix"));
-                        HarmonyMod.Unpatch(_episodeGetImages,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "EpisodeGetImagesPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbEpisodeImageProvider.GetImages Success by Harmony");
-                    }
-                    if (IsPatched(_canRefreshMetadata, typeof(MovieDbEpisodeGroup)))
-                    {
-                        HarmonyMod.Unpatch(_canRefreshMetadata,
-                            AccessTools.Method(typeof(MovieDbEpisodeGroup), "CanRefreshMetadataPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch CanRefreshMetadata Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch MovieDbEpisodeGroup Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _seriesGetMetadata, prefix: nameof(SeriesGetMetadataPrefix),
+                postfix: nameof(SeriesGetMetadataPostfix));
+            PatchUnpatch(PatchTracker, apply, _seasonGetMetadata, prefix: nameof(SeasonGetMetadataPrefix),
+                postfix: nameof(SeasonGetMetadataPostfix));
+            PatchUnpatch(PatchTracker, apply, _episodeGetMetadata, prefix: nameof(EpisodeGetMetadataPrefix),
+                postfix: nameof(EpisodeGetMetadataPostfix));
+            PatchUnpatch(PatchTracker, apply, _episodeGetImages, prefix: nameof(EpisodeGetImagesPrefix),
+                postfix: nameof(EpisodeGetImagesPostfix));
+            PatchUnpatch(PatchTracker, apply, _canRefreshMetadata, prefix: nameof(CanRefreshMetadataPrefix));
         }
 
         [HarmonyPrefix]

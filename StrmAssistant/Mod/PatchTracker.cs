@@ -1,22 +1,24 @@
-﻿namespace StrmAssistant.Mod
+﻿using System;
+
+namespace StrmAssistant.Mod
 {
     public enum PatchApproach
     {
-        None = 0,
-        Reflection = 1,
-        Harmony = 2,
+        None,
+        Reflection,
+        Harmony
     }
 
-    public class PatchApproachTracker
+    public class PatchTracker
     {
-        public PatchApproachTracker(string name)
+        public PatchTracker(Type patchType)
         {
-            Name = name;
+            PatchType = patchType;
 
             PatchManager.PatchTrackerList.Add(this);
         }
 
-        public string Name { get; set; }
+        public Type PatchType { get; set; }
 
         public PatchApproach FallbackPatchApproach { get; set; } = PatchApproach.Harmony;
 

@@ -3,7 +3,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Configuration;
 using StrmAssistant.Common;
-using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -11,11 +10,8 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class UnlockIntroSkip
+    public class UnlockIntroSkip : PatchBase<UnlockIntroSkip>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(UnlockIntroSkip));
-
         private static MethodInfo _isIntroDetectionSupported;
         private static MethodInfo _createQueryForEpisodeIntroDetection;
         private static MethodInfo _onFailedToFindIntro;
@@ -24,139 +20,47 @@ namespace StrmAssistant.Mod
 
         private static readonly AsyncLocal<bool> LogZeroConfidence = new AsyncLocal<bool>();
 
-        public static void Initialize()
+        public UnlockIntroSkip()
         {
-            try
-            {
-                var embyProviders = Assembly.Load("Emby.Providers");
-                var audioFingerprintManager = embyProviders.GetType("Emby.Providers.Markers.AudioFingerprintManager");
-                _isIntroDetectionSupported = audioFingerprintManager.GetMethod("IsIntroDetectionSupported",
-                    BindingFlags.Public | BindingFlags.Instance);
-                var markerScheduledTask = embyProviders.GetType("Emby.Providers.Markers.MarkerScheduledTask");
-                _createQueryForEpisodeIntroDetection = markerScheduledTask.GetMethod(
-                    "CreateQueryForEpisodeIntroDetection",
-                    BindingFlags.Public | BindingFlags.Static);
+            Initialize();
 
-                var sequenceDetection = embyProviders.GetType("Emby.Providers.Markers.SequenceDetection");
-                _detectSequences = sequenceDetection.GetMethods(BindingFlags.Static | BindingFlags.Public)
-                    .FirstOrDefault(m => m.Name == "DetectSequences" && m.GetParameters().Length == 8);
-                var sequenceDetectionResult = embyProviders.GetType("Emby.Providers.Markers.SequenceDetectionResult");
-                _confidenceProperty =
-                    sequenceDetectionResult.GetProperty("Confidence", BindingFlags.Public | BindingFlags.Instance);
-                _onFailedToFindIntro = audioFingerprintManager.GetMethod("OnFailedToFindIntro",
-                    BindingFlags.NonPublic | BindingFlags.Static);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("UnlockIntroSkip - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.IntroSkipStore.GetOptions().UnlockIntroSkip)
+            if (Plugin.Instance.IntroSkipStore.GetOptions().UnlockIntroSkip)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            EnableImageCapture.PatchIsShortcut();
+            var embyProviders = Assembly.Load("Emby.Providers");
+            var audioFingerprintManager = embyProviders.GetType("Emby.Providers.Markers.AudioFingerprintManager");
+            _isIntroDetectionSupported = audioFingerprintManager.GetMethod("IsIntroDetectionSupported",
+                BindingFlags.Public | BindingFlags.Instance);
+            var markerScheduledTask = embyProviders.GetType("Emby.Providers.Markers.MarkerScheduledTask");
+            _createQueryForEpisodeIntroDetection = markerScheduledTask.GetMethod(
+                "CreateQueryForEpisodeIntroDetection",
+                BindingFlags.Public | BindingFlags.Static);
 
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (!IsPatched(_isIntroDetectionSupported, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Patch(_isIntroDetectionSupported,
-                            prefix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
-                                "IsIntroDetectionSupportedPrefix", BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
-                                "IsIntroDetectionSupportedPostfix", BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch IsIntroDetectionSupported Success by Harmony");
-                    }
-                    if (!IsPatched(_createQueryForEpisodeIntroDetection, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Patch(_createQueryForEpisodeIntroDetection,
-                            postfix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
-                                "CreateQueryForEpisodeIntroDetectionPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch CreateQueryForEpisodeIntroDetection Success by Harmony");
-                    }
-                    if (!IsPatched(_detectSequences, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Patch(_detectSequences,
-                            postfix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
-                                "DetectSequencesPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch DetectSequences Success by Harmony");
-                    }
-                    if (!IsPatched(_onFailedToFindIntro, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Patch(_onFailedToFindIntro,
-                            prefix: new HarmonyMethod(typeof(UnlockIntroSkip).GetMethod(
-                                "OnFailedToFindIntroPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch OnFailedToFindIntro Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch UnlockIntroSkip Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
+            var sequenceDetection = embyProviders.GetType("Emby.Providers.Markers.SequenceDetection");
+            _detectSequences = sequenceDetection.GetMethods(BindingFlags.Static | BindingFlags.Public)
+                .FirstOrDefault(m => m.Name == "DetectSequences" && m.GetParameters().Length == 8);
+            var sequenceDetectionResult = embyProviders.GetType("Emby.Providers.Markers.SequenceDetectionResult");
+            _confidenceProperty =
+                sequenceDetectionResult.GetProperty("Confidence", BindingFlags.Public | BindingFlags.Instance);
+            _onFailedToFindIntro = audioFingerprintManager.GetMethod("OnFailedToFindIntro",
+                BindingFlags.NonPublic | BindingFlags.Static);
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            EnableImageCapture.UnpatchIsShortcut();
+            EnableImageCapture.PatchOrUnpatchIsShortcut(apply);
 
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_isIntroDetectionSupported, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Unpatch(_isIntroDetectionSupported,
-                            AccessTools.Method(typeof(UnlockIntroSkip), "IsIntroDetectionSupportedPrefix"));
-                        HarmonyMod.Unpatch(_isIntroDetectionSupported,
-                            AccessTools.Method(typeof(UnlockIntroSkip), "IsIntroDetectionSupportedPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch IsIntroDetectionSupported Success by Harmony");
-                    }
-                    if (IsPatched(_createQueryForEpisodeIntroDetection, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Unpatch(_createQueryForEpisodeIntroDetection,
-                            AccessTools.Method(typeof(UnlockIntroSkip), "CreateQueryForEpisodeIntroDetectionPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch CreateQueryForEpisodeIntroDetection Success by Harmony");
-                    }
-                    if (IsPatched(_detectSequences, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Unpatch(_detectSequences,
-                            AccessTools.Method(typeof(UnlockIntroSkip), "DetectSequencesPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch DetectSequences Success by Harmony");
-                    }
-                    if (IsPatched(_onFailedToFindIntro, typeof(UnlockIntroSkip)))
-                    {
-                        HarmonyMod.Unpatch(_onFailedToFindIntro,
-                            AccessTools.Method(typeof(UnlockIntroSkip), "OnFailedToFindIntroPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch OnFailedToFindIntro Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch UnlockIntroSkip Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _isIntroDetectionSupported,
+                prefix: nameof(IsIntroDetectionSupportedPrefix), postfix: nameof(IsIntroDetectionSupportedPostfix));
+            PatchUnpatch(PatchTracker, apply, _createQueryForEpisodeIntroDetection,
+                postfix: nameof(CreateQueryForEpisodeIntroDetectionPostfix));
+            PatchUnpatch(PatchTracker, apply, _detectSequences, postfix: nameof(DetectSequencesPostfix));
+            PatchUnpatch(PatchTracker, apply, _onFailedToFindIntro, prefix: nameof(OnFailedToFindIntroPrefix));
         }
 
         [HarmonyPrefix]

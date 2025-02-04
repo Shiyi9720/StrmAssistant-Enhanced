@@ -9,85 +9,33 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class EnableProxyServer
+    public class EnableProxyServer : PatchBase<EnableProxyServer>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(EnableProxyServer));
-
         private static MethodInfo _createHttpClientHandler;
 
-        public static void Initialize()
+        public EnableProxyServer()
         {
-            try
-            {
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                var applicationHost =
-                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.ApplicationHost");
-                _createHttpClientHandler = applicationHost.GetMethod("CreateHttpClientHandler",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("EnableProxyServer - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
+            Initialize();
 
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MainOptionsStore.GetOptions().NetworkOptions.EnableProxyServer)
+            if (Plugin.Instance.MainOptionsStore.GetOptions().NetworkOptions.EnableProxyServer)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (!IsPatched(_createHttpClientHandler, typeof(EnableProxyServer)))
-                    {
-                        HarmonyMod.Patch(_createHttpClientHandler,
-                            postfix: new HarmonyMethod(typeof(EnableProxyServer).GetMethod("CreateHttpClientHandlerPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch CreateHttpClientHandler Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch EnableProxyServer Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
+            var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+            var applicationHost =
+                embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.ApplicationHost");
+            _createHttpClientHandler = applicationHost.GetMethod("CreateHttpClientHandler",
+                BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_createHttpClientHandler, typeof(EnableProxyServer)))
-                    {
-                        HarmonyMod.Unpatch(_createHttpClientHandler,
-                            AccessTools.Method(typeof(EnableProxyServer), "CreateHttpClientHandlerPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch CreateHttpClientHandler Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch EnableProxyServer Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _createHttpClientHandler,
+                postfix: nameof(CreateHttpClientHandlerPostfix));
         }
 
         [HarmonyPostfix]
@@ -119,13 +67,13 @@ namespace StrmAssistant.Mod
                             (httpRequestMessage, cert, chain, sslErrors) => true;
                     }
                 }
-                else if (__result is SocketsHttpHandler socketsHandler)
+                else if (__result is SocketsHttpHandler socketsHttpHandler)
                 {
-                    socketsHandler.Proxy = proxy;
-                    socketsHandler.UseProxy = true;
+                    socketsHttpHandler.Proxy = proxy;
+                    socketsHttpHandler.UseProxy = true;
                     if (ignoreCertificateValidation)
                     {
-                        socketsHandler.SslOptions.RemoteCertificateValidationCallback =
+                        socketsHttpHandler.SslOptions.RemoteCertificateValidationCallback =
                             (sender, cert, chain, sslErrors) => true;
                     }
                 }

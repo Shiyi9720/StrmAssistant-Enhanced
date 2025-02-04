@@ -17,17 +17,11 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class EnhanceNfoMetadata
+    public class EnhanceNfoMetadata : PatchBase<EnhanceNfoMetadata>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(EnhanceNfoMetadata));
-
         private static Assembly _nfoMetadataAssembly;
         private static ConstructorInfo _genericBaseNfoParserConstructor;
         private static MethodInfo _getPersonFromXmlNode;
-
-        private static MethodInfo _getPersonFromXmlNodePrefix;
-        private static MethodInfo _getPersonFromXmlNodePostfix;
 
         private static readonly AsyncLocal<string> PersonContent = new AsyncLocal<string>();
 
@@ -46,119 +40,63 @@ namespace StrmAssistant.Mod
             CheckCharacters = false
         };
 
-        public static void Initialize()
+        public EnhanceNfoMetadata()
         {
-            try
-            {
-                _nfoMetadataAssembly = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "NfoMetadata");
+            Initialize();
 
-                if (_nfoMetadataAssembly != null)
-                {
-                    var genericBaseNfoParser = _nfoMetadataAssembly.GetType("NfoMetadata.Parsers.BaseNfoParser`1");
-                    var genericBaseNfoParserVideo = genericBaseNfoParser.MakeGenericType(typeof(Video));
-                    _genericBaseNfoParserConstructor = genericBaseNfoParserVideo.GetConstructor(BindingFlags.Instance | BindingFlags.Public,
-                        null,
-                        new Type[]
-                        {
-                            typeof(ILogger), typeof(IConfigurationManager), typeof(IProviderManager),
-                            typeof(IFileSystem)
-                        }, null);
-                    _getPersonFromXmlNode = genericBaseNfoParserVideo.GetMethod("GetPersonFromXmlNode",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-
-                    _getPersonFromXmlNodePrefix = typeof(EnhanceNfoMetadata).GetMethod("GetPersonFromXmlNodePrefix",
-                        BindingFlags.Static | BindingFlags.NonPublic);
-                    _getPersonFromXmlNodePostfix = typeof(EnhanceNfoMetadata).GetMethod("GetPersonFromXmlNodePostfix",
-                        BindingFlags.Static | BindingFlags.NonPublic);
-                }
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("EnhanceNfoMetadata - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MetadataEnhanceStore.GetOptions().EnhanceNfoMetadata)
+            if (Plugin.Instance.MetadataEnhanceStore.GetOptions().EnhanceNfoMetadata)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony && _nfoMetadataAssembly != null)
+            _nfoMetadataAssembly = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "NfoMetadata");
+
+            if (_nfoMetadataAssembly != null)
             {
-                try
-                {
-                    if (!IsPatched(_genericBaseNfoParserConstructor, typeof(EnhanceNfoMetadata)))
+                var genericBaseNfoParser = _nfoMetadataAssembly.GetType("NfoMetadata.Parsers.BaseNfoParser`1");
+                var genericBaseNfoParserVideo = genericBaseNfoParser.MakeGenericType(typeof(Video));
+                _genericBaseNfoParserConstructor = genericBaseNfoParserVideo.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public, null,
+                    new[]
                     {
-                        HarmonyMod.Patch(_genericBaseNfoParserConstructor,
-                            prefix: new HarmonyMethod(typeof(EnhanceNfoMetadata).GetMethod("GenericBaseNfoParserConstructorPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch GenericBaseNfoParserConstructor Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch GenericBaseNfoParserConstructor Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
+                        typeof(ILogger), typeof(IConfigurationManager), typeof(IProviderManager),
+                        typeof(IFileSystem)
+                    }, null);
+                _getPersonFromXmlNode = genericBaseNfoParserVideo.GetMethod("GetPersonFromXmlNode",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            else
+            {
+                Plugin.Instance.Logger.Info("EnhanceNfoMetadata - NfoMetadata plugin is not installed");
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
+            PatchUnpatch(PatchTracker, apply, _genericBaseNfoParserConstructor,
+                prefix: nameof(GenericBaseNfoParserConstructorPrefix));
+
+            if (!apply)
             {
-                try
-                {
-                    if (IsPatched(_genericBaseNfoParserConstructor, typeof(EnhanceNfoMetadata)))
-                    {
-                        HarmonyMod.Unpatch(_genericBaseNfoParserConstructor,
-                            AccessTools.Method(typeof(EnhanceNfoMetadata), "GenericBaseNfoParserConstructorPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch GenericBaseNfoParserConstructor Success by Harmony");
-                    }
-                    if (IsPatched(_getPersonFromXmlNode, typeof(EnhanceNfoMetadata)))
-                    {
-                        HarmonyMod.Unpatch(_getPersonFromXmlNode, _getPersonFromXmlNodePostfix);
-                        HarmonyMod.Unpatch(_getPersonFromXmlNode, _getPersonFromXmlNodePostfix);
-                        Plugin.Instance.Logger.Debug("Unpatch GetPersonFromXmlNode Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch EnhanceNfoMetadata Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
+                PatchUnpatch(PatchTracker, false, _getPersonFromXmlNode, prefix: nameof(GetPersonFromXmlNodePrefix),
+                    postfix: nameof(GetPersonFromXmlNodePostfix));
             }
         }
 
         [HarmonyPrefix]
         private static bool GenericBaseNfoParserConstructorPrefix(object __instance)
         {
-            try
-            {
-                HarmonyMod.Unpatch(_getPersonFromXmlNode, _getPersonFromXmlNodePrefix);
-                HarmonyMod.Unpatch(_getPersonFromXmlNode, _getPersonFromXmlNodePostfix);
-                HarmonyMod.Patch(_getPersonFromXmlNode, prefix: new HarmonyMethod(_getPersonFromXmlNodePrefix),
-                    postfix: new HarmonyMethod(_getPersonFromXmlNodePostfix));
-            }
-            catch (Exception he)
-            {
-                Plugin.Instance.Logger.Debug("Patch GetPersonFromXmlNode Failed by Harmony");
-                Plugin.Instance.Logger.Debug(he.Message);
-                Plugin.Instance.Logger.Debug(he.StackTrace);
-            }
+            PatchUnpatch(Instance.PatchTracker, false, _getPersonFromXmlNode,
+                prefix: nameof(GetPersonFromXmlNodePrefix), postfix: nameof(GetPersonFromXmlNodePostfix),
+                suppress: true);
+            PatchUnpatch(Instance.PatchTracker, true, _getPersonFromXmlNode, prefix: nameof(GetPersonFromXmlNodePrefix),
+                postfix: nameof(GetPersonFromXmlNodePostfix), suppress: true);
 
             return true;
         }

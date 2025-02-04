@@ -17,11 +17,8 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class EnhanceMovieDbPerson
+    public class EnhanceMovieDbPerson : PatchBase<EnhanceMovieDbPerson>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(EnhanceMovieDbPerson));
-
         private static Assembly _movieDbAssembly;
 
         private static MethodInfo _movieDbPersonProviderImportData;
@@ -45,141 +42,66 @@ namespace StrmAssistant.Mod
         private static readonly ConcurrentDictionary<Season, List<PersonInfo>> SeasonPersonInfoDictionary =
             new ConcurrentDictionary<Season, List<PersonInfo>>();
 
-        public static void Initialize()
+        public EnhanceMovieDbPerson()
         {
-            try
-            {
-                _movieDbAssembly = AppDomain.CurrentDomain
-                    .GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == "MovieDb");
+            Initialize();
 
-                if (_movieDbAssembly != null)
-                {
-                    var movieDbPersonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbPersonProvider");
-                    _movieDbPersonProviderImportData = movieDbPersonProvider.GetMethod("ImportData",
-                        BindingFlags.NonPublic | BindingFlags.Instance);
-                    var personResult = movieDbPersonProvider.GetNestedType("PersonResult", BindingFlags.Public);
-                    _nameProperty = personResult.GetProperty("name");
-                    _alsoKnownAsProperty = personResult.GetProperty("also_known_as");
-                    _biographyProperty = personResult.GetProperty("biography");
-                    _placeOfBirthProperty = personResult.GetProperty("place_of_birth");
-
-                    var movieDbSeasonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeasonProvider");
-                    _movieDbSeasonProviderImportData =
-                        movieDbSeasonProvider.GetMethod("ImportData", BindingFlags.NonPublic | BindingFlags.Instance);
-                    _seasonGetMetadata = movieDbSeasonProvider.GetMethod("GetMetadata",
-                        BindingFlags.Public | BindingFlags.Instance, null,
-                        new[] { typeof(RemoteMetadataFetchOptions<SeasonInfo>), typeof(CancellationToken) }, null);
-                    var seasonRootObject = movieDbSeasonProvider.GetNestedType("SeasonRootObject", BindingFlags.Public);
-                    _seasonCreditsProperty = seasonRootObject.GetProperty("credits");
-
-                    var tmdbCredits = _movieDbAssembly.GetType("MovieDb.TmdbCredits");
-                    _castListProperty = tmdbCredits.GetProperty("cast");
-
-                    var tmdbCast = _movieDbAssembly.GetType("MovieDb.TmdbCast");
-                    _castIdProperty = tmdbCast.GetProperty("id");
-                    _castOrderProperty = tmdbCast.GetProperty("order");
-                    _castNameProperty = tmdbCast.GetProperty("name");
-                    _castCharacterProperty = tmdbCast.GetProperty("character");
-                    _castProfilePathProperty = tmdbCast.GetProperty("profile_path");
-                }
-                else
-                {
-                    Plugin.Instance.Logger.Info("EnhanceMovieDbPerson - MovieDb plugin is not installed");
-                }
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("EnhanceMovieDbPerson - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MetadataEnhanceStore.GetOptions().EnhanceMovieDbPerson)
+            if (Plugin.Instance.MetadataEnhanceStore.GetOptions().EnhanceMovieDbPerson)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony && _movieDbAssembly != null)
+            _movieDbAssembly = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "MovieDb");
+
+            if (_movieDbAssembly != null)
             {
-                try
-                {
-                    if (!IsPatched(_movieDbPersonProviderImportData, typeof(EnhanceMovieDbPerson)))
-                    {
-                        HarmonyMod.Patch(_movieDbPersonProviderImportData,
-                            prefix: new HarmonyMethod(typeof(EnhanceMovieDbPerson).GetMethod("PersonImportDataPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbPersonProvider.ImportData Success by Harmony");
-                    }
+                var movieDbPersonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbPersonProvider");
+                _movieDbPersonProviderImportData = movieDbPersonProvider.GetMethod("ImportData",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+                var personResult = movieDbPersonProvider.GetNestedType("PersonResult", BindingFlags.Public);
+                _nameProperty = personResult.GetProperty("name");
+                _alsoKnownAsProperty = personResult.GetProperty("also_known_as");
+                _biographyProperty = personResult.GetProperty("biography");
+                _placeOfBirthProperty = personResult.GetProperty("place_of_birth");
 
-                    if (!IsPatched(_movieDbSeasonProviderImportData, typeof(EnhanceMovieDbPerson)))
-                    {
-                        HarmonyMod.Patch(_movieDbSeasonProviderImportData,
-                            prefix: new HarmonyMethod(typeof(EnhanceMovieDbPerson).GetMethod("SeasonImportDataPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbSeasonProvider.ImportData Success by Harmony");
-                    }
+                var movieDbSeasonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeasonProvider");
+                _movieDbSeasonProviderImportData =
+                    movieDbSeasonProvider.GetMethod("ImportData", BindingFlags.NonPublic | BindingFlags.Instance);
+                _seasonGetMetadata = movieDbSeasonProvider.GetMethod("GetMetadata",
+                    BindingFlags.Public | BindingFlags.Instance, null,
+                    new[] { typeof(RemoteMetadataFetchOptions<SeasonInfo>), typeof(CancellationToken) }, null);
+                var seasonRootObject = movieDbSeasonProvider.GetNestedType("SeasonRootObject", BindingFlags.Public);
+                _seasonCreditsProperty = seasonRootObject.GetProperty("credits");
 
-                    if (!IsPatched(_seasonGetMetadata, typeof(EnhanceMovieDbPerson)))
-                    {
-                        HarmonyMod.Patch(_seasonGetMetadata,
-                            postfix: new HarmonyMethod(typeof(EnhanceMovieDbPerson).GetMethod("SeasonGetMetadataPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch MovieDbSeasonProvider.GetMetadata Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Warn("EnhanceMovieDbPerson - Patch Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
+                var tmdbCredits = _movieDbAssembly.GetType("MovieDb.TmdbCredits");
+                _castListProperty = tmdbCredits.GetProperty("cast");
+
+                var tmdbCast = _movieDbAssembly.GetType("MovieDb.TmdbCast");
+                _castIdProperty = tmdbCast.GetProperty("id");
+                _castOrderProperty = tmdbCast.GetProperty("order");
+                _castNameProperty = tmdbCast.GetProperty("name");
+                _castCharacterProperty = tmdbCast.GetProperty("character");
+                _castProfilePathProperty = tmdbCast.GetProperty("profile_path");
+            }
+            else
+            {
+                Plugin.Instance.Logger.Info("EnhanceMovieDbPerson - MovieDb plugin is not installed");
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_movieDbPersonProviderImportData, typeof(EnhanceMovieDbPerson)))
-                    {
-                        HarmonyMod.Unpatch(_movieDbPersonProviderImportData,
-                            AccessTools.Method(typeof(EnhanceMovieDbPerson), "PersonImportDataPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbPersonProvider.ImportData Success by Harmony");
-                    }
-                    if (IsPatched(_movieDbSeasonProviderImportData, typeof(EnhanceMovieDbPerson)))
-                    {
-                        HarmonyMod.Unpatch(_movieDbSeasonProviderImportData,
-                            AccessTools.Method(typeof(EnhanceMovieDbPerson), "SeasonImportDataPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbSeasonProvider.ImportData Success by Harmony");
-                    }
-                    if (IsPatched(_seasonGetMetadata, typeof(EnhanceMovieDbPerson)))
-                    {
-                        HarmonyMod.Unpatch(_seasonGetMetadata,
-                            AccessTools.Method(typeof(EnhanceMovieDbPerson), "SeasonGetMetadataPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch MovieDbSeasonProvider.GetMetadata Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch EnhanceMovieDbPerson Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _movieDbPersonProviderImportData,
+                prefix: nameof(PersonImportDataPrefix));
+            PatchUnpatch(PatchTracker, apply, _movieDbSeasonProviderImportData,
+                prefix: nameof(SeasonImportDataPrefix));
+            PatchUnpatch(PatchTracker, apply, _seasonGetMetadata, postfix: nameof(SeasonGetMetadataPostfix));
         }
 
         private static Tuple<string, bool> ProcessPersonInfoAsExpected(string input, string placeOfBirth)

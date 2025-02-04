@@ -12,116 +12,40 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class PinyinSortName
+    public class PinyinSortName : PatchBase<PinyinSortName>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(PinyinSortName));
-
         private static MethodInfo _createSortName;
         private static MethodInfo _getPrefixes;
         private static MethodInfo _getArtistPrefixes;
 
-        public static void Initialize()
+        public PinyinSortName()
         {
-            try
-            {
-                _createSortName = typeof(BaseItem).GetMethod("CreateSortName",
-                    BindingFlags.Instance | BindingFlags.NonPublic, null,
-                    new[] { typeof(ReadOnlySpan<char>) }, null);
-                var embyApi = Assembly.Load("Emby.Api");
-                var tagService = embyApi.GetType("Emby.Api.UserLibrary.TagService");
-                _getPrefixes =
-                    tagService.GetMethod("Get", new[] { embyApi.GetType("Emby.Api.UserLibrary.GetPrefixes") });
-                _getArtistPrefixes =
-                    tagService.GetMethod("Get", new[] { embyApi.GetType("Emby.Api.UserLibrary.GetArtistPrefixes") });
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("PinyinSortName - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
+            Initialize();
 
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MetadataEnhanceStore.GetOptions().PinyinSortName)
+            if (Plugin.Instance.MetadataEnhanceStore.GetOptions().PinyinSortName)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (!IsPatched(_createSortName, typeof(PinyinSortName)))
-                    {
-                        HarmonyMod.Patch(_createSortName,
-                            postfix: new HarmonyMethod(typeof(PinyinSortName).GetMethod("CreateSortNamePostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch CreateSortName Success by Harmony");
-                    }
-                    if (!IsPatched(_getPrefixes, typeof(PinyinSortName)))
-                    {
-                        HarmonyMod.Patch(_getPrefixes,
-                            postfix: new HarmonyMethod(typeof(PinyinSortName).GetMethod("GetPrefixesPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch GetPrefixes Success by Harmony");
-                    }
-                    if (!IsPatched(_getArtistPrefixes, typeof(PinyinSortName)))
-                    {
-                        HarmonyMod.Patch(_getArtistPrefixes,
-                            postfix: new HarmonyMethod(typeof(PinyinSortName).GetMethod("GetPrefixesPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch GetArtistPrefixes Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch PinyinSortName Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
+            _createSortName = typeof(BaseItem).GetMethod("CreateSortName",
+                BindingFlags.Instance | BindingFlags.NonPublic, null,
+                new[] { typeof(ReadOnlySpan<char>) }, null);
+            var embyApi = Assembly.Load("Emby.Api");
+            var tagService = embyApi.GetType("Emby.Api.UserLibrary.TagService");
+            _getPrefixes =
+                tagService.GetMethod("Get", new[] { embyApi.GetType("Emby.Api.UserLibrary.GetPrefixes") });
+            _getArtistPrefixes =
+                tagService.GetMethod("Get", new[] { embyApi.GetType("Emby.Api.UserLibrary.GetArtistPrefixes") });
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_createSortName, typeof(PinyinSortName)))
-                    {
-                        HarmonyMod.Unpatch(_createSortName,
-                            AccessTools.Method(typeof(PinyinSortName), "CreateSortNamePostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch CreateSortName Success by Harmony");
-                    }
-                    if (IsPatched(_getPrefixes, typeof(PinyinSortName)))
-                    {
-                        HarmonyMod.Unpatch(_getPrefixes,
-                            AccessTools.Method(typeof(PinyinSortName), "GetPrefixesPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch GetPrefixes Success by Harmony");
-                    }
-                    if (IsPatched(_getArtistPrefixes, typeof(PinyinSortName)))
-                    {
-                        HarmonyMod.Unpatch(_getArtistPrefixes,
-                            AccessTools.Method(typeof(PinyinSortName), "GetPrefixesPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch GetArtistPrefixes Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch PinyinSortName Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _createSortName, postfix: nameof(CreateSortNamePostfix));
+            PatchUnpatch(PatchTracker, apply, _getPrefixes, postfix: nameof(GetPrefixesPostfix));
+            PatchUnpatch(PatchTracker, apply, _getArtistPrefixes, postfix: nameof(GetPrefixesPostfix));
         }
 
         [HarmonyPostfix]

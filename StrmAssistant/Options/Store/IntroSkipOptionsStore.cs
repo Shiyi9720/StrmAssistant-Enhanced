@@ -142,11 +142,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.UnlockIntroSkip)
                     {
-                        UnlockIntroSkip.Patch();
+                        PatchManager.UnlockIntroSkip.Patch();
                     }
                     else
                     {
-                        UnlockIntroSkip.Unpatch();
+                        PatchManager.UnlockIntroSkip.Unpatch();
                     }
                 }
 

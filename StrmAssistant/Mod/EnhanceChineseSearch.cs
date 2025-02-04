@@ -1,7 +1,6 @@
 using HarmonyLib;
 using MediaBrowser.Controller.Entities;
 using SQLitePCL.pretty;
-using StrmAssistant.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,14 +9,12 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using static StrmAssistant.Mod.PatchManager;
+using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant.Mod
 {
-    public static class EnhanceChineseSearch
+    public class EnhanceChineseSearch : PatchBase<EnhanceChineseSearch>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(EnhanceChineseSearch));
-
         private static readonly Version AppVer = Plugin.Instance.ApplicationHost.ApplicationVersion;
         private static readonly Version Ver4830 = new Version("4.8.3.0");
         private static readonly Version Ver4900 = new Version("4.9.0.0");
@@ -37,7 +34,6 @@ namespace StrmAssistant.Mod
         private static string _tokenizerPath;
         private static readonly object _lock = new object();
         private static bool _patchPhase2Initialized;
-        private static string[] _includeItemTypes = Array.Empty<string>();
         private static readonly Dictionary<string, Regex> patterns = new Dictionary<string, Regex>
         {
             { "imdb", new Regex(@"^tt\d{7,8}$", RegexOptions.IgnoreCase | RegexOptions.Compiled) },
@@ -45,50 +41,14 @@ namespace StrmAssistant.Mod
             { "tvdb", new Regex(@"^tvdb(id)?=(\d+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled) }
         };
 
-        public static void Initialize()
+        public EnhanceChineseSearch()
         {
             _tokenizerPath = Path.Combine(Plugin.Instance.ApplicationPaths.PluginsPath, "libsimple.so");
 
-            try
-            {
-                var sqlitePCLEx = Assembly.Load("SQLitePCLRawEx.core");
-                raw = sqlitePCLEx.GetType("SQLitePCLEx.raw");
-                sqlite3_enable_load_extension = raw.GetMethod("sqlite3_enable_load_extension",
-                    BindingFlags.Static | BindingFlags.Public);
+            Initialize();
 
-                sqlite3_db =
-                    typeof(SQLiteDatabaseConnection).GetField("db", BindingFlags.NonPublic | BindingFlags.Instance);
-
-                var embySqlite = Assembly.Load("Emby.Sqlite");
-                var baseSqliteRepository = embySqlite.GetType("Emby.Sqlite.BaseSqliteRepository");
-                _createConnection = baseSqliteRepository.GetMethod("CreateConnection",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                _dbFilePath =
-                    baseSqliteRepository.GetProperty("DbFilePath", BindingFlags.NonPublic | BindingFlags.Instance);
-
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                var sqliteItemRepository =
-                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
-                _getJoinCommandText = sqliteItemRepository.GetMethod("GetJoinCommandText",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                _createSearchTerm =
-                    sqliteItemRepository.GetMethod("CreateSearchTerm", BindingFlags.NonPublic | BindingFlags.Static);
-                _cacheIdsFromTextParams = sqliteItemRepository.GetMethod("CacheIdsFromTextParams",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("EnhanceChineseSearch - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch ||
-                 Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore))
+            if (Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearch ||
+                Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.EnhanceChineseSearchRestore)
             {
                 if (AppVer >= Ver4830)
                 {
@@ -102,35 +62,43 @@ namespace StrmAssistant.Mod
             }
         }
 
+        protected override void OnInitialize()
+        {
+            var sqlitePCLEx = Assembly.Load("SQLitePCLRawEx.core");
+            raw = sqlitePCLEx.GetType("SQLitePCLEx.raw");
+            sqlite3_enable_load_extension = raw.GetMethod("sqlite3_enable_load_extension",
+                BindingFlags.Static | BindingFlags.Public);
+
+            sqlite3_db =
+                typeof(SQLiteDatabaseConnection).GetField("db", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            var embySqlite = Assembly.Load("Emby.Sqlite");
+            var baseSqliteRepository = embySqlite.GetType("Emby.Sqlite.BaseSqliteRepository");
+            _createConnection = baseSqliteRepository.GetMethod("CreateConnection",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            _dbFilePath =
+                baseSqliteRepository.GetProperty("DbFilePath", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+            var sqliteItemRepository =
+                embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
+            _getJoinCommandText = sqliteItemRepository.GetMethod("GetJoinCommandText",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            _createSearchTerm =
+                sqliteItemRepository.GetMethod("CreateSearchTerm", BindingFlags.NonPublic | BindingFlags.Static);
+            _cacheIdsFromTextParams = sqliteItemRepository.GetMethod("CacheIdsFromTextParams",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+        }
+
+        protected override void Prepare(bool apply)
+        {
+            // No action needed
+        }
+
         private static void PatchPhase1()
         {
-            var ensureTokenizerResult = EnsureTokenizerExists();
-
-            if (ensureTokenizerResult)
-            {
-                if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-                {
-                    try
-                    {
-                        if (!IsPatched(_createConnection, typeof(EnhanceChineseSearch)))
-                        {
-                            HarmonyMod.Patch(_createConnection,
-                                postfix: new HarmonyMethod(typeof(EnhanceChineseSearch).GetMethod("CreateConnectionPostfix",
-                                    BindingFlags.Static | BindingFlags.NonPublic)));
-                            Plugin.Instance.Logger.Debug("Patch CreateConnection Success by Harmony");
-                        }
-
-                        return;
-                    }
-                    catch (Exception he)
-                    {
-                        Plugin.Instance.Logger.Debug("Patch CreateConnection Failed by Harmony");
-                        Plugin.Instance.Logger.Debug(he.Message);
-                        Plugin.Instance.Logger.Debug(he.StackTrace);
-                        PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                    }
-                }
-            }
+            if (EnsureTokenizerExists() && PatchUnpatch(Instance.PatchTracker, true, _createConnection,
+                    postfix: nameof(CreateConnectionPostfix))) return;
 
             Plugin.Instance.Logger.Debug("EnhanceChineseSearch - PatchPhase1 Failed");
             ResetOptions();
@@ -413,46 +381,12 @@ namespace StrmAssistant.Mod
 
         private static bool PatchSearchFunctions()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (!IsPatched(_getJoinCommandText, typeof(EnhanceChineseSearch)))
-                    {
-                        HarmonyMod.Patch(_getJoinCommandText,
-                            postfix: new HarmonyMethod(typeof(EnhanceChineseSearch).GetMethod(
-                                "GetJoinCommandTextPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch GetJoinCommandText Success by Harmony");
-                    }
-                    if (!IsPatched(_createSearchTerm, typeof(EnhanceChineseSearch)))
-                    {
-                        HarmonyMod.Patch(_createSearchTerm,
-                            prefix: new HarmonyMethod(typeof(EnhanceChineseSearch).GetMethod(
-                                "CreateSearchTermPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch CreateSearchTerm Success by Harmony");
-                    }
-                    if (!IsPatched(_cacheIdsFromTextParams, typeof(EnhanceChineseSearch)))
-                    {
-                        HarmonyMod.Patch(_cacheIdsFromTextParams,
-                            prefix: new HarmonyMethod(typeof(EnhanceChineseSearch).GetMethod("CacheIdsFromTextParamsPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch CacheIdsFromTextParams Success by Harmony");
-                    }
-
-                    return true;
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch SearchFunctions Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
-
-            return false;
+            return PatchUnpatch(Instance.PatchTracker, true, _getJoinCommandText,
+                       postfix: nameof(GetJoinCommandTextPostfix)) &&
+                   PatchUnpatch(Instance.PatchTracker, true, _createSearchTerm,
+                       prefix: nameof(CreateSearchTermPrefix)) &&
+                   PatchUnpatch(Instance.PatchTracker, true,
+                       _cacheIdsFromTextParams, prefix: nameof(CacheIdsFromTextParamsPrefix));
         }
 
         private static bool LoadTokenizerExtension(IDatabaseConnection connection)
@@ -496,89 +430,12 @@ namespace StrmAssistant.Mod
 
                         if (tokenizerLoaded)
                         {
-                            PatchPhase2(__result);
                             _patchPhase2Initialized = true;
+                            PatchPhase2(__result);
                         }
                     }
                 }
             }
-        }
-
-        public static void UpdateSearchScope(string currentScope)
-        {
-            var searchScope = currentScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries) ??
-                              Array.Empty<string>();
-
-            var includeItemTypes = new List<string>();
-
-            foreach (var scope in searchScope)
-            {
-                if (Enum.TryParse(scope, true, out ModOptions.SearchItemType type))
-                {
-                    switch (type)
-                    {
-                        case ModOptions.SearchItemType.Book:
-                            includeItemTypes.AddRange(new[] { "Book" });
-                            break;
-                        case ModOptions.SearchItemType.Collection:
-                            includeItemTypes.AddRange(new[] { "BoxSet" });
-                            break;
-                        case ModOptions.SearchItemType.Episode:
-                            includeItemTypes.AddRange(new[] { "Episode" });
-                            break;
-                        case ModOptions.SearchItemType.Game:
-                            includeItemTypes.AddRange(new[] { "Game", "GameSystem" });
-                            break;
-                        case ModOptions.SearchItemType.Genre:
-                            includeItemTypes.AddRange(new[] { "MusicGenre", "GameGenre", "Genre" });
-                            break;
-                        case ModOptions.SearchItemType.LiveTv:
-                            includeItemTypes.AddRange(new[] { "LiveTvChannel", "LiveTvProgram", "LiveTvSeries" });
-                            break;
-                        case ModOptions.SearchItemType.Movie:
-                            includeItemTypes.AddRange(new[] { "Movie" });
-                            break;
-                        case ModOptions.SearchItemType.Music:
-                            includeItemTypes.AddRange(new[] { "Audio", "MusicVideo" });
-                            break;
-                        case ModOptions.SearchItemType.MusicAlbum:
-                            includeItemTypes.AddRange(new[] { "MusicAlbum" });
-                            break;
-                        case ModOptions.SearchItemType.Person:
-                            includeItemTypes.AddRange(new[] { "Person" });
-                            break;
-                        case ModOptions.SearchItemType.MusicArtist:
-                            includeItemTypes.AddRange(new[] { "MusicArtist" });
-                            break;
-                        case ModOptions.SearchItemType.Photo:
-                            includeItemTypes.AddRange(new[] { "Photo" });
-                            break;
-                        case ModOptions.SearchItemType.PhotoAlbum:
-                            includeItemTypes.AddRange(new[] { "PhotoAlbum" });
-                            break;
-                        case ModOptions.SearchItemType.Playlist:
-                            includeItemTypes.AddRange(new[] { "Playlist" });
-                            break;
-                        case ModOptions.SearchItemType.Series:
-                            includeItemTypes.AddRange(new[] { "Series" });
-                            break;
-                        case ModOptions.SearchItemType.Season:
-                            includeItemTypes.AddRange(new[] { "Season" });
-                            break;
-                        case ModOptions.SearchItemType.Studio:
-                            includeItemTypes.AddRange(new[] { "Studio" });
-                            break;
-                        case ModOptions.SearchItemType.Tag:
-                            includeItemTypes.AddRange(new[] { "Tag" });
-                            break;
-                        case ModOptions.SearchItemType.Trailer:
-                            includeItemTypes.AddRange(new[] { "Trailer" });
-                            break;
-                    }
-                }
-            }
-
-            _includeItemTypes = includeItemTypes.ToArray();
         }
 
         [HarmonyPostfix]
@@ -646,7 +503,7 @@ namespace StrmAssistant.Mod
                 var searchTerm = query.SearchTerm;
                 if (query.IncludeItemTypes.Length == 0 && !string.IsNullOrEmpty(searchTerm))
                 {
-                    query.IncludeItemTypes = _includeItemTypes;
+                    query.IncludeItemTypes = GetSearchScope();
                 }
 
                 if (!string.IsNullOrEmpty(searchTerm))

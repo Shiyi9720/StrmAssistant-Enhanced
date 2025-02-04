@@ -43,6 +43,8 @@ namespace StrmAssistant.Options.Store
         {
             if (e.Options is PluginOptions options)
             {
+                var suppress = _currentSuppressOnOptionsSaved;
+
                 if (string.IsNullOrEmpty(options.GeneralOptions.CatchupTaskScope))
                 {
                     options.GeneralOptions.CatchupTaskScope = CatchupTask.MediaInfo.ToString();
@@ -66,32 +68,35 @@ namespace StrmAssistant.Options.Store
                         ? options.NetworkOptions.ProxyServerUrl.Trim().TrimEnd('/')
                         : options.NetworkOptions.ProxyServerUrl?.Trim();
 
-                if (options.NetworkOptions.EnableProxyServer &&
-                    !string.IsNullOrWhiteSpace(options.NetworkOptions.ProxyServerUrl))
+                if (!suppress)
                 {
-                    if (TryParseProxyUrl(options.NetworkOptions.ProxyServerUrl, out var schema, out var host, out var port,
-                            out var username, out var password) &&
-                        CheckProxyReachability(schema, host, port, username, password) is (true, var httpPing))
+                    if (options.NetworkOptions.EnableProxyServer &&
+                        !string.IsNullOrWhiteSpace(options.NetworkOptions.ProxyServerUrl))
                     {
-                        options.NetworkOptions.ProxyServerStatus.Status = ItemStatus.Succeeded;
-                        options.NetworkOptions.ProxyServerStatus.Caption = Resources.ProxyServer_Available;
-                        options.NetworkOptions.ProxyServerStatus.StatusText = $"{httpPing} ms";
+                        if (TryParseProxyUrl(options.NetworkOptions.ProxyServerUrl, out var schema, out var host, out var port,
+                                out var username, out var password) &&
+                            CheckProxyReachability(schema, host, port, username, password) is (true, var httpPing))
+                        {
+                            options.NetworkOptions.ProxyServerStatus.Status = ItemStatus.Succeeded;
+                            options.NetworkOptions.ProxyServerStatus.Caption = Resources.ProxyServer_Available;
+                            options.NetworkOptions.ProxyServerStatus.StatusText = $"{httpPing} ms";
+                        }
+                        else
+                        {
+                            options.NetworkOptions.ProxyServerStatus.Status = ItemStatus.Unavailable;
+                            options.NetworkOptions.ProxyServerStatus.Caption = Resources.ProxyServer_Unavailable;
+                            options.NetworkOptions.ProxyServerStatus.StatusText = "N/A";
+                        }
+
+                        options.NetworkOptions.ShowProxyServerStatus = true;
                     }
                     else
                     {
-                        options.NetworkOptions.ProxyServerStatus.Status = ItemStatus.Unavailable;
-                        options.NetworkOptions.ProxyServerStatus.Caption = Resources.ProxyServer_Unavailable;
-                        options.NetworkOptions.ProxyServerStatus.StatusText = "N/A";
+                        options.NetworkOptions.ProxyServerStatus.StatusText = string.Empty;
+                        options.NetworkOptions.ShowProxyServerStatus = false;
                     }
-
-                    options.NetworkOptions.ShowProxyServerStatus = true;
                 }
-                else
-                {
-                    options.NetworkOptions.ProxyServerStatus.StatusText = string.Empty;
-                    options.NetworkOptions.ShowProxyServerStatus = false;
-                }
-
+                
                 var changes = PropertyChangeDetector.DetectObjectPropertyChanges(PluginOptions, options);
                 var changedProperties = new HashSet<string>(changes.Select(c => c.PropertyName));
 
@@ -141,18 +146,18 @@ namespace StrmAssistant.Options.Store
                     changedProperties.Contains(nameof(PluginOptions.ModOptions.EnhanceChineseSearch)))
                 {
                     if (options.ModOptions.EnhanceChineseSearch)
-                        EnhanceChineseSearch.UpdateSearchScope(options.ModOptions.SearchScope);
+                        UpdateSearchScope(options.ModOptions.SearchScope);
                 }
 
                 if (changedProperties.Contains(nameof(PluginOptions.NetworkOptions.EnableProxyServer)))
                 {
                     if (options.NetworkOptions.EnableProxyServer)
                     {
-                        EnableProxyServer.Patch();
+                        PatchManager.EnableProxyServer.Patch();
                     }
                     else
                     {
-                        EnableProxyServer.Unpatch();
+                        PatchManager.EnableProxyServer.Unpatch();
                     }
                 }
 
@@ -176,9 +181,9 @@ namespace StrmAssistant.Options.Store
         {
             if (e.Options is PluginOptions options)
             {
-                var suppressLogger = _currentSuppressOnOptionsSaved;
+                var suppress = _currentSuppressOnOptionsSaved;
 
-                if (!suppressLogger)
+                if (!suppress)
                 {
                     _logger.Info("CatchupMode is set to {0}", options.GeneralOptions.CatchupMode);
                     var catchupTaskScope = GetSelectedCatchupTaskDescription();
@@ -211,7 +216,7 @@ namespace StrmAssistant.Options.Store
                             : "EMPTY");
                 }
 
-                if (suppressLogger) _currentSuppressOnOptionsSaved = false;
+                if (suppress) _currentSuppressOnOptionsSaved = false;
             }
         }
     }

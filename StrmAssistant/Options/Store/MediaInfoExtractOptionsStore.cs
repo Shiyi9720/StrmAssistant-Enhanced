@@ -54,11 +54,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.PersistMediaInfo)
                     {
-                        ChapterChangeTracker.Patch();
+                        PatchManager.ChapterChangeTracker.Patch();
                     }
                     else
                     {
-                        ChapterChangeTracker.Unpatch();
+                        PatchManager.ChapterChangeTracker.Unpatch();
                     }
                 }
 
@@ -66,7 +66,7 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.EnableImageCapture)
                     {
-                        EnableImageCapture.Patch();
+                        PatchManager.EnableImageCapture.Patch();
                         if (Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount !=
                             EnableImageCapture.SemaphoreFFmpegMaxCount)
                         {
@@ -75,7 +75,7 @@ namespace StrmAssistant.Options.Store
                     }
                     else
                     {
-                        EnableImageCapture.Unpatch();
+                        PatchManager.EnableImageCapture.Unpatch();
                     }
                 }
 
@@ -83,11 +83,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.ExclusiveExtract)
                     {
-                        ExclusiveExtract.Patch();
+                        PatchManager.ExclusiveExtract.Patch();
                     }
                     else
                     {
-                        ExclusiveExtract.Unpatch();
+                        PatchManager.ExclusiveExtract.Unpatch();
                     }
                 }
 

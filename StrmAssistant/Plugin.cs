@@ -254,7 +254,7 @@ namespace StrmAssistant
             if (e.Item is CollectionFolder library && library.CollectionType == "boxsets" &&
                 !ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation)
             {
-                NoBoxsetsAutoCreation.Patch();
+                PatchManager.NoBoxsetsAutoCreation.Patch();
                 ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation = true;
                 ExperienceEnhanceStore.SavePluginOptionsSuppress();
             }

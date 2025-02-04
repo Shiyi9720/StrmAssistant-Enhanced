@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.Entities;
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
@@ -9,106 +8,41 @@ using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
 {
-    public static class ChapterChangeTracker
+    public class ChapterChangeTracker : PatchBase<ChapterChangeTracker>
     {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(ChapterChangeTracker));
-
         private static MethodInfo _saveChapters;
         private static MethodInfo _deleteChapters;
 
         private static readonly AsyncLocal<long> BypassItem = new AsyncLocal<long>();
 
-        public static void Initialize()
+        public ChapterChangeTracker()
         {
-            try
-            {
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                var sqliteItemRepository =
-                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
-                _saveChapters = sqliteItemRepository.GetMethod("SaveChapters",
-                    BindingFlags.Instance | BindingFlags.Public, null,
-                    new[] { typeof(long), typeof(bool), typeof(List<ChapterInfo>) }, null);
-                _deleteChapters =
-                    sqliteItemRepository.GetMethod("DeleteChapters", BindingFlags.Instance | BindingFlags.Public);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("ChapterChangeTracker - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
+            Initialize();
 
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None &&
-                Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo)
+            if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo)
             {
                 Patch();
             }
         }
 
-        public static void Patch()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony &&
-                Plugin.Instance.MediaInfoExtractStore.GetOptions().IsModSupported)
-            {
-                try
-                {
-                    if (!IsPatched(_saveChapters, typeof(ChapterChangeTracker)))
-                    {
-                        HarmonyMod.Patch(_saveChapters,
-                            postfix: new HarmonyMethod(typeof(ChapterChangeTracker).GetMethod("SaveChaptersPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch SaveChapters Success by Harmony");
-                    }
-                    //if (!IsPatched(_deleteChapters, typeof(ChapterChangeTracker)))
-                    //{
-                    //    HarmonyMod.Patch(_deleteChapters,
-                    //        postfix: new HarmonyMethod(typeof(ChapterChangeTracker).GetMethod("DeleteChaptersPostfix",
-                    //            BindingFlags.Static | BindingFlags.NonPublic)));
-                    //    Plugin.Instance.Logger.Debug(
-                    //        "Patch DeleteChapters Success by Harmony");
-                    //}
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch ChapterChangeTracker Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
+            var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+            var sqliteItemRepository =
+                embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
+            _saveChapters = sqliteItemRepository.GetMethod("SaveChapters",
+                BindingFlags.Instance | BindingFlags.Public, null,
+                new[] { typeof(long), typeof(bool), typeof(List<ChapterInfo>) }, null);
+            _deleteChapters =
+                sqliteItemRepository.GetMethod("DeleteChapters", BindingFlags.Instance | BindingFlags.Public);
         }
 
-        public static void Unpatch()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony &&
-                Plugin.Instance.MediaInfoExtractStore.GetOptions().IsModSupported)
+            if (Plugin.Instance.MediaInfoExtractStore.GetOptions().IsModSupported)
             {
-                try
-                {
-                    if (IsPatched(_saveChapters, typeof(ChapterChangeTracker)))
-                    {
-                        HarmonyMod.Unpatch(_saveChapters,
-                            AccessTools.Method(typeof(ChapterChangeTracker), "SaveChaptersPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch SaveChapters Success by Harmony");
-                    }
-                    //if (IsPatched(_deleteChapters, typeof(ChapterChangeTracker)))
-                    //{
-                    //    HarmonyMod.Unpatch(_deleteChapters,
-                    //        AccessTools.Method(typeof(ChapterChangeTracker), "DeleteChaptersPostfix"));
-                    //    Plugin.Instance.Logger.Debug("Unpatch DeleteChapters Success by Harmony");
-                    //}
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch ChapterChangeTracker Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
+                PatchUnpatch(PatchTracker, apply, _saveChapters, postfix: nameof(SaveChaptersPostfix));
+                //PatchUnpatch(PatchTracker, apply, _deleteChapters, postfix: nameof(DeleteChaptersPostfix));
             }
         }
 

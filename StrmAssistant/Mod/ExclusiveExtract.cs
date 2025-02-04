@@ -5,8 +5,6 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
-using StrmAssistant.Common;
-using StrmAssistant.ScheduledTask;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -19,21 +17,18 @@ using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant.Mod
 {
-    internal class RefreshContext
+    public class ExclusiveExtract : PatchBase<ExclusiveExtract>
     {
-        public long InternalId { get; set; }
-        public MetadataRefreshOptions MetadataRefreshOptions { get; set; }
-        public bool IsNewItem { get; set; }
-        public bool IsFileChanged { get; set; }
-        public bool IsExternalSubtitleChanged { get; set; }
-        public bool IsPersistInScope { get; set; }
-        public bool MediaInfoUpdated { get; set; }
-    }
-
-    public static class ExclusiveExtract
-    {
-        private static readonly PatchApproachTracker PatchApproachTracker =
-            new PatchApproachTracker(nameof(ExclusiveExtract));
+        internal class RefreshContext
+        {
+            public long InternalId { get; set; }
+            public MetadataRefreshOptions MetadataRefreshOptions { get; set; }
+            public bool IsNewItem { get; set; }
+            public bool IsFileChanged { get; set; }
+            public bool IsExternalSubtitleChanged { get; set; }
+            public bool IsPersistInScope { get; set; }
+            public bool MediaInfoUpdated { get; set; }
+        }
 
         private static MethodInfo _canRefreshMetadata;
         private static MethodInfo _canRefreshImage;
@@ -59,292 +54,90 @@ namespace StrmAssistant.Mod
 
         private static AsyncLocal<RefreshContext> CurrentRefreshContext { get; } = new AsyncLocal<RefreshContext>();
 
-        public static void Initialize()
+        public ExclusiveExtract()
         {
-            try
+            Initialize();
+
+            PatchFfProbeProcess();
+
+            if (Plugin.Instance.MediaInfoExtractStore.GetOptions().ExclusiveExtract)
             {
-                var embyProviders = Assembly.Load("Emby.Providers");
-                var providerManager = embyProviders.GetType("Emby.Providers.Manager.ProviderManager");
-                _canRefreshMetadata = providerManager.GetMethod("CanRefresh",
-                    BindingFlags.Static | BindingFlags.NonPublic, null,
-                    new Type[]
-                    {
-                        typeof(IMetadataProvider), typeof(BaseItem), typeof(LibraryOptions), typeof(bool),
-                        typeof(bool), typeof(bool)
-                    }, null);
-                _canRefreshImage = providerManager.GetMethod("CanRefresh",
-                    BindingFlags.Instance | BindingFlags.NonPublic, null,
-                    new Type[]
-                    {
-                        typeof(IImageProvider), typeof(BaseItem), typeof(LibraryOptions),
-                        typeof(ImageRefreshOptions), typeof(bool), typeof(bool)
-                    }, null);
-                _afterMetadataRefresh =
-                    typeof(BaseItem).GetMethod("AfterMetadataRefresh", BindingFlags.Instance | BindingFlags.Public);
-
-                var mediaEncodingAssembly = Assembly.Load("Emby.Server.MediaEncoding");
-                var mediaProbeManager =
-                    mediaEncodingAssembly.GetType("Emby.Server.MediaEncoding.Probing.MediaProbeManager");
-                _runFfProcess =
-                    mediaProbeManager.GetMethod("RunFfProcess", BindingFlags.Instance | BindingFlags.NonPublic);
-                var processRunAssembly = Assembly.Load("Emby.ProcessRun");
-                var processResult = processRunAssembly.GetType("Emby.ProcessRun.Common.ProcessResult");
-                _standardOutput = processResult.GetProperty("StandardOutput");
-                _standardError = processResult.GetProperty("StandardError");
-                
-                var embyApi = Assembly.Load("Emby.Api");
-                var libraryStructureService = embyApi.GetType("Emby.Api.Library.LibraryStructureService");
-                _addVirtualFolder = libraryStructureService.GetMethod("Post",
-                    new[] { embyApi.GetType("Emby.Api.Library.AddVirtualFolder") });
-                _removeVirtualFolder = libraryStructureService.GetMethod("Any",
-                    new[] { embyApi.GetType("Emby.Api.Library.RemoveVirtualFolder") });
-                _addMediaPath = libraryStructureService.GetMethod("Post",
-                    new[] { embyApi.GetType("Emby.Api.Library.AddMediaPath") });
-                _removeMediaPath = libraryStructureService.GetMethod("Any",
-                    new[] { embyApi.GetType("Emby.Api.Library.RemoveMediaPath") });
-
-                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
-                var sqliteItemRepository =
-                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
-                _saveChapters = sqliteItemRepository.GetMethod("SaveChapters",
-                    BindingFlags.Instance | BindingFlags.Public, null,
-                    new[] { typeof(long), typeof(bool), typeof(List<ChapterInfo>) }, null);
-                _deleteChapters =
-                    sqliteItemRepository.GetMethod("DeleteChapters", BindingFlags.Instance | BindingFlags.Public);
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger.Warn("ExclusiveExtract - Patch Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
-                PatchApproachTracker.FallbackPatchApproach = PatchApproach.None;
-            }
-
-            if (HarmonyMod == null) PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-
-            if (PatchApproachTracker.FallbackPatchApproach != PatchApproach.None)
-            {
-                PatchFFProbeProcess();
-
-                if (Plugin.Instance.MediaInfoExtractStore.GetOptions().ExclusiveExtract)
-                {
-                    UpdateExclusiveControlFeatures(Plugin.Instance.MediaInfoExtractStore.GetOptions()
-                        .ExclusiveControlFeatures);
-                    Patch();
-                }
+                UpdateExclusiveControlFeatures(Plugin.Instance.MediaInfoExtractStore.GetOptions()
+                    .ExclusiveControlFeatures);
+                Patch();
             }
         }
 
-        private static void PatchFFProbeProcess()
+        protected override void OnInitialize()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
+            var embyProviders = Assembly.Load("Emby.Providers");
+            var providerManager = embyProviders.GetType("Emby.Providers.Manager.ProviderManager");
+            _canRefreshMetadata = providerManager.GetMethod("CanRefresh",
+                BindingFlags.Static | BindingFlags.NonPublic, null,
+                new Type[]
                 {
-                    if (!IsPatched(_runFfProcess, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_runFfProcess,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RunFfProcessPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RunFfProcessPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch RunFfProcess Success by Harmony");
-                    }
-                }
-                catch (Exception he)
+                    typeof(IMetadataProvider), typeof(BaseItem), typeof(LibraryOptions), typeof(bool),
+                    typeof(bool), typeof(bool)
+                }, null);
+            _canRefreshImage = providerManager.GetMethod("CanRefresh",
+                BindingFlags.Instance | BindingFlags.NonPublic, null,
+                new Type[]
                 {
-                    Plugin.Instance.Logger.Debug("Patch RunFfProcess Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
+                    typeof(IImageProvider), typeof(BaseItem), typeof(LibraryOptions),
+                    typeof(ImageRefreshOptions), typeof(bool), typeof(bool)
+                }, null);
+            _afterMetadataRefresh =
+                typeof(BaseItem).GetMethod("AfterMetadataRefresh", BindingFlags.Instance | BindingFlags.Public);
+
+            var mediaEncodingAssembly = Assembly.Load("Emby.Server.MediaEncoding");
+            var mediaProbeManager =
+                mediaEncodingAssembly.GetType("Emby.Server.MediaEncoding.Probing.MediaProbeManager");
+            _runFfProcess =
+                mediaProbeManager.GetMethod("RunFfProcess", BindingFlags.Instance | BindingFlags.NonPublic);
+            var processRunAssembly = Assembly.Load("Emby.ProcessRun");
+            var processResult = processRunAssembly.GetType("Emby.ProcessRun.Common.ProcessResult");
+            _standardOutput = processResult.GetProperty("StandardOutput");
+            _standardError = processResult.GetProperty("StandardError");
+
+            var embyApi = Assembly.Load("Emby.Api");
+            var libraryStructureService = embyApi.GetType("Emby.Api.Library.LibraryStructureService");
+            _addVirtualFolder = libraryStructureService.GetMethod("Post",
+                new[] { embyApi.GetType("Emby.Api.Library.AddVirtualFolder") });
+            _removeVirtualFolder = libraryStructureService.GetMethod("Any",
+                new[] { embyApi.GetType("Emby.Api.Library.RemoveVirtualFolder") });
+            _addMediaPath = libraryStructureService.GetMethod("Post",
+                new[] { embyApi.GetType("Emby.Api.Library.AddMediaPath") });
+            _removeMediaPath = libraryStructureService.GetMethod("Any",
+                new[] { embyApi.GetType("Emby.Api.Library.RemoveMediaPath") });
+
+            var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+            var sqliteItemRepository =
+                embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
+            _saveChapters = sqliteItemRepository.GetMethod("SaveChapters",
+                BindingFlags.Instance | BindingFlags.Public, null,
+                new[] { typeof(long), typeof(bool), typeof(List<ChapterInfo>) }, null);
+            _deleteChapters =
+                sqliteItemRepository.GetMethod("DeleteChapters", BindingFlags.Instance | BindingFlags.Public);
         }
 
-        private static void UnpatchFFProbeProcess()
+        protected override void Prepare(bool apply)
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_runFfProcess, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_runFfProcess,
-                            AccessTools.Method(typeof(ExclusiveExtract), "RunFfProcessPrefix"));
-                        HarmonyMod.Unpatch(_runFfProcess,
-                            AccessTools.Method(typeof(ExclusiveExtract), "RunFfProcessPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch RunFfProcess Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch RunFfProcess Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, apply, _canRefreshImage, prefix: nameof(CanRefreshImagePrefix));
+            PatchUnpatch(PatchTracker, apply, _canRefreshMetadata, prefix: nameof(CanRefreshMetadataPrefix),
+                postfix: nameof(CanRefreshMetadataPostfix));
+            PatchUnpatch(PatchTracker, apply, _afterMetadataRefresh, prefix: nameof(AfterMetadataRefreshPrefix));
+            PatchUnpatch(PatchTracker, apply, _addVirtualFolder, prefix: nameof(RefreshLibraryPrefix));
+            PatchUnpatch(PatchTracker, apply, _removeVirtualFolder, prefix: nameof(RefreshLibraryPrefix));
+            PatchUnpatch(PatchTracker, apply, _addMediaPath, prefix: nameof(RefreshLibraryPrefix));
+            PatchUnpatch(PatchTracker, apply, _removeMediaPath, prefix: nameof(RefreshLibraryPrefix));
+            PatchUnpatch(PatchTracker, apply, _saveChapters, prefix: nameof(SaveChaptersPrefix));
+            PatchUnpatch(PatchTracker, apply, _deleteChapters, prefix: nameof(DeleteChaptersPrefix));
         }
 
-        public static void Patch()
+        private void PatchFfProbeProcess()
         {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (!IsPatched(_canRefreshMetadata, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_canRefreshMetadata,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("CanRefreshMetadataPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)),
-                            postfix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("CanRefreshMetadataPostfix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch CanRefreshMetadata Success by Harmony");
-                    }
-                    if (!IsPatched(_canRefreshImage, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_canRefreshImage,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("CanRefreshImagePrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch CanRefreshImage Success by Harmony");
-                    }
-                    if (!IsPatched(_afterMetadataRefresh, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_afterMetadataRefresh,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("AfterMetadataRefreshPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug("Patch AfterMetadataRefresh Success by Harmony");
-                    }
-                    if (!IsPatched(_addVirtualFolder, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_addVirtualFolder,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RefreshLibraryPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch AddVirtualFolder Success by Harmony");
-                    }
-                    if (!IsPatched(_removeVirtualFolder, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_removeVirtualFolder,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RefreshLibraryPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch RemoveVirtualFolder Success by Harmony");
-                    }
-                    if (!IsPatched(_addMediaPath, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_addMediaPath,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RefreshLibraryPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch AddMediaPath Success by Harmony");
-                    }
-                    if (!IsPatched(_removeMediaPath, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_removeMediaPath,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("RefreshLibraryPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch RemoveMediaPath Success by Harmony");
-                    }
-                    if (!IsPatched(_saveChapters, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_saveChapters,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("SaveChaptersPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch SaveChapters Success by Harmony");
-                    }
-                    if (!IsPatched(_deleteChapters, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Patch(_deleteChapters,
-                            prefix: new HarmonyMethod(typeof(ExclusiveExtract).GetMethod("DeleteChaptersPrefix",
-                                BindingFlags.Static | BindingFlags.NonPublic)));
-                        Plugin.Instance.Logger.Debug(
-                            "Patch DeleteChapters Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Patch ExclusiveExtract Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                    PatchApproachTracker.FallbackPatchApproach = PatchApproach.Reflection;
-                }
-            }
-        }
-
-        public static void Unpatch()
-        {
-            if (PatchApproachTracker.FallbackPatchApproach == PatchApproach.Harmony)
-            {
-                try
-                {
-                    if (IsPatched(_canRefreshMetadata, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_canRefreshMetadata,
-                            AccessTools.Method(typeof(ExclusiveExtract), "CanRefreshMetadataPrefix"));
-                        HarmonyMod.Unpatch(_canRefreshMetadata,
-                            AccessTools.Method(typeof(ExclusiveExtract), "CanRefreshMetadataPostfix"));
-                        Plugin.Instance.Logger.Debug("Unpatch CanRefreshMetadata Success by Harmony");
-                    }
-                    if (IsPatched(_canRefreshImage, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_canRefreshImage,
-                            AccessTools.Method(typeof(ExclusiveExtract), "CanRefreshImagePrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch CanRefreshImage Success by Harmony");
-                    }
-                    if (IsPatched(_afterMetadataRefresh, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_afterMetadataRefresh,
-                            AccessTools.Method(typeof(ExclusiveExtract), "AfterMetadataRefreshPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch AfterMetadataRefresh Success by Harmony");
-                    }
-                    if (IsPatched(_addVirtualFolder, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_addVirtualFolder,
-                            AccessTools.Method(typeof(ExclusiveExtract), "RefreshLibraryPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch AddVirtualFolder Success by Harmony");
-                    }
-                    if (IsPatched(_removeVirtualFolder, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_removeVirtualFolder,
-                            AccessTools.Method(typeof(ExclusiveExtract), "RefreshLibraryPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch RemoveVirtualFolder Success by Harmony");
-                    }
-                    if (IsPatched(_addMediaPath, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_addMediaPath,
-                            AccessTools.Method(typeof(ExclusiveExtract), "RefreshLibraryPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch AddMediaPath Success by Harmony");
-                    }
-                    if (IsPatched(_removeMediaPath, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_removeMediaPath,
-                            AccessTools.Method(typeof(ExclusiveExtract), "RefreshLibraryPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch RemoveMediaPath Success by Harmony");
-                    }
-                    if (IsPatched(_saveChapters, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_saveChapters,
-                            AccessTools.Method(typeof(ExclusiveExtract), "SaveChaptersPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch SaveChapters Success by Harmony");
-                    }
-                    if (IsPatched(_deleteChapters, typeof(ExclusiveExtract)))
-                    {
-                        HarmonyMod.Unpatch(_deleteChapters,
-                            AccessTools.Method(typeof(ExclusiveExtract), "DeleteChaptersPrefix"));
-                        Plugin.Instance.Logger.Debug("Unpatch DeleteChapters Success by Harmony");
-                    }
-                }
-                catch (Exception he)
-                {
-                    Plugin.Instance.Logger.Debug("Unpatch ExclusiveExtract Failed by Harmony");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
-                }
-            }
+            PatchUnpatch(PatchTracker, true, _runFfProcess, prefix: nameof(RunFfProcessPrefix),
+                postfix: nameof(RunFfProcessPostfix));
         }
 
         public static void AllowExtractInstance(BaseItem item)

@@ -50,11 +50,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.MergeMultiVersion)
                     {
-                        MergeMultiVersion.Patch();
+                        PatchManager.MergeMultiVersion.Patch();
                     }
                     else
                     {
-                        MergeMultiVersion.Unpatch();
+                        PatchManager.MergeMultiVersion.Unpatch();
                     }
                 }
 
@@ -62,11 +62,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.EnhanceNotificationSystem)
                     {
-                        EnhanceNotificationSystem.Patch();
+                        PatchManager.EnhanceNotificationSystem.Patch();
                     }
                     else
                     {
-                        EnhanceNotificationSystem.Unpatch();
+                        PatchManager.EnhanceNotificationSystem.Unpatch();
                     }
                 }
 
@@ -74,11 +74,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.UIFunctionOptions.HidePersonNoImage)
                     {
-                        HidePersonNoImage.Patch();
+                        PatchManager.HidePersonNoImage.Patch();
                     }
                     else
                     {
-                        HidePersonNoImage.Unpatch();
+                        PatchManager.HidePersonNoImage.Unpatch();
                     }
                 }
 
@@ -86,11 +86,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.UIFunctionOptions.EnforceLibraryOrder)
                     {
-                        EnforceLibraryOrder.Patch();
+                        PatchManager.EnforceLibraryOrder.Patch();
                     }
                     else
                     {
-                        EnforceLibraryOrder.Unpatch();
+                        PatchManager.EnforceLibraryOrder.Unpatch();
                     }
                 }
 
@@ -98,11 +98,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.UIFunctionOptions.BeautifyMissingMetadata)
                     {
-                        BeautifyMissingMetadata.Patch();
+                        PatchManager.BeautifyMissingMetadata.Patch();
                     }
                     else
                     {
-                        BeautifyMissingMetadata.Unpatch();
+                        PatchManager.BeautifyMissingMetadata.Unpatch();
                     }
                 }
 
@@ -110,11 +110,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.UIFunctionOptions.EnhanceMissingEpisodes)
                     {
-                        EnhanceMissingEpisodes.Patch();
+                        PatchManager.EnhanceMissingEpisodes.Patch();
                     }
                     else
                     {
-                        EnhanceMissingEpisodes.Unpatch();
+                        PatchManager.EnhanceMissingEpisodes.Unpatch();
                     }
                 }
 
@@ -122,11 +122,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.UIFunctionOptions.NoBoxsetsAutoCreation)
                     {
-                        NoBoxsetsAutoCreation.Patch();
+                        PatchManager.NoBoxsetsAutoCreation.Patch();
                     }
                     else
                     {
-                        NoBoxsetsAutoCreation.Unpatch();
+                        PatchManager.NoBoxsetsAutoCreation.Unpatch();
                     }
                 }
             }
@@ -136,9 +136,9 @@ namespace StrmAssistant.Options.Store
         {
             if (e.Options is ExperienceEnhanceOptions options)
             {
-                var suppressLogger = _currentSuppressOnOptionsSaved;
+                var suppress = _currentSuppressOnOptionsSaved;
 
-                if (!suppressLogger)
+                if (!suppress)
                 {
                     _logger.Info("MergeMultiVersion is set to {0}", options.MergeMultiVersion);
                     _logger.Info("EnhanceNotificationSystem is set to {0}", options.EnhanceNotificationSystem);
@@ -161,7 +161,7 @@ namespace StrmAssistant.Options.Store
                         options.UIFunctionOptions.NoBoxsetsAutoCreation);
                 }
 
-                if (suppressLogger) _currentSuppressOnOptionsSaved = false;
+                if (suppress) _currentSuppressOnOptionsSaved = false;
             }
         }
     }

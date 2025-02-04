@@ -73,11 +73,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.ChineseMovieDb)
                     {
-                        ChineseMovieDb.Patch();
+                        PatchManager.ChineseMovieDb.Patch();
                     }
                     else
                     {
-                        ChineseMovieDb.Unpatch();
+                        PatchManager.ChineseMovieDb.Unpatch();
                     }
                 }
 
@@ -85,11 +85,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.ChineseTvdb)
                     {
-                        ChineseTvdb.Patch();
+                        PatchManager.ChineseTvdb.Patch();
                     }
                     else
                     {
-                        ChineseTvdb.Unpatch();
+                        PatchManager.ChineseTvdb.Unpatch();
                     }
                 }
 
@@ -97,11 +97,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.MovieDbEpisodeGroup)
                     {
-                        MovieDbEpisodeGroup.Patch();
+                        PatchManager.MovieDbEpisodeGroup.Patch();
                     }
                     else
                     {
-                        MovieDbEpisodeGroup.Unpatch();
+                        PatchManager.MovieDbEpisodeGroup.Unpatch();
                     }
                 }
 
@@ -109,11 +109,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.EnhanceMovieDbPerson)
                     {
-                        EnhanceMovieDbPerson.Patch();
+                        PatchManager.EnhanceMovieDbPerson.Patch();
                     }
                     else
                     {
-                        EnhanceMovieDbPerson.Unpatch();
+                        PatchManager.EnhanceMovieDbPerson.Unpatch();
                     }
                 }
 
@@ -121,14 +121,15 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.AltMovieDbConfig)
                     {
-                        AltMovieDbConfig.PatchApiUrl();
-                        if (!string.IsNullOrEmpty(options.AltMovieDbImageUrl)) AltMovieDbConfig.PatchImageUrl();
+                        PatchManager.AltMovieDbConfig.PatchApiUrl();
+                        if (!string.IsNullOrEmpty(options.AltMovieDbImageUrl))
+                            PatchManager.AltMovieDbConfig.PatchImageUrl();
                     }
                     else
                     {
-                        AltMovieDbConfig.UnpatchApiUrl();
+                        PatchManager.AltMovieDbConfig.UnpatchApiUrl();
                         if (!string.IsNullOrEmpty(MetadataEnhanceOptions.AltMovieDbImageUrl))
-                            AltMovieDbConfig.UnpatchImageUrl();
+                            PatchManager.AltMovieDbConfig.UnpatchImageUrl();
                     }
                 }
 
@@ -136,11 +137,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (!string.IsNullOrEmpty(options.AltMovieDbImageUrl))
                     {
-                        AltMovieDbConfig.PatchImageUrl();
+                        PatchManager.AltMovieDbConfig.PatchImageUrl();
                     }
                     else
                     {
-                        AltMovieDbConfig.UnpatchImageUrl();
+                        PatchManager.AltMovieDbConfig.UnpatchImageUrl();
                     }
                 }
 
@@ -148,11 +149,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.PreferOriginalPoster)
                     {
-                        PreferOriginalPoster.Patch();
+                        PatchManager.PreferOriginalPoster.Patch();
                     }
                     else
                     {
-                        PreferOriginalPoster.Unpatch();
+                        PatchManager.PreferOriginalPoster.Unpatch();
                     }
                 }
 
@@ -160,11 +161,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.PinyinSortName)
                     {
-                        PinyinSortName.Patch();
+                        PatchManager.PinyinSortName.Patch();
                     }
                     else
                     {
-                        PinyinSortName.Unpatch();
+                        PatchManager.PinyinSortName.Unpatch();
                     }
                 }
 
@@ -172,11 +173,11 @@ namespace StrmAssistant.Options.Store
                 {
                     if (options.EnhanceNfoMetadata)
                     {
-                        EnhanceNfoMetadata.Patch();
+                        PatchManager.EnhanceNfoMetadata.Patch();
                     }
                     else
                     {
-                        EnhanceNfoMetadata.Unpatch();
+                        PatchManager.EnhanceNfoMetadata.Unpatch();
                     }
                 }
             }
