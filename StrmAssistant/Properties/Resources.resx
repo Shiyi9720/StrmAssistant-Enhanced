@@ -429,7 +429,7 @@
     <value>Extract MediaInfo</value>
   </data>
   <data name="ExtractMediaInfoTask_Description_Extracts_media_info_from_videos_and_audios" xml:space="preserve">
-    <value>Extracts media info from videos and audios</value>
+    <value>Extracts media info from videos and audios, and image capture</value>
   </data>
   <data name="PersistMediaInfoTask_Name_Persist_MediaInfo" xml:space="preserve">
     <value>Persist MediaInfo</value>

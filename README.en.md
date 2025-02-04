@@ -11,15 +11,15 @@
 
 ## Update
 
-1. Support concurrent tasks (default is 1, max is 10), check [Wiki](https://github.com/sjtuross/StrmAssistant/wiki/媒体信息提取-(MediaInfo-Extract))
-2. Add `Strm Only` option (default is True) to support non-strm media imported with ffprobe blocked
-3. Include media extras (default is False)
+1. Support concurrent tasks
+2. Support non-strm media imported with ffprobe blocked
+3. Include media extras
 4. Process media items by release date in the descending order
-5. Add plugin config page with libraries selection
-6. Image capture enhanced (default is False), check [Wiki](https://github.com/sjtuross/StrmAssistant/wiki/视频截图预览增强) for details.
-7. Introduce catch-up mode (default is False), check [Wiki](https://github.com/sjtuross/StrmAssistant/wiki/追更模式-(Catch‐up-Mode)) for details.
-8. Playback behavior-based intro and credits detection for episodes (default is False), check [Wiki](https://github.com/sjtuross/StrmAssistant/wiki/片头探测-‐-播放行为) for details.
-9. Independent external subtitle scan, check [Wiki](https://github.com/sjtuross/StrmAssistant/wiki/独立的外挂字幕扫描-(External-Subtitle-Scan)) for details.
+5. Add plugin config page with library multi-selection
+6. Image capture enhanced
+7. Introduce catch-up mode
+8. Playback behavior-based intro and credits detection for episodes
+9. Independent external subtitle scan
 
 ## Install
 
@@ -27,4 +27,4 @@
 2. Restart Emby
 3. Go to the Plugins page and check the plugin version and settings
 
-**Note**: The minimum required Emby version is 4.8.0.80.
+**Note**: The minimum required Emby version is 4.8.5.0.
