@@ -120,7 +120,7 @@
     <value>备选语言</value>
   </data>
   <data name="ModOptions_FallbackLanguages_Fallback_languages__Default_is_zh_SG_" xml:space="preserve">
-    <value>备选元数据语言，优先级为从左到右。</value>
+    <value>备选元数据语言，优先级为从左至右。</value>
   </data>
   <data name="Favorites" xml:space="preserve">
     <value>❤️最爱</value>
@@ -342,7 +342,7 @@
     <value>提取媒体信息</value>
   </data>
   <data name="ExtractMediaInfoTask_Description_Extracts_media_info_from_videos_and_audios" xml:space="preserve">
-    <value>提取视频和音频的媒体信息</value>
+    <value>提取视频和音频的媒体信息，以及视频截图</value>
   </data>
   <data name="PersistMediaInfoTask_Name_Persist_MediaInfo" xml:space="preserve">
     <value>持久化媒体信息</value>
