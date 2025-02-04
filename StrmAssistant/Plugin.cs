@@ -168,7 +168,7 @@ namespace StrmAssistant
             {
                 var deserializeResult = false;
 
-                if (_currentPersistMediaInfo && (e.Item is Video || e.Item is Audio) && LibraryApi.IsLibraryInScope(e.Item))
+                if (_currentPersistMediaInfo && (e.Item is Video || e.Item is Audio))
                 {
                     if (e.Item.IsShortcut)
                     {

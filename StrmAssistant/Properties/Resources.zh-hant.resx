@@ -120,7 +120,7 @@
     <value>備選語言</value>
   </data>
   <data name="ModOptions_FallbackLanguages_Fallback_languages__Default_is_zh_SG_" xml:space="preserve">
-    <value>備選元資料語言，可多選。</value>
+    <value>备选元数据语言，优先级为从左到右。</value>
   </data>
   <data name="Favorites" xml:space="preserve">
     <value>❤️最愛</value>
@@ -249,10 +249,10 @@
     <value>UI 功能</value>
   </data>
   <data name="UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata" xml:space="preserve">
-    <value>劇集集標題自動補全</value>
+    <value>美化標題顯示</value>
   </data>
   <data name="UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_" xml:space="preserve">
-    <value>對於缺少元資料匹配的劇集集標題自動補全顯示，預設為關閉。</value>
+    <value>對於缺少元資料匹配的劇集集標題自動補全顯示，美化分集標題顯示，預設為關閉。</value>
   </data>
   <data name="UIFunctionOptions_EnforceLibraryOrder_Enforce_Library_Order" xml:space="preserve">
     <value>強制媒體庫排序</value>
@@ -474,10 +474,10 @@
     <value>自訂片頭聲紋探測時長，必須在 2 至 20 之間，預設為 10。</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation" xml:space="preserve">
-    <value>避免合集庫自動創建</value>
+    <value>隱藏合集媒體庫</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>避免掃庫時自動建立合集媒體庫，搭配刪除使​​用，預設為關閉。</value>
+    <value>使用者介面隱藏合集媒體庫，若刪除可避免掃庫時自動創建，預設為關閉。</value>
   </data>
   <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
     <value>伺服器首選元資料語言未設定為中文，刷新演員任務已中止。</value>
@@ -535,5 +535,17 @@
   </data>
   <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
     <value>按電視節目分組的通知中新增集訊息，預設為關閉。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_" xml:space="preserve">
+    <value>盡可能從 TVDB 取得中文或日文元數據，預設為關閉。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language" xml:space="preserve">
+    <value>自訂 TVDB 備選語言</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language" xml:space="preserve">
+    <value>屏蔽非備選語言</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_" xml:space="preserve">
+    <value>為電影，節目和劇集的簡介屏蔽英文等非替代語言，支援 TMDB, TVDB，預設為關閉。</value>
   </data>
 </root>

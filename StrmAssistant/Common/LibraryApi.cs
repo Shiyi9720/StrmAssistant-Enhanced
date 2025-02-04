@@ -735,13 +735,17 @@ namespace StrmAssistant.Common
             return mediaInfoJsonPath;
         }
 
-        public async Task SerializeMediaInfo(BaseItem item, IDirectoryService directoryService, bool overwrite,
+        public async Task<bool> SerializeMediaInfo(BaseItem item, IDirectoryService directoryService, bool overwrite,
             string source, CancellationToken cancellationToken)
         {
-            var workItem = item;
-            if (!item.RunTimeTicks.HasValue)
+            if (!IsLibraryInScope(item)) return false;
+
+            var workItem = _libraryManager.GetItemById(item.InternalId);
+
+            if (!HasMediaInfo(workItem))
             {
-                workItem = _libraryManager.GetItemById(item.InternalId);
+                _logger.Info("MediaInfoPersist - Serialization Skipped - No MediaInfo (" + source + ")");
+                return false;
             }
 
             var mediaInfoJsonPath = GetMediaInfoJsonPath(workItem);
@@ -749,69 +753,67 @@ namespace StrmAssistant.Common
 
             if (overwrite || file?.Exists != true || HasFileChanged(workItem, directoryService))
             {
-                if (HasMediaInfo(workItem))
+                try
                 {
-                    try
-                    {
-                        await Task.Run(() =>
+                    await Task.Run(() =>
+                        {
+                            var options = _libraryManager.GetLibraryOptions(workItem);
+                            var mediaSources = workItem.GetMediaSources(false, false, options);
+                            var chapters = BaseItem.ItemRepository.GetChapters(workItem);
+                            var mediaSourcesWithChapters = mediaSources.Select(mediaSource =>
+                                    new MediaSourceWithChapters
+                                        { MediaSourceInfo = mediaSource, Chapters = chapters })
+                                .ToList();
+
+                            foreach (var jsonItem in mediaSourcesWithChapters)
                             {
-                                var options = _libraryManager.GetLibraryOptions(workItem);
-                                var mediaSources = workItem.GetMediaSources(false, false, options);
-                                var chapters = BaseItem.ItemRepository.GetChapters(workItem);
-                                var mediaSourcesWithChapters = mediaSources.Select(mediaSource =>
-                                        new MediaSourceWithChapters
-                                            { MediaSourceInfo = mediaSource, Chapters = chapters })
-                                    .ToList();
+                                jsonItem.MediaSourceInfo.Id = null;
+                                jsonItem.MediaSourceInfo.ItemId = null;
+                                jsonItem.MediaSourceInfo.Path = null;
 
-                                foreach (var jsonItem in mediaSourcesWithChapters)
+                                if (workItem is Episode)
                                 {
-                                    jsonItem.MediaSourceInfo.Id = null;
-                                    jsonItem.MediaSourceInfo.ItemId = null;
-                                    jsonItem.MediaSourceInfo.Path = null;
-
-                                    if (workItem is Episode)
-                                    {
-                                        jsonItem.ZeroFingerprintConfidence =
-                                            !string.IsNullOrEmpty(
-                                                BaseItem.ItemRepository.GetIntroDetectionFailureResult(
-                                                    workItem.InternalId));
-                                    }
+                                    jsonItem.ZeroFingerprintConfidence =
+                                        !string.IsNullOrEmpty(
+                                            BaseItem.ItemRepository.GetIntroDetectionFailureResult(
+                                                workItem.InternalId));
                                 }
+                            }
 
-                                var parentDirectory = Path.GetDirectoryName(mediaInfoJsonPath);
-                                if (!string.IsNullOrEmpty(parentDirectory))
-                                {
-                                    Directory.CreateDirectory(parentDirectory);
-                                }
+                            var parentDirectory = Path.GetDirectoryName(mediaInfoJsonPath);
+                            if (!string.IsNullOrEmpty(parentDirectory))
+                            {
+                                Directory.CreateDirectory(parentDirectory);
+                            }
 
-                                _jsonSerializer.SerializeToFile(mediaSourcesWithChapters, mediaInfoJsonPath);
-                            }, cancellationToken)
-                            .ConfigureAwait(false);
-                        _logger.Info("MediaInfoPersist - Serialization Success (" + source + "): " + mediaInfoJsonPath);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.Error("MediaInfoPersist - Serialization Failed (" + source + "): " + mediaInfoJsonPath);
-                        _logger.Error(e.Message);
-                        _logger.Debug(e.StackTrace);
-                    }
+                            _jsonSerializer.SerializeToFile(mediaSourcesWithChapters, mediaInfoJsonPath);
+                        }, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    _logger.Info("MediaInfoPersist - Serialization Success (" + source + "): " + mediaInfoJsonPath);
+
+                    return true;
                 }
-                else
+                catch (Exception e)
                 {
-                    _logger.Info("MediaInfoPersist - Serialization Skipped (No MediaInfo): " + mediaInfoJsonPath);
+                    _logger.Error("MediaInfoPersist - Serialization Failed (" + source + "): " + mediaInfoJsonPath);
+                    _logger.Error(e.Message);
+                    _logger.Debug(e.StackTrace);
                 }
             }
+
+            return false;
         }
 
-        public async Task SerializeMediaInfo(long itemId, bool overwrite, string source, CancellationToken cancellationToken)
+        public async Task<bool> SerializeMediaInfo(long itemId, bool overwrite, string source, CancellationToken cancellationToken)
         {
             var item = _libraryManager.GetItemById(itemId);
 
-            if (!IsLibraryInScope(item) || !HasMediaInfo(item)) return;
+            if (!IsLibraryInScope(item) || !HasMediaInfo(item)) return false;
 
             var directoryService = new DirectoryService(_logger, _fileSystem);
 
-            await SerializeMediaInfo(item, directoryService, overwrite, source, cancellationToken)
+            return await SerializeMediaInfo(item, directoryService, overwrite, source, cancellationToken)
                 .ConfigureAwait(false);
         }
 

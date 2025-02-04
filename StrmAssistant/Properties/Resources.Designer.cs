@@ -327,7 +327,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Exclude Behind-the-scenes Staff.
+        ///   Looks up a localized string similar to Show Actor Only.
         /// </summary>
         public static string HidePersonOption_ActorOnly_ActorOnly {
             get {
@@ -894,6 +894,44 @@ namespace StrmAssistant.Properties {
             get {
                 return ResourceManager.GetString("MetadataEnhanceOptions_AltMovieDbImageUrl_No_default_alternative__Provide_by_your" +
                         "self_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Block English such non fallback language in overview. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_l" +
+                        "anguage_in_overview__Default_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Block Non Fallback Language.
+        /// </summary>
+        public static string MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Customize Tvdb Fallback Language.
+        /// </summary>
+        public static string MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Try to get Chinese or Japanese metadata from Tvdb. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_T" +
+                        "vdb__Default_is_OFF_", resourceCulture);
             }
         }
         

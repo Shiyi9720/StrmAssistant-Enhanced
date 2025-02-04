@@ -207,7 +207,7 @@
     <value>Fallback Languages</value>
   </data>
   <data name="ModOptions_FallbackLanguages_Fallback_languages__Default_is_zh_SG_" xml:space="preserve">
-    <value>Fallback metadata languages.</value>
+    <value>Fallback metadata languages, prioritized from left to right.</value>
   </data>
   <data name="Favorites" xml:space="preserve">
     <value>❤️Favorites</value>
@@ -336,10 +336,10 @@
     <value>UI Functions</value>
   </data>
   <data name="UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata" xml:space="preserve">
-    <value>Beautify Episode Title</value>
+    <value>Beautify Title Display</value>
   </data>
   <data name="UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_" xml:space="preserve">
-    <value>Beautify episode title display with no metadata. Default is OFF.</value>
+    <value>Beautify episode title display with no metadata and additional part title display. Default is OFF.</value>
   </data>
   <data name="UIFunctionOptions_EnforceLibraryOrder_Enforce_Library_Order" xml:space="preserve">
     <value>Enforce Library Order</value>
@@ -561,10 +561,10 @@
     <value>Customize intro detection fingerprint length. It must be between 2 and 20. Default is 10.</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation" xml:space="preserve">
-    <value>Prevent Boxsets Auto Creation</value>
+    <value>Hide Collection Library</value>
   </data>
   <data name="UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_" xml:space="preserve">
-    <value>Prevent automatic boxset library creation, used along with removal. Default is OFF.</value>
+    <value>Hide collection library from user views, if removed, prevent auto creation. Default is OFF.</value>
   </data>
   <data name="ServerPreferredMetadataLanguageIsNotZh" xml:space="preserve">
     <value>Server Preferred Metadata Language is not set to Chinese. RefreshPerson Task Aborted.</value>
@@ -622,5 +622,17 @@
   </data>
   <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
     <value>Show episode details in add/remove series group notification. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_" xml:space="preserve">
+    <value>Try to get Chinese or Japanese metadata from Tvdb. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language" xml:space="preserve">
+    <value>Customize Tvdb Fallback Language</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language" xml:space="preserve">
+    <value>Block Non Fallback Language</value>
+  </data>
+  <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_" xml:space="preserve">
+    <value>Block English such non fallback language for movie, series, season and episode overview. Default is OFF.</value>
   </data>
 </root>
