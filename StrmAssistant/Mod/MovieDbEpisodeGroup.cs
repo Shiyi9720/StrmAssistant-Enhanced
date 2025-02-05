@@ -94,8 +94,9 @@ namespace StrmAssistant.Mod
             }
             else
             {
-                Plugin.Instance.Logger.Info("MovieDbEpisodeGroup - MovieDb plugin is not installed");
+                Plugin.Instance.Logger.Warn("MovieDbEpisodeGroup - MovieDb plugin is not installed");
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
+                PatchTracker.IsSupported = false;
             }
         }
 

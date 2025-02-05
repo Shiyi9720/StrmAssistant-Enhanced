@@ -116,7 +116,7 @@ namespace StrmAssistant.Mod
             }
             else
             {
-                Plugin.Instance.Logger.Info("OriginalPoster - MovieDb plugin is not installed");
+                Plugin.Instance.Logger.Warn("OriginalPoster - MovieDb plugin is not installed");
             }
 
             _tvdbAssembly = AppDomain.CurrentDomain
@@ -140,22 +140,29 @@ namespace StrmAssistant.Mod
             }
             else
             {
-                Plugin.Instance.Logger.Info("OriginalPoster - Tvdb plugin is not installed");
+                Plugin.Instance.Logger.Warn("OriginalPoster - Tvdb plugin is not installed");
             }
 
-            var embyProvidersAssembly = Assembly.Load("Emby.Providers");
-            var providerManager =
-                embyProvidersAssembly.GetType("Emby.Providers.Manager.ProviderManager");
-            _getAvailableRemoteImages = providerManager.GetMethod("GetAvailableRemoteImages",
-                BindingFlags.Instance | BindingFlags.Public, null,
-                new[]
-                {
-                    typeof(BaseItem), typeof(LibraryOptions), typeof(RemoteImageQuery),
-                    typeof(IDirectoryService), typeof(CancellationToken)
-                }, null);
-            _remoteImageTaskResult =
-                typeof(Task<IEnumerable<RemoteImageInfo>>).GetField("m_result",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
+            if (_movieDbAssembly != null || _tvdbAssembly != null)
+            {
+                var embyProvidersAssembly = Assembly.Load("Emby.Providers");
+                var providerManager = embyProvidersAssembly.GetType("Emby.Providers.Manager.ProviderManager");
+                _getAvailableRemoteImages = providerManager.GetMethod("GetAvailableRemoteImages",
+                    BindingFlags.Instance | BindingFlags.Public, null,
+                    new[]
+                    {
+                        typeof(BaseItem), typeof(LibraryOptions), typeof(RemoteImageQuery),
+                        typeof(IDirectoryService), typeof(CancellationToken)
+                    }, null);
+                _remoteImageTaskResult =
+                    typeof(Task<IEnumerable<RemoteImageInfo>>).GetField("m_result",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+            else
+            {
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
+                PatchTracker.IsSupported = false;
+            }
         }
         
         protected override void Prepare(bool apply)

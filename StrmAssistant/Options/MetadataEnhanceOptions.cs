@@ -43,7 +43,7 @@ namespace StrmAssistant.Options
 
         [DisplayNameL("MetadataEnhanceOptions_ChineseTvdb_Customize_Tvdb_Fallback_Language", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_", typeof(Resources))]
-        [VisibleCondition(nameof(IsTvdbPluginLoaded), SimpleCondition.IsTrue)]
+        [EnabledCondition(nameof(IsTvdbPluginLoaded), SimpleCondition.IsTrue)]
         [Required]
         public bool ChineseTvdb { get; set; } = false;
         
@@ -128,15 +128,15 @@ namespace StrmAssistant.Options
         public bool IsMovieDbPluginLoaded =>
             AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "MovieDb") &&
             RuntimeInformation.ProcessArchitecture == Architecture.X64;
-        
+
         [Browsable(false)]
         public bool IsTvdbPluginLoaded =>
-            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Tvdb") &&
+            ChineseTvdb || AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Tvdb") &&
             RuntimeInformation.ProcessArchitecture == Architecture.X64;
 
         [Browsable(false)]
         public bool IsNfoMetadataPluginLoaded =>
-            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "NfoMetadata") &&
+            EnhanceNfoMetadata || AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "NfoMetadata") &&
             RuntimeInformation.ProcessArchitecture == Architecture.X64;
 
         [Browsable(false)]

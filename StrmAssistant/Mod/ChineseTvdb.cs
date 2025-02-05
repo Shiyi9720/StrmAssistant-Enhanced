@@ -88,8 +88,9 @@ namespace StrmAssistant.Mod
             }
             else
             {
-                Plugin.Instance.Logger.Info("ChineseTvdb - Tvdb plugin is not installed");
+                Plugin.Instance.Logger.Warn("ChineseTvdb - Tvdb plugin is not installed");
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
+                PatchTracker.IsSupported = false;
             }
         }
 

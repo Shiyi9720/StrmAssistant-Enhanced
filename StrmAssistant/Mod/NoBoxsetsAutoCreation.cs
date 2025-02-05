@@ -35,16 +35,16 @@ namespace StrmAssistant.Mod
                 _ensureLibraryFolder = collectionManager.GetMethod("EnsureLibraryFolder",
                     BindingFlags.Instance | BindingFlags.NonPublic);
                 var userViewManager =
-                    embyServerImplementationsAssembly.GetType(
-                        "Emby.Server.Implementations.Library.UserViewManager");
+                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Library.UserViewManager");
                 _getUserViews = userViewManager.GetMethods(BindingFlags.Instance | BindingFlags.Public)
                     .FirstOrDefault(m => m.Name == "GetUserViews" &&
                                          (m.GetParameters().Length == 3 || m.GetParameters().Length == 4));
             }
             else
             {
+                Plugin.Instance.Logger.Warn("NoBoxsetsAutoCreation - Minimum required server version is 4.8.4.0");
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
-                PatchTracker.IsSupported= false;
+                PatchTracker.IsSupported = false;
             }
         }
 
