@@ -20,11 +20,11 @@
   <ItemGroup>
     <PackageReference Include="CHTCHSConv" Version="1.0.0">
     </PackageReference>
-    <PackageReference Include="ILRepack" Version="2.0.36">
+    <PackageReference Include="ILRepack" Version="2.0.37">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Lib.Harmony.Thin" Version="2.3.3">
+    <PackageReference Include="Lib.Harmony.Thin" Version="2.3.5">
       <GeneratePathProperty>True</GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="mediabrowser.server.core" Version="4.8.5" />
