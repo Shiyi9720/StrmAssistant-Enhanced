@@ -292,20 +292,24 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool SupportsImageCapturePrefix(BaseItem item, ref bool __result)
+        private static bool SupportsImageCapturePrefix(BaseItem item, ref bool __result, out bool __state)
         {
-            if (ImageCaptureItem.Value != null && ImageCaptureItem.Value.InternalId == item.InternalId)
+            __state = false;
+
+            if (item.IsShortcut && ImageCaptureItem.Value != null &&
+                ImageCaptureItem.Value.InternalId == item.InternalId)
             {
                 PatchIsShortcutInstance(item);
+                __state = true;
             }
 
             return true;
         }
 
         [HarmonyPostfix]
-        private static void SupportsImageCapturePostfix(BaseItem item, ref bool __result)
+        private static void SupportsImageCapturePostfix(BaseItem item, ref bool __result, bool __state)
         {
-            if (ImageCaptureItem.Value != null && ImageCaptureItem.Value.InternalId == item.InternalId)
+            if (__state)
             {
                 UnpatchIsShortcutInstance(item);
             }

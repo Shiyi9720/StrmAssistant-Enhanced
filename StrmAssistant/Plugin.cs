@@ -68,7 +68,7 @@ namespace StrmAssistant
         private readonly ILibraryManager _libraryManager;
         private readonly IUserManager _userManager;
         private readonly IUserDataManager _userDataManager;
-        private readonly IDirectoryService _directoryService;
+        private readonly IFileSystem _fileSystem;
 
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
@@ -88,7 +88,7 @@ namespace StrmAssistant
             _libraryManager = libraryManager;
             _userManager = userManager;
             _userDataManager = userDataManager;
-            _directoryService = new DirectoryService(Logger, fileSystem);
+            _fileSystem = fileSystem;
 
             MainOptionsStore = new PluginOptionsStore(applicationHost, Logger, Name);
             MediaInfoExtractStore =
@@ -170,14 +170,16 @@ namespace StrmAssistant
 
                 if (MediaInfoExtractStore.GetOptions().PersistMediaInfo && (e.Item is Video || e.Item is Audio))
                 {
+                    var directoryService = new DirectoryService(Logger, _fileSystem);
+
                     if (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut)
                     {
-                        deserializeResult = await LibraryApi.DeserializeMediaInfo(e.Item, _directoryService,
+                        deserializeResult = await LibraryApi.DeserializeMediaInfo(e.Item, directoryService,
                             "Item Added Event", CancellationToken.None);
                     }
                     else
                     {
-                        _ = LibraryApi.SerializeMediaInfo(e.Item, _directoryService, true, "Item Added Event",
+                        _ = LibraryApi.SerializeMediaInfo(e.Item, directoryService, true, "Item Added Event",
                             CancellationToken.None);
                     }
                 }
@@ -247,8 +249,8 @@ namespace StrmAssistant
         {
             if (MediaInfoExtractStore.GetOptions().PersistMediaInfo && (e.Item is Video || e.Item is Audio))
             {
-                _ = LibraryApi.DeleteMediaInfoJson(e.Item, _directoryService, "Item Removed Event",
-                    CancellationToken.None);
+                var directoryService = new DirectoryService(Logger, _fileSystem);
+                LibraryApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
             }
 
             if (e.Item is CollectionFolder library && library.CollectionType == "boxsets" &&

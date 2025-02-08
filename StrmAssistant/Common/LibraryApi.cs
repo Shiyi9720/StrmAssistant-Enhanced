@@ -690,11 +690,7 @@ namespace StrmAssistant.Common
 
             if (enableImageCapture && !taskItem.HasImage(ImageType.Primary))
             {
-                if (taskItem.IsShortcut)
-                {
-                    EnableImageCapture.AllowImageCaptureInstance(taskItem);
-                }
-
+                EnableImageCapture.AllowImageCaptureInstance(taskItem);
                 imageCapture = true;
                 var refreshOptions = ImageCaptureRefreshOptions;
                 await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
@@ -905,8 +901,7 @@ namespace StrmAssistant.Common
             return false;
         }
 
-        public async Task DeleteMediaInfoJson(BaseItem item, IDirectoryService directoryService, string source,
-            CancellationToken cancellationToken)
+        public void DeleteMediaInfoJson(BaseItem item, IDirectoryService directoryService, string source)
         {
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
@@ -915,8 +910,7 @@ namespace StrmAssistant.Common
             {
                 try
                 {
-                    await Task.Run(() => _fileSystem.DeleteFile(mediaInfoJsonPath), cancellationToken)
-                        .ConfigureAwait(false);
+                    _fileSystem.DeleteFile(mediaInfoJsonPath);
                     _logger.Info("MediaInfoPersist - Delete Success (" + source + "): " + mediaInfoJsonPath);
                 }
                 catch (Exception e)

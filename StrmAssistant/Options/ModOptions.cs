@@ -71,7 +71,7 @@ namespace StrmAssistant.Options
             (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.8.3.0") &&
              Plugin.Instance.ApplicationHost.ApplicationVersion < new Version("4.9.0.0") ||
              Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.9.0.15") &&
-             Plugin.Instance.ApplicationHost.ApplicationVersion <= new Version("4.9.0.37"));
+             Plugin.Instance.ApplicationHost.ApplicationVersion <= new Version("4.9.0.38"));
 
         public void Initialize()
         {

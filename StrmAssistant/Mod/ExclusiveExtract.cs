@@ -210,14 +210,18 @@ namespace StrmAssistant.Mod
         private static bool CanRefreshImagePrefix(IImageProvider provider, BaseItem item, LibraryOptions libraryOptions,
             ImageRefreshOptions refreshOptions, bool ignoreMetadataLock, bool ignoreLibraryOptions, ref bool __result)
         {
-            if ((item.Parent is null && item.ExtraType is null) || !provider.Supports(item) ||
+            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId)
+            {
+                return true;
+            }
+
+            if ((item.Parent is null && item.ExtraType is null) ||
+                (!(provider is IDynamicImageProviderWithLibraryOptions) && !provider.Supports(item)) ||
                 !(item is Video || item is Audio))
             {
                 return true;
             }
 
-            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId) return true;
-            
             if (refreshOptions is MetadataRefreshOptions options)
             {
                 if (CurrentRefreshContext.Value is null)
@@ -243,10 +247,10 @@ namespace StrmAssistant.Mod
                             CurrentRefreshContext.Value.IsExternalSubtitleChanged = true;
                         }
 
-                        if (item.IsShortcut && (CurrentRefreshContext.Value.IsFileChanged &&
-                                                IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) &&
-                                                Plugin.LibraryApi.HasMediaInfo(item) ||
-                                                IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow)))
+                        if (CurrentRefreshContext.Value.IsFileChanged &&
+                            IsExclusiveFeatureSelected(ExclusiveControl.ExtractOnFileChange) &&
+                            Plugin.LibraryApi.HasMediaInfo(item) ||
+                            IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow))
                         {
                             options.EnableRemoteContentProbe = true;
                             EnableImageCapture.AllowImageCaptureInstance(item);
@@ -279,14 +283,14 @@ namespace StrmAssistant.Mod
             bool ignoreMetadataLock, ref bool __result, out bool __state)
         {
             __state = false;
-
-            if ((item.Parent is null && item.ExtraType is null) || !(provider is IPreRefreshProvider) ||
-                !(provider is ICustomMetadataProvider<Video>))
+            
+            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId)
             {
                 return true;
             }
 
-            if (ExclusiveItem.Value != 0 && ExclusiveItem.Value == item.InternalId)
+            if ((item.Parent is null && item.ExtraType is null) || !(provider is IPreRefreshProvider) ||
+                !(provider is ICustomMetadataProvider<Video>))
             {
                 return true;
             }
@@ -404,8 +408,8 @@ namespace StrmAssistant.Mod
                     {
                         if (CurrentRefreshContext.Value.IsFileChanged)
                         {
-                            _ = Plugin.LibraryApi.DeleteMediaInfoJson(__instance, directoryService,
-                                "Exclusive Delete on Change", CancellationToken.None);
+                            Plugin.LibraryApi.DeleteMediaInfoJson(__instance, directoryService,
+                                "Exclusive Delete on Change");
                         }
                         else
                         {
