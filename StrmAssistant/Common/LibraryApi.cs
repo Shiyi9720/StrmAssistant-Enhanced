@@ -273,10 +273,10 @@ namespace StrmAssistant.Common
         {
             var librariesWithImageCapture = libraries.Where(l => l.LibraryOptions.TypeOptions.Any(t =>
                     t.ImageFetchers.Contains("Image Capture") &&
-                    ((l.CollectionType == "tvshows" && t.Type == "Episode") ||
-                     (l.CollectionType == "movies" && t.Type == "Movie") ||
-                     (l.CollectionType == null &&
-                      (t.Type == "Episode" || t.Type == "Movie")))))
+                    ((l.CollectionType == CollectionType.TvShows.ToString() && t.Type == nameof(Episode)) ||
+                     (l.CollectionType == CollectionType.Movies.ToString() && t.Type == nameof(Movie)) ||
+                     (l.CollectionType == CollectionType.HomeVideos.ToString() && t.Type == nameof(Video)) ||
+                     (l.CollectionType is null && (t.Type == nameof(Episode) || t.Type == nameof(Movie))))))
                 .ToList();
 
             return librariesWithImageCapture;
@@ -386,7 +386,6 @@ namespace StrmAssistant.Common
 
                 var itemsImageCaptureQuery = new InternalItemsQuery
                 {
-                    IncludeItemTypes = new[] { "Movie", "Episode" },
                     HasPath = true,
                     MediaTypes = new[] { MediaType.Video }
                 };
