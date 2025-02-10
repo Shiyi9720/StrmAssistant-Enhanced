@@ -225,7 +225,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Extracts media info from videos and audios.
+        ///   Looks up a localized string similar to Extracts media info from videos and audios, and image capture.
         /// </summary>
         public static string ExtractMediaInfoTask_Description_Extracts_media_info_from_videos_and_audios {
             get {
@@ -898,7 +898,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Block English such non fallback language in overview. Default is OFF..
+        ///   Looks up a localized string similar to Block English such non fallback language for movie, series, season and episode overview. Default is OFF..
         /// </summary>
         public static string MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_ {
             get {
@@ -1105,7 +1105,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fallback metadata languages..
+        ///   Looks up a localized string similar to Fallback metadata languages, prioritized from left to right..
         /// </summary>
         public static string ModOptions_FallbackLanguages_Fallback_languages__Default_is_zh_SG_ {
             get {
@@ -1300,6 +1300,15 @@ namespace StrmAssistant.Properties {
         public static string Notification_IntroUpdate_Message {
             get {
                 return ResourceManager.GetString("Notification_IntroUpdate_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string Operation_Success {
+            get {
+                return ResourceManager.GetString("Operation_Success", resourceCulture);
             }
         }
         
@@ -1588,7 +1597,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Beautify Episode Title.
+        ///   Looks up a localized string similar to Beautify Title Display.
         /// </summary>
         public static string UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata {
             get {
@@ -1597,7 +1606,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Beautify episode title display with no metadata. Default is OFF..
+        ///   Looks up a localized string similar to Beautify episode title display with no metadata and additional part title display. Default is OFF..
         /// </summary>
         public static string UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_ {
             get {
@@ -1654,7 +1663,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prevent automatic boxset library creation, used along with removal. Default is OFF..
+        ///   Looks up a localized string similar to Hide collection library from user views, if removed, prevent auto creation. Default is OFF..
         /// </summary>
         public static string UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_ {
             get {
@@ -1664,7 +1673,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prevent Boxsets Auto Creation.
+        ///   Looks up a localized string similar to Hide Collection Library.
         /// </summary>
         public static string UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation {
             get {

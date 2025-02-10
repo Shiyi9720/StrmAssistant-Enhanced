@@ -635,4 +635,7 @@
   <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_" xml:space="preserve">
     <value>Block English such non fallback language for movie, series, season and episode overview. Default is OFF.</value>
   </data>
+  <data name="Operation_Success" xml:space="preserve">
+    <value>Operation completed successfully</value>
+  </data>
 </root>

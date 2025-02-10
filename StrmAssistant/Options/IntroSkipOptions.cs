@@ -57,7 +57,7 @@ namespace StrmAssistant.Options
         public GenericItemList FingerprintBlacklistShowsResult { get; set; } = new GenericItemList();
 
         [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
-        public SpacerItem Separator { get; set; } = new SpacerItem(SpacerSize.Medium);
+        public SpacerItem FingerprintBlacklistShowsResultSeparator { get; set; } = new SpacerItem(SpacerSize.Medium);
 
         [DisplayNameL("PluginOptions_EnableIntroSkip_Enable_Intro_Skip__Experimental_", typeof(Resources))]
         [DescriptionL("PluginOptions_EnableIntroSkip_Enable_intro_skip_and_credits_skip_for_episodes__Default_is_False_", typeof(Resources))]
@@ -123,6 +123,20 @@ namespace StrmAssistant.Options
         [SelectItemsSource(nameof(IntroSkipPreferenceList))]
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public string IntroSkipPreferences { get; set; } = string.Empty;
+
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
+        public ButtonItem ClearIntroButton =>
+            new ButtonItem(
+                Resources.ClearChapterMarkersTask_Description_Clears_behavior_based_intro_and_credits_markers)
+            {
+                Icon = IconNames.clear_all, Data1 = "ClearIntroCreditsMarkers"
+            };
+
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
+        public GenericItemList ClearIntroProgress { get; set; } = new GenericItemList();
+        
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
+        public SpacerItem ClearIntroProgressSeparator { get; set; } = new SpacerItem(SpacerSize.Small);
 
         [Browsable(false)]
         public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
