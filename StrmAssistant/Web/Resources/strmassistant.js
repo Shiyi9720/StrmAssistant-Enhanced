@@ -1,4 +1,4 @@
-﻿define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm'], function (connectionManager, globalize, loading, toast, confirm) {
+define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm'], function (connectionManager, globalize, loading, toast, confirm) {
 
     return {
         copy: function (libraryId) {
@@ -55,6 +55,30 @@
                         itemsContainer.notifyRefreshNeeded(true);
                     }
                 });
+            });
+        },
+
+        traverse: function (itemId) {
+            loading.show();
+            let apiClient = connectionManager.currentApiClient();
+            let scanApi = apiClient.getUrl(`Items/${itemId}/Refresh`);
+            let queryParams = {
+                Recursive: true,
+                ImageRefreshMode: 'Default',
+                MetadataRefreshMode: 'Default',
+                ReplaceAllImages: false,
+                ReplaceAllMetadata: false
+            };
+            let queryString = new URLSearchParams(queryParams).toString();
+            apiClient.ajax({
+                type: "POST",
+                url: `${scanApi}?${queryString}`,
+                data: {},
+                contentType: "application/json"
+            }).finally(() => {
+                loading.hide();
+                const confirmMessage = globalize.translate('ScanningLibraryFilesDots');
+                toast(confirmMessage);
             });
         }
     };

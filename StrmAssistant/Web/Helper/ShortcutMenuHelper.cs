@@ -55,16 +55,23 @@ const strmAssistantCommandSource = {
             options.items[0].CollectionType === 'boxsets') {
             return [{ name: this.globalize.translate('Remove'), id: 'remove', icon: 'remove_circle_outline' }];
         }
+        if (options.items?.length === 1 && options.items[0].Type === 'Movie') {
+            return [{ name: this.globalize.translate('HeaderScanLibraryFiles'), id: 'traverse', icon: 'refresh' }];
+        }
         return [];
     },
     executeCommand: function(command, items) {
         if (!command || !items?.length) return;
         const actions = {
             copy: 'copy',
-            remove: 'remove'
+            remove: 'remove',
+            traverse: 'traverse'
         };
         if (actions[command]) {
             return require(['components/strmassistant/strmassistant']).then(responses => {
+                if (command === 'traverse') {
+                    return responses[0][actions[command]](items[0].ParentId);
+                }
                 return responses[0][actions[command]](items[0].Id, items[0].Name);
             });
         }
