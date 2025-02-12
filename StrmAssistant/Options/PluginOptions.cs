@@ -19,8 +19,8 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(ShowConflictPluginLoadedStatus), SimpleCondition.IsTrue)]
         public StatusItem ConflictPluginLoadedStatus { get; set; } = new StatusItem();
 
-        [VisibleCondition(nameof(IsHarmonyModFailed), SimpleCondition.IsTrue)]
-        public StatusItem HarmonyModStatus { get; set; } = new StatusItem();
+        [VisibleCondition(nameof(IsModSuccess), SimpleCondition.IsFalse)]
+        public StatusItem ModStatus { get; set; } = new StatusItem();
 
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
@@ -35,7 +35,7 @@ namespace StrmAssistant.Options
         public AboutOptions AboutOptions { get; set; } = new AboutOptions();
 
         [Browsable(false)]
-        public bool? IsHarmonyModFailed => !PatchManager.IsHarmonyModSuccess();
+        public bool? IsModSuccess => PatchManager.IsModSuccess();
 
         [Browsable(false)]
         public bool ShowConflictPluginLoadedStatus =>
@@ -59,17 +59,17 @@ namespace StrmAssistant.Options
                 ConflictPluginLoadedStatus.Status = ItemStatus.None;
             }
 
-            if (IsHarmonyModFailed is true)
+            if (IsModSuccess is false)
             {
-                HarmonyModStatus.Caption = Resources.PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed;
-                HarmonyModStatus.StatusText = string.Empty;
-                HarmonyModStatus.Status = ItemStatus.Warning;
+                ModStatus.Caption = Resources.PluginOptions_IsHarmonyModFailed_Harmony_Mod_Failed;
+                ModStatus.StatusText = string.Empty;
+                ModStatus.Status = ItemStatus.Warning;
             }
             else
             {
-                HarmonyModStatus.Caption = string.Empty;
-                HarmonyModStatus.StatusText = string.Empty;
-                HarmonyModStatus.Status = ItemStatus.None;
+                ModStatus.Caption = string.Empty;
+                ModStatus.StatusText = string.Empty;
+                ModStatus.Status = ItemStatus.None;
             }
         }
     }

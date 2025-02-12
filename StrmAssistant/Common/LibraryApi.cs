@@ -96,7 +96,9 @@ namespace StrmAssistant.Common
         public static List<string> LibraryPathsInScope;
         public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
-        
+
+        private static readonly PatchTracker PatchTracker =
+            new PatchTracker(typeof(LibraryApi), PatchApproach.Reflection);
         private readonly bool _fallbackProbeApproach;
         private readonly MethodInfo GetPlayackMediaSources;
 
@@ -172,12 +174,17 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Debug("GetPlayackMediaSources - Init Failed");
                     _logger.Debug(e.Message);
                     _logger.Debug(e.StackTrace);
                 }
-            }
 
+                if (GetPlayackMediaSources is null)
+                {
+                    _logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
+                    PatchTracker.FallbackPatchApproach = PatchApproach.None;
+                }
+            }
+            
             try
             {
                 var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
@@ -193,9 +200,10 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug("AlwaysIgnoreExtensions - Init Failed");
                 _logger.Debug(e.Message);
                 _logger.Debug(e.StackTrace);
+                _logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
 

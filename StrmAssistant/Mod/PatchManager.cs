@@ -99,12 +99,12 @@ namespace StrmAssistant.Mod
             });
         }
 
-        public static bool? IsHarmonyModSuccess()
+        public static bool? IsModSuccess()
         {
             if (RuntimeInformation.ProcessArchitecture != Architecture.X64) return null;
 
             return PatchTrackerList.Where(p => p.IsSupported)
-                .All(p => p.FallbackPatchApproach == PatchApproach.Harmony);
+                .All(p => p.FallbackPatchApproach == p.DefaultPatchApproach);
         }
 
         public static bool PatchUnpatch(PatchTracker tracker, bool apply, MethodBase targetMethod,

@@ -11,16 +11,20 @@ namespace StrmAssistant.Mod
 
     public class PatchTracker
     {
-        public PatchTracker(Type patchType)
+        public PatchTracker(Type patchType, PatchApproach defaultApproach)
         {
             PatchType = patchType;
+            DefaultPatchApproach = defaultApproach;
+            FallbackPatchApproach = defaultApproach;
 
             PatchManager.PatchTrackerList.Add(this);
         }
 
         public Type PatchType { get; set; }
 
-        public PatchApproach FallbackPatchApproach { get; set; } = PatchApproach.Harmony;
+        public PatchApproach DefaultPatchApproach { get; }
+
+        public PatchApproach FallbackPatchApproach { get; set; }
 
         public bool IsSupported { get; set; } = true;
     }

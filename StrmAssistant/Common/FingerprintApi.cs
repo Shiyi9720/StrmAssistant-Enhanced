@@ -10,6 +10,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
+using StrmAssistant.Mod;
 using StrmAssistant.Options;
 using System;
 using System.Collections.Generic;
@@ -28,6 +29,8 @@ namespace StrmAssistant.Common
         private readonly IFileSystem _fileSystem;
         private readonly ILogger _logger;
 
+        private static readonly PatchTracker PatchTracker =
+            new PatchTracker(typeof(FingerprintApi), PatchApproach.Reflection);
         private readonly object AudioFingerprintManager;
         private readonly MethodInfo CreateTitleFingerprint;
         private readonly MethodInfo GetAllFingerprintFilesForSeason;
@@ -82,9 +85,15 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug("AudioFingerprintManager - Init Failed");
                 _logger.Debug(e.Message);
                 _logger.Debug(e.StackTrace);
+            }
+
+            if (AudioFingerprintManager is null || CreateTitleFingerprint is null ||
+                GetAllFingerprintFilesForSeason is null || UpdateSequencesForSeason is null || TimeoutMs is null)
+            {
+                _logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
 

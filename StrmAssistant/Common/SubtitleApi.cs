@@ -8,6 +8,7 @@ using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.MediaInfo;
+using StrmAssistant.Mod;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,6 +26,8 @@ namespace StrmAssistant.Common
         private readonly IFileSystem _fileSystem;
         private readonly IItemRepository _itemRepository;
 
+        private static readonly PatchTracker PatchTracker =
+            new PatchTracker(typeof(SubtitleApi), PatchApproach.Reflection);
         private readonly object SubtitleResolver;
         private readonly MethodInfo GetExternalSubtitleFiles;
         private readonly MethodInfo GetExternalSubtitleStreams;
@@ -68,9 +71,15 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Warn("ExternalSubtitle - Init Failed");
                 _logger.Debug(e.Message);
                 _logger.Debug(e.StackTrace);
+            }
+
+            if (SubtitleResolver is null || GetExternalSubtitleFiles is null || GetExternalSubtitleStreams is null ||
+                FFProbeSubtitleInfo is null || UpdateExternalSubtitleStream is null)
+            {
+                _logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
 

@@ -12,7 +12,7 @@ namespace StrmAssistant.Mod
         protected PatchBase()
         {
             Instance = (T)this;
-            PatchTracker = new PatchTracker(typeof(T));
+            PatchTracker = new PatchTracker(typeof(T), PatchApproach.Harmony);
         }
 
         protected void Initialize()
@@ -23,9 +23,9 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
                 Plugin.Instance.Logger.Debug(e.Message);
                 Plugin.Instance.Logger.Debug(e.StackTrace);
+                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
 
