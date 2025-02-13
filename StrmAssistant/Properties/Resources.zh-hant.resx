@@ -563,4 +563,10 @@
   <data name="ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libraries" xml:space="preserve">
     <value>在所有庫中拆分多版本電影</value>
   </data>
+  <data name="ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete" xml:space="preserve">
+    <value>啟用深度刪除</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlying_file_of_strm_or_symlink__Default_is_OFF_" xml:space="preserve">
+    <value>刪除媒體時，嘗試級聯刪除 STRM 或軟連結的關聯文件，預設為關閉。</value>
+  </data>
 </root>

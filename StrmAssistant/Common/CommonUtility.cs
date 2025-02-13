@@ -1,6 +1,8 @@
-﻿using System;
+﻿using MediaBrowser.Model.IO;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -170,6 +172,34 @@ namespace StrmAssistant.Common
             var root1 = Find(x, parent);
             var root2 = Find(y, parent);
             if (root1 != root2) parent[root1] = root2;
+        }
+
+        public static bool IsDirectoryEmpty(string directoryPath)
+        {
+            if (!Directory.Exists(directoryPath))
+                return false;
+
+            foreach (var subdirectory in Directory.EnumerateDirectories(directoryPath))
+                return false;
+
+            foreach (var file in Directory.EnumerateFiles(directoryPath))
+                return false;
+
+            return true;
+        }
+
+        public class FileSystemMetadataComparer : IEqualityComparer<FileSystemMetadata>
+        {
+            public bool Equals(FileSystemMetadata x, FileSystemMetadata y)
+            {
+                if (x == null || y == null) return false;
+                return x.FullName == y.FullName;
+            }
+
+            public int GetHashCode(FileSystemMetadata obj)
+            {
+                return obj.FullName.GetHashCode();
+            }
         }
     }
 }

@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
+using StrmAssistant.Common;
 using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
@@ -328,11 +329,6 @@ namespace StrmAssistant.Mod
             return true;
         }
 
-        private static bool IsFileShortcut(string path)
-        {
-            return path != null && string.Equals(Path.GetExtension(path), ".strm", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static long GetThumbnailPositionTicks(long runtimeTicks)
         {
             var percent = Plugin.Instance.MediaInfoExtractStore.GetOptions().ImageCapturePosition / 100.0;
@@ -348,7 +344,7 @@ namespace StrmAssistant.Mod
             ref TimeSpan? startOffset, TimeSpan? interval, string targetDirectory, string targetFilename, int? maxWidth,
             bool enableThumbnailFilter, CancellationToken cancellationToken)
         {
-            if (__instance.GetType() == _quickImageSeriesExtractor && IsFileShortcut(inputPath))
+            if (__instance.GetType() == _quickImageSeriesExtractor && LibraryApi.IsFileShortcut(inputPath))
             {
                 var strmPath = inputPath;
                 inputPath = Task.Run(async () => await Plugin.LibraryApi.GetStrmMountPath(strmPath)).Result;

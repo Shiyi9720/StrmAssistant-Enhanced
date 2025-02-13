@@ -70,6 +70,18 @@ namespace StrmAssistant.Options.Store
                         PatchManager.EnhanceNotificationSystem.Unpatch();
                     }
                 }
+                
+                if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.EnableDeepDelete)))
+                {
+                    if (options.EnableDeepDelete)
+                    {
+                        PatchManager.EnableDeepDelete.Patch();
+                    }
+                    else
+                    {
+                        PatchManager.EnableDeepDelete.Unpatch();
+                    }
+                }
 
                 if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.UIFunctionOptions.HidePersonNoImage)))
                 {
@@ -145,6 +157,7 @@ namespace StrmAssistant.Options.Store
                     _logger.Info("MergeMultiVersionPreferences is set to {0}",
                         options.MergeMultiVersionPreferences.GetDescription());
                     _logger.Info("EnhanceNotificationSystem is set to {0}", options.EnhanceNotificationSystem);
+                    _logger.Info("EnableDeepDelete is set to {0}", options.EnableDeepDelete);
                     _logger.Info("HidePersonNoImage is set to {0}", options.UIFunctionOptions.HidePersonNoImage);
                     var hidePersonPreference = string.Join(", ",
                         options.UIFunctionOptions.HidePersonPreference

@@ -650,4 +650,10 @@
   <data name="ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libraries" xml:space="preserve">
     <value>Split multi-version movies in all libraries</value>
   </data>
+  <data name="ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete" xml:space="preserve">
+    <value>Enable Deep Delete</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlying_file_of_strm_or_symlink__Default_is_OFF_" xml:space="preserve">
+    <value>Attempt to cascade delete the underlying file of strm or symlink. Default is OFF.</value>
+  </data>
 </root>

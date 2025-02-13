@@ -35,6 +35,7 @@ namespace StrmAssistant.Mod
         public static MovieDbEpisodeGroup MovieDbEpisodeGroup;
         public static NoBoxsetsAutoCreation NoBoxsetsAutoCreation;
         public static EnhanceNotificationSystem EnhanceNotificationSystem;
+        public static EnableDeepDelete EnableDeepDelete;
 
         private static readonly ConcurrentDictionary<Tuple<Type, string>, HarmonyMethod> HarmonyMethodCache 
             = new ConcurrentDictionary<Tuple<Type, string>, HarmonyMethod>();
@@ -75,6 +76,7 @@ namespace StrmAssistant.Mod
             MovieDbEpisodeGroup = new MovieDbEpisodeGroup();
             NoBoxsetsAutoCreation = new NoBoxsetsAutoCreation();
             EnhanceNotificationSystem = new EnhanceNotificationSystem();
+            EnableDeepDelete = new EnableDeepDelete();
         }
 
         public static bool IsPatched(MethodBase methodInfo, Type type)

@@ -1,4 +1,4 @@
-using MediaBrowser.Controller.Api;
+﻿using MediaBrowser.Controller.Api;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -7,9 +7,9 @@ using MediaBrowser.Controller.Net;
 using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
-using StrmAssistant.Common;
 using StrmAssistant.Web.Api;
 using System;
+using System.Threading.Tasks;
 
 namespace StrmAssistant.Web.Service
 {
@@ -54,7 +54,17 @@ namespace StrmAssistant.Web.Service
                 return;
             }
 
-            var deletePaths = LibraryApi.GetDeletePaths(item);
+            if (Plugin.Instance.ExperienceEnhanceStore.GetOptions().EnableDeepDelete)
+            {
+                var mountPaths = Plugin.LibraryApi.PrepareDeepDelete(item, true);
+
+                if (mountPaths.Count > 0)
+                {
+                    Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(mountPaths)).ConfigureAwait(false);
+                }
+            }
+
+            var deletePaths = Plugin.LibraryApi.GetDeletePaths(item);
 
             foreach (var path in deletePaths)
             {

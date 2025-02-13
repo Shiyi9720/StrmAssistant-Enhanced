@@ -188,6 +188,25 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Attempt to cascade delete the underlying file of strm or symlink. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlying_file_of_strm_or_symlink__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlyin" +
+                        "g_file_of_strm_or_symlink__Default_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable Deep Delete.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Notification Enhanced.
         /// </summary>
         public static string ExperienceEnhanceOptions_EnhanceNotification_Enhance_Notification {

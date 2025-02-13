@@ -48,6 +48,12 @@ namespace StrmAssistant.Options
         [Required]
         [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
         public bool EnhanceNotificationSystem { get; set; } = false;
+        
+        [DisplayNameL("ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete", typeof(Resources))]
+        [DescriptionL("ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlying_file_of_strm_or_symlink__Default_is_OFF_", typeof(Resources))]
+        [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
+        [Required]
+        public bool EnableDeepDelete { get; set; } = false;
 
         [DisplayNameL("UIFunctionOptions_EditorTitle_UI_Functions", typeof(Resources))]
         public UIFunctionOptions UIFunctionOptions { get; set; } = new UIFunctionOptions();

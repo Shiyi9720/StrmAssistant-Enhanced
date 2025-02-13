@@ -4,6 +4,7 @@ using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Playlists;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
@@ -18,6 +19,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Common.CommonUtility;
 using static StrmAssistant.Options.Utility;
 using CollectionExtensions = System.Collections.Generic.CollectionExtensions;
 
@@ -672,6 +674,11 @@ namespace StrmAssistant.Common
                 .ConfigureAwait(false);
         }
 
+        public static bool IsFileShortcut(string path)
+        {
+            return path != null && string.Equals(Path.GetExtension(path), ".strm", StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task<string> GetStrmMountPath(string strmPath)
         {
             var path = strmPath.AsMemory();
@@ -727,9 +734,8 @@ namespace StrmAssistant.Common
             return altMovies;
         }
 
-        public static FileSystemMetadata[] GetDeletePaths(BaseItem item)
+        private FileSystemMetadata[] GetRelatedPaths(string basename, string folder)
         {
-            var basename = item.FileNameWithoutExtension;
             var extensions = new List<string>
             {
                 ".nfo",
@@ -748,14 +754,126 @@ namespace StrmAssistant.Common
             };
 
             extensions.AddRange(BaseItem.SupportedImageExtensions);
-            var relatedFiles = BaseItem.FileSystem
-                .GetFiles(BaseItem.FileSystem.GetDirectoryName(item.Path), extensions.ToArray(), false, false)
+            return _fileSystem.GetFiles(folder, extensions.ToArray(), false, false)
                 .Where(i => !string.IsNullOrEmpty(i.FullName) && Path.GetFileNameWithoutExtension(i.FullName)
-                    .StartsWith(basename, StringComparison.OrdinalIgnoreCase));
+                    .StartsWith(basename, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+
+        public FileSystemMetadata[] GetDeletePaths(BaseItem item)
+        {
+            var basename = item.FileNameWithoutExtension;
+            var folder = _fileSystem.GetDirectoryName(item.Path);
+            var relatedFiles = GetRelatedPaths(basename, folder);
 
             return new[] { new FileSystemMetadata { FullName = item.Path, IsDirectory = item.IsFolder } }
                 .Concat(relatedFiles)
                 .ToArray();
+        }
+
+        public FileSystemMetadata[] GetDeletePaths(string path)
+        {
+            var folder = _fileSystem.GetDirectoryName(path);
+
+            if (!_fileSystem.DirectoryExists(folder)) return Array.Empty<FileSystemMetadata>();
+
+            var basename = Path.GetFileNameWithoutExtension(path);
+            var relatedFiles = GetRelatedPaths(basename, folder);
+
+            return new[] { _fileSystem.GetFileInfo(path) }.Concat(relatedFiles).Where(f => f.Exists).ToArray();
+        }
+
+        public HashSet<string> PrepareDeepDelete(BaseItem item, bool single)
+        {
+            var deleteItems = new List<BaseItem> { item };
+
+            if (item.IsFolder)
+            {
+                deleteItems.AddRange(((Folder)item).GetItemList(new InternalItemsQuery
+                {
+                    Recursive = true,
+                    ForceOriginalFolders = item is Playlist || item is BoxSet
+                }));
+            }
+
+            deleteItems = deleteItems.Where(i => i is IHasMediaSources).ToList();
+
+            var mountPaths = new HashSet<string>();
+
+            foreach (var workItem in deleteItems)
+            {
+                var mediaSources =
+                    workItem.GetMediaSources(!single, false, _libraryManager.GetLibraryOptions(workItem));
+                var staticMediaSources = Plugin.MediaInfoApi.GetStaticMediaSources(workItem, !single)
+                    .ToDictionary(s => s.Id, s => s.Path);
+
+                foreach (var source in mediaSources)
+                {
+                    if (IsFileShortcut(source.Path))
+                    {
+                        if (staticMediaSources.TryGetValue(source.Id, out var mountPath) &&
+                            Uri.TryCreate(mountPath, UriKind.Absolute, out var uri) &&
+                            uri.IsAbsoluteUri && uri.Scheme == Uri.UriSchemeFile && !IsFileShortcut(mountPath))
+                        {
+                            mountPaths.Add(mountPath);
+                        }
+                    }
+                }
+            }
+
+            return mountPaths;
+        }
+
+        public void ExecuteDeepDelete(HashSet<string> mountPaths)
+        {
+            var deletePaths = new HashSet<FileSystemMetadata>(new FileSystemMetadataComparer());
+
+            foreach (var mountPath in mountPaths)
+            {
+                foreach (var path in GetDeletePaths(mountPath))
+                {
+                    deletePaths.Add(path);
+                    var folderPath = _fileSystem.GetDirectoryName(path.FullName);
+
+                    if (folderPath != null)
+                    {
+                        deletePaths.Add(new FileSystemMetadata { FullName = folderPath, IsDirectory = true });
+                    }
+                }
+            }
+
+            foreach (var path in deletePaths.Where(p => !p.IsDirectory))
+            {
+                try
+                {
+                    _logger.Info("DeepDelete - Attempting to delete file: " + path.FullName);
+                    _fileSystem.DeleteFile(path.FullName, true);
+                }
+                catch (Exception e)
+                {
+                    _logger.Error("DeepDelete - Delete file failed: " + path.FullName);
+                    _logger.Error(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
+            }
+
+            foreach (var path in deletePaths.Where(p => p.IsDirectory))
+            {
+                try
+                {
+                    if (IsDirectoryEmpty(path.FullName))
+                    {
+                        _logger.Info("DeepDelete - Attempting to delete empty folder: " + path.FullName);
+                        _fileSystem.DeleteDirectory(path.FullName, true, true);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.Error("DeepDelete - Delete empty folder failed: " + path.FullName);
+                    _logger.Error(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
+            }
         }
     }
 }
