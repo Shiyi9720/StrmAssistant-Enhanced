@@ -47,16 +47,52 @@ namespace StrmAssistant.Common
 
         public static void Initialize()
         {
-            if (MediaInfoProcessTask is null || MediaInfoProcessTask.IsCompleted)
+            if (MediaInfoProcessTask is null)
             {
                 MediaInfoExtractItemQueue.Clear();
-                MediaInfoProcessTask = MediaInfo_ProcessItemQueueAsync();
+                MediaInfoProcessTask = MediaInfo_ProcessItemQueueAsync()
+                    .ContinueWith(task =>
+                    {
+                        if (task.IsFaulted)
+                        {
+                            Logger.Debug(
+                                $"(Trace) MediaInfo_ProcessItemQueueAsync terminated unexpectedly. Exception: {task.Exception?.Flatten()}");
+                        }
+                        else if (task.IsCanceled)
+                        {
+                            Logger.Debug("(Trace) MediaInfo_ProcessItemQueueAsync was canceled.");
+                        }
+                        else
+                        {
+                            Logger.Debug("(Trace) MediaInfo_ProcessItemQueueAsync completed successfully.");
+                        }
+
+                        MediaInfoProcessTask = null;
+                    }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
 
-            if (FingerprintProcessTask is null || FingerprintProcessTask.IsCompleted)
+            if (FingerprintProcessTask is null)
             {
                 FingerprintItemQueue.Clear();
-                FingerprintProcessTask = Fingerprint_ProcessItemQueueAsync();
+                FingerprintProcessTask = Fingerprint_ProcessItemQueueAsync()
+                    .ContinueWith(task =>
+                    {
+                        if (task.IsFaulted)
+                        {
+                            Logger.Debug(
+                                $"(Trace) Fingerprint_ProcessItemQueueAsync terminated unexpectedly. Exception: {task.Exception?.Flatten()}");
+                        }
+                        else if (task.IsCanceled)
+                        {
+                            Logger.Debug("(Trace) Fingerprint_ProcessItemQueueAsync was canceled.");
+                        }
+                        else
+                        {
+                            Logger.Debug("(Trace) Fingerprint_ProcessItemQueueAsync completed successfully.");
+                        }
+
+                        FingerprintProcessTask = null;
+                    }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
         }
 
@@ -124,7 +160,7 @@ namespace StrmAssistant.Common
                     while (MediaInfoExtractItemQueue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
-                        var progress = library.GetRefreshProgress();
+                        var progress = library?.GetRefreshProgress();
 
                         if (currentQueueCount < maxConcurrentCount && progress.HasValue)
                         {
@@ -314,7 +350,7 @@ namespace StrmAssistant.Common
                     while (FingerprintItemQueue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
-                        var progress = library.GetRefreshProgress();
+                        var progress = library?.GetRefreshProgress();
 
                         if (currentQueueCount < maxConcurrentCount && progress.HasValue)
                         {
