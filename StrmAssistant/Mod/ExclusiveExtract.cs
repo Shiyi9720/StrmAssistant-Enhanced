@@ -166,17 +166,7 @@ namespace StrmAssistant.Mod
         {
             if (__result is Task task)
             {
-                object result = null;
-
-                try
-                {
-                    result = task.GetType().GetProperty("Result")?.GetValue(task);
-                }
-                
-                catch
-                {
-                    // ignored
-                }
+                var result = task.GetType().GetProperty("Result")?.GetValue(task);
 
                 if (result != null)
                 {

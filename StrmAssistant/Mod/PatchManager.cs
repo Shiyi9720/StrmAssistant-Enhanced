@@ -109,8 +109,8 @@ namespace StrmAssistant.Mod
                 .All(p => p.FallbackPatchApproach == p.DefaultPatchApproach);
         }
 
-        public static bool PatchUnpatch(PatchTracker tracker, bool apply, MethodBase targetMethod,
-            string prefix = null, string postfix = null, string transpiler = null, bool suppress = false)
+        public static bool PatchUnpatch(PatchTracker tracker, bool apply, MethodBase targetMethod, string prefix = null,
+            string postfix = null, string transpiler = null, string finalizer = null, bool suppress = false)
         {
             if (tracker.FallbackPatchApproach != PatchApproach.Harmony) return false;
 
@@ -130,18 +130,21 @@ namespace StrmAssistant.Mod
                     var prefixMethod = GetHarmonyMethod(tracker.PatchType, prefix);
                     var postfixMethod = GetHarmonyMethod(tracker.PatchType, postfix);
                     var transpilerMethod = GetHarmonyMethod(tracker.PatchType, transpiler);
+                    var finalizerMethod = GetHarmonyMethod(tracker.PatchType, finalizer);
 
-                    HarmonyMod.Patch(targetMethod, prefixMethod, postfixMethod, transpilerMethod);
+                    HarmonyMod.Patch(targetMethod, prefixMethod, postfixMethod, transpilerMethod, finalizerMethod);
                 }
                 else if (!apply && IsPatched(targetMethod, tracker.PatchType))
                 {
                     var prefixMethod = GetMethodInfo(tracker.PatchType, prefix);
                     var postfixMethod = GetMethodInfo(tracker.PatchType, postfix);
                     var transpilerMethod = GetMethodInfo(tracker.PatchType, transpiler);
+                    var finalizerMethod = GetMethodInfo(tracker.PatchType, finalizer);
 
                     if (prefixMethod != null) HarmonyMod.Unpatch(targetMethod, prefixMethod);
                     if (postfixMethod != null) HarmonyMod.Unpatch(targetMethod, postfixMethod);
                     if (transpilerMethod != null) HarmonyMod.Unpatch(targetMethod, transpilerMethod);
+                    if (finalizerMethod != null) HarmonyMod.Unpatch(targetMethod, finalizerMethod);
                 }
 
                 if (!suppress)
@@ -163,14 +166,15 @@ namespace StrmAssistant.Mod
             return false;
         }
 
-        public static bool PatchUnpatch(PatchTracker tracker, bool apply, MethodBase targetMethod,
-            ref int usageCount, string prefix = null, string postfix = null, string transpiler = null)
+        public static bool PatchUnpatch(PatchTracker tracker, bool apply, MethodBase targetMethod, ref int usageCount,
+            string prefix = null, string postfix = null, string transpiler = null, string finalizer = null,
+            bool suppress = false)
         {
             if (apply)
             {
                 if (usageCount == 0)
                 {
-                    if (PatchUnpatch(tracker, true, targetMethod, prefix, postfix, transpiler))
+                    if (PatchUnpatch(tracker, true, targetMethod, prefix, postfix, transpiler, finalizer, suppress))
                     {
                         usageCount++;
                         return true;
@@ -190,7 +194,7 @@ namespace StrmAssistant.Mod
 
                 if (usageCount == 0)
                 {
-                    return PatchUnpatch(tracker, false, targetMethod, prefix, postfix, transpiler);
+                    return PatchUnpatch(tracker, false, targetMethod, prefix, postfix, transpiler, finalizer, suppress);
                 }
             }
 
