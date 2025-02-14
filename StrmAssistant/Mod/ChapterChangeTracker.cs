@@ -59,7 +59,7 @@ namespace StrmAssistant.Mod
 
             if (BypassItem.Value != 0 && BypassItem.Value == itemId) return;
 
-            _ = Plugin.LibraryApi.SerializeMediaInfo(itemId, true, "Save Chapters", CancellationToken.None);
+            _ = Plugin.MediaInfoApi.SerializeMediaInfo(itemId, true, "Save Chapters", CancellationToken.None);
         }
 
         [HarmonyPostfix]
@@ -67,7 +67,7 @@ namespace StrmAssistant.Mod
         {
             if (BypassItem.Value != 0 && BypassItem.Value == itemId) return;
 
-            _ = Plugin.LibraryApi.SerializeMediaInfo(itemId, true, "Delete Chapters", CancellationToken.None);
+            _ = Plugin.MediaInfoApi.SerializeMediaInfo(itemId, true, "Delete Chapters", CancellationToken.None);
         }
     }
 }

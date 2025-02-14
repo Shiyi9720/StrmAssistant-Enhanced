@@ -57,6 +57,7 @@ namespace StrmAssistant
 
         public static Plugin Instance { get; private set; }
         public static LibraryApi LibraryApi { get; private set; }
+        public static MediaInfoApi MediaInfoApi { get; private set; }
         public static ChapterApi ChapterApi { get; private set; }
         public static FingerprintApi FingerprintApi { get; private set; }
         public static NotificationApi NotificationApi { get; private set; }
@@ -108,8 +109,9 @@ namespace StrmAssistant
             ExperienceEnhanceStore =
                 new ExperienceEnhanceOptionsStore(applicationHost, Logger, Name + "_" + nameof(ExperienceEnhanceOptions));
 
-            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaSourceManager, mediaMountManager,
-                itemRepository, jsonSerializer, userManager, libraryMonitor);
+            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, userManager);
+            MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, mediaSourceManager, itemRepository,
+                jsonSerializer, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths, ffmpegManager,
                 mediaEncoder, mediaMountManager, jsonSerializer, serverApplicationHost);
@@ -212,12 +214,12 @@ namespace StrmAssistant
 
                     if (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut)
                     {
-                        deserializeResult = await LibraryApi.DeserializeMediaInfo(e.Item, directoryService,
+                        deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
                             "Item Added Event", CancellationToken.None);
                     }
                     else
                     {
-                        _ = LibraryApi.SerializeMediaInfo(e.Item, directoryService, true, "Item Added Event",
+                        _ = MediaInfoApi.SerializeMediaInfo(e.Item, directoryService, true, "Item Added Event",
                             CancellationToken.None);
                     }
                 }
@@ -287,7 +289,8 @@ namespace StrmAssistant
         {
             if (e.Item is Video || e.Item is Audio)
             {
-                LibraryApi.DeleteMediaInfoJson(e.Item, "Item Removed Event");
+                var directoryService = new DirectoryService(Logger, _fileSystem);
+                MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
             }
 
             if (e.Item is CollectionFolder library && library.CollectionType == "boxsets" &&

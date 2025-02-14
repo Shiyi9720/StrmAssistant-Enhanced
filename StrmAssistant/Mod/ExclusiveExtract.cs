@@ -408,17 +408,18 @@ namespace StrmAssistant.Mod
                     {
                         if (CurrentRefreshContext.Value.IsFileChanged)
                         {
-                            Plugin.LibraryApi.DeleteMediaInfoJson(__instance, "Exclusive Delete on Change");
+                            Plugin.MediaInfoApi.DeleteMediaInfoJson(__instance, directoryService,
+                                "Exclusive Delete on Change");
                         }
                         else
                         {
-                            _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, directoryService,
+                            _ = Plugin.MediaInfoApi.DeserializeMediaInfo(__instance, directoryService,
                                 "Exclusive Restore", CancellationToken.None);
                         }
                     }
                     else
                     {
-                        _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, directoryService, true,
+                        _ = Plugin.MediaInfoApi.SerializeMediaInfo(__instance, directoryService, true,
                             "Exclusive Overwrite", CancellationToken.None);
                     }
                 }
@@ -426,12 +427,12 @@ namespace StrmAssistant.Mod
                 {
                     if (!Plugin.LibraryApi.HasMediaInfo(__instance))
                     {
-                        _ = Plugin.LibraryApi.DeserializeMediaInfo(__instance, directoryService, "Exclusive Restore",
+                        _ = Plugin.MediaInfoApi.DeserializeMediaInfo(__instance, directoryService, "Exclusive Restore",
                             CancellationToken.None);
                     }
                     else
                     {
-                        _ = Plugin.LibraryApi.SerializeMediaInfo(__instance, directoryService, false,
+                        _ = Plugin.MediaInfoApi.SerializeMediaInfo(__instance, directoryService, false,
                             "Exclusive Non-existent", CancellationToken.None);
                     }
                 }
