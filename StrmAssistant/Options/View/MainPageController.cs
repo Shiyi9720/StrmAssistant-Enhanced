@@ -50,7 +50,7 @@ namespace StrmAssistant.Options.View
             _tabPages.Add(new TabPageController(pluginInfo, nameof(ExperienceEnhancePageView),
                 Resources.ResourceManager.GetString("ExperienceEnhanceOptions_EditorTitle_Experience_Enhance",
                     Plugin.Instance.DefaultUICulture),
-                e => new ExperienceEnhancePageView(pluginInfo, experienceEnhanceOptionsStore)));
+                e => new ExperienceEnhancePageView(pluginInfo, libraryManager, experienceEnhanceOptionsStore)));
         }
 
         public override PluginPageInfo PageInfo { get; }

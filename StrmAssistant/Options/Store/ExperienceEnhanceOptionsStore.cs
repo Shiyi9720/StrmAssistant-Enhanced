@@ -45,8 +45,9 @@ namespace StrmAssistant.Options.Store
 
                 var changes = PropertyChangeDetector.DetectObjectPropertyChanges(ExperienceEnhanceOptions, options);
                 var changedProperties = new HashSet<string>(changes.Select(c => c.PropertyName));
-                
-                if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.MergeMultiVersion)))
+
+                if (options.IsModSupported &&
+                    changedProperties.Contains(nameof(ExperienceEnhanceOptions.MergeMultiVersion)))
                 {
                     if (options.MergeMultiVersion)
                     {
@@ -141,6 +142,8 @@ namespace StrmAssistant.Options.Store
                 if (!suppress)
                 {
                     _logger.Info("MergeMultiVersion is set to {0}", options.MergeMultiVersion);
+                    _logger.Info("MergeMultiVersionPreferences is set to {0}",
+                        options.MergeMultiVersionPreferences.GetDescription());
                     _logger.Info("EnhanceNotificationSystem is set to {0}", options.EnhanceNotificationSystem);
                     _logger.Info("HidePersonNoImage is set to {0}", options.UIFunctionOptions.HidePersonNoImage);
                     var hidePersonPreference = string.Join(", ",

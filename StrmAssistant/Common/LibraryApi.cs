@@ -988,5 +988,40 @@ namespace StrmAssistant.Common
                 .Where(item => item != null)
                 .ToArray();
         }
+
+        public List<CollectionFolder> GetMovieLibraries()
+        {
+            var libraries = _libraryManager
+                .GetItemList(new InternalItemsQuery { IncludeItemTypes = new[] { nameof(CollectionFolder) } })
+                .OfType<CollectionFolder>()
+                .Where(l => l.CollectionType == CollectionType.Movies.ToString() || l.CollectionType is null)
+                .ToList();
+
+            return libraries;
+        }
+
+        public List<Movie> FetchSplitMovieItems()
+        {
+            var libraries = GetMovieLibraries();
+
+            if (!libraries.Any()) return new List<Movie>();
+
+            _logger.Info("MergeMovie - Libraries: " + string.Join(", ", libraries.Select(l => l.Name)));
+
+            var libraryIds = libraries.Select(l => l.InternalId).ToArray();
+
+            var movieQuery = new InternalItemsQuery
+            {
+                Recursive = true,
+                ParentIds = libraryIds,
+                GroupByPresentationUniqueKey = true,
+                IncludeItemTypes = new[] { nameof(Movie) }
+            };
+
+            var altMovies = _libraryManager.GetItemList(movieQuery).Cast<Movie>()
+                .Where(m => m.GetAlternateVersionIds().Count > 0).ToList();
+
+            return altMovies;
+        }
     }
 }

@@ -207,6 +207,16 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Split multi-version movies in all libraries.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libraries {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libra" +
+                        "ries", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Extracts intro fingerprint from episodes.
         /// </summary>
         public static string ExtractIntroFingerprintTask_Description_Extracts_intro_fingerprint_from_episodes {
@@ -289,7 +299,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Auto merge multiple versions in the same folder while library scan. Default is OFF..
+        ///   Looks up a localized string similar to Auto merge movies to multiple versions while library scan, bypass naming convention. Default is OFF..
         /// </summary>
         public static string GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_ {
             get {
@@ -841,6 +851,34 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Merge movies per library or across libraries, triggered post library scan.
+        /// </summary>
+        public static string MergeMovieTask_Description_Merge_movies_per_library_or_across_libraries_per_preference {
+            get {
+                return ResourceManager.GetString("MergeMovieTask_Description_Merge_movies_per_library_or_across_libraries_per_prefe" +
+                        "rence", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Global Scope.
+        /// </summary>
+        public static string MergeMultiVersionOption_GlobalScope_GlobalScope {
+            get {
+                return ResourceManager.GetString("MergeMultiVersionOption_GlobalScope_GlobalScope", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Library Scope.
+        /// </summary>
+        public static string MergeMultiVersionOption_LibraryScope_LibraryScope {
+            get {
+                return ResourceManager.GetString("MergeMultiVersionOption_LibraryScope_LibraryScope", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Alternative MovieDb Api Key.
         /// </summary>
         public static string MetadataEnhanceOptions_AltMovieDbApiKey_Alternative_MovieDb_Api_Key {
@@ -1304,7 +1342,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to Operation completed successfully.
         /// </summary>
         public static string Operation_Success {
             get {

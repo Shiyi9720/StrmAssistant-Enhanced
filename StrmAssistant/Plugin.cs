@@ -16,12 +16,14 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Drawing;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Events;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Plugins.UI;
 using MediaBrowser.Model.Serialization;
+using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
 using StrmAssistant.IntroSkip;
 using StrmAssistant.Mod;
@@ -29,13 +31,16 @@ using StrmAssistant.Options;
 using StrmAssistant.Options.Store;
 using StrmAssistant.Options.View;
 using StrmAssistant.Properties;
+using StrmAssistant.ScheduledTask;
 using StrmAssistant.Web.Helper;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
+using static StrmAssistant.Options.ExperienceEnhanceOptions;
 using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.Utility;
 
@@ -68,16 +73,18 @@ namespace StrmAssistant
         private readonly ILibraryManager _libraryManager;
         private readonly IUserManager _userManager;
         private readonly IUserDataManager _userDataManager;
+        private readonly IProviderManager _providerManager;
         private readonly IFileSystem _fileSystem;
+        private readonly ITaskManager _taskManager;
 
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
             IItemRepository itemRepository, INotificationManager notificationManager, ILibraryMonitor libraryMonitor,
-            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager,
+            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager, IProviderManager providerManager,
             IMediaProbeManager mediaProbeManager, ILocalizationManager localizationManager, IUserManager userManager,
             IUserDataManager userDataManager, IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder,
             IJsonSerializer jsonSerializer, IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
-            IServerConfigurationManager configurationManager)
+            IServerConfigurationManager configurationManager, ITaskManager taskManager)
         {
             Instance = this;
             Logger = logManager.GetLogger(Name);
@@ -88,7 +95,9 @@ namespace StrmAssistant
             _libraryManager = libraryManager;
             _userManager = userManager;
             _userDataManager = userDataManager;
+            _providerManager = providerManager;
             _fileSystem = fileSystem;
+            _taskManager= taskManager;
 
             MainOptionsStore = new PluginOptionsStore(applicationHost, Logger, Name);
             MediaInfoExtractStore =
@@ -128,11 +137,39 @@ namespace StrmAssistant
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemUpdated += OnItemUpdated;
             _libraryManager.ItemRemoved += OnItemRemoved;
+            _providerManager.RefreshCompleted += OnRefreshCompleted;
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
             CollectionFolder.LibraryOptionsUpdated += OnLibraryOptionsUpdated;
+        }
+
+        private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
+        {
+            if (!_libraryManager.IsScanRunning && ExperienceEnhanceStore.GetOptions().MergeMultiVersion &&
+                e.Argument.Item.IsTopParent)
+            {
+                var library = e.Argument.CollectionFolders.OfType<CollectionFolder>().FirstOrDefault();
+
+                if (library != null && (library.CollectionType == CollectionType.Movies.ToString() ||
+                                        library.CollectionType is null))
+                {
+                    if (ExperienceEnhanceStore.GetOptions().MergeMultiVersionPreferences ==
+                        MergeMultiVersionOption.LibraryScope)
+                    {
+                        MergeMultiVersionTask.PerLibrary.Value = library;
+                    }
+
+                    var mergeMoviesTask = _taskManager.ScheduledTasks.FirstOrDefault(t =>
+                        t.ScheduledTask is MergeMultiVersionTask);
+
+                    if (mergeMoviesTask != null)
+                    {
+                        _ = _taskManager.Execute(mergeMoviesTask, new TaskOptions());
+                    }
+                }
+            }
         }
 
         private void OnUserCreated(object sender, GenericEventArgs<User> e)
@@ -152,7 +189,8 @@ namespace StrmAssistant
         
         private void OnLibraryOptionsUpdated(object sender, GenericEventArgs<Tuple<CollectionFolder, LibraryOptions>> e)
         {
-            if (e.Argument.Item1.CollectionType == "tvshows" || e.Argument.Item1.CollectionType is null)
+            if (e.Argument.Item1.CollectionType == CollectionType.TvShows.ToString() ||
+                e.Argument.Item1.CollectionType is null)
             {
                 PlaySessionMonitor.UpdateLibraryPathsInScope();
                 FingerprintApi.UpdateLibraryPathsInScope();
