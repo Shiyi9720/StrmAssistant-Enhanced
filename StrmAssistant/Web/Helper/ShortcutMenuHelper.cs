@@ -21,8 +21,8 @@ namespace StrmAssistant.Web.Helper
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Debug("ShortcutMenuHelper Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
+                Plugin.Instance.Logger.Error($"{nameof(ShortcutMenuHelper)} Init Failed");
+                Plugin.Instance.Logger.Error(e.Message);
                 Plugin.Instance.Logger.Debug(e.StackTrace);
             }
         }
@@ -121,14 +121,42 @@ setTimeout(() => {
 
             if (dataExplorer2Assembly != null)
             {
+                Plugin.Instance.Logger.Debug($"{nameof(ShortcutMenuHelper)} - Emby.DataExplorer2 plugin is installed");
+
                 var contextMenuHelperType = dataExplorer2Assembly.GetType("Emby.DataExplorer2.Api.ContextMenuHelper");
                 var modifiedShortcutsProperty = contextMenuHelperType?.GetProperty("ModifiedShortcutsString",
                     BindingFlags.Static | BindingFlags.Public);
                 var setMethod = modifiedShortcutsProperty?.GetSetMethod(true);
 
-                if (modifiedShortcutsProperty?.GetValue(null) is string originalValue && setMethod != null)
+                if (setMethod != null)
                 {
-                    ModifiedShortcutsString = originalValue + injectShortcutCommand;
+                    const string injectDataExplorerCommand = @"
+const dataExplorerCommandSource = {
+    getCommands(options) {
+        const commands = [];
+        if (options.items?.length === 1 && options.items[0].ProviderIds) {
+            commands.push({
+                name: 'Explore Item Data',
+                id: 'dataexplorer',
+                icon: 'manage_search'
+            });
+        }
+        return commands;
+    },
+    executeCommand(command, items) {
+        return require(['components/dataexplorer/dataexplorer']).then((responses) => {
+            return responses[0].show(items[0].Id);
+        });
+    }
+};
+
+setTimeout(() => {
+    Emby.importModule('./modules/common/itemmanager/itemmanager.js').then((itemmanager) => {
+        itemmanager.registerCommandSource(dataExplorerCommandSource);
+    });
+}, 5000);
+";
+                    ModifiedShortcutsString += injectDataExplorerCommand;
                     setMethod.Invoke(null, new object[] { ModifiedShortcutsString });
                 }
             }
