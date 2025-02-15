@@ -68,8 +68,8 @@ namespace StrmAssistant.Common
                         .GetMethod("GetStaticMediaSources",
                             new[]
                             {
-                                typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(bool),
-                                typeof(LibraryOptions), typeof(DeviceProfile), typeof(User)
+                                typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(LibraryOptions),
+                                typeof(DeviceProfile), typeof(User)
                             });
                     _fallbackProbeApproach = true;
                 }
@@ -147,13 +147,13 @@ namespace StrmAssistant.Common
         {
             //Method Signature:
             //Task<List<MediaSourceInfo>> GetStaticMediaSources(BaseItem item, bool enableAlternateMediaSources,
-            //    bool enablePathSubstitution, bool fillMediaStreams, bool fillChapters, LibraryOptions libraryOptions,
+            //    bool enablePathSubstitution, bool fillChapters, LibraryOptions libraryOptions,
             //    DeviceProfile deviceProfile, User user = null)
             return (List<MediaSourceInfo>)_getStaticMediaSources.Invoke(_mediaSourceManager,
                 new object[]
                 {
-                    item, enableAlternateMediaSources, false, false, false, _libraryManager.GetLibraryOptions(item),
-                    null, null
+                    item, enableAlternateMediaSources, false, false, _libraryManager.GetLibraryOptions(item), null,
+                    null
                 });
         }
 
