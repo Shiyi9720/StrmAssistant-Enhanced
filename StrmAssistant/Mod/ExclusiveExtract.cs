@@ -408,8 +408,7 @@ namespace StrmAssistant.Mod
                     {
                         if (CurrentRefreshContext.Value.IsFileChanged)
                         {
-                            Plugin.LibraryApi.DeleteMediaInfoJson(__instance, directoryService,
-                                "Exclusive Delete on Change");
+                            Plugin.LibraryApi.DeleteMediaInfoJson(__instance, "Exclusive Delete on Change");
                         }
                         else
                         {

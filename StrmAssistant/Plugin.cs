@@ -285,10 +285,9 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if (MediaInfoExtractStore.GetOptions().PersistMediaInfo && (e.Item is Video || e.Item is Audio))
+            if (e.Item is Video || e.Item is Audio)
             {
-                var directoryService = new DirectoryService(Logger, _fileSystem);
-                LibraryApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
+                LibraryApi.DeleteMediaInfoJson(e.Item, "Item Removed Event");
             }
 
             if (e.Item is CollectionFolder library && library.CollectionType == "boxsets" &&

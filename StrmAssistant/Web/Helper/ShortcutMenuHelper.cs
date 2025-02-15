@@ -21,7 +21,7 @@ namespace StrmAssistant.Web.Helper
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Debug("ShortcutMenuHelper - Init Failed");
+                Plugin.Instance.Logger.Debug("ShortcutMenuHelper Init Failed");
                 Plugin.Instance.Logger.Debug(e.Message);
                 Plugin.Instance.Logger.Debug(e.StackTrace);
             }
@@ -55,8 +55,22 @@ const strmAssistantCommandSource = {
             options.items[0].CollectionType === 'boxsets') {
             return [{ name: this.globalize.translate('Remove'), id: 'remove', icon: 'remove_circle_outline' }];
         }
-        if (options.items?.length === 1 && options.items[0].Type === 'Movie') {
-            return [{ name: this.globalize.translate('HeaderScanLibraryFiles'), id: 'traverse', icon: 'refresh' }];
+        if (options.items?.length === 1) {
+            const result = [];
+            if (options.items[0].Type === 'Movie') {
+                result.push({ name: this.globalize.translate('HeaderScanLibraryFiles'), id: 'traverse', icon: 'refresh' });
+            }
+            if ((options.items[0].Type === 'Movie' || options.items[0].Type === 'Episode') &&
+                 options.items[0].CanDelete && options.mediaSourceId && options.items[0].MediaSources.length > 1) {
+                result.push({
+                    name: (locale.startsWith('zh') || locale.startsWith('ja') || locale.startsWith('ko'))
+                        ? this.globalize.translate('Delete') + this.globalize.translate('Version')
+                        : this.globalize.translate('Delete') + ' ' + this.globalize.translate('Version'),
+                    id: 'delver_' + options.mediaSourceId,
+                    icon: 'remove'
+                });
+            }
+            return result;
         }
         return [];
     },
@@ -67,6 +81,18 @@ const strmAssistantCommandSource = {
             remove: 'remove',
             traverse: 'traverse'
         };
+        if (command.startsWith('delver_')) {
+            const mediaSourceId = command.replace('delver_', '');
+            const mediaSources = items[0].MediaSources || [];
+            const matchingItem = mediaSources.find(source => source.Id === mediaSourceId);
+            const itemId = matchingItem?.ItemId;
+            const itemName = matchingItem?.Name;
+            if (itemId && itemName) {
+                return require(['components/strmassistant/strmassistant']).then(responses => {
+                    return responses[0].delver(itemId, itemName);
+                });
+            }
+        }
         if (actions[command]) {
             return require(['components/strmassistant/strmassistant']).then(responses => {
                 if (command === 'traverse') {

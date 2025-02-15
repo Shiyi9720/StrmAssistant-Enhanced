@@ -1,8 +1,7 @@
-define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm'], function (connectionManager, globalize, loading, toast, confirm) {
+﻿define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm'], function (connectionManager, globalize, loading, toast, confirm) {
 
     return {
         copy: function (libraryId) {
-
             loading.show();
 
             let apiClient = connectionManager.currentApiClient();
@@ -60,6 +59,7 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm'], functi
 
         traverse: function (itemId) {
             loading.show();
+
             let apiClient = connectionManager.currentApiClient();
             let scanApi = apiClient.getUrl(`Items/${itemId}/Refresh`);
             let queryParams = {
@@ -70,6 +70,7 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm'], functi
                 ReplaceAllMetadata: false
             };
             let queryString = new URLSearchParams(queryParams).toString();
+
             apiClient.ajax({
                 type: "POST",
                 url: `${scanApi}?${queryString}`,
@@ -79,6 +80,39 @@ define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm'], functi
                 loading.hide();
                 const confirmMessage = globalize.translate('ScanningLibraryFilesDots');
                 toast(confirmMessage);
+            });
+        },
+
+        delver: function (itemId, itemName) {
+            confirm({
+                text: globalize.translate('ConfirmDeleteItems') + "\n\n" +
+                      itemName + "\n\n" +
+                      globalize.translate('AreYouSureToContinue'),
+                html: globalize.translate('ConfirmDeleteItems') +
+                      '<p><div class="secondaryText">' + itemName + "</div></p>" +
+                      '<p style="margin-bottom:0;">' + globalize.translate('AreYouSureToContinue') + "</p>",
+                title: globalize.translate('HeaderDeleteItem'),
+                confirmText: globalize.translate('Delete'),
+                primary: 'cancel',
+                centerText: !1
+            })
+            .then(function() {
+                loading.show();
+
+                let apiClient = connectionManager.currentApiClient();
+                let deleteApi = apiClient.getUrl(`Items/${itemId}/DeleteVersion`);
+                apiClient.ajax({
+                    type: "POST",
+                    url: deleteApi,
+                    data: {},
+                    contentType: "application/json"
+                }).finally(() => {
+                    loading.hide();
+                    const locale = globalize.getCurrentLocale().toLowerCase();
+                    const confirmMessage = (locale === 'zh-cn') ? '\u5220\u9664\u7248\u672C\u6210\u529F' : 
+                        (['zh-hk', 'zh-tw'].includes(locale) ? '\u524A\u9664\u7248\u672C\u6210\u529F' : 'Delete Version Success');
+                    toast(confirmMessage);
+                });
             });
         }
     };

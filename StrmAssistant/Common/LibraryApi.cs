@@ -908,24 +908,20 @@ namespace StrmAssistant.Common
             return false;
         }
 
-        public void DeleteMediaInfoJson(BaseItem item, IDirectoryService directoryService, string source)
+        public void DeleteMediaInfoJson(BaseItem item, string source)
         {
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
-            var file = directoryService.GetFile(mediaInfoJsonPath);
 
-            if (file?.Exists == true)
+            try
             {
-                try
-                {
-                    _fileSystem.DeleteFile(mediaInfoJsonPath);
-                    _logger.Info("MediaInfoPersist - Delete Success (" + source + "): " + mediaInfoJsonPath);
-                }
-                catch (Exception e)
-                {
-                    _logger.Error("MediaInfoPersist - Delete Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
-                }
+                _fileSystem.DeleteFile(mediaInfoJsonPath);
+                //_logger.Info("MediaInfoPersist - Try to Delete Success (" + source + "): " + mediaInfoJsonPath);
+            }
+            catch (Exception e)
+            {
+                _logger.Error("MediaInfoPersist - Delete Failed (" + source + "): " + mediaInfoJsonPath);
+                _logger.Error(e.Message);
+                _logger.Debug(e.StackTrace);
             }
         }
 
@@ -1030,6 +1026,37 @@ namespace StrmAssistant.Common
                 .Where(m => m.GetAlternateVersionIds().Count > 0).ToList();
 
             return altMovies;
+        }
+
+        public static FileSystemMetadata[] GetDeletePaths(BaseItem item)
+        {
+            var basename = item.FileNameWithoutExtension;
+            var extensions = new List<string>
+            {
+                ".nfo",
+                ".xml",
+                ".srt",
+                ".vtt",
+                ".sub",
+                ".idx",
+                ".txt",
+                ".edl",
+                ".bif",
+                ".smi",
+                ".ttml",
+                ".ass",
+                ".json"
+            };
+
+            extensions.AddRange(BaseItem.SupportedImageExtensions);
+            var relatedFiles = BaseItem.FileSystem
+                .GetFiles(BaseItem.FileSystem.GetDirectoryName(item.Path), extensions.ToArray(), false, false)
+                .Where(i => !string.IsNullOrEmpty(i.FullName) && Path.GetFileNameWithoutExtension(i.FullName)
+                    .StartsWith(basename, StringComparison.OrdinalIgnoreCase));
+
+            return new[] { new FileSystemMetadata { FullName = item.Path, IsDirectory = item.IsFolder } }
+                .Concat(relatedFiles)
+                .ToArray();
         }
     }
 }
