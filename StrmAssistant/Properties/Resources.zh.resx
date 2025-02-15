@@ -567,6 +567,6 @@
     <value>启用深度删除</value>
   </data>
   <data name="ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlying_file_of_strm_or_symlink__Default_is_OFF_" xml:space="preserve">
-    <value>删除媒体时，尝试级联删除 STRM 或软链接的关联文件，默认关闭。</value>
+    <value>删除媒体时，尝试级联删除 STRM 或软链接的目标文件以及相关文件和空目录，默认关闭。</value>
   </data>
 </root>

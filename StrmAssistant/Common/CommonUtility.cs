@@ -188,6 +188,32 @@ namespace StrmAssistant.Common
             return true;
         }
 
+        public static bool IsSymlink(string path)
+        {
+            try
+            {
+                var fileInfo = new FileInfo(path);
+                return fileInfo.Exists && fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static string GetSymlinkTarget(string path)
+        {
+            try
+            {
+                var fileInfo = new FileInfo(path);
+                return fileInfo.LinkTarget;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public class FileSystemMetadataComparer : IEqualityComparer<FileSystemMetadata>
         {
             public bool Equals(FileSystemMetadata x, FileSystemMetadata y)

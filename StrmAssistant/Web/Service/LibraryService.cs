@@ -9,6 +9,7 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using StrmAssistant.Web.Api;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace StrmAssistant.Web.Service
@@ -54,16 +55,10 @@ namespace StrmAssistant.Web.Service
                 return;
             }
 
-            if (Plugin.Instance.ExperienceEnhanceStore.GetOptions().EnableDeepDelete)
-            {
-                var mountPaths = Plugin.LibraryApi.PrepareDeepDelete(item, true);
-
-                if (mountPaths.Count > 0)
-                {
-                    Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(mountPaths)).ConfigureAwait(false);
-                }
-            }
-
+            var enableDeepDelete = Plugin.Instance.ExperienceEnhanceStore.GetOptions().EnableDeepDelete;
+            var mountPaths = enableDeepDelete ? Plugin.LibraryApi.PrepareDeepDelete(item) : null;
+            
+            var proceedToDelete = true;
             var deletePaths = Plugin.LibraryApi.GetDeletePaths(item);
 
             foreach (var path in deletePaths)
@@ -78,21 +73,33 @@ namespace StrmAssistant.Web.Service
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("DeleteVersion - Delete file failed: " + path.FullName);
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    if (e is IOException || e is UnauthorizedAccessException)
+                    {
+                        proceedToDelete = false;
+                        _logger.Error("DeleteVersion - Failed to delete file: " + path.FullName);
+                        _logger.Error(e.Message);
+                        _logger.Debug(e.StackTrace);
+                    }
                 }
             }
 
-            _itemRepository.DeleteItems(new[] { item });
+            if (proceedToDelete)
+            {
+                _itemRepository.DeleteItems(new[] { item });
 
-            try
-            {
-                _fileSystem.DeleteDirectory(item.GetInternalMetadataPath(), true, true);
-            }
-            catch
-            {
-                // ignored
+                try
+                {
+                    _fileSystem.DeleteDirectory(item.GetInternalMetadataPath(), true, true);
+                }
+                catch
+                {
+                    // ignored
+                }
+
+                if (mountPaths?.Count > 0)
+                {
+                    Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(mountPaths)).ConfigureAwait(false);
+                }
             }
         }
     }

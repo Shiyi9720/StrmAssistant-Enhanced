@@ -783,7 +783,12 @@ namespace StrmAssistant.Common
             return new[] { _fileSystem.GetFileInfo(path) }.Concat(relatedFiles).Where(f => f.Exists).ToArray();
         }
 
-        public HashSet<string> PrepareDeepDelete(BaseItem item, bool single)
+        public HashSet<string> PrepareDeepDelete(BaseItem item)
+        {
+            return PrepareDeepDelete(item, null);
+        }
+
+        public HashSet<string> PrepareDeepDelete(BaseItem item, string[] scope)
         {
             var deleteItems = new List<BaseItem> { item };
 
@@ -799,11 +804,16 @@ namespace StrmAssistant.Common
             deleteItems = deleteItems.Where(i => i is IHasMediaSources).ToList();
 
             var mountPaths = new HashSet<string>();
+            var single = scope is null;
 
             foreach (var workItem in deleteItems)
             {
                 var mediaSources =
                     workItem.GetMediaSources(!single, false, _libraryManager.GetLibraryOptions(workItem));
+                mediaSources = mediaSources.Where(s =>
+                        single || scope?.Any(p => s.Path.StartsWith(p, StringComparison.OrdinalIgnoreCase)) is true)
+                    .ToList();
+
                 var staticMediaSources = Plugin.MediaInfoApi.GetStaticMediaSources(workItem, !single)
                     .ToDictionary(s => s.Id, s => s.Path);
 
@@ -812,10 +822,21 @@ namespace StrmAssistant.Common
                     if (IsFileShortcut(source.Path))
                     {
                         if (staticMediaSources.TryGetValue(source.Id, out var mountPath) &&
-                            Uri.TryCreate(mountPath, UriKind.Absolute, out var uri) &&
-                            uri.IsAbsoluteUri && uri.Scheme == Uri.UriSchemeFile && !IsFileShortcut(mountPath))
+                            Uri.TryCreate(mountPath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
+                            uri.Scheme == Uri.UriSchemeFile && !IsFileShortcut(mountPath))
                         {
                             mountPaths.Add(mountPath);
+                        }
+                    }
+                    else if (IsSymlink(source.Path))
+                    {
+                        var targetPath = GetSymlinkTarget(source.Path);
+
+                        if (!string.IsNullOrEmpty(targetPath) &&
+                            Uri.TryCreate(targetPath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
+                            uri.Scheme == Uri.UriSchemeFile)
+                        {
+                            mountPaths.Add(targetPath);
                         }
                     }
                 }
@@ -851,7 +872,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("DeepDelete - Delete file failed: " + path.FullName);
+                    _logger.Error("DeepDelete - Failed to delete file: " + path.FullName);
                     _logger.Error(e.Message);
                     _logger.Debug(e.StackTrace);
                 }
@@ -869,7 +890,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("DeepDelete - Delete empty folder failed: " + path.FullName);
+                    _logger.Error("DeepDelete - Failed to delete empty folder: " + path.FullName);
                     _logger.Error(e.Message);
                     _logger.Debug(e.StackTrace);
                 }

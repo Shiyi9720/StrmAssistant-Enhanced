@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <AssemblyVersion>2.0.0.14</AssemblyVersion>
     <FileVersion>2.0.0.14</FileVersion>
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Tokenizer\linux\libsimple.so" />
@@ -24,9 +25,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Lib.Harmony.Thin" Version="2.3.5">
-      <GeneratePathProperty>True</GeneratePathProperty>
-    </PackageReference>
+    <PackageReference Include="Lib.Harmony.Thin" Version="2.3.5" />
     <PackageReference Include="mediabrowser.server.core" Version="4.8.5" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -58,6 +57,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(ILRepack) /out:%25AppData%25\Emby-Server\programdata\plugins\$(TargetFileName) $(TargetPath) $(PkgLib_Harmony_Thin)\lib\net6.0\0Harmony.dll $(TargetDir)Mono*.dll $(TargetDir)ChineseConverter.dll $(TargetDir)TinyPinyin.dll /lib:$(TargetDir) /wildcards" />
+    <Exec Command="$(ILRepack) /out:%25AppData%25\Emby-Server\programdata\plugins\$(TargetFileName) $(TargetPath) $(TargetDir)0Harmony.dll $(TargetDir)Mono*.dll $(TargetDir)ChineseConverter.dll $(TargetDir)TinyPinyin.dll /lib:$(TargetDir) /wildcards" />
   </Target>
 </Project>
