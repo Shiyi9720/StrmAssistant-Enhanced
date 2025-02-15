@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
@@ -156,6 +157,19 @@ namespace StrmAssistant.Common
             using var md5 = MD5.Create();
             var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
             return prefix + BitConverter.ToString(hash).Replace("-", "").Substring(0, length).ToLower();
+        }
+
+        public static long Find(long x, Dictionary<long, long> parent)
+        {
+            if (parent[x] == x) return x;
+            return parent[x] = Find(parent[x], parent);
+        }
+
+        public static void Union(long x, long y, Dictionary<long, long> parent)
+        {
+            var root1 = Find(x, parent);
+            var root2 = Find(y, parent);
+            if (root1 != root2) parent[root1] = root2;
         }
     }
 }

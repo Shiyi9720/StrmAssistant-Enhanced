@@ -72,7 +72,7 @@ namespace StrmAssistant
                             return;
                         }
 
-                        await Plugin.LibraryApi.SerializeMediaInfo(taskItem, directoryService, false,
+                        await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem, directoryService, false,
                                 "Persist MediaInfo Task", cancellationToken)
                             .ConfigureAwait(false);
                     }

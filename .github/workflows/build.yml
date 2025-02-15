@@ -25,13 +25,8 @@ jobs:
         with:
           dotnet-version: '6.x'
 
-      - name: Set up local NuGet source
-        run: |
-          copy .github\nuget\nuget.config .
-        shell: cmd
-        
       - name: Restore dependencies
-        run: dotnet restore --configfile nuget.config
+        run: dotnet restore
 
       - name: Build the project
         run: dotnet build --no-restore --configuration Release

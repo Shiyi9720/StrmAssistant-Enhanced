@@ -21,16 +21,19 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Drawing;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Events;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
 using StrmAssistant.IntroSkip;
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
+using StrmAssistant.ScheduledTask;
 using StrmAssistant.Web.Helper;
 using System;
 using System.Collections.Generic;
@@ -39,6 +42,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using static StrmAssistant.Options.ExperienceEnhanceOptions;
 using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
@@ -49,6 +53,7 @@ namespace StrmAssistant
     {
         public static Plugin Instance { get; private set; }
         public static LibraryApi LibraryApi { get; private set; }
+        public static MediaInfoApi MediaInfoApi { get; private set; }
         public static ChapterApi ChapterApi { get; private set; }
         public static FingerprintApi FingerprintApi { get; private set; }
         public static NotificationApi NotificationApi { get; private set; }
@@ -65,7 +70,9 @@ namespace StrmAssistant
         private readonly ILibraryManager _libraryManager;
         private readonly IUserManager _userManager;
         private readonly IUserDataManager _userDataManager;
-        private readonly IDirectoryService _directoryService;
+        private readonly IProviderManager _providerManager;
+        private readonly IFileSystem _fileSystem;
+        private readonly ITaskManager _taskManager;
 
         private bool _currentSuppressOnOptionsSaved;
         private int _currentMaxConcurrentCount;
@@ -74,15 +81,17 @@ namespace StrmAssistant
         private bool _currentCatchupMode;
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
+        private bool _currentMergeMultiVersion;
+        private MergeMultiVersionOption _currentMergeMultiVersionPreferences;
 
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
             IItemRepository itemRepository, INotificationManager notificationManager, ILibraryMonitor libraryMonitor,
-            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager,
+            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager, IProviderManager providerManager,
             IMediaProbeManager mediaProbeManager, ILocalizationManager localizationManager, IUserManager userManager,
             IUserDataManager userDataManager, IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder,
             IJsonSerializer jsonSerializer, IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
-            IServerConfigurationManager configurationManager) : base(applicationHost)
+            IServerConfigurationManager configurationManager, ITaskManager taskManager) : base(applicationHost)
         {
             Instance = this;
             Logger = logManager.GetLogger(Name);
@@ -93,16 +102,21 @@ namespace StrmAssistant
             _libraryManager = libraryManager;
             _userManager = userManager;
             _userDataManager = userDataManager;
-            _directoryService = new DirectoryService(Logger, fileSystem);
+            _providerManager = providerManager;
+            _fileSystem = fileSystem;
+            _taskManager= taskManager;
 
             _currentMaxConcurrentCount = GetOptions().GeneralOptions.MaxConcurrentCount;
             _currentPersistMediaInfo = GetOptions().MediaInfoExtractOptions.PersistMediaInfo;
             _currentCatchupMode = GetOptions().GeneralOptions.CatchupMode;
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
+            _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
+            _currentMergeMultiVersionPreferences = GetOptions().ExperienceEnhanceOptions.MergeMultiVersionPreferences;
 
-            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaSourceManager, mediaMountManager,
-                itemRepository, jsonSerializer, userManager, libraryMonitor);
+            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, userManager);
+            MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, mediaSourceManager, itemRepository,
+                jsonSerializer, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths, ffmpegManager,
                 mediaEncoder, mediaMountManager, jsonSerializer, serverApplicationHost);
@@ -128,11 +142,37 @@ namespace StrmAssistant
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
+            _providerManager.RefreshCompleted += OnRefreshCompleted;
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
             CollectionFolder.LibraryOptionsUpdated += OnLibraryOptionsUpdated;
+        }
+
+        private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
+        {
+            if (!_libraryManager.IsScanRunning && _currentMergeMultiVersion && e.Argument.Item.IsTopParent)
+            {
+                var library = e.Argument.CollectionFolders.OfType<CollectionFolder>().FirstOrDefault();
+
+                if (library != null && (library.CollectionType == CollectionType.Movies.ToString() ||
+                                        library.CollectionType is null))
+                {
+                    if (_currentMergeMultiVersionPreferences == MergeMultiVersionOption.LibraryScope)
+                    {
+                        MergeMultiVersionTask.PerLibrary.Value = library;
+                    }
+
+                    var mergeMoviesTask = _taskManager.ScheduledTasks.FirstOrDefault(t =>
+                        t.ScheduledTask is MergeMultiVersionTask);
+
+                    if (mergeMoviesTask != null)
+                    {
+                        _ = _taskManager.Execute(mergeMoviesTask, new TaskOptions());
+                    }
+                }
+            }
         }
 
         private void OnUserCreated(object sender, GenericEventArgs<User> e)
@@ -152,7 +192,8 @@ namespace StrmAssistant
         
         private void OnLibraryOptionsUpdated(object sender, GenericEventArgs<Tuple<CollectionFolder, LibraryOptions>> e)
         {
-            if (e.Argument.Item1.CollectionType == "tvshows" || e.Argument.Item1.CollectionType is null)
+            if (e.Argument.Item1.CollectionType == CollectionType.TvShows.ToString() ||
+                e.Argument.Item1.CollectionType is null)
             {
                 PlaySessionMonitor.UpdateLibraryPathsInScope();
                 FingerprintApi.UpdateLibraryPathsInScope();
@@ -170,14 +211,16 @@ namespace StrmAssistant
 
                 if (_currentPersistMediaInfo && (e.Item is Video || e.Item is Audio))
                 {
+                    var directoryService = new DirectoryService(Logger, _fileSystem);
+
                     if (e.Item.IsShortcut)
                     {
-                        deserializeResult = await LibraryApi.DeserializeMediaInfo(e.Item, _directoryService,
+                        deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
                             "Item Added Event", CancellationToken.None);
                     }
                     else
                     {
-                        _ = LibraryApi.SerializeMediaInfo(e.Item, _directoryService, true, "Item Added Event",
+                        _ = MediaInfoApi.SerializeMediaInfo(e.Item, directoryService, true, "Item Added Event",
                             CancellationToken.None);
                     }
                 }
@@ -226,10 +269,10 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if (_currentPersistMediaInfo && (e.Item is Video || e.Item is Audio))
+            if (e.Item is Video || e.Item is Audio)
             {
-                _ = LibraryApi.DeleteMediaInfoJson(e.Item, _directoryService, "Item Removed Event",
-                    CancellationToken.None);
+                var directoryService = new DirectoryService(Logger, _fileSystem);
+                MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
             }
         }
 
@@ -329,7 +372,7 @@ namespace StrmAssistant
 
         protected override void OnOptionsSaved(PluginOptions options)
         {
-            var suppressLogger = _currentSuppressOnOptionsSaved;
+            var suppress = _currentSuppressOnOptionsSaved;
 
             if (_currentCatchupMode != options.GeneralOptions.CatchupMode)
             {
@@ -345,14 +388,14 @@ namespace StrmAssistant
             }
             UpdateCatchupScope();
 
-            if (!suppressLogger)
+            if (!suppress)
             {
                 Logger.Info("CatchupMode is set to {0}", options.GeneralOptions.CatchupMode);
                 var catchupTaskScope = GetSelectedCatchupTaskDescription();
                 Logger.Info("CatchupTaskScope is set to {0}", string.IsNullOrEmpty(catchupTaskScope) ? "EMPTY" : catchupTaskScope);
             }
 
-            if (!suppressLogger)
+            if (!suppress)
             {
                 Logger.Info("IncludeExtra is set to {0}", options.MediaInfoExtractOptions.IncludeExtra);
                 Logger.Info("MaxConcurrentCount is set to {0}", options.GeneralOptions.MaxConcurrentCount);
@@ -384,7 +427,7 @@ namespace StrmAssistant
             }
             LibraryApi.UpdateLibraryPathsInScope();
 
-            if (!suppressLogger)
+            if (!suppress)
             {
                 Logger.Info("PersistMediaInfo is set to {0}", options.MediaInfoExtractOptions.PersistMediaInfo);
                 Logger.Info("MediaInfoJsonRootFolder is set to {0}",
@@ -394,7 +437,7 @@ namespace StrmAssistant
             }
             _currentPersistMediaInfo = options.MediaInfoExtractOptions.PersistMediaInfo;
 
-            if (!suppressLogger)
+            if (!suppress)
             {
                 Logger.Info("EnableIntroSkip is set to {0}", options.IntroSkipOptions.EnableIntroSkip);
                 Logger.Info("MaxIntroDurationSeconds is set to {0}", options.IntroSkipOptions.MaxIntroDurationSeconds);
@@ -416,7 +459,7 @@ namespace StrmAssistant
 
             UpdateIntroSkipPreferences();
 
-            if (!suppressLogger)
+            if (!suppress)
             {
                 var intoSkipLibraryScope = string.Join(", ",
                     options.IntroSkipOptions.LibraryScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -444,7 +487,7 @@ namespace StrmAssistant
             PlaySessionMonitor.UpdateUsersInScope();
             PlaySessionMonitor.UpdateClientInScope();
             
-            if (!suppressLogger)
+            if (!suppress)
             {
                 Logger.Info("UnlockIntroSkip is set to {0}", options.IntroSkipOptions.UnlockIntroSkip);
                 var markerEnabledLibraryScope = string.Join(", ",
@@ -463,7 +506,16 @@ namespace StrmAssistant
             FingerprintApi.UpdateLibraryPathsInScope();
             FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength();
 
-            if (suppressLogger) _currentSuppressOnOptionsSaved = false;
+            if (!suppress)
+            {
+                Logger.Info("MergeMultiVersion is set to {0}", options.ExperienceEnhanceOptions.MergeMultiVersion);
+                Logger.Info("MergeMultiVersionPreferences is set to {0}",
+                    EnumExtensions.GetDescription(options.ExperienceEnhanceOptions.MergeMultiVersionPreferences));
+            }
+            _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
+            _currentMergeMultiVersionPreferences = options.ExperienceEnhanceOptions.MergeMultiVersionPreferences;
+
+            if (suppress) _currentSuppressOnOptionsSaved = false;
 
             base.OnOptionsSaved(options);
         }

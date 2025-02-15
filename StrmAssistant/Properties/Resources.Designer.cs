@@ -188,6 +188,25 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Attempt to cascade delete the underlying file of strm or symlink. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlying_file_of_strm_or_symlink__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlyin" +
+                        "g_file_of_strm_or_symlink__Default_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable Deep Delete.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Notification Enhanced.
         /// </summary>
         public static string ExperienceEnhanceOptions_EnhanceNotification_Enhance_Notification {
@@ -203,6 +222,16 @@ namespace StrmAssistant.Properties {
             get {
                 return ResourceManager.GetString("ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notif" +
                         "ication__Default_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Split multi-version movies in all libraries.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libraries {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libra" +
+                        "ries", resourceCulture);
             }
         }
         
@@ -225,7 +254,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Extracts media info from videos and audios.
+        ///   Looks up a localized string similar to Extracts media info from videos and audios, and image capture.
         /// </summary>
         public static string ExtractMediaInfoTask_Description_Extracts_media_info_from_videos_and_audios {
             get {
@@ -289,7 +318,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Auto merge multiple versions in the same folder while library scan. Default is OFF..
+        ///   Looks up a localized string similar to Auto merge movies to multiple versions while library scan, bypass naming convention. Default is OFF..
         /// </summary>
         public static string GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_ {
             get {
@@ -841,6 +870,34 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Merge movies per library or across libraries, triggered post library scan.
+        /// </summary>
+        public static string MergeMovieTask_Description_Merge_movies_per_library_or_across_libraries_per_preference {
+            get {
+                return ResourceManager.GetString("MergeMovieTask_Description_Merge_movies_per_library_or_across_libraries_per_prefe" +
+                        "rence", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Global Scope.
+        /// </summary>
+        public static string MergeMultiVersionOption_GlobalScope_GlobalScope {
+            get {
+                return ResourceManager.GetString("MergeMultiVersionOption_GlobalScope_GlobalScope", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Library Scope.
+        /// </summary>
+        public static string MergeMultiVersionOption_LibraryScope_LibraryScope {
+            get {
+                return ResourceManager.GetString("MergeMultiVersionOption_LibraryScope_LibraryScope", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Alternative MovieDb Api Key.
         /// </summary>
         public static string MetadataEnhanceOptions_AltMovieDbApiKey_Alternative_MovieDb_Api_Key {
@@ -898,7 +955,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Block English such non fallback language in overview. Default is OFF..
+        ///   Looks up a localized string similar to Block English such non fallback language for movie, series, season and episode overview. Default is OFF..
         /// </summary>
         public static string MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_ {
             get {
@@ -1105,7 +1162,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fallback metadata languages..
+        ///   Looks up a localized string similar to Fallback metadata languages, prioritized from left to right..
         /// </summary>
         public static string ModOptions_FallbackLanguages_Fallback_languages__Default_is_zh_SG_ {
             get {
@@ -1300,6 +1357,15 @@ namespace StrmAssistant.Properties {
         public static string Notification_IntroUpdate_Message {
             get {
                 return ResourceManager.GetString("Notification_IntroUpdate_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Operation completed successfully.
+        /// </summary>
+        public static string Operation_Success {
+            get {
+                return ResourceManager.GetString("Operation_Success", resourceCulture);
             }
         }
         
@@ -1588,7 +1654,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Beautify Episode Title.
+        ///   Looks up a localized string similar to Beautify Title Display.
         /// </summary>
         public static string UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata {
             get {
@@ -1597,7 +1663,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Beautify episode title display with no metadata. Default is OFF..
+        ///   Looks up a localized string similar to Beautify episode title display with no metadata and additional part title display. Default is OFF..
         /// </summary>
         public static string UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_ {
             get {
@@ -1654,7 +1720,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prevent automatic boxset library creation, used along with removal. Default is OFF..
+        ///   Looks up a localized string similar to Hide collection library from user views, if removed, prevent auto creation. Default is OFF..
         /// </summary>
         public static string UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_ {
             get {
@@ -1664,7 +1730,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prevent Boxsets Auto Creation.
+        ///   Looks up a localized string similar to Hide Collection Library.
         /// </summary>
         public static string UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation {
             get {

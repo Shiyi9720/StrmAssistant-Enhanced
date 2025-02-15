@@ -64,6 +64,8 @@ namespace StrmAssistant.ScheduledTask
                 .GroupBy(kvp => new { kvp.Key, kvp.Value })
                 .Where(group => group.Count() > 1)
                 .SelectMany(group => group.Select(g => g.item))
+                .GroupBy(i => i.InternalId)
+                .Select(g => g.First())
                 .ToList();
 
             if (dupPersonItems.Count > 0)

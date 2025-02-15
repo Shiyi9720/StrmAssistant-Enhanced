@@ -68,9 +68,14 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Warn("ExternalSubtitle - Init Failed");
                 _logger.Debug(e.Message);
                 _logger.Debug(e.StackTrace);
+            }
+
+            if (SubtitleResolver is null || GetExternalSubtitleFiles is null || GetExternalSubtitleStreams is null ||
+                FFProbeSubtitleInfo is null || UpdateExternalSubtitleStream is null)
+            {
+                _logger.Warn($"{nameof(SubtitleApi)} Init Failed");
             }
         }
 
@@ -128,7 +133,7 @@ namespace StrmAssistant.Common
                 if (Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo &&
                     Plugin.LibraryApi.IsLibraryInScope(item))
                 {
-                    await Plugin.LibraryApi.SerializeMediaInfo(item, directoryService, true,
+                    await Plugin.MediaInfoApi.SerializeMediaInfo(item, directoryService, true,
                             "External Subtitle Update", cancellationToken)
                         .ConfigureAwait(false);
                 }

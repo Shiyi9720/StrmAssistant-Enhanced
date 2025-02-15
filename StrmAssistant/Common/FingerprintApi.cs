@@ -82,9 +82,14 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug("AudioFingerprintManager - Init Failed");
                 _logger.Debug(e.Message);
                 _logger.Debug(e.StackTrace);
+            }
+
+            if (AudioFingerprintManager is null || CreateTitleFingerprint is null ||
+                GetAllFingerprintFilesForSeason is null || UpdateSequencesForSeason is null || TimeoutMs is null)
+            {
+                _logger.Warn($"{nameof(FingerprintApi)} Init Failed");
             }
         }
 

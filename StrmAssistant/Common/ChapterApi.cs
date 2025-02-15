@@ -2,7 +2,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Persistence;
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
@@ -12,9 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using static StrmAssistant.Common.LibraryApi;
 using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
 
@@ -496,64 +492,6 @@ namespace StrmAssistant.Common
                     }
                 }
             }
-        }
-
-        public async Task<bool> DeserializeChapterInfo(Episode item, IDirectoryService directoryService, string source,
-            CancellationToken cancellationToken)
-        {
-            var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
-            var file = directoryService.GetFile(mediaInfoJsonPath);
-
-            if (file?.Exists == true)
-            {
-                try
-                {
-                    var mediaSourceWithChapters =
-                        (await _jsonSerializer
-                            .DeserializeFromFileAsync<List<MediaSourceWithChapters>>(mediaInfoJsonPath)
-                            .ConfigureAwait(false)).ToArray()[0];
-
-                    if (mediaSourceWithChapters.ZeroFingerprintConfidence is true)
-                    {
-                        BaseItem.ItemRepository.LogIntroDetectionFailureFailure(item.InternalId,
-                            item.DateModified.ToUnixTimeSeconds());
-
-                        _logger.Info("ChapterInfoPersist - Log Zero Fingerprint Confidence (" + source + "): " + mediaInfoJsonPath);
-
-                        return true;
-                    }
-
-                    var introStart = mediaSourceWithChapters.Chapters
-                        .FirstOrDefault(c => c.MarkerType == MarkerType.IntroStart);
-
-                    var introEnd = mediaSourceWithChapters.Chapters
-                        .FirstOrDefault(c => c.MarkerType == MarkerType.IntroEnd);
-
-                    if (introStart != null && introEnd != null && introEnd.StartPositionTicks > introStart.StartPositionTicks)
-                    {
-                        var chapters = _itemRepository.GetChapters(item);
-                        chapters.RemoveAll(c =>
-                            c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd);
-                        chapters.Add(introStart);
-                        chapters.Add(introEnd);
-                        chapters.Sort((c1, c2) => c1.StartPositionTicks.CompareTo(c2.StartPositionTicks));
-
-                        _itemRepository.SaveChapters(item.InternalId, chapters);
-
-                        _logger.Info("ChapterInfoPersist - Deserialization Success (" + source + "): " + mediaInfoJsonPath);
-
-                        return true;
-                    }
-                }
-                catch (Exception e)
-                {
-                    _logger.Error("ChapterInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
-                }
-            }
-
-            return false;
         }
     }
 }
