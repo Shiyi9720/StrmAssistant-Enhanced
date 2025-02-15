@@ -192,13 +192,36 @@ namespace StrmAssistant.Mod
             Plugin.Instance.Logger.Debug("Unpatch CacheTime Success by Reflection");
         }
 
-        private static bool IsUpdateNeeded(string name, bool isEpisode)
+        private static bool IsUpdateNeeded(string currentValue, string newValue = null)
         {
-            var isJapaneseFallback = HasMovieDbJapaneseFallback();
+            if (string.IsNullOrEmpty(currentValue)) return true;
 
-            return string.IsNullOrEmpty(name) || !isJapaneseFallback
-                ? !IsChinese(name)
-                : !(IsChineseJapanese(name) && (!isEpisode || !IsDefaultChineseEpisodeName(name)));
+            var isEpisodeName = newValue != null;
+            var isJapaneseFallback = HasMovieDbJapaneseFallback();
+            
+            if (!isEpisodeName)
+            {
+                return !isJapaneseFallback ? !IsChinese(currentValue) : !IsChineseJapanese(currentValue);
+            }
+
+            if (!isJapaneseFallback)
+            {
+                if (!IsChinese(currentValue)) return true;
+
+                return IsDefaultChineseEpisodeName(currentValue) && IsEnglish(newValue) &&
+                       !IsDefaultEnglishEpisodeName(newValue);
+            }
+
+            if (!IsChineseJapanese(currentValue)) return true;
+
+            if (IsDefaultChineseEpisodeName(currentValue))
+            {
+                if (IsJapanese(newValue) && !IsDefaultJapaneseEpisodeName(newValue)) return true;
+
+                if (IsEnglish(newValue) && !IsDefaultEnglishEpisodeName(newValue)) return true;
+            }
+
+            return false;
         }
 
         [HarmonyPrefix]
@@ -222,7 +245,7 @@ namespace StrmAssistant.Mod
         {
             var item = resultItem.Item;
 
-            if (_getTitleMovieData != null && IsUpdateNeeded(item.Name, false))
+            if (_getTitleMovieData != null && IsUpdateNeeded(item.Name))
             {
                 item.Name = _getTitleMovieData.Invoke(movieData, null) as string;
             }
@@ -235,13 +258,73 @@ namespace StrmAssistant.Mod
         {
             __state = false;
 
-            if (item is Movie || item is Series || item is Season || item is Episode)
+            var name = item.Name;
+            var overview = item.Overview;
+            var isJapaneseFallback = HasMovieDbJapaneseFallback();
+
+            if (item is Movie || item is Series || item is Season)
             {
                 __state = true;
 
-                __result = !HasMovieDbJapaneseFallback()
-                    ? IsChinese(item.Name) && IsChinese(item.Overview)
-                    : IsChineseJapanese(item.Name) && IsChineseJapanese(item.Overview);
+                __result = !isJapaneseFallback
+                    ? IsChinese(name) && IsChinese(overview)
+                    : IsChineseJapanese(name) && IsChineseJapanese(overview);
+
+                return false;
+            }
+
+            if (item is Episode)
+            {
+                __state = true;
+
+                if (!isJapaneseFallback)
+                {
+                    if (IsChinese(name))
+                    {
+                        if (IsDefaultChineseEpisodeName(name))
+                        {
+                            __result = false;
+                        }
+                        else if (IsChinese(overview))
+                        {
+                            __result = true;
+                        }
+                        else
+                        {
+                            __result = false;
+                        }
+                    }
+                    else
+                    {
+                        __result = false;
+                    }
+                }
+                else
+                {
+                    if (IsChineseJapanese(name))
+                    {
+                        if (IsDefaultChineseEpisodeName(name))
+                        {
+                            __result = false;
+                        }
+                        else if (IsDefaultJapaneseEpisodeName(name))
+                        {
+                            __result = false;
+                        }
+                        else if (IsChineseJapanese(overview))
+                        {
+                            __result = true;
+                        }
+                        else
+                        {
+                            __result = false;
+                        }
+                    }
+                    else
+                    {
+                        __result = false;
+                    }
+                }
 
                 return false;
             }
@@ -276,7 +359,7 @@ namespace StrmAssistant.Mod
         {
             var item = seriesResult.Item;
 
-            if (_getTitleSeriesInfo != null && IsUpdateNeeded(item.Name, false))
+            if (_getTitleSeriesInfo != null && IsUpdateNeeded(item.Name))
             {
                 item.Name = _getTitleSeriesInfo.Invoke(seriesInfo, null) as string;
             }
@@ -357,12 +440,12 @@ namespace StrmAssistant.Mod
         private static bool SeasonImportDataPrefix(Season item, object seasonInfo, string name, int seasonNumber,
             bool isFirstLanguage)
         {
-            if (_nameSeasonInfoProperty != null && IsUpdateNeeded(item.Name, false))
+            if (_nameSeasonInfoProperty != null && IsUpdateNeeded(item.Name))
             {
                 item.Name = _nameSeasonInfoProperty.GetValue(seasonInfo) as string;
             }
 
-            if (_overviewSeasonInfoProperty != null && IsUpdateNeeded(item.Overview, false))
+            if (_overviewSeasonInfoProperty != null && IsUpdateNeeded(item.Overview))
             {
                 item.Overview = _overviewSeasonInfoProperty.GetValue(seasonInfo) as string;
             }
@@ -376,19 +459,13 @@ namespace StrmAssistant.Mod
         {
             var item = result.Item;
 
-            if (_nameEpisodeInfoProperty != null && IsUpdateNeeded(item.Name, true))
+            if (_nameEpisodeInfoProperty != null && _nameEpisodeInfoProperty.GetValue(response) is string nameValue &&
+                IsUpdateNeeded(item.Name, nameValue))
             {
-                var nameValue = _nameEpisodeInfoProperty.GetValue(response) as string;
-
-                if (string.IsNullOrEmpty(item.Name) || !HasMovieDbJapaneseFallback() ||
-                    IsChinese(item.Name) && IsDefaultChineseEpisodeName(item.Name) && IsJapanese(nameValue) &&
-                     !IsDefaultJapaneseEpisodeName(nameValue))
-                {
-                    item.Name = nameValue;
-                }
+                item.Name = nameValue;
             }
 
-            if (_overviewEpisodeInfoProperty != null && IsUpdateNeeded(item.Overview, true))
+            if (_overviewEpisodeInfoProperty != null && IsUpdateNeeded(item.Overview))
             {
                 item.Overview = _overviewEpisodeInfoProperty.GetValue(response) as string;
             }
