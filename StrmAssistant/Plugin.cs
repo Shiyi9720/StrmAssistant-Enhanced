@@ -41,8 +41,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
-using static StrmAssistant.Options.ExperienceEnhanceOptions;
 using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
@@ -82,7 +82,6 @@ namespace StrmAssistant
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
         private bool _currentMergeMultiVersion;
-        private MergeMultiVersionOption _currentMergeMultiVersionPreferences;
 
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
@@ -112,11 +111,10 @@ namespace StrmAssistant
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
-            _currentMergeMultiVersionPreferences = GetOptions().ExperienceEnhanceOptions.MergeMultiVersionPreferences;
 
-            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, userManager);
-            MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, mediaSourceManager, itemRepository,
-                jsonSerializer, libraryMonitor);
+            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, providerManager, userManager);
+            MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
+                itemRepository, jsonSerializer, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths, ffmpegManager,
                 mediaEncoder, mediaMountManager, jsonSerializer, serverApplicationHost);
@@ -152,17 +150,16 @@ namespace StrmAssistant
 
         private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
         {
-            if (!_libraryManager.IsScanRunning && _currentMergeMultiVersion && e.Argument.Item.IsTopParent)
+            if (_libraryManager.IsScanRunning) return;
+
+            if (_currentMergeMultiVersion && e.Argument.Item.IsTopParent)
             {
                 var library = e.Argument.CollectionFolders.OfType<CollectionFolder>().FirstOrDefault();
 
                 if (library != null && (library.CollectionType == CollectionType.Movies.ToString() ||
                                         library.CollectionType is null))
                 {
-                    if (_currentMergeMultiVersionPreferences == MergeMultiVersionOption.LibraryScope)
-                    {
-                        MergeMultiVersionTask.PerLibrary.Value = library;
-                    }
+                    MergeMultiVersionTask.CurrentScanLibrary.Value = library;
 
                     var mergeMoviesTask = _taskManager.ScheduledTasks.FirstOrDefault(t =>
                         t.ScheduledTask is MergeMultiVersionTask);
@@ -305,6 +302,8 @@ namespace StrmAssistant
         public string UserAgent => $"{Name}/{CurrentVersion}";
 
         public CultureInfo DefaultUICulture => new CultureInfo("zh-CN");
+
+        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
 
         public Stream GetThumbImage()
         {
@@ -509,11 +508,10 @@ namespace StrmAssistant
             if (!suppress)
             {
                 Logger.Info("MergeMultiVersion is set to {0}", options.ExperienceEnhanceOptions.MergeMultiVersion);
-                Logger.Info("MergeMultiVersionPreferences is set to {0}",
-                    EnumExtensions.GetDescription(options.ExperienceEnhanceOptions.MergeMultiVersionPreferences));
+                Logger.Info("MergeMoviesPreference is set to {0}",
+                    EnumExtensions.GetDescription(options.ExperienceEnhanceOptions.MergeMoviesPreference));
             }
             _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
-            _currentMergeMultiVersionPreferences = options.ExperienceEnhanceOptions.MergeMultiVersionPreferences;
 
             if (suppress) _currentSuppressOnOptionsSaved = false;
 

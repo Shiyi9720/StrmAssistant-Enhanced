@@ -28,11 +28,11 @@ namespace StrmAssistant.Common
         private readonly IFileSystem _fileSystem;
         private readonly ILogger _logger;
 
-        private readonly object AudioFingerprintManager;
-        private readonly MethodInfo CreateTitleFingerprint;
-        private readonly MethodInfo GetAllFingerprintFilesForSeason;
-        private readonly MethodInfo UpdateSequencesForSeason;
-        private readonly FieldInfo TimeoutMs;
+        private readonly object _audioFingerprintManager;
+        private readonly MethodInfo _createTitleFingerprint;
+        private readonly MethodInfo _getAllFingerprintFilesForSeason;
+        private readonly MethodInfo _updateSequencesForSeason;
+        private readonly FieldInfo _timeoutMs;
 
         public static List<string> LibraryPathsInScope;
 
@@ -59,24 +59,23 @@ namespace StrmAssistant.Common
                         typeof(IMediaEncoder), typeof(IMediaMountManager), typeof(IJsonSerializer),
                         typeof(IServerApplicationHost)
                     }, null);
-                AudioFingerprintManager = audioFingerprintManagerConstructor?.Invoke(new object[]
+                _audioFingerprintManager = audioFingerprintManagerConstructor?.Invoke(new object[]
                 {
                     fileSystem, _logger, applicationPaths, ffmpegManager, mediaEncoder, mediaMountManager,
                     jsonSerializer, serverApplicationHost
                 });
-                CreateTitleFingerprint = audioFingerprintManager.GetMethod("CreateTitleFingerprint",
+                _createTitleFingerprint = audioFingerprintManager.GetMethod("CreateTitleFingerprint",
                     BindingFlags.Public | BindingFlags.Instance, null,
                     new[]
                     {
                         typeof(Episode), typeof(LibraryOptions), typeof(IDirectoryService),
                         typeof(CancellationToken)
                     }, null);
-                GetAllFingerprintFilesForSeason = audioFingerprintManager.GetMethod("GetAllFingerprintFilesForSeason",
+                _getAllFingerprintFilesForSeason = audioFingerprintManager.GetMethod("GetAllFingerprintFilesForSeason",
                     BindingFlags.Public | BindingFlags.Instance);
-                UpdateSequencesForSeason = audioFingerprintManager.GetMethod("UpdateSequencesForSeason",
+                _updateSequencesForSeason = audioFingerprintManager.GetMethod("UpdateSequencesForSeason",
                     BindingFlags.Public | BindingFlags.Instance);
-
-                TimeoutMs = audioFingerprintManager.GetField("TimeoutMs",
+                _timeoutMs = audioFingerprintManager.GetField("TimeoutMs",
                     BindingFlags.NonPublic | BindingFlags.Instance);
                 PatchTimeout(Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount);
             }
@@ -86,17 +85,47 @@ namespace StrmAssistant.Common
                 _logger.Debug(e.StackTrace);
             }
 
-            if (AudioFingerprintManager is null || CreateTitleFingerprint is null ||
-                GetAllFingerprintFilesForSeason is null || UpdateSequencesForSeason is null || TimeoutMs is null)
+            if (_audioFingerprintManager is null || _createTitleFingerprint is null ||
+                _getAllFingerprintFilesForSeason is null || _updateSequencesForSeason is null || _timeoutMs is null)
             {
                 _logger.Warn($"{nameof(FingerprintApi)} Init Failed");
             }
         }
 
+        public Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, IDirectoryService directoryService,
+            CancellationToken cancellationToken)
+        {
+            var libraryOptions = _libraryManager.GetLibraryOptions(item);
+
+            return (Task<Tuple<string, bool>>)_createTitleFingerprint.Invoke(_audioFingerprintManager,
+                new object[] { item, libraryOptions, directoryService, cancellationToken });
+        }
+
+        public Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, CancellationToken cancellationToken)
+        {
+            var directoryService = new DirectoryService(_logger, _fileSystem);
+
+            return CreateTitleFingerprint(item, directoryService, cancellationToken);
+        }
+
+        private Task<object> GetAllFingerprintFilesForSeason(Season season, Episode[] episodes,
+            LibraryOptions libraryOptions, IDirectoryService directoryService, CancellationToken cancellationToken)
+        {
+            return (Task<object>)_getAllFingerprintFilesForSeason.Invoke(_audioFingerprintManager,
+                new object[] { season, episodes, libraryOptions, directoryService, cancellationToken });
+        }
+
+        private void UpdateSequencesForSeason(Season season, object seasonFingerprintInfo, Episode episode,
+            LibraryOptions libraryOptions, IDirectoryService directoryService)
+        {
+            _updateSequencesForSeason.Invoke(_audioFingerprintManager,
+                new[] { season, seasonFingerprintInfo, episode, libraryOptions, directoryService });
+        }
+
         public void PatchTimeout(int maxConcurrentCount)
         {
             var newTimeout = maxConcurrentCount * Convert.ToInt32(TimeSpan.FromMinutes(10.0).TotalMilliseconds);
-            TimeoutMs.SetValue(AudioFingerprintManager, newTimeout);
+            _timeoutMs.SetValue(_audioFingerprintManager, newTimeout);
         }
 
         public bool IsLibraryInScope(BaseItem item)
@@ -237,7 +266,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            var isModSupported = Plugin.Instance.GetPluginOptions().IntroSkipOptions.IsModSupported;
+            var isModSupported = Plugin.Instance.IsModSupported;
             var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
                 .OfType<Episode>().ToList();
 
@@ -275,7 +304,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            var isModSupported = Plugin.Instance.GetPluginOptions().IntroSkipOptions.IsModSupported;
+            var isModSupported = Plugin.Instance.IsModSupported;
             var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
                 .OfType<Episode>().ToList();
 
@@ -301,23 +330,6 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task<Tuple<string, bool>> ExtractIntroFingerprint(Episode item, IDirectoryService directoryService,
-            CancellationToken cancellationToken)
-        {
-            var libraryOptions = _libraryManager.GetLibraryOptions(item);
-            var result = await ((Task<Tuple<string, bool>>)CreateTitleFingerprint.Invoke(AudioFingerprintManager,
-                new object[] { item, libraryOptions, directoryService, cancellationToken })).ConfigureAwait(false);
-
-            return result;
-        }
-
-        public async Task<Tuple<string, bool>> ExtractIntroFingerprint(Episode item, CancellationToken cancellationToken)
-        {
-            var directoryService = new DirectoryService(_logger, _fileSystem);
-
-            return await ExtractIntroFingerprint(item, directoryService, cancellationToken).ConfigureAwait(false);
-        }
-
         public async Task UpdateIntroMarkerForSeason(Season season, CancellationToken cancellationToken)
         {
             var introDetectionFingerprintMinutes =
@@ -339,18 +351,13 @@ namespace StrmAssistant.Common
             episodeQuery.WithoutChapterMarkers = new[] { MarkerType.IntroStart };
             var episodesWithoutMarkers = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToArray();
 
-            var task = (Task)GetAllFingerprintFilesForSeason.Invoke(AudioFingerprintManager,
-                new object[] { season, allEpisodes, libraryOptions, directoryService, cancellationToken });
-
-            await task.ConfigureAwait(false);
-
-            var seasonFingerprintInfo = task.GetType().GetProperty("Result")?.GetValue(task);
+            var seasonFingerprintInfo = await GetAllFingerprintFilesForSeason(season,
+                allEpisodes, libraryOptions, directoryService, cancellationToken).ConfigureAwait(false);
 
             foreach (var episode in episodesWithoutMarkers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                UpdateSequencesForSeason.Invoke(AudioFingerprintManager,
-                    new[] { season, seasonFingerprintInfo, episode, libraryOptions, directoryService });
+                UpdateSequencesForSeason(season, seasonFingerprintInfo, episode, libraryOptions, directoryService);
             }
         }
     }

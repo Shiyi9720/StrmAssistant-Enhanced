@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -170,6 +170,30 @@ namespace StrmAssistant.Common
             var root1 = Find(x, parent);
             var root2 = Find(y, parent);
             if (root1 != root2) parent[root1] = root2;
+        }
+
+        public static double LevenshteinDistance(string str1, string str2)
+        {
+            int n = str1.Length;
+            int m = str2.Length;
+            int[,] d = new int[n + 1, m + 1];
+
+            for (int i = 0; i <= n; d[i, 0] = i++) ;
+            for (int j = 0; j <= m; d[0, j] = j++) ;
+
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = (str1[i - 1] == str2[j - 1]) ? 0 : 1;
+                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + cost);
+                }
+            }
+
+            int levenshteinDistance = d[n, m];
+            double similarity = 1.0 - (levenshteinDistance / (double)Math.Max(str1.Length, str2.Length));
+
+            return similarity;
         }
     }
 }

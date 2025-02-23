@@ -70,6 +70,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Are you sure you wish to continue?.
+        /// </summary>
+        public static string AreYouSureToContinue {
+            get {
+                return ResourceManager.GetString("AreYouSureToContinue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Built-in Intro Detection.
         /// </summary>
         public static string CatchupTask_Fingerprint_Fingerprint {
@@ -134,6 +143,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Extract Alternative Versions on Playback Stop.
+        /// </summary>
+        public static string ExclusiveControl_ExtractAlternative_ExtractAlternative {
+            get {
+                return ResourceManager.GetString("ExclusiveControl_ExtractAlternative_ExtractAlternative", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Auto Extract on File Change.
         /// </summary>
         public static string ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange {
@@ -188,7 +206,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Attempt to cascade delete the underlying file of strm or symlink. Default is OFF..
+        ///   Looks up a localized string similar to Attempt to cascade delete the target file of strm or symlink, and the related files and emptry directory. Default is OFF..
         /// </summary>
         public static string ExperienceEnhanceOptions_EnableDeepDelete_Attempt_to_cascade_delete_the_underlying_file_of_strm_or_symlink__Default_is_OFF_ {
             get {
@@ -222,6 +240,24 @@ namespace StrmAssistant.Properties {
             get {
                 return ResourceManager.GetString("ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notif" +
                         "ication__Default_is_OFF_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Movie Merge Preference.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_MergeMoviePreferences_Movie_Merge_Preference {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_MergeMoviePreferences_Movie_Merge_Preference", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TV Series Merge Preference.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference", resourceCulture);
             }
         }
         
@@ -318,7 +354,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Auto merge movies to multiple versions while library scan, bypass naming convention. Default is OFF..
+        ///   Looks up a localized string similar to While library scan, auto merge movies to multi versions, bypass naming convention, support tvshows across libraries. Default is OFF..
         /// </summary>
         public static string GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_ {
             get {
@@ -882,18 +918,18 @@ namespace StrmAssistant.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Global Scope.
         /// </summary>
-        public static string MergeMultiVersionOption_GlobalScope_GlobalScope {
+        public static string MergeScopeOption_GlobalScope_GlobalScope {
             get {
-                return ResourceManager.GetString("MergeMultiVersionOption_GlobalScope_GlobalScope", resourceCulture);
+                return ResourceManager.GetString("MergeScopeOption_GlobalScope_GlobalScope", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Library Scope.
         /// </summary>
-        public static string MergeMultiVersionOption_LibraryScope_LibraryScope {
+        public static string MergeScopeOption_LibraryScope_LibraryScope {
             get {
-                return ResourceManager.GetString("MergeMultiVersionOption_LibraryScope_LibraryScope", resourceCulture);
+                return ResourceManager.GetString("MergeScopeOption_LibraryScope_LibraryScope", resourceCulture);
             }
         }
         

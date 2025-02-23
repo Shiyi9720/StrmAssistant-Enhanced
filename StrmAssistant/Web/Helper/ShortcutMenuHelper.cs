@@ -1,4 +1,4 @@
-﻿using MediaBrowser.Controller.Configuration;
+using MediaBrowser.Controller.Configuration;
 using System;
 using System.IO;
 using System.Linq;
@@ -21,7 +21,7 @@ namespace StrmAssistant.Web.Helper
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Error("ShortcutMenuHelper Init Failed");
+                Plugin.Instance.Logger.Error($"{nameof(ShortcutMenuHelper)} Init Failed");
                 Plugin.Instance.Logger.Error(e.Message);
                 Plugin.Instance.Logger.Debug(e.StackTrace);
             }
@@ -93,7 +93,7 @@ const strmAssistantCommandSource = {
             const itemName = matchingItem?.Name;
             if (itemId && itemName) {
                 return require(['components/strmassistant/strmassistant']).then(responses => {
-                    return responses[0].delver(itemId, itemName);
+                    return responses[0].delver(itemId, itemName, items[0].Type);
                 });
             }
         }
@@ -124,6 +124,8 @@ setTimeout(() => {
 
             if (dataExplorer2Assembly != null)
             {
+                Plugin.Instance.Logger.Debug($"{nameof(ShortcutMenuHelper)} - Emby.DataExplorer2 plugin is installed");
+
                 var contextMenuHelperType = dataExplorer2Assembly.GetType("Emby.DataExplorer2.Api.ContextMenuHelper");
                 var modifiedShortcutsProperty = contextMenuHelperType?.GetProperty("ModifiedShortcutsString",
                     BindingFlags.Static | BindingFlags.Public);

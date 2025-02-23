@@ -5,7 +5,6 @@ using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 
 namespace StrmAssistant.Options
 {
@@ -105,8 +104,5 @@ namespace StrmAssistant.Options
         [SelectItemsSource(nameof(IntroSkipPreferenceList))]
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public string IntroSkipPreferences { get; set; } = string.Empty;
-
-        [Browsable(false)]
-        public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
     }
 }

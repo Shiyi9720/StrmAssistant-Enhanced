@@ -27,9 +27,11 @@ namespace StrmAssistant.Common
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IFileSystem _fileSystem;
-        private readonly IUserManager _userManager;
         private readonly IMediaMountManager _mediaMountManager;
+        private readonly IProviderManager _providerManager;
+        private readonly IUserManager _userManager;
 
+        public static MetadataRefreshOptions MinimumRefreshOptions;
         public static MetadataRefreshOptions MediaInfoRefreshOptions;
         public static MetadataRefreshOptions ImageCaptureRefreshOptions;
         public static MetadataRefreshOptions FullRefreshOptions;
@@ -89,16 +91,28 @@ namespace StrmAssistant.Common
         public static string[] AdminOrderedViews = Array.Empty<string>();
 
         public LibraryApi(ILibraryManager libraryManager, IFileSystem fileSystem, IMediaMountManager mediaMountManager,
-            IUserManager userManager)
+            IProviderManager providerManager, IUserManager userManager)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _fileSystem = fileSystem;
-            _userManager = userManager;
             _mediaMountManager = mediaMountManager;
+            _providerManager = providerManager;
+            _userManager = userManager;
 
             UpdateLibraryPathsInScope();
             FetchUsers();
+
+            MinimumRefreshOptions = new MetadataRefreshOptions(_fileSystem)
+            {
+                EnableRemoteContentProbe = false,
+                ReplaceAllMetadata = false,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false,
+                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllImages = false
+            };
 
             MediaInfoRefreshOptions = new MetadataRefreshOptions(_fileSystem)
             {
@@ -588,6 +602,20 @@ namespace StrmAssistant.Common
             return false;
         }
 
+        public void UpdateDateModifiedLastSaved(BaseItem item, IDirectoryService directoryService)
+        {
+            if (item.IsFileProtocol)
+            {
+                var file = directoryService.GetFile(item.Path);
+                if (file != null && file.LastWriteTimeUtc.ToUnixTimeSeconds() > 0L)
+                {
+                    item.DateModified = file.LastWriteTimeUtc;
+                    _libraryManager.UpdateItems(new List<BaseItem> { item }, null,
+                        ItemUpdateType.None, true, false, null, CancellationToken.None);
+                }
+            }
+        }
+
         public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, IDirectoryService directoryService,
             string source, CancellationToken cancellationToken)
         {
@@ -686,6 +714,17 @@ namespace StrmAssistant.Common
             return libraries;
         }
 
+        public List<CollectionFolder> GetSeriesLibraries()
+        {
+            var libraries = _libraryManager
+                .GetItemList(new InternalItemsQuery { IncludeItemTypes = new[] { nameof(CollectionFolder) } })
+                .OfType<CollectionFolder>()
+                .Where(l => l.CollectionType == CollectionType.TvShows.ToString() || l.CollectionType is null)
+                .ToList();
+
+            return libraries;
+        }
+
         public List<Movie> FetchSplitMovieItems()
         {
             var libraries = GetMovieLibraries();
@@ -708,6 +747,21 @@ namespace StrmAssistant.Common
                 .Where(m => m.GetAlternateVersionIds().Count > 0).ToList();
 
             return altMovies;
+        }
+
+        public void EnsureLibraryEnabledAutomaticSeriesGrouping()
+        {
+            var libraries = _libraryManager.GetVirtualFolders()
+                .Where(f => f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null)
+                .ToList();
+
+            foreach (var library in libraries)
+            {
+                if (!library.LibraryOptions.EnableAutomaticSeriesGrouping)
+                {
+                    library.LibraryOptions.EnableAutomaticSeriesGrouping = true;
+                }
+            }
         }
 
         private FileSystemMetadata[] GetRelatedPaths(string basename, string folder)

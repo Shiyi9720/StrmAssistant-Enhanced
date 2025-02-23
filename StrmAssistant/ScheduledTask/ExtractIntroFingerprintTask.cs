@@ -145,7 +145,7 @@ namespace StrmAssistant.ScheduledTask
                             if ((!persistMediaInfo || !deserializeResult) && !Plugin.ChapterApi.HasIntro(taskEpisode))
                             {
                                 result2 = await Plugin.FingerprintApi
-                                    .ExtractIntroFingerprint(taskEpisode, directoryService, cancellationToken)
+                                    .CreateTitleFingerprint(taskEpisode, directoryService, cancellationToken)
                                     .ConfigureAwait(false);
                             }
                         }

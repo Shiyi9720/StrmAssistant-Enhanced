@@ -1,4 +1,4 @@
-﻿using MediaBrowser.Controller.Api;
+using MediaBrowser.Controller.Api;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -9,7 +9,11 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using StrmAssistant.Web.Api;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using static StrmAssistant.Common.CommonUtility;
+using static StrmAssistant.Common.LanguageUtility;
 
 namespace StrmAssistant.Web.Service
 {
@@ -54,44 +58,97 @@ namespace StrmAssistant.Web.Service
                 return;
             }
 
-            var proceedToDelete = true;
-            var deletePaths = Plugin.LibraryApi.GetDeletePaths(item);
+            var deleteItems = item is Episode episode && request.DeleteParent
+                ? GetSeasonEpisodesSameVersion(episode)
+                : new List<BaseItem> { item };
 
-            foreach (var path in deletePaths)
+            foreach (var deleteItem in deleteItems)
             {
-                try
+                var proceedToDelete = true;
+                var deletePaths = Plugin.LibraryApi.GetDeletePaths(deleteItem);
+
+                foreach (var path in deletePaths)
                 {
-                    if (!path.IsDirectory)
+                    try
                     {
-                        _logger.Info("DeleteVersion - Attempting to delete file: " + path.FullName);
-                        _fileSystem.DeleteFile(path.FullName, true);
+                        if (!path.IsDirectory)
+                        {
+                            _logger.Info("DeleteVersion - Attempting to delete file: " + path.FullName);
+                            _fileSystem.DeleteFile(path.FullName, true);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is IOException || e is UnauthorizedAccessException)
+                        {
+                            proceedToDelete = false;
+                            _logger.Error("DeleteVersion - Failed to delete file: " + path.FullName);
+                            _logger.Error(e.Message);
+                            _logger.Debug(e.StackTrace);
+                        }
                     }
                 }
-                catch (Exception e)
+
+                if (proceedToDelete)
                 {
-                    if (e is IOException || e is UnauthorizedAccessException)
+                    _itemRepository.DeleteItems(new[] { deleteItem });
+
+                    try
                     {
-                        proceedToDelete = false;
-                        _logger.Error("DeleteVersion - Failed to delete file: " + path.FullName);
-                        _logger.Error(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _fileSystem.DeleteDirectory(item.GetInternalMetadataPath(), true, true);
+                    }
+                    catch
+                    {
+                        // ignored
                     }
                 }
             }
+        }
 
-            if (proceedToDelete)
+        private List<BaseItem> GetSeasonEpisodesSameVersion(Episode episode)
+        {
+            var seasonFolderChildren = episode.Parent.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { nameof(Episode) },
+                    Recursive = false,
+                    GroupByPresentationUniqueKey = false,
+                })
+                .ToList();
+
+            var seasonEpisodesCount = episode.Season.GetEpisodeIds(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { nameof(Episode) }, GroupByPresentationUniqueKey = true
+                })
+                .Length;
+
+            if (seasonFolderChildren.Count == seasonEpisodesCount)
             {
-                _itemRepository.DeleteItems(new[] { item });
+                return seasonFolderChildren;
+            }
 
-                try
+            var targetCleaned = CleanEpisodeName(episode.FileNameWithoutExtension);
+
+            var allEpisodes = episode.Season
+                .GetEpisodes(new InternalItemsQuery
                 {
-                    _fileSystem.DeleteDirectory(item.GetInternalMetadataPath(), true, true);
-                }
-                catch
+                    GroupByPresentationUniqueKey = false, EnableTotalRecordCount = false
+                })
+                .Items.ToList();
+
+            var similarEpisodes = new List<BaseItem>();
+
+            foreach (var ep in allEpisodes)
+            {
+                var cleanedName = CleanEpisodeName(ep.FileNameWithoutExtension);
+                var similarity = LevenshteinDistance(targetCleaned, cleanedName);
+
+                if (similarity > 0.85)
                 {
-                    // ignored
+                    similarEpisodes.Add(ep);
                 }
             }
+
+            return similarEpisodes;
         }
     }
 }

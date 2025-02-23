@@ -1,4 +1,4 @@
-﻿using Emby.Web.GenericEdit;
+using Emby.Web.GenericEdit;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
@@ -16,17 +16,20 @@ namespace StrmAssistant.Options
         [Required]
         public bool MergeMultiVersion { get; set; } = false;
 
-        public enum MergeMultiVersionOption
+        public enum MergeScopeOption
         {
-            [DescriptionL("MergeMultiVersionOption_LibraryScope_LibraryScope", typeof(Resources))]
+            [DescriptionL("MergeScopeOption_LibraryScope_LibraryScope", typeof(Resources))]
             LibraryScope,
-            [DescriptionL("MergeMultiVersionOption_GlobalScope_GlobalScope", typeof(Resources))]
+            [DescriptionL("MergeScopeOption_GlobalScope_GlobalScope", typeof(Resources))]
             GlobalScope
         }
-
+        
         [DisplayName("")]
         [VisibleCondition(nameof(MergeMultiVersion), SimpleCondition.IsTrue)]
-        public MergeMultiVersionOption MergeMultiVersionPreferences { get; set; } =
-            MergeMultiVersionOption.LibraryScope;
+        public MergeScopeOption MergeMoviesPreference { get; set; } = MergeScopeOption.LibraryScope;
+        
+        [VisibleCondition(nameof(MergeMultiVersion), SimpleCondition.IsTrue)]
+        [Browsable(false)]
+        public MergeScopeOption MergeSeriesPreference => MergeScopeOption.LibraryScope;
     }
 }
