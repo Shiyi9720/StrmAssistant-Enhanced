@@ -247,7 +247,8 @@ namespace StrmAssistant.Mod
                         }
 
                         if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) &&
-                            item is Video && Plugin.SubtitleApi.HasExternalSubtitleChanged(item, options.DirectoryService))
+                            item is Video &&
+                            Plugin.SubtitleApi.HasExternalSubtitleChanged(item, options.DirectoryService, false))
                         {
                             CurrentRefreshContext.Value.IsExternalSubtitleChanged = true;
                         }
@@ -385,7 +386,8 @@ namespace StrmAssistant.Mod
             }
             else if (CurrentRefreshContext.Value.IsExternalSubtitleChanged)
             {
-                _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, CancellationToken.None)
+                var directoryService = CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService;
+                _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, directoryService, false, CancellationToken.None)
                     .ConfigureAwait(false);
             }
         }

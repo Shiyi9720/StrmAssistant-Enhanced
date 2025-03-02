@@ -684,9 +684,11 @@ namespace StrmAssistant.Common
                     await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem, directoryService, true, source, cancellationToken)
                         .ConfigureAwait(false);
                 }
-                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService))
+                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
                 {
-                    await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, cancellationToken).ConfigureAwait(false);
+                    await Plugin.SubtitleApi
+                        .UpdateExternalSubtitles(taskItem, directoryService, false, cancellationToken)
+                        .ConfigureAwait(false);
                 }
             }
 
