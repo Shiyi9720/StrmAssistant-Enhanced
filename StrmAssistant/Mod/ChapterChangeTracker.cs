@@ -67,7 +67,7 @@ namespace StrmAssistant.Mod
 
             if (BypassItem.Value != 0 && BypassItem.Value == itemId) return;
 
-            _ = Plugin.MediaInfoApi.SerializeMediaInfo(itemId, true, "Save Chapters", CancellationToken.None);
+            _ = Plugin.MediaInfoApi.SerializeMediaInfo(itemId, null, true, "Save Chapters").ConfigureAwait(false);
         }
 
         [HarmonyPostfix]
@@ -75,7 +75,7 @@ namespace StrmAssistant.Mod
         {
             if (BypassItem.Value != 0 && BypassItem.Value == itemId) return;
 
-            _ = Plugin.MediaInfoApi.SerializeMediaInfo(itemId, true, "Delete Chapters", CancellationToken.None);
+            _ = Plugin.MediaInfoApi.SerializeMediaInfo(itemId, null, true, "Delete Chapters").ConfigureAwait(false);
         }
 
         [HarmonyPostfix]
@@ -83,8 +83,8 @@ namespace StrmAssistant.Mod
         {
             if (__runOriginal)
             {
-                _ = Plugin.MediaInfoApi.SerializeMediaInfo(episode.InternalId, true, "Zero Fingerprint Confidence",
-                    CancellationToken.None);
+                _ = Plugin.MediaInfoApi.SerializeMediaInfo(episode.InternalId, null, true,
+                    "Zero Fingerprint Confidence").ConfigureAwait(false);
             }
         }
     }

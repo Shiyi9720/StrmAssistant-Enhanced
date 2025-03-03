@@ -183,8 +183,7 @@ namespace StrmAssistant.Common
             return false;
         }
 
-        public async Task UpdateExternalSubtitles(BaseItem item, IDirectoryService directoryService, bool clearCache,
-            CancellationToken cancellationToken)
+        public async Task UpdateExternalSubtitles(BaseItem item, IDirectoryService directoryService, bool clearCache)
         {
             var refreshOptions = LibraryApi.MediaInfoRefreshOptions;
             var currentStreams = item.GetMediaStreams()
@@ -201,8 +200,8 @@ namespace StrmAssistant.Common
                     if (!string.IsNullOrEmpty(extension) && ProbeExtensions.Contains(extension))
                     {
                         var result =
-                            await UpdateExternalSubtitleStream(item, subtitleStream, refreshOptions, cancellationToken)
-                                .ConfigureAwait(false);
+                            await UpdateExternalSubtitleStream(item, subtitleStream, refreshOptions,
+                                CancellationToken.None).ConfigureAwait(false);
 
                         if (!result)
                             _logger.Warn("No result when probing external subtitle file: {0}", subtitleStream.Path);
@@ -212,14 +211,13 @@ namespace StrmAssistant.Common
                 }
 
                 currentStreams.AddRange(externalSubtitleStreams);
-                _itemRepository.SaveMediaStreams(item.InternalId, currentStreams, cancellationToken);
+                _itemRepository.SaveMediaStreams(item.InternalId, currentStreams, CancellationToken.None);
 
                 if (Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
                     Plugin.LibraryApi.IsLibraryInScope(item))
                 {
-                    _ = Plugin.MediaInfoApi.SerializeMediaInfo(item, directoryService, true,
-                            "External Subtitle Update", cancellationToken)
-                        .ConfigureAwait(false);
+                    _ = Plugin.MediaInfoApi.SerializeMediaInfo(item.InternalId, directoryService, true,
+                        "External Subtitle Update").ConfigureAwait(false);
                 }
             }
         }

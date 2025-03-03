@@ -226,12 +226,12 @@ namespace StrmAssistant
                     if (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract || e.Item.IsShortcut)
                     {
                         deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
-                            "Item Added Event", CancellationToken.None);
+                            "Item Added Event").ConfigureAwait(false);
                     }
                     else
                     {
-                        _ = MediaInfoApi.SerializeMediaInfo(e.Item, directoryService, true, "Item Added Event",
-                            CancellationToken.None);
+                        _ = MediaInfoApi.SerializeMediaInfo(e.Item.InternalId, directoryService, true,
+                            "Item Added Event").ConfigureAwait(false);
                     }
                 }
 

@@ -398,8 +398,7 @@ namespace StrmAssistant.Mod
             else if (CurrentRefreshContext.Value.IsExternalSubtitleChanged)
             {
                 var directoryService = CurrentRefreshContext.Value.MetadataRefreshOptions.DirectoryService;
-                _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, directoryService, false, CancellationToken.None)
-                    .ConfigureAwait(false);
+                _ = Plugin.SubtitleApi.UpdateExternalSubtitles(item, directoryService, false).ConfigureAwait(false);
             }
         }
 
@@ -459,7 +458,7 @@ namespace StrmAssistant.Mod
                             if (!CurrentRefreshContext.Value.IsFileChanged)
                             {
                                 _ = Plugin.MediaInfoApi.DeserializeMediaInfo(__instance, directoryService,
-                                    "Exclusive Restore", CancellationToken.None);
+                                    "Exclusive Restore").ConfigureAwait(false);
                             }
                             else if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange))
                             {
@@ -469,21 +468,21 @@ namespace StrmAssistant.Mod
                         }
                         else
                         {
-                            _ = Plugin.MediaInfoApi.SerializeMediaInfo(__instance, directoryService, true,
-                                "Exclusive Overwrite", CancellationToken.None);
+                            _ = Plugin.MediaInfoApi.SerializeMediaInfo(__instance.InternalId, directoryService, true,
+                                "Exclusive Overwrite").ConfigureAwait(false);
                         }
                     }
                     else if (!CurrentRefreshContext.Value.IsNewItem)
                     {
                         if (!Plugin.LibraryApi.HasMediaInfo(__instance))
                         {
-                            _ = Plugin.MediaInfoApi.DeserializeMediaInfo(__instance, directoryService, "Exclusive Restore",
-                                CancellationToken.None);
+                            _ = Plugin.MediaInfoApi.DeserializeMediaInfo(__instance, directoryService,
+                                "Exclusive Restore").ConfigureAwait(false);
                         }
                         else
                         {
-                            _ = Plugin.MediaInfoApi.SerializeMediaInfo(__instance, directoryService, false,
-                                "Exclusive Non-existent", CancellationToken.None);
+                            _ = Plugin.MediaInfoApi.SerializeMediaInfo(__instance.InternalId, directoryService, false,
+                                "Exclusive Non-existent").ConfigureAwait(false);
                         }
                     }
                 }
