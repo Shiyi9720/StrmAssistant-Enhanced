@@ -42,7 +42,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading;
 using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
@@ -60,6 +59,7 @@ namespace StrmAssistant
         public static SubtitleApi SubtitleApi { get; private set; }
         public static PlaySessionMonitor PlaySessionMonitor { get; private set; }
         public static MetadataApi MetadataApi { get; private set; }
+        public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
 
         private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
 
@@ -83,14 +83,26 @@ namespace StrmAssistant
         private bool _currentUnlockIntroSkip;
         private bool _currentMergeMultiVersion;
 
+        private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
+        {
+            CollectionType.Books.ToString(),
+            CollectionType.Photos.ToString(),
+            CollectionType.Games.ToString(),
+            CollectionType.LiveTv.ToString(),
+            CollectionType.Playlists.ToString(),
+            CollectionType.BoxSets.ToString()
+        };
+
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
             IItemRepository itemRepository, INotificationManager notificationManager, ILibraryMonitor libraryMonitor,
-            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager, IProviderManager providerManager,
-            IMediaProbeManager mediaProbeManager, ILocalizationManager localizationManager, IUserManager userManager,
-            IUserDataManager userDataManager, IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder,
-            IJsonSerializer jsonSerializer, IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
-            IServerConfigurationManager configurationManager, ITaskManager taskManager) : base(applicationHost)
+            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager,
+            IProviderManager providerManager, IMediaProbeManager mediaProbeManager,
+            ILocalizationManager localizationManager, IUserManager userManager, IUserDataManager userDataManager,
+            IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder, IJsonSerializer jsonSerializer,
+            IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
+            IServerConfigurationManager configurationManager, ITaskManager taskManager,
+            IImageExtractionManager imageExtractionManager, IServerApplicationPaths serverApplicationPaths) : base(applicationHost)
         {
             Instance = this;
             Logger = logManager.GetLogger(Name);
@@ -103,7 +115,7 @@ namespace StrmAssistant
             _userDataManager = userDataManager;
             _providerManager = providerManager;
             _fileSystem = fileSystem;
-            _taskManager= taskManager;
+            _taskManager = taskManager;
 
             _currentMaxConcurrentCount = GetOptions().GeneralOptions.MaxConcurrentCount;
             _currentPersistMediaInfo = GetOptions().MediaInfoExtractOptions.PersistMediaInfo;
@@ -124,6 +136,8 @@ namespace StrmAssistant
                 itemRepository);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
+            VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
+                mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager);
             ShortcutMenuHelper.Initialize(configurationManager);
 
             if (_currentCatchupMode)
@@ -186,7 +200,7 @@ namespace StrmAssistant
         {
             if (e.Argument.Policy.IsAdministrator) LibraryApi.FetchAdminOrderedViews();
         }
-        
+
         private void OnLibraryOptionsUpdated(object sender, GenericEventArgs<Tuple<CollectionFolder, LibraryOptions>> e)
         {
             if (e.Argument.Item1.CollectionType == CollectionType.TvShows.ToString() ||
@@ -194,7 +208,12 @@ namespace StrmAssistant
             {
                 PlaySessionMonitor.UpdateLibraryPathsInScope();
                 FingerprintApi.UpdateLibraryPathsInScope();
-                FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength();
+
+                if (_currentUnlockIntroSkip)
+                    FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength();
+
+                if (_currentMergeMultiVersion)
+                    LibraryApi.EnsureLibraryEnabledAutomaticSeriesGrouping();
             }
 
             LibraryApi.UpdateLibraryPathsInScope();
@@ -213,12 +232,12 @@ namespace StrmAssistant
                     if (e.Item.IsShortcut)
                     {
                         deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
-                            "Item Added Event", CancellationToken.None);
+                            "Item Added Event").ConfigureAwait(false);
                     }
                     else
                     {
-                        _ = MediaInfoApi.SerializeMediaInfo(e.Item, directoryService, true, "Item Added Event",
-                            CancellationToken.None);
+                        _ = MediaInfoApi.SerializeMediaInfo(e.Item.InternalId, directoryService, true,
+                            "Item Added Event").ConfigureAwait(false);
                     }
                 }
 
@@ -556,6 +575,11 @@ namespace StrmAssistant
 
             foreach (var item in libraries)
             {
+                if (ExcludedCollectionTypes.Contains(item.CollectionType))
+                {
+                    continue;
+                }
+
                 var selectOption = new EditorSelectOption
                 {
                     Value = item.ItemId,
@@ -565,7 +589,7 @@ namespace StrmAssistant
 
                 list.Add(selectOption);
 
-                if (item.CollectionType == "tvshows" || item.CollectionType is null) // null means mixed content library
+                if (item.CollectionType == "tvshows" || item.CollectionType is null)
                 {
                     listShow.Add(selectOption);
 

@@ -318,7 +318,7 @@
     <value>查看缺少的集增强</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Add_MovieDb_support_for_the_missing_episodes_function__Default_is_OFF_" xml:space="preserve">
-    <value>查看缺少的集支持 TMDB，默认关闭。</value>
+    <value>查看缺少的集支持 TMDB 以及剧集组，默认关闭。</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoJsonRootFolder_MediaInfo_Json_Root_Folder" xml:space="preserve">
     <value>可选媒体信息 JSON 根目录</value>
@@ -561,7 +561,7 @@
     <value>按偏好库内或跨库合并电影和电视节目，扫库后自动运行</value>
   </data>
   <data name="ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libraries" xml:space="preserve">
-    <value>在所有库中拆分多版本电影</value>
+    <value>在所有库中拆分多版本电影（电视节目请扫库）</value>
   </data>
   <data name="ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete" xml:space="preserve">
     <value>启用深度删除</value>
@@ -580,5 +580,8 @@
   </data>
   <data name="ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference" xml:space="preserve">
     <value>电视节目合并偏好</value>
+  </data>
+  <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
+    <value>提取视频预览缩略图或章节图</value>
   </data>
 </root>

@@ -146,7 +146,7 @@ namespace StrmAssistant.Common
             LibraryOptions libraryOptions)
         {
             return (List<MediaSourceInfo>)_getStaticMediaSources.Invoke(_mediaSourceManager,
-                new object[] { item, enableAlternateMediaSources, false, false, libraryOptions, null, null });
+                new object[] { item, enableAlternateMediaSources, false, true, libraryOptions, null, null });
         }
 
         public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enableAlternateMediaSources)
@@ -176,31 +176,21 @@ namespace StrmAssistant.Common
             return mediaInfoJsonPath;
         }
 
-        public async Task<bool> SerializeMediaInfo(BaseItem item, IDirectoryService directoryService, bool overwrite,
-            string source, CancellationToken cancellationToken)
+        private async Task<bool> SerializeMediaInfo(BaseItem item, IDirectoryService directoryService, bool overwrite,
+            string source)
         {
-            if (!Plugin.LibraryApi.IsLibraryInScope(item)) return false;
-
-            var workItem = _libraryManager.GetItemById(item.InternalId);
-
-            if (!Plugin.LibraryApi.HasMediaInfo(workItem))
-            {
-                _logger.Info("MediaInfoPersist - Serialization Skipped - No MediaInfo (" + source + ")");
-                return false;
-            }
-
-            var mediaInfoJsonPath = GetMediaInfoJsonPath(workItem);
+            var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
-            if (overwrite || file?.Exists != true || Plugin.LibraryApi.HasFileChanged(workItem, directoryService))
+            if (overwrite || file?.Exists != true || Plugin.LibraryApi.HasFileChanged(item, directoryService))
             {
                 try
                 {
                     await Task.Run(() =>
                         {
-                            var options = _libraryManager.GetLibraryOptions(workItem);
-                            var mediaSources = workItem.GetMediaSources(false, false, options);
-                            var chapters = BaseItem.ItemRepository.GetChapters(workItem);
+                            var options = _libraryManager.GetLibraryOptions(item);
+                            var mediaSources = item.GetMediaSources(false, false, options);
+                            var chapters = BaseItem.ItemRepository.GetChapters(item);
                             var mediaSourcesWithChapters = mediaSources.Select(mediaSource =>
                                     new MediaSourceWithChapters
                                         { MediaSourceInfo = mediaSource, Chapters = chapters })
@@ -212,12 +202,12 @@ namespace StrmAssistant.Common
                                 jsonItem.MediaSourceInfo.ItemId = null;
                                 jsonItem.MediaSourceInfo.Path = null;
 
-                                if (workItem is Episode)
+                                if (item is Episode)
                                 {
                                     jsonItem.ZeroFingerprintConfidence =
                                         !string.IsNullOrEmpty(
                                             BaseItem.ItemRepository.GetIntroDetectionFailureResult(
-                                                workItem.InternalId));
+                                                item.InternalId));
                                 }
                             }
 
@@ -228,7 +218,7 @@ namespace StrmAssistant.Common
                             }
 
                             _jsonSerializer.SerializeToFile(mediaSourcesWithChapters, mediaInfoJsonPath);
-                        }, cancellationToken)
+                        })
                         .ConfigureAwait(false);
 
                     _logger.Info("MediaInfoPersist - Serialization Success (" + source + "): " + mediaInfoJsonPath);
@@ -246,20 +236,25 @@ namespace StrmAssistant.Common
             return false;
         }
 
-        public async Task<bool> SerializeMediaInfo(long itemId, bool overwrite, string source, CancellationToken cancellationToken)
+        public async Task<bool> SerializeMediaInfo(long itemId, IDirectoryService directoryService, bool overwrite,
+            string source)
         {
-            var item = _libraryManager.GetItemById(itemId);
+            var workItem = _libraryManager.GetItemById(itemId);
 
-            if (!Plugin.LibraryApi.IsLibraryInScope(item) || !Plugin.LibraryApi.HasMediaInfo(item)) return false;
+            if (!Plugin.LibraryApi.HasMediaInfo(workItem))
+            {
+                _logger.Info("MediaInfoPersist - Serialization Skipped - No MediaInfo (" + source + ")");
+                return false;
+            }
 
-            var directoryService = new DirectoryService(_logger, _fileSystem);
+            if (!Plugin.LibraryApi.IsLibraryInScope(workItem)) return false;
 
-            return await SerializeMediaInfo(item, directoryService, overwrite, source, cancellationToken)
-                .ConfigureAwait(false);
+            var ds = directoryService ?? new DirectoryService(_logger, _fileSystem);
+
+            return await SerializeMediaInfo(workItem, ds, overwrite, source).ConfigureAwait(false);
         }
 
-        public async Task<bool> DeserializeMediaInfo(BaseItem item, IDirectoryService directoryService, string source,
-            CancellationToken cancellationToken)
+        public async Task<bool> DeserializeMediaInfo(BaseItem item, IDirectoryService directoryService, string source)
         {
             var workItem = _libraryManager.GetItemById(item.InternalId);
             
@@ -281,7 +276,7 @@ namespace StrmAssistant.Common
                         !Plugin.LibraryApi.HasFileChanged(item, directoryService))
                     {
                         _itemRepository.SaveMediaStreams(item.InternalId,
-                            mediaSourceWithChapters.MediaSourceInfo.MediaStreams, cancellationToken);
+                            mediaSourceWithChapters.MediaSourceInfo.MediaStreams, CancellationToken.None);
 
                         workItem.Size = mediaSourceWithChapters.MediaSourceInfo.Size.GetValueOrDefault();
                         workItem.RunTimeTicks = mediaSourceWithChapters.MediaSourceInfo.RunTimeTicks;
@@ -342,8 +337,7 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task<bool> DeserializeChapterInfo(Episode item, IDirectoryService directoryService, string source,
-            CancellationToken cancellationToken)
+        public async Task<bool> DeserializeChapterInfo(Episode item, IDirectoryService directoryService, string source)
         {
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
@@ -400,7 +394,7 @@ namespace StrmAssistant.Common
             return false;
         }
 
-        private void QueueRefreshAlternateVersions(BaseItem item, MetadataRefreshOptions options, bool force)
+        public void QueueRefreshAlternateVersions(BaseItem item, MetadataRefreshOptions options, bool force)
         {
             if (!(item is Video video)) return;
 
@@ -425,9 +419,9 @@ namespace StrmAssistant.Common
             }
         }
 
-        public void QueueRefreshAlternateVersions(BaseItem item, string mediaSourceId, MetadataRefreshOptions options)
+        public BaseItem GetItemByMediaSourceId(BaseItem item, string mediaSourceId)
         {
-            if (string.IsNullOrEmpty(mediaSourceId)) return;
+            if (string.IsNullOrEmpty(mediaSourceId)) return null;
 
             BaseItem targetItem = null;
 
@@ -445,17 +439,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            if (targetItem != null)
-            {
-                QueueRefreshAlternateVersions(targetItem, options, false);
-            }
-        }
-
-        public void QueueRefreshAlternateVersions(string itemId, MetadataRefreshOptions options)
-        {
-            var item = _libraryManager.GetItemById(itemId);
-
-            QueueRefreshAlternateVersions(item, options, true);
+            return targetItem;
         }
     }
 }

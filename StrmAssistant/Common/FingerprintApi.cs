@@ -242,8 +242,6 @@ namespace StrmAssistant.Common
         public List<Episode> FetchIntroPreExtractTaskItems()
         {
             var markerEnabledLibraryScope = Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope;
-            
-            UpdateLibraryIntroDetectionFingerprintLength();
 
             var itemsFingerprintQuery = new InternalItemsQuery
             {
@@ -275,8 +273,6 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchIntroFingerprintTaskItems()
         {
-            UpdateLibraryIntroDetectionFingerprintLength();
-
             var introDetectionFingerprintMinutes =
                 Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
             var itemsFingerprintQuery = new InternalItemsQuery
@@ -313,20 +309,22 @@ namespace StrmAssistant.Common
 
         public void UpdateLibraryIntroDetectionFingerprintLength()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope
-                ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
             var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => libraryIds != null && libraryIds.Any(id => id != "-1")
-                    ? libraryIds.Contains(f.Id)
-                    : f.LibraryOptions.EnableMarkerDetection &&
-                      (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null))
+                .Where(f => f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null)
                 .ToList();
             
-            var introDetectionFingerprintMinutes = Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
+            var currentLength = Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
 
             foreach (var library in libraries)
             {
-                library.LibraryOptions.IntroDetectionFingerprintLength = introDetectionFingerprintMinutes;
+                var options = library.LibraryOptions;
+
+                if (options.IntroDetectionFingerprintLength != currentLength &&
+                    long.TryParse(library.ItemId, out var itemId))
+                {
+                    options.IntroDetectionFingerprintLength = currentLength;
+                    CollectionFolder.SaveLibraryOptions(itemId, options);
+                }
             }
         }
 

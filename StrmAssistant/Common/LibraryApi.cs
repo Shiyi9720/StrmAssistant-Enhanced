@@ -644,8 +644,7 @@ namespace StrmAssistant.Common
             if (persistMediaInfo)
             {
                 deserializeResult =
-                    await Plugin.MediaInfoApi.DeserializeMediaInfo(taskItem, directoryService, source, cancellationToken)
-                        .ConfigureAwait(false);
+                    await Plugin.MediaInfoApi.DeserializeMediaInfo(taskItem, directoryService, source).ConfigureAwait(false);
             }
 
             if (!deserializeResult)
@@ -657,12 +656,13 @@ namespace StrmAssistant.Common
             {
                 if (!deserializeResult)
                 {
-                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem, directoryService, true, source, cancellationToken)
+                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
                         .ConfigureAwait(false);
                 }
-                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService))
+                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
                 {
-                    await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, cancellationToken).ConfigureAwait(false);
+                    await Plugin.SubtitleApi
+                        .UpdateExternalSubtitles(taskItem, directoryService, false).ConfigureAwait(false);
                 }
             }
 
@@ -757,9 +757,12 @@ namespace StrmAssistant.Common
 
             foreach (var library in libraries)
             {
-                if (!library.LibraryOptions.EnableAutomaticSeriesGrouping)
+                var options = library.LibraryOptions;
+
+                if (!options.EnableAutomaticSeriesGrouping && long.TryParse(library.ItemId, out var itemId))
                 {
-                    library.LibraryOptions.EnableAutomaticSeriesGrouping = true;
+                    options.EnableAutomaticSeriesGrouping = true;
+                    CollectionFolder.SaveLibraryOptions(itemId, options);
                 }
             }
         }

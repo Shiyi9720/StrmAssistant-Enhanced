@@ -405,7 +405,7 @@
     <value>View Missing Episodes Enhanced</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Add_MovieDb_support_for_the_missing_episodes_function__Default_is_OFF_" xml:space="preserve">
-    <value>Add MovieDb support for the view missing episodes function. Default is OFF.</value>
+    <value>Add MovieDb support for the view missing episodes function, support Episode Group. Default is OFF.</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoJsonRootFolder_MediaInfo_Json_Root_Folder" xml:space="preserve">
     <value>Optional MediaInfo JSON Root Folder</value>
@@ -648,7 +648,7 @@
     <value>Merge movies and series per library or across libraries, triggered post library scan</value>
   </data>
   <data name="ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libraries" xml:space="preserve">
-    <value>Split multi-version movies in all libraries</value>
+    <value>Split multi-version movies in all libraries (scan library for TV Series split)</value>
   </data>
   <data name="ExperienceEnhanceOptions_EnableDeepDelete_Enable_Deep_Delete" xml:space="preserve">
     <value>Enable Deep Delete</value>
@@ -667,5 +667,8 @@
   </data>
   <data name="ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference" xml:space="preserve">
     <value>TV Series Merge Preference</value>
+  </data>
+  <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
+    <value>Extract video thumbnail preview or chatper image</value>
   </data>
 </root>

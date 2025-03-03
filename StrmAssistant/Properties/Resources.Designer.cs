@@ -262,7 +262,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Split multi-version movies in all libraries.
+        ///   Looks up a localized string similar to Split multi-version movies in all libraries (scan library for TV Series split).
         /// </summary>
         public static string ExperienceEnhanceOptions_SplitMovieButton_Split_multi_version_movies_in_all_libraries {
             get {
@@ -304,6 +304,15 @@ namespace StrmAssistant.Properties {
         public static string ExtractMediaInfoTask_Name_Extract_MediaInfo {
             get {
                 return ResourceManager.GetString("ExtractMediaInfoTask_Name_Extract_MediaInfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Extract video thumbnail preview.
+        /// </summary>
+        public static string ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview {
+            get {
+                return ResourceManager.GetString("ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview", resourceCulture);
             }
         }
         
@@ -354,7 +363,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to While library scan, auto merge movies to multi versions, bypass naming convention, support tvshows across libraries. Default is OFF..
+        ///   Looks up a localized string similar to While library scan, auto merge movies and series to multi versions, bypass naming convention. Default is OFF..
         /// </summary>
         public static string GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_ {
             get {
@@ -906,7 +915,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Merge movies per library or across libraries, triggered post library scan.
+        ///   Looks up a localized string similar to Merge movies and series per library or across libraries, triggered post library scan.
         /// </summary>
         public static string MergeMovieTask_Description_Merge_movies_per_library_or_across_libraries_per_preference {
             get {
@@ -1737,7 +1746,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Add MovieDb support for the view missing episodes function. Default is OFF..
+        ///   Looks up a localized string similar to Add MovieDb support for the view missing episodes function, support Episode Group. Default is OFF..
         /// </summary>
         public static string UIFunctionOptions_EnhanceMissingEpisodes_Add_MovieDb_support_for_the_missing_episodes_function__Default_is_OFF_ {
             get {

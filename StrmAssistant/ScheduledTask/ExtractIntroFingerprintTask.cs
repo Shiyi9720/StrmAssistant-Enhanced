@@ -139,7 +139,7 @@ namespace StrmAssistant.ScheduledTask
                             else if (persistMediaInfo)
                             {
                                 deserializeResult = await Plugin.MediaInfoApi.DeserializeChapterInfo(taskEpisode,
-                                    directoryService, "IntroFingerprintExtract Task", cancellationToken);
+                                    directoryService, "IntroFingerprintExtract Task").ConfigureAwait(false);
                             }
 
                             if ((!persistMediaInfo || !deserializeResult) && !Plugin.ChapterApi.HasIntro(taskEpisode))
