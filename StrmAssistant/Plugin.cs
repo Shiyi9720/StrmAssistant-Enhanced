@@ -40,7 +40,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading;
 using static StrmAssistant.Options.ExperienceEnhanceOptions;
 using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.Utility;
@@ -65,6 +64,7 @@ namespace StrmAssistant
         public static SubtitleApi SubtitleApi { get; private set; }
         public static PlaySessionMonitor PlaySessionMonitor { get; private set; }
         public static MetadataApi MetadataApi { get; private set; }
+        public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
 
         private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
 
@@ -83,11 +83,13 @@ namespace StrmAssistant
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
             IItemRepository itemRepository, INotificationManager notificationManager, ILibraryMonitor libraryMonitor,
-            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager, IProviderManager providerManager,
-            IMediaProbeManager mediaProbeManager, ILocalizationManager localizationManager, IUserManager userManager,
-            IUserDataManager userDataManager, IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder,
-            IJsonSerializer jsonSerializer, IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
-            IServerConfigurationManager configurationManager, ITaskManager taskManager)
+            IMediaSourceManager mediaSourceManager, IMediaMountManager mediaMountManager,
+            IProviderManager providerManager, IMediaProbeManager mediaProbeManager,
+            ILocalizationManager localizationManager, IUserManager userManager, IUserDataManager userDataManager,
+            IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder, IJsonSerializer jsonSerializer,
+            IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
+            IServerConfigurationManager configurationManager, ITaskManager taskManager,
+            IImageExtractionManager imageExtractionManager, IServerApplicationPaths serverApplicationPaths)
         {
             Instance = this;
             Logger = logManager.GetLogger(Name);
@@ -101,7 +103,7 @@ namespace StrmAssistant
             _providerManager = providerManager;
             _sessionManager = sessionManager;
             _fileSystem = fileSystem;
-            _taskManager= taskManager;
+            _taskManager = taskManager;
 
             MainOptionsStore = new PluginOptionsStore(applicationHost, Logger, Name);
             MediaInfoExtractStore =
@@ -109,8 +111,8 @@ namespace StrmAssistant
             MetadataEnhanceStore =
                 new MetadataEnhanceOptionsStore(applicationHost, Logger, Name + "_" + nameof(MetadataEnhanceOptions));
             IntroSkipStore = new IntroSkipOptionsStore(applicationHost, Logger, Name + "_" + nameof(IntroSkipOptions));
-            ExperienceEnhanceStore =
-                new ExperienceEnhanceOptionsStore(applicationHost, Logger, Name + "_" + nameof(ExperienceEnhanceOptions));
+            ExperienceEnhanceStore = new ExperienceEnhanceOptionsStore(applicationHost, Logger,
+                Name + "_" + nameof(ExperienceEnhanceOptions));
 
             if (IsModSupported) PatchManager.Initialize();
 
@@ -126,6 +128,8 @@ namespace StrmAssistant
                 itemRepository);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
+            VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
+                mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager);
             ShortcutMenuHelper.Initialize(configurationManager);
 
             if (MainOptionsStore.GetOptions().GeneralOptions.CatchupMode)

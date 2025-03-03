@@ -3,15 +3,15 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.MediaInfo;
+using StrmAssistant.Common;
+using StrmAssistant.ScheduledTask;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
-using StrmAssistant.Common;
 using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
@@ -26,10 +26,10 @@ namespace StrmAssistant.Mod
         private static MethodInfo _getImage;
         private static MethodInfo _runExtraction;
         private static Type _quickSingleImageExtractor;
-        private static PropertyInfo _totalTimeoutMs;
         private static MethodInfo _supportsThumbnailsGetter;
         private static Type _quickImageSeriesExtractor;
         private static MethodInfo _logThumbnailImageExtractionFailure;
+        private static ConstructorInfo _baseOptionsConstructor;
 
         private static readonly AsyncLocal<BaseItem> ShortcutItem = new AsyncLocal<BaseItem>();
         private static readonly AsyncLocal<BaseItem> ImageCaptureItem = new AsyncLocal<BaseItem>();
@@ -86,7 +86,6 @@ namespace StrmAssistant.Mod
                 imageExtractorBaseType.GetMethod("RunExtraction", BindingFlags.Instance | BindingFlags.Public);
             _quickSingleImageExtractor =
                 mediaEncodingAssembly.GetType("Emby.Server.MediaEncoding.ImageExtraction.QuickSingleImageExtractor");
-            _totalTimeoutMs = _quickSingleImageExtractor.GetProperty("TotalTimeoutMs");
             _quickImageSeriesExtractor =
                 mediaEncodingAssembly.GetType("Emby.Server.MediaEncoding.ImageExtraction.QuickImageSeriesExtractor");
 
@@ -95,6 +94,12 @@ namespace StrmAssistant.Mod
                 embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Data.SqliteItemRepository");
             _logThumbnailImageExtractionFailure = sqliteItemRepository.GetMethod("LogThumbnailImageExtractionFailure",
                 BindingFlags.Public | BindingFlags.Instance);
+
+            var optionDefCollection = AccessTools.TypeByName("Emby.Ffmpeg.Model.Options.Collections.OptionDefCollection");
+            var optionOwner = AccessTools.TypeByName("Emby.Ffmpeg.Model.Options.Interfaces.IOptionOwner");
+            _baseOptionsConstructor = AccessTools.Constructor(
+                AccessTools.TypeByName("Emby.Ffmpeg.Model.Options.Collections.BaseOptions"),
+                new[] { optionDefCollection, optionOwner });
         }
 
         protected override void Prepare(bool apply)
@@ -109,6 +114,7 @@ namespace StrmAssistant.Mod
             PatchUnpatch(PatchTracker, apply, _runExtraction, prefix: nameof(RunExtractionPrefix));
             PatchUnpatch(PatchTracker, apply, _logThumbnailImageExtractionFailure,
                 prefix: nameof(LogThumbnailImageExtractionFailurePrefix));
+            PatchUnpatch(PatchTracker, apply, _baseOptionsConstructor, prefix: nameof(BaseOptionsConstructorPrefix));
         }
 
         private static void PatchResourcePool()
@@ -184,7 +190,7 @@ namespace StrmAssistant.Mod
                         PatchResourcePoolByReflection();
 
                         oldSemaphoreFFmpeg.Dispose();
-                        
+
                         break;
                 }
             }
@@ -250,7 +256,7 @@ namespace StrmAssistant.Mod
                     break;
             }
         }
-        
+
         [HarmonyPrefix]
         private static bool ResourcePoolPrefix()
         {
@@ -339,23 +345,30 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool RunExtractionPrefix(object __instance, ref string inputPath, MediaContainers? container,
+        private static void RunExtractionPrefix(object __instance, ref string inputPath, MediaContainers? container,
             MediaStream videoStream, MediaProtocol? protocol, int? streamIndex, Video3DFormat? threedFormat,
             ref TimeSpan? startOffset, TimeSpan? interval, string targetDirectory, string targetFilename, int? maxWidth,
-            bool enableThumbnailFilter, CancellationToken cancellationToken)
+            bool enableThumbnailFilter)
         {
+            var timeoutProperty = Traverse.Create(__instance).Property("TotalTimeoutMs");
+            var origTimeout = timeoutProperty.GetValue<int>();
+            var newTimeout = origTimeout *
+                             Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount;
+
+            if (ExtractVideoThumbnailTask.IsRunning)
+            {
+                timeoutProperty.SetValue(newTimeout);
+            }
+
             if (__instance.GetType() == _quickImageSeriesExtractor && LibraryApi.IsFileShortcut(inputPath))
             {
                 var strmPath = inputPath;
                 inputPath = Task.Run(async () => await Plugin.LibraryApi.GetStrmMountPath(strmPath)).Result;
             }
 
-            if (ImageCaptureItem.Value != null && _totalTimeoutMs != null &&
-                __instance.GetType() == _quickSingleImageExtractor)
+            if (ImageCaptureItem.Value != null && __instance.GetType() == _quickSingleImageExtractor)
             {
-                var newValue =
-                    60000 * Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.MaxConcurrentCount;
-                _totalTimeoutMs.SetValue(__instance, newValue);
+                timeoutProperty.SetValue(newTimeout);
 
                 var timeSpan =
                     ImageCaptureItem.Value.MediaContainer.GetValueOrDefault() == MediaContainers.Dvd ||
@@ -367,8 +380,6 @@ namespace StrmAssistant.Mod
 
                 ImageCaptureItem.Value = null;
             }
-
-            return true;
         }
 
         [HarmonyPrefix]
@@ -378,25 +389,59 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool SupportsThumbnailsGetterPrefix(BaseItem __instance, ref bool __result, out bool __state)
+        private static bool SupportsThumbnailsGetterPrefix(BaseItem __instance, ref bool __result,
+            out (bool, ExtraType?) __state)
         {
-            __state = false;
+            __state = new ValueTuple<bool, ExtraType?>(false, __instance.ExtraType);
 
             if (__instance.IsShortcut)
             {
                 PatchIsShortcutInstance(__instance);
-                __state = true;
+                __state.Item1 = true;
+            }
+
+            if (__instance.ExtraType.HasValue)
+            {
+                __instance.ExtraType = null;
             }
 
             return true;
         }
 
         [HarmonyPostfix]
-        private static void SupportsThumbnailsGetterPostfix(BaseItem __instance, ref bool __result, bool __state)
+        private static void SupportsThumbnailsGetterPostfix(BaseItem __instance, ref bool __result,
+            (bool, ExtraType?) __state)
         {
-            if (__state)
+            if (__state.Item1)
             {
                 UnpatchIsShortcutInstance(__instance);
+            }
+
+            if (__result && __state.Item2.HasValue)
+            {
+                __instance.ExtraType = __state.Item2;
+
+                if (__state.Item2 == ExtraType.Trailer || __state.Item2 == ExtraType.ThemeVideo)
+                {
+                    __result = false;
+                }
+            }
+        }
+
+        [HarmonyPrefix]
+        private static void BaseOptionsConstructorPrefix(ref List<object> commonOptions)
+        {
+            var seen = new HashSet<string>();
+
+            for (var i = commonOptions.Count - 1; i >= 0; i--)
+            {
+                var option = commonOptions[i];
+                var name = Traverse.Create(option).Property("Name").GetValue<string>();
+
+                if (name == "threads" && !seen.Add(name))
+                {
+                    commonOptions.RemoveAt(i);
+                }
             }
         }
     }

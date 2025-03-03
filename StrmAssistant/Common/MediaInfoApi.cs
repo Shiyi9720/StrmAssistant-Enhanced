@@ -187,10 +187,10 @@ namespace StrmAssistant.Common
             {
                 case PatchApproach.Harmony:
                     return GetStaticMediaSourcesStub(_mediaSourceManager, item, enableAlternateMediaSources, false,
-                        false, libraryOptions, null, null);
+                        true, libraryOptions, null, null);
                 case PatchApproach.Reflection:
                     return (List<MediaSourceInfo>)_getStaticMediaSources.Invoke(_mediaSourceManager,
-                        new object[] { item, enableAlternateMediaSources, false, false, libraryOptions, null, null });
+                        new object[] { item, enableAlternateMediaSources, false, true, libraryOptions, null, null });
                 default:
                     throw new NotImplementedException();
             }

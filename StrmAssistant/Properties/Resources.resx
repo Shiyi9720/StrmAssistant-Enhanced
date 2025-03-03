@@ -668,4 +668,7 @@
   <data name="ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference" xml:space="preserve">
     <value>TV Series Merge Preference</value>
   </data>
+  <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
+    <value>Extract video thumbnail preview or chatper image</value>
+  </data>
 </root>
