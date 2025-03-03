@@ -202,7 +202,7 @@ namespace StrmAssistant.Options
                     IsEnabled = true,
                 };
 
-                if (item.CollectionType == CollectionType.TvShows.ToString() || item.CollectionType is null) // null means mixed content library
+                if (item.CollectionType == CollectionType.TvShows.ToString() || item.CollectionType is null)
                 {
                     LibraryList.Add(selectOption);
 

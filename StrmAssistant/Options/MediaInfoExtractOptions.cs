@@ -3,6 +3,7 @@ using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Common;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Attributes;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.LocalizationAttributes;
 using MediaBrowser.Model.MediaInfo;
 using StrmAssistant.Properties;
@@ -15,6 +16,16 @@ namespace StrmAssistant.Options
 {
     public class MediaInfoExtractOptions : EditableOptionsBase
     {
+        private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
+        {
+            CollectionType.Books.ToString(),
+            CollectionType.Photos.ToString(),
+            CollectionType.Games.ToString(),
+            CollectionType.LiveTv.ToString(),
+            CollectionType.Playlists.ToString(),
+            CollectionType.BoxSets.ToString()
+        };
+
         [DisplayNameL("PluginOptions_EditorTitle_Strm_Extract", typeof(Resources))]
         public override string EditorTitle => Resources.PluginOptions_EditorTitle_Strm_Extract;
 
@@ -113,6 +124,11 @@ namespace StrmAssistant.Options
 
             foreach (var item in libraries)
             {
+                if (ExcludedCollectionTypes.Contains(item.CollectionType))
+                {
+                    continue;
+                }
+
                 var selectOption = new EditorSelectOption
                 {
                     Value = item.ItemId,
