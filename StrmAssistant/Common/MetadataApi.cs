@@ -34,9 +34,8 @@ namespace StrmAssistant.Common
         private readonly IJsonSerializer _jsonSerializer;
         private readonly IHttpClient _httpClient;
 
-        public static MetadataRefreshOptions PersonRefreshOptions;
-        
-        private const int RequestIntervalMs = 100;
+        public static MetadataRefreshOptions MetadataOnlyRefreshOptions;
+        public const int RequestIntervalMs = 100;
         private static long _lastRequestTicks;
         private static readonly TimeSpan CacheTime = TimeSpan.FromHours(6.0);
         private static readonly LruCache LruCache = new LruCache(20);
@@ -53,7 +52,7 @@ namespace StrmAssistant.Common
             _jsonSerializer = jsonSerializer;
             _httpClient = httpClient;
 
-            PersonRefreshOptions = new MetadataRefreshOptions(fileSystem)
+            MetadataOnlyRefreshOptions = new MetadataRefreshOptions(fileSystem)
             {
                 EnableRemoteContentProbe = false,
                 MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
@@ -132,7 +131,7 @@ namespace StrmAssistant.Common
             var options = new RemoteMetadataFetchOptions<TIdType>
             {
                 SearchInfo = id,
-                DirectoryService = PersonRefreshOptions.DirectoryService
+                DirectoryService = MetadataOnlyRefreshOptions.DirectoryService
             };
             return providerWithOptions.GetMetadata(options, cancellationToken);
         }

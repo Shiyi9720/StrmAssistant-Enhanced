@@ -116,7 +116,7 @@ namespace StrmAssistant
 
             if (IsModSupported) PatchManager.Initialize();
 
-            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, providerManager, userManager);
+            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, userManager);
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
                 itemRepository, jsonSerializer, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
@@ -269,6 +269,12 @@ namespace StrmAssistant
                                 QueueManager.IntroSkipItemQueue.Enqueue(episode);
                             }
                         }
+                    }
+
+                    if (IsCatchupTaskSelected(CatchupTask.EpisodeRefresh) && e.Item is Episode ep &&
+                        ep.PremiereDate >= DateTimeOffset.UtcNow.AddDays(-90))
+                    {
+                        QueueManager.EpisodeRefreshItemQueue.Enqueue(ep);
                     }
                 }
 

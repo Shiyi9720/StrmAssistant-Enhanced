@@ -584,4 +584,10 @@
   <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
     <value>提取影片預覽縮圖和章節圖</value>
   </data>
+  <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
+    <value>刷新無簡介的劇集的元數據</value>
+  </data>
+  <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
+    <value>劇集元資料刷新</value>
+  </data>
 </root>

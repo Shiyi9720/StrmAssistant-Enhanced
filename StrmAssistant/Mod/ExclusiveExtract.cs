@@ -142,7 +142,7 @@ namespace StrmAssistant.Mod
         private void PatchFfProbeProcess()
         {
             PatchUnpatch(PatchTracker, true, _runFfProcess, prefix: nameof(RunFfProcessPrefix),
-                postfix: nameof(RunFfProcessPostfix));
+                finalizer: nameof(RunFfProcessFinalizer));
             PatchUnpatch(PatchTracker, true, _getInputArgument, prefix: nameof(GetInputArgumentPrefix));
         }
 
@@ -179,9 +179,11 @@ namespace StrmAssistant.Mod
             return true;
         }
 
-        [HarmonyPostfix]
-        private static void RunFfProcessPostfix(Task __result)
+        [HarmonyFinalizer]
+        private static void RunFfProcessFinalizer(Task __result, Exception __exception)
         {
+            if (__exception is OperationCanceledException) return;
+
             var result = Traverse.Create(__result).Property("Result").GetValue();
 
             if (result != null)
@@ -257,7 +259,7 @@ namespace StrmAssistant.Mod
                             CurrentRefreshContext.Value.IsFileChanged = true;
                         }
 
-                        if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreExtSubChange) &&
+                        if (!IsExclusiveFeatureSelected(item.InternalId, ExclusiveControl.IgnoreExtSubChange) &&
                             item is Video &&
                             Plugin.SubtitleApi.HasExternalSubtitleChanged(item, options.DirectoryService, false))
                         {
@@ -282,7 +284,7 @@ namespace StrmAssistant.Mod
 
                 if (item.HasImage(ImageType.Primary) && provider is IDynamicImageProvider &&
                     provider.GetType().Name == "VideoImageProvider" &&
-                    (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) ||
+                    (IsExclusiveFeatureSelected(item.InternalId, ExclusiveControl.CatchAllBlock) ||
                      !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) && !options.ReplaceAllImages))
                 {
                     __result = false;
@@ -337,7 +339,7 @@ namespace StrmAssistant.Mod
                     return false;
                 }
 
-                if (!IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) && !item.IsShortcut &&
+                if (!IsExclusiveFeatureSelected(item.InternalId, ExclusiveControl.CatchAllBlock) && !item.IsShortcut &&
                     refreshOptions.ReplaceAllImages)
                 {
                     return true;
@@ -350,12 +352,12 @@ namespace StrmAssistant.Mod
                 }
 
                 if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllAllow) ||
-                    !IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) && !item.IsShortcut)
+                    !IsExclusiveFeatureSelected(item.InternalId, ExclusiveControl.CatchAllBlock) && !item.IsShortcut)
                 {
                     return true;
                 }
 
-                if (IsExclusiveFeatureSelected(ExclusiveControl.CatchAllBlock) &&
+                if (IsExclusiveFeatureSelected(item.InternalId, ExclusiveControl.CatchAllBlock) &&
                     !CurrentRefreshContext.Value.IsPlayback)
                 {
                     return false;

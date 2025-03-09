@@ -79,6 +79,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to EpisodeRefresh.
+        /// </summary>
+        public static string CatchupTask_EpisodeRefresh_EpisodeRefresh {
+            get {
+                return ResourceManager.GetString("CatchupTask_EpisodeRefresh_EpisodeRefresh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Built-in Intro Detection.
         /// </summary>
         public static string CatchupTask_Fingerprint_Fingerprint {
@@ -121,6 +130,15 @@ namespace StrmAssistant.Properties {
         public static string ClearChapterMarkersTask_Name_Clear_Episode_Intros {
             get {
                 return ResourceManager.GetString("ClearChapterMarkersTask_Name_Clear_Episode_Intros", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh metadata for episodes missing overview.
+        /// </summary>
+        public static string EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview {
+            get {
+                return ResourceManager.GetString("EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview", resourceCulture);
             }
         }
         
@@ -308,7 +326,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Extract video thumbnail preview.
+        ///   Looks up a localized string similar to Extract video thumbnail preview and chatper images.
         /// </summary>
         public static string ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview {
             get {
@@ -896,7 +914,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Store or load media info and chapters to/from JSON file. Default is OFF..
+        ///   Looks up a localized string similar to Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF. Default is OFF..
         /// </summary>
         public static string MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_ {
             get {
@@ -1479,7 +1497,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unlock image capture, thumbnail preview BIF for Strm. Skip embedded image. Default is OFF..
+        ///   Looks up a localized string similar to Unlock image capture, video thumbnail BIF for Strm. Skip embedded image. Default is OFF..
         /// </summary>
         public static string PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_ {
             get {
@@ -1581,7 +1599,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shared by mediainfo extract, image capture and fingerprint extract tasks. It must be between 1 to 20. Default is 1..
+        ///   Looks up a localized string similar to Shared by mediainfo extract, image capture, video thumbnail and fingerprint extract tasks. It must be between 1 to 20. Default is 1..
         /// </summary>
         public static string PluginOptions_MaxConcurrentCount_Max_Concurrent_Count_must_be_between_1_to_10__Default_is_1_ {
             get {

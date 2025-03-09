@@ -1,5 +1,6 @@
 ﻿using Emby.Media.Common.Extensions;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using static StrmAssistant.Options.GeneralOptions;
@@ -12,6 +13,9 @@ namespace StrmAssistant.Options
     public static class Utility
     {
         private static HashSet<string> _selectedExclusiveFeatures = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<long, ConcurrentDictionary<string, byte>> ItemExclusiveFeatures =
+            new ConcurrentDictionary<long, ConcurrentDictionary<string, byte>>();
+
         private static HashSet<string> _selectedCatchupTasks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static HashSet<string> _selectedIntroSkipPreferences = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static string[] _includeItemTypes = Array.Empty<string>();
@@ -25,9 +29,50 @@ namespace StrmAssistant.Options
                 Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
         }
 
+        public static bool IsExclusiveFeatureSelected(long? itemId = null, params ExclusiveControl[] featuresToCheck)
+        {
+            if (itemId.HasValue && ItemExclusiveFeatures.TryGetValue(itemId.Value, out var itemFeatures))
+            {
+                return featuresToCheck.Any(f => itemFeatures.ContainsKey(f.ToString()));
+            }
+
+            return featuresToCheck.Any(f => _selectedExclusiveFeatures.Contains(f.ToString()));
+        }
+
         public static bool IsExclusiveFeatureSelected(params ExclusiveControl[] featuresToCheck)
         {
-            return featuresToCheck.Any(f => _selectedExclusiveFeatures.Contains(f.ToString()));
+            return IsExclusiveFeatureSelected(null, featuresToCheck);
+        }
+
+        public static void EnableItemExclusiveFeatures(long itemId, params ExclusiveControl[] features)
+        {
+            var itemFeatures = ItemExclusiveFeatures.GetOrAdd(itemId, _ => new ConcurrentDictionary<string, byte>());
+
+            foreach (var feature in features)
+            {
+                itemFeatures.TryAdd(feature.ToString(), 0);
+            }
+        }
+
+        public static void DisableItemExclusiveFeatures(long itemId, params ExclusiveControl[] features)
+        {
+            if (ItemExclusiveFeatures.TryGetValue(itemId, out var itemFeatures))
+            {
+                foreach (var feature in features)
+                {
+                    itemFeatures.TryRemove(feature.ToString(), out _);
+                }
+
+                if (itemFeatures.IsEmpty)
+                {
+                    ItemExclusiveFeatures.TryRemove(itemId, out _);
+                }
+            }
+        }
+
+        public static void ClearItemExclusiveFeatures(long itemId)
+        {
+            ItemExclusiveFeatures.TryRemove(itemId, out _);
         }
 
         public static string GetSelectedExclusiveFeatureDescription()
