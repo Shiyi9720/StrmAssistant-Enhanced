@@ -68,10 +68,8 @@ namespace StrmAssistant.ScheduledTask
                             return;
                         }
 
-                        await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions,
-                            cancellationToken).ConfigureAwait(false);
-
-                        _logger.Info("EpisodeRefresh - Item processed: " + taskItem.Name + " - " + taskItem.Path);
+                        await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions, cancellationToken)
+                            .ConfigureAwait(false);
                     }
                     catch (TaskCanceledException)
                     {
