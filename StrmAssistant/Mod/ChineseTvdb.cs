@@ -91,8 +91,9 @@ namespace StrmAssistant.Mod
                 var list = __result.ToList();
                 var index = list.FindIndex(l => string.Equals(l, "eng", StringComparison.OrdinalIgnoreCase));
 
-                var currentFallbackLanguages =
-                    GetTvdbFallbackLanguages().Where(l => (ConsiderJapanese.Value ?? true) || l != "jpn");
+                var currentFallbackLanguages = GetTvdbFallbackLanguages()
+                    .Where(l => (ConsiderJapanese.Value ?? true) ||
+                                !string.Equals(l, "jpn", StringComparison.OrdinalIgnoreCase));
 
                 foreach (var fallbackLanguage in currentFallbackLanguages)
                 {
@@ -138,7 +139,9 @@ namespace StrmAssistant.Mod
                         return language == "jpn" && isPrimary is true;
                     });
 
-                    tvdbLanguages = tvdbLanguages.Where(l => considerJapanese || l != "jpn").ToArray();
+                    tvdbLanguages = tvdbLanguages.Where(l =>
+                        l is string &&
+                        (considerJapanese || !string.Equals(l, "jpn", StringComparison.OrdinalIgnoreCase))).ToArray();
                 }
 
                 if (field == 0)
