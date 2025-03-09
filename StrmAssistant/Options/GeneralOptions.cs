@@ -25,7 +25,9 @@ namespace StrmAssistant.Options
             [DescriptionL("CatchupTask_Fingerprint_Fingerprint", typeof(Resources))]
             Fingerprint,
             [DescriptionL("CatchupTask_IntroSkip_IntroSkip", typeof(Resources))]
-            IntroSkip
+            IntroSkip,
+            [DescriptionL("CatchupTask_EpisodeRefresh_EpisodeRefresh", typeof(Resources))]
+            EpisodeRefresh
         }
         
         [Browsable(false)]

@@ -120,7 +120,7 @@
     <value>Master Max Concurrent Thread Count</value>
   </data>
   <data name="PluginOptions_MaxConcurrentCount_Max_Concurrent_Count_must_be_between_1_to_10__Default_is_1_" xml:space="preserve">
-    <value>Shared by mediainfo extract, image capture and fingerprint extract tasks. It must be between 1 to 20. Default is 1.</value>
+    <value>Shared by mediainfo extract, image capture, video thumbnail and fingerprint extract tasks. It must be between 1 to 20. Default is 1.</value>
   </data>
   <data name="PluginOptions_EditorTitle_Strm_Extract" xml:space="preserve">
     <value>MediaInfo Extract</value>
@@ -135,7 +135,7 @@
     <value>Image Capture and Thumbnail Preview Enhanced</value>
   </data>
   <data name="PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_" xml:space="preserve">
-    <value>Unlock image capture, thumbnail preview BIF for Strm. Skip embedded image. Default is OFF.</value>
+    <value>Unlock image capture, video thumbnail BIF for Strm. Skip embedded image. Default is OFF.</value>
   </data>
   <data name="PluginOptions_EnableIntroSkip_Enable_Intro_Skip__Experimental_" xml:space="preserve">
     <value>Adaptive Intro Skip</value>
@@ -399,7 +399,7 @@
     <value>MediaInfo Persist</value>
   </data>
   <data name="MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_" xml:space="preserve">
-    <value>Store or load media info and chapters to/from JSON file. Default is OFF.</value>
+    <value>Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF. Default is OFF.</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Missing_Episodes_Enhanced" xml:space="preserve">
     <value>View Missing Episodes Enhanced</value>
@@ -670,5 +670,11 @@
   </data>
   <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
     <value>Extract video thumbnail preview and chatper images</value>
+  </data>
+  <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
+    <value>Refresh metadata for episodes without overview</value>
+  </data>
+  <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
+    <value>Episode Refresh</value>
   </data>
 </root>

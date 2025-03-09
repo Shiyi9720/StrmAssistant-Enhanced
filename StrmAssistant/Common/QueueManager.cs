@@ -18,20 +18,25 @@ namespace StrmAssistant.Common
         private static DateTime _mediaInfoProcessLastRunTime = DateTime.MinValue;
         private static DateTime _introSkipProcessLastRunTime = DateTime.MinValue;
         private static DateTime _fingerprintProcessLastRunTime = DateTime.MinValue;
+        private static DateTime _episodeRefreshProcessLastRunTime = DateTime.MinValue;
         private static readonly TimeSpan ThrottleInterval = TimeSpan.FromSeconds(30);
+        private static readonly Random Random = new Random();
         private static int _currentMasterMaxConcurrentCount;
         private static int _currentTier2MaxConcurrentCount;
 
         public static CancellationTokenSource MediaInfoTokenSource;
         public static CancellationTokenSource IntroSkipTokenSource;
         public static CancellationTokenSource FingerprintTokenSource;
+        public static CancellationTokenSource EpisodeRefreshTokenSource;
         public static SemaphoreSlim MasterSemaphore;
         public static SemaphoreSlim Tier2Semaphore;
         public static ConcurrentQueue<BaseItem> MediaInfoExtractItemQueue = new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<Episode> IntroSkipItemQueue = new ConcurrentQueue<Episode>();
         public static ConcurrentQueue<BaseItem> FingerprintItemQueue = new ConcurrentQueue<BaseItem>();
+        public static ConcurrentQueue<Episode> EpisodeRefreshItemQueue = new ConcurrentQueue<Episode>(); 
         public static Task MediaInfoProcessTask;
         public static Task FingerprintProcessTask;
+        public static Task EpisodeRefreshProcessTask;
 
         public static bool IsMediaInfoProcessTaskRunning { get; private set; }
 
@@ -92,6 +97,30 @@ namespace StrmAssistant.Common
                         }
 
                         FingerprintProcessTask = null;
+                    }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+
+            if (EpisodeRefreshProcessTask is null)
+            {
+                EpisodeRefreshItemQueue.Clear();
+                EpisodeRefreshProcessTask = EpisodeRefresh_ProcessItemQueueAsync()
+                    .ContinueWith(task =>
+                    {
+                        if (task.IsFaulted)
+                        {
+                            Logger.Debug(
+                                $"(Trace) EpisodeRefresh_ProcessItemQueueAsync terminated unexpectedly. Exception: {task.Exception?.Flatten()}");
+                        }
+                        else if (task.IsCanceled)
+                        {
+                            Logger.Debug("(Trace) EpisodeRefresh_ProcessItemQueueAsync was canceled.");
+                        }
+                        else
+                        {
+                            Logger.Debug("(Trace) EpisodeRefresh_ProcessItemQueueAsync completed successfully.");
+                        }
+
+                        EpisodeRefreshProcessTask = null;
                     }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
         }
@@ -355,8 +384,6 @@ namespace StrmAssistant.Common
                         if (currentQueueCount < maxConcurrentCount && progress.HasValue)
                         {
                             deferredItems.Add(dequeueItem);
-                            //Logger.Debug("IntroFingerprintExtract - Item Deferred: " + dequeueItem.Name + " - " + dequeueItem.Path);
-                            //Logger.Debug($"IntroFingerprintExtract - Library Scan Running - Progress {progress:F2}% - {library.Path}");
                         }
                         else
                         {
@@ -368,8 +395,7 @@ namespace StrmAssistant.Common
 
                     var episodes = Plugin.FingerprintApi.FetchFingerprintQueueItems(dequeueItems);
 
-                    if (IsCatchupTaskSelected(CatchupTask.MediaInfo,
-                            CatchupTask.IntroSkip))
+                    if (IsCatchupTaskSelected(CatchupTask.MediaInfo, CatchupTask.IntroSkip))
                     {
                         var episodeIds = episodes.Select(e => e.InternalId).ToHashSet();
                         var mediaInfoItems = dequeueItems.Where(i => !episodeIds.Contains(i.InternalId));
@@ -641,10 +667,141 @@ namespace StrmAssistant.Common
             }
         }
 
+        public static async Task EpisodeRefresh_ProcessItemQueueAsync()
+        {
+            Logger.Info("EpisodeRefresh - ProcessItemQueueAsync Started");
+
+            EpisodeRefreshTokenSource = new CancellationTokenSource();
+            var cancellationToken = EpisodeRefreshTokenSource.Token;
+
+            var dequeueItems = new List<Episode>();
+            var tasks = new List<Task>();
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var timeSinceLastRun = DateTime.UtcNow - _episodeRefreshProcessLastRunTime;
+                var remainingTime = ThrottleInterval - timeSinceLastRun;
+                if (remainingTime > TimeSpan.Zero)
+                {
+                    try
+                    {
+                        await Task.Delay(remainingTime, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
+
+                if (!EpisodeRefreshItemQueue.IsEmpty)
+                {
+                    dequeueItems.Clear();
+
+                    while (EpisodeRefreshItemQueue.TryDequeue(out var dequeueItem))
+                    {
+                        dequeueItems.Add(dequeueItem);
+                    }
+
+                    Logger.Info("EpisodeRefresh - Clear Item Queue Started");
+
+
+                    var itemsToRefresh = Plugin.LibraryApi.FetchEpisodeRefreshQueueItems(dequeueItems);
+
+                    if (itemsToRefresh.Count > 0)
+                    {
+                        var tier2MaxConcurrentCount =
+                            Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount;
+                        Logger.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
+
+                        foreach (var item in itemsToRefresh)
+                        {
+                            var taskItem = item;
+
+                            try
+                            {
+                                await Tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                            }
+                            catch
+                            {
+                                break;
+                            }
+
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                Tier2Semaphore.Release();
+                                Logger.Info("EpisodeRefresh - Item Cancelled: " + taskItem.Name + " - " +
+                                            taskItem.Path);
+                                break;
+                            }
+
+                            var task = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await Task.Delay(
+                                            Random.Next(0,
+                                                Math.Max(0, tier2MaxConcurrentCount - Tier2Semaphore.CurrentCount) *
+                                                MetadataApi.RequestIntervalMs), cancellationToken)
+                                        .ConfigureAwait(false);
+
+                                    if (cancellationToken.IsCancellationRequested)
+                                    {
+                                        Logger.Info("EpisodeRefresh - Item cancelled: " + taskItem.Name + " - " +
+                                                    taskItem.Path);
+                                        return;
+                                    }
+
+                                    await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions,
+                                        cancellationToken).ConfigureAwait(false);
+
+                                    Logger.Info("EpisodeRefresh - Item processed: " + taskItem.Name + " - " +
+                                                taskItem.Path);
+                                }
+                                catch (TaskCanceledException)
+                                {
+                                    Logger.Info("EpisodeRefresh - Item cancelled: " + taskItem.Name + " - " +
+                                                taskItem.Path);
+                                }
+                                catch (Exception e)
+                                {
+                                    Logger.Error("EpisodeRefresh - Item failed: " + taskItem.Name + " - " +
+                                                 taskItem.Path);
+                                    Logger.Error(e.Message);
+                                    Logger.Debug(e.StackTrace);
+                                }
+                                finally
+                                {
+                                    Tier2Semaphore.Release();
+                                }
+                            }, cancellationToken);
+                            tasks.Add(task);
+                        }
+
+                        await Task.WhenAll(tasks).ConfigureAwait(false);
+                        tasks.Clear();
+                    }
+
+                    Logger.Info("EpisodeRefresh - Clear Item Queue Stopped");
+                }
+
+                _episodeRefreshProcessLastRunTime = DateTime.UtcNow;
+            }
+
+            if (EpisodeRefreshItemQueue.IsEmpty)
+            {
+                Logger.Info("EpisodeRefresh - ProcessItemQueueAsync Stopped");
+            }
+            else
+            {
+                Logger.Info("EpisodeRefresh - ProcessItemQueueAsync Cancelled");
+            }
+        }
+
         public static void Dispose()
         {
             MediaInfoTokenSource?.Cancel();
             FingerprintTokenSource?.Cancel();
+            EpisodeRefreshTokenSource?.Cancel();
         }
     }
 }

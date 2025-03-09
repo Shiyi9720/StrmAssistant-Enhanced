@@ -202,7 +202,7 @@ namespace StrmAssistant.ScheduledTask
 
                             if (!imageRefreshSkip)
                             {
-                                await taskItem.RefreshMetadata(MetadataApi.PersonRefreshOptions, cancellationToken)
+                                await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions, cancellationToken)
                                     .ConfigureAwait(false);
                             }
                         }

@@ -312,7 +312,7 @@
     <value>媒體訊息持久化</value>
   </data>
   <data name="MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_" xml:space="preserve">
-    <value>保存或加载媒体信息和章节片头片尾标记至/自 JSON 文件，默认关闭。</value>
+    <value>儲存或載入媒體資訊和章節片頭片尾標記至/自 JSON 文件，以及恢復預覽縮圖 BIF，預設為關閉。</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Missing_Episodes_Enhanced" xml:space="preserve">
     <value>查看缺少的集增強</value>
@@ -583,5 +583,11 @@
   </data>
   <data name="ExtractVideoThumbnailTask_Description_Extract_video_thumbnail_preview" xml:space="preserve">
     <value>提取影片預覽縮圖和章節圖</value>
+  </data>
+  <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
+    <value>刷新無簡介的劇集的元數據</value>
+  </data>
+  <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
+    <value>劇集元資料刷新</value>
   </data>
 </root>

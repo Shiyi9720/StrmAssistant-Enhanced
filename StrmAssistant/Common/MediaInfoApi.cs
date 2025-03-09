@@ -146,7 +146,7 @@ namespace StrmAssistant.Common
             LibraryOptions libraryOptions)
         {
             return (List<MediaSourceInfo>)_getStaticMediaSources.Invoke(_mediaSourceManager,
-                new object[] { item, enableAlternateMediaSources, false, true, libraryOptions, null, null });
+                new object[] { item, enableAlternateMediaSources, false, false, libraryOptions, null, null });
         }
 
         public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enableAlternateMediaSources)
@@ -201,6 +201,11 @@ namespace StrmAssistant.Common
                                 jsonItem.MediaSourceInfo.Id = null;
                                 jsonItem.MediaSourceInfo.ItemId = null;
                                 jsonItem.MediaSourceInfo.Path = null;
+
+                                foreach (var chapter in jsonItem.Chapters)
+                                {
+                                    chapter.ImageTag = null;
+                                }
 
                                 if (item is Episode)
                                 {
@@ -286,13 +291,14 @@ namespace StrmAssistant.Common
                         _libraryManager.UpdateItems(new List<BaseItem> { workItem }, null,
                             ItemUpdateType.MetadataImport, false, false, null, CancellationToken.None);
 
-                        if (workItem is Video)
+                        if (workItem is Video video)
                         {
-                            _itemRepository.SaveChapters(workItem.InternalId, true, mediaSourceWithChapters.Chapters);
+                            await DeserializeChapterInfo(video, mediaSourceWithChapters.Chapters, directoryService,
+                                source).ConfigureAwait(false);
 
-                            if (workItem is Episode && mediaSourceWithChapters.ZeroFingerprintConfidence is true)
+                            if (video is Episode && mediaSourceWithChapters.ZeroFingerprintConfidence is true)
                             {
-                                BaseItem.ItemRepository.LogIntroDetectionFailureFailure(workItem.InternalId,
+                                BaseItem.ItemRepository.LogIntroDetectionFailureFailure(video.InternalId,
                                     item.DateModified.ToUnixTimeSeconds());
                             }
                         }
@@ -337,7 +343,7 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task<bool> DeserializeChapterInfo(Episode item, IDirectoryService directoryService, string source)
+        public async Task<bool> DeserializeIntroMarker(Episode item, IDirectoryService directoryService, string source)
         {
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
@@ -392,6 +398,42 @@ namespace StrmAssistant.Common
             }
 
             return false;
+        }
+
+        public async Task<bool> DeserializeChapterInfo(Video item, List<ChapterInfo> chapters,
+            IDirectoryService directoryService, string source)
+        {
+            var thumbnailResult = false;
+
+            if (Plugin.Instance.IsModSupported || !item.IsShortcut)
+            {
+                var localThumbnailSets =
+                    Video.GetLocalThumbnailSetInfos(item.Path, item.Id, false, directoryService);
+
+                if (localThumbnailSets.Length > 0)
+                {
+                    var options = _libraryManager.GetLibraryOptions(item);
+                    var dummyLibraryOptions = new LibraryOptions
+                    {
+                        ThumbnailImagesIntervalSeconds = 10,
+                        CacheImages = options.CacheImages
+                    };
+
+                    thumbnailResult = await Plugin.VideoThumbnailApi.RefreshThumbnailImages(item,
+                        dummyLibraryOptions, directoryService, chapters, false, false,
+                        CancellationToken.None);
+
+                    if (thumbnailResult)
+                    {
+                        _logger.Info("ChapterInfoPersist - Video Thumbnail Restore Success (" + source + "): " +
+                                     localThumbnailSets[0].Path);
+                    }
+                }
+            }
+
+            _itemRepository.SaveChapters(item.InternalId, true, chapters);
+
+            return thumbnailResult;
         }
 
         public void QueueRefreshAlternateVersions(BaseItem item, MetadataRefreshOptions options, bool force)

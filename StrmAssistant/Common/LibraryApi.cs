@@ -28,7 +28,6 @@ namespace StrmAssistant.Common
         private readonly ILibraryManager _libraryManager;
         private readonly IFileSystem _fileSystem;
         private readonly IMediaMountManager _mediaMountManager;
-        private readonly IProviderManager _providerManager;
         private readonly IUserManager _userManager;
 
         public static MetadataRefreshOptions MinimumRefreshOptions;
@@ -91,13 +90,12 @@ namespace StrmAssistant.Common
         public static string[] AdminOrderedViews = Array.Empty<string>();
 
         public LibraryApi(ILibraryManager libraryManager, IFileSystem fileSystem, IMediaMountManager mediaMountManager,
-            IProviderManager providerManager, IUserManager userManager)
+            IUserManager userManager)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _fileSystem = fileSystem;
             _mediaMountManager = mediaMountManager;
-            _providerManager = providerManager;
             _userManager = userManager;
 
             UpdateLibraryPathsInScope();
@@ -234,12 +232,13 @@ namespace StrmAssistant.Common
 
             var includeFavorites = libraryIds == null || !libraryIds.Any() || libraryIds.Contains("-1");
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
+            var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
             var resultItems = new List<BaseItem>();
 
             if (IsCatchupTaskSelected(CatchupTask.MediaInfo))
             {
-                if (includeFavorites) resultItems = ExpandFavorites(items, true, true);
+                if (includeFavorites) resultItems = ExpandFavorites(items, true, true, enableImageCapture);
 
                 var incomingItems = items.Where(item => item is Video || item is Audio).ToList();
 
@@ -269,7 +268,7 @@ namespace StrmAssistant.Common
             var unprocessedItems = FilterUnprocessed(resultItems
                 .Concat(includeExtra ? resultItems.SelectMany(f => f.GetExtras(IncludeExtraTypes)) : Enumerable.Empty<BaseItem>())
                 .ToList());
-            var orderedItems = OrderUnprocessed(unprocessedItems);
+            var orderedItems = OrderByDescending(unprocessedItems);
 
             return orderedItems;
         }
@@ -299,7 +298,7 @@ namespace StrmAssistant.Common
                         IsFavorite = true
                     })).GroupBy(i => i.InternalId).Select(g => g.First()).ToList();
 
-                var expanded = ExpandFavorites(favorites, false, true);
+                var expanded = ExpandFavorites(favorites, false, true, enableImageCapture);
 
                 favoritesWithExtra = expanded.Concat(includeExtra
                         ? expanded.SelectMany(f => f.GetExtras(IncludeExtraTypes))
@@ -375,7 +374,7 @@ namespace StrmAssistant.Common
             var combined = favoritesWithExtra.Concat(items).Concat(extras).GroupBy(i => i.InternalId)
                 .Select(g => g.First()).ToList();
             var filtered = FilterUnprocessed(combined);
-            var results = OrderUnprocessed(filtered);
+            var results = OrderByDescending(filtered);
 
             return results;
         }
@@ -407,7 +406,7 @@ namespace StrmAssistant.Common
                     .Select(g => g.First())
                     .ToList();
 
-                var expanded = ExpandFavorites(favorites, false, false);
+                var expanded = ExpandFavorites(favorites, false, false, false);
 
                 favoritesWithExtra = expanded.Concat(includeExtra
                         ? expanded.SelectMany(f => f.GetExtras(IncludeExtraTypes))
@@ -446,12 +445,12 @@ namespace StrmAssistant.Common
                 .GroupBy(i => i.InternalId)
                 .Select(g => g.First())
                 .ToList();
-            var results = OrderUnprocessed(combined);
+            var results = OrderByDescending(combined);
 
             return results;
         }
 
-        public List<BaseItem> OrderUnprocessed(List<BaseItem> items)
+        public List<BaseItem> OrderByDescending(List<BaseItem> items)
         {
             var results = items.OrderBy(i => i.ExtraType == null ? 0 : 1)
                 .ThenByDescending(i =>
@@ -500,10 +499,9 @@ namespace StrmAssistant.Common
                    enableImageCapture && !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item);
         }
 
-        public List<BaseItem> ExpandFavorites(List<BaseItem> items, bool filterNeeded, bool? preExtract)
+        public List<BaseItem> ExpandFavorites(List<BaseItem> items, bool filterNeeded, bool? preExtract,
+            bool enableImageCapture)
         {
-            var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
-
             var itemsMultiVersions = items.SelectMany(v =>
                     _libraryManager.GetItemList(new InternalItemsQuery
                         {
@@ -529,7 +527,7 @@ namespace StrmAssistant.Common
                 };
                 var episodesMediaInfo = _libraryManager.GetItemList(episodesMediaInfoQuery);
 
-                if (enableImageCapture && preExtract == true)
+                if (enableImageCapture)
                 {
                     var episodesImageCaptureQuery = new InternalItemsQuery
                     {
@@ -802,6 +800,56 @@ namespace StrmAssistant.Common
             return new[] { new FileSystemMetadata { FullName = item.Path, IsDirectory = item.IsFolder } }
                 .Concat(relatedFiles)
                 .ToArray();
+        }
+
+        public List<Episode> FetchEpisodeRefreshTaskItems()
+        {
+            var itemsToRefresh = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { nameof(Episode) },
+                    HasIndexNumber = true,
+                    HasOverview = false
+                })
+                .Where(e => e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
+                .ToList();
+
+            var result = OrderByDescending(itemsToRefresh).OfType<Episode>().ToList();
+
+            _logger.Info("EpisodeRefresh - Number of items: " + result.Count);
+
+            return result;
+        }
+
+        public List<Episode> FetchEpisodeRefreshQueueItems(List<Episode> items)
+        {
+            var itemsToRefresh = new List<Episode>();
+            var groupedBySeason = items.GroupBy(i => i.Season);
+            var excludeItemIds = items.Select(e => e.InternalId).ToHashSet();
+
+            foreach (var group in groupedBySeason)
+            {
+                var season = group.Key;
+
+                var episodes = _libraryManager
+                    .GetItemList(new InternalItemsQuery
+                    {
+                        IncludeItemTypes = new[] { nameof(Episode) },
+                        HasIndexNumber = true,
+                        HasOverview = false,
+                        MinPremiereDate = DateTimeOffset.UtcNow.AddDays(-90),
+                        OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
+                    })
+                    .OfType<Episode>()
+                    .Where(e => !excludeItemIds.Contains(e.InternalId) &&
+                                e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6) &&
+                                e.Season.PresentationUniqueKey == season.PresentationUniqueKey);
+
+                itemsToRefresh.AddRange(episodes);
+            }
+
+            _logger.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
+
+            return itemsToRefresh;
         }
     }
 }
