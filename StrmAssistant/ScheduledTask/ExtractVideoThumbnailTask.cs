@@ -1,8 +1,11 @@
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
+using StrmAssistant.Mod;
 using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
@@ -15,11 +18,16 @@ namespace StrmAssistant.ScheduledTask
     {
         private readonly ILogger _logger;
         private readonly IFileSystem _fileSystem;
+        private readonly ILibraryManager _libraryManager;
+        private readonly IItemRepository _itemRepository;
 
-        public ExtractVideoThumbnailTask(IFileSystem fileSystem)
+        public ExtractVideoThumbnailTask(IFileSystem fileSystem, ILibraryManager libraryManager,
+            IItemRepository itemRepository)
         {
             _logger = Plugin.Instance.Logger;
             _fileSystem = fileSystem;
+            _libraryManager = libraryManager;
+            _itemRepository = itemRepository;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
@@ -78,12 +86,25 @@ namespace StrmAssistant.ScheduledTask
                             return;
                         }
 
-                        result = await Plugin.VideoThumbnailApi.RefreshThumbnailImages(item, directoryService,
-                            cancellationToken).ConfigureAwait(false);
+                        ChapterChangeTracker.BypassInstance(taskItem);
+
+                        var chapters = _itemRepository.GetChapters(taskItem);
+
+                        var thumbnailResult = await Plugin.MediaInfoApi.DeserializeChapterInfo(taskItem, chapters,
+                            directoryService, "VideoThumbnailExtract Task").ConfigureAwait(false);
+
+                        if (!thumbnailResult)
+                        {
+                            var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
+                            result = await Plugin.VideoThumbnailApi
+                                .RefreshThumbnailImages(taskItem, libraryOptions, directoryService, chapters, true,
+                                    true, cancellationToken).ConfigureAwait(false);
+                        }
                     }
                     catch (TaskCanceledException)
                     {
-                        _logger.Info("VideoThumbnailExtract - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger.Info("VideoThumbnailExtract - Item cancelled: " + taskItem.Name + " - " +
+                                     taskItem.Path);
                     }
                     catch (Exception e)
                     {

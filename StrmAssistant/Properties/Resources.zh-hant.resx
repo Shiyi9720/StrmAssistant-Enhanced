@@ -312,7 +312,7 @@
     <value>媒體訊息持久化</value>
   </data>
   <data name="MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_" xml:space="preserve">
-    <value>保存或加载媒体信息和章节片头片尾标记至/自 JSON 文件，默认关闭。</value>
+    <value>儲存或載入媒體資訊和章節片頭片尾標記至/自 JSON 文件，以及恢復預覽縮圖 BIF，預設為關閉。</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Missing_Episodes_Enhanced" xml:space="preserve">
     <value>查看缺少的集增強</value>

@@ -98,13 +98,12 @@ namespace StrmAssistant.Common
             throw new NotImplementedException();
 #pragma warning restore CS1998
 
-        public Task<bool> RefreshThumbnailImages(Video item, IDirectoryService directoryService,
+        public Task<bool> RefreshThumbnailImages(Video item, LibraryOptions libraryOptions,
+            IDirectoryService directoryService, List<ChapterInfo> chapters, bool extractImages, bool saveChapters,
             CancellationToken cancellationToken)
         {
-            var libraryOptions = _libraryManager.GetLibraryOptions(item);
-            var chapters = _itemRepository.GetChapters(item);
             var mediaSource = AppVer >= Ver4925
-                ? Plugin.MediaInfoApi.GetStaticMediaSources(item, false).FirstOrDefault()
+                ? item.GetMediaSources(false, false, libraryOptions).FirstOrDefault()
                 : null;
 
             switch (PatchTracker.FallbackPatchApproach)
@@ -112,20 +111,21 @@ namespace StrmAssistant.Common
                 case PatchApproach.Harmony:
                     return AppVer >= Ver4925
                         ? RefreshThumbnailImagesStub49(_thumbnailGenerator, item, mediaSource, null, libraryOptions,
-                            directoryService, chapters, true, true, cancellationToken)
-                        : RefreshThumbnailImagesStub48(_thumbnailGenerator, item, null, libraryOptions, directoryService,
-                            chapters, true, true, cancellationToken);
+                            directoryService, chapters, extractImages, saveChapters, cancellationToken)
+                        : RefreshThumbnailImagesStub48(_thumbnailGenerator, item, null, libraryOptions,
+                            directoryService, chapters, extractImages, saveChapters, cancellationToken);
                 case PatchApproach.Reflection:
                 {
                     var parameters = AppVer >= Ver4925
                         ? new object[]
                         {
-                            item, mediaSource, null, libraryOptions, directoryService, chapters, true, true,
-                            cancellationToken
+                            item, mediaSource, null, libraryOptions, directoryService, chapters, extractImages,
+                            saveChapters, cancellationToken
                         }
                         : new object[]
                         {
-                            item, null, libraryOptions, directoryService, chapters, true, true, cancellationToken
+                            item, null, libraryOptions, directoryService, chapters, extractImages, saveChapters,
+                            cancellationToken
                         };
 
                     return (Task<bool>)_refreshThumbnailImages.Invoke(_thumbnailGenerator, parameters);
@@ -196,8 +196,9 @@ namespace StrmAssistant.Common
                 }
             }
 
+            var isModSupported = Plugin.Instance.IsModSupported;
             var combined = favoritesWithExtra.Concat(items).Concat(extras).GroupBy(i => i.InternalId)
-                .Select(g => g.First()).OfType<Video>().ToList();
+                .Select(g => g.First()).Where(i => isModSupported || !i.IsShortcut).OfType<Video>().ToList();
 
             return combined;
         }
