@@ -966,13 +966,13 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchEpisodeRefreshTaskItems()
         {
-            var itemsToRefresh = _libraryManager.GetItemList(new InternalItemsQuery
+            var itemsToRefresh = _libraryManager
+                .GetItemList(new InternalItemsQuery
                 {
-                    IncludeItemTypes = new[] { nameof(Episode) },
-                    HasIndexNumber = true,
-                    HasOverview = false
+                    IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true
                 })
-                .Where(e => e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
+                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
+                            e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
                 .ToList();
 
             var result = OrderByDescending(itemsToRefresh).OfType<Episode>().ToList();
@@ -992,19 +992,17 @@ namespace StrmAssistant.Common
             {
                 var season = group.Key;
 
-                var episodes = _libraryManager
-                    .GetItemList(new InternalItemsQuery
+                var episodes = season.GetEpisodes(new InternalItemsQuery
                     {
                         IncludeItemTypes = new[] { nameof(Episode) },
                         HasIndexNumber = true,
-                        HasOverview = false,
                         MinPremiereDate = DateTimeOffset.UtcNow.AddDays(-90),
                         OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
                     })
-                    .OfType<Episode>()
+                    .Items.OfType<Episode>()
                     .Where(e => !excludeItemIds.Contains(e.InternalId) &&
                                 e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6) &&
-                                e.Season.PresentationUniqueKey == season.PresentationUniqueKey);
+                                (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)));
 
                 itemsToRefresh.AddRange(episodes);
             }
