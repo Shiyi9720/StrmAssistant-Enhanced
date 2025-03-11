@@ -1820,6 +1820,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Update error. Check details in admin dashboard..
+        /// </summary>
+        public static string Update_Failed_Message {
+            get {
+                return ResourceManager.GetString("Update_Failed_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Updates plugin to the latest version.
         /// </summary>
         public static string UpdatePluginTask_Description_Updates_plugin_to_the_latest_version {

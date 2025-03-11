@@ -3,6 +3,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller;
 using MediaBrowser.Model.Activity;
+using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Tasks;
@@ -25,11 +26,12 @@ namespace StrmAssistant.ScheduledTask
         private readonly IHttpClient _httpClient;
         private readonly IJsonSerializer _jsonSerializer;
         private readonly IActivityManager _activityManager;
+        private readonly ILocalizationManager _localizationManager;
         private readonly IServerApplicationHost _serverApplicationHost;
 
         public UpdatePluginTask(IApplicationHost applicationHost, IApplicationPaths applicationPaths,
             IHttpClient httpClient, IJsonSerializer jsonSerializer, IActivityManager activityManager,
-            IServerApplicationHost serverApplicationHost)
+            ILocalizationManager localizationManager, IServerApplicationHost serverApplicationHost)
         {
             _logger = Plugin.Instance.Logger;
             _applicationHost = applicationHost;
@@ -37,6 +39,7 @@ namespace StrmAssistant.ScheduledTask
             _httpClient = httpClient;
             _jsonSerializer = jsonSerializer;
             _activityManager = activityManager;
+            _localizationManager = localizationManager;
             _serverApplicationHost = serverApplicationHost;
         }
 
@@ -147,8 +150,8 @@ namespace StrmAssistant.ScheduledTask
 
                     _activityManager.Create(new ActivityLogEntry
                     {
-                        Name = Plugin.Instance.Name + " Updated to " + remoteVersion + " on " +
-                               _serverApplicationHost.FriendlyName,
+                        Name = string.Format(_localizationManager.GetLocalizedString("XUpdatedOnTo"), Category,
+                            remoteVersion, _serverApplicationHost.FriendlyName),
                         Type = "PluginUpdateInstalled",
                         Severity = LogSeverity.Info
                     });
@@ -166,13 +169,16 @@ namespace StrmAssistant.ScheduledTask
             {
                 _activityManager.Create(new ActivityLogEntry
                 {
-                    Name = Plugin.Instance.Name + " update failed on " + _serverApplicationHost.FriendlyName,
+                    Name = string.Format(_localizationManager.GetLocalizedString("NameInstallFailedOn"), Category,
+                        _serverApplicationHost.FriendlyName),
                     Type = "PluginUpdateFailed",
                     Overview = e.Message,
                     Severity = LogSeverity.Error
                 });
 
-                _logger.Error("Update error: {0}", e.Message);
+                _ = Plugin.NotificationApi.SendMessageToAdmins(
+                    $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.Update_Failed_Message}", 1000);
+                _logger.Error("Update failed: {0}", e.Message);
                 _logger.Debug(e.StackTrace);
             }
 
