@@ -590,4 +590,10 @@
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>劇集元資料刷新</value>
   </data>
+  <data name="ItemType_Video_Video" xml:space="preserve">
+    <value>影片</value>
+  </data>
+  <data name="Update_Failed_Message" xml:space="preserve">
+    <value>更新失敗，請至控制台查看詳細錯誤訊息。</value>
+  </data>
 </root>
