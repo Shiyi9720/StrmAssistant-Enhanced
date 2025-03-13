@@ -6,6 +6,7 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Services;
+using StrmAssistant.Provider;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -157,15 +158,37 @@ namespace StrmAssistant.Mod
 
             if (item is Series || item is Season)
             {
+                var series = item as Series ?? (item as Season).Series;
+                var seriesTmdbId = series?.GetProviderId(MetadataProviders.Tmdb);
+                var episodeGroupId = series?.GetProviderId(MovieDbEpisodeGroupExternalId.StaticName)?.Trim();
+
                 var itemsToRefresh = BaseItem.LibraryManager.GetItemList(new InternalItemsQuery
                 {
                     PresentationUniqueKey = item.PresentationUniqueKey,
                     ExcludeItemIds = new[] { item.InternalId }
-                }).Select(i => i.InternalId);
+                });
 
-                foreach (var altId in itemsToRefresh)
+                foreach (var alt in itemsToRefresh)
                 {
-                    BaseItem.ProviderManager.QueueRefresh(altId, __result, RefreshPriority.Normal, true);
+                    if (!string.IsNullOrEmpty(episodeGroupId))
+                    {
+                        var altSeries = alt as Series ?? (alt as Season)?.Series;
+
+                        if (altSeries != null)
+                        {
+                            var altSeriesTmdbId = altSeries.GetProviderId(MetadataProviders.Tmdb);
+                            var altEpisodeGroupId = altSeries.GetProviderId(MovieDbEpisodeGroupExternalId.StaticName);
+                            if (string.IsNullOrEmpty(altEpisodeGroupId) && !string.IsNullOrEmpty(seriesTmdbId) &&
+                                !string.IsNullOrEmpty(altSeriesTmdbId) && string.Equals(seriesTmdbId, altSeriesTmdbId,
+                                    StringComparison.OrdinalIgnoreCase))
+                            {
+                                alt.SetProviderId(MovieDbEpisodeGroupExternalId.StaticName, episodeGroupId);
+                                alt.UpdateToRepository(ItemUpdateType.MetadataEdit);
+                            }
+                        }
+                    }
+
+                    BaseItem.ProviderManager.QueueRefresh(alt.InternalId, __result, RefreshPriority.Normal, true);
                 }
             }
         }
