@@ -199,14 +199,16 @@ namespace StrmAssistant.Common
 
         public void UpdateLibraryPathsInScope(string currentScope)
         {
-            var libraryIds = currentScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var validLibraryIds = GetValidLibraryIds(currentScope);
 
-            LibraryPathsInScope = _libraryManager.GetVirtualFolders()
-                .Where(f => libraryIds != null && libraryIds.Any(id => id != "-1")
-                    ? libraryIds.Contains(f.Id)
-                    : f.LibraryOptions.EnableMarkerDetection &&
-                      (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null))
-                .SelectMany(l => l.Locations)
+            var libraries = _libraryManager.GetVirtualFolders()
+                .Where(f => f.LibraryOptions.EnableMarkerDetection &&
+                            (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
+                            (!validLibraryIds.Any() || validLibraryIds.All(id => id == "-1") ||
+                             validLibraryIds.Contains(f.Id)))
+                .ToList();
+
+            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
                 .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
                     ? ls
                     : ls + Path.DirectorySeparatorChar)

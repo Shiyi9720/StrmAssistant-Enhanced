@@ -220,20 +220,24 @@ namespace StrmAssistant
 
         private void OnLibraryOptionsUpdated(object sender, GenericEventArgs<Tuple<CollectionFolder, LibraryOptions>> e)
         {
-            if (e.Argument.Item1.CollectionType == CollectionType.TvShows.ToString() ||
-                e.Argument.Item1.CollectionType is null)
+            var library = e.Argument.Item1;
+
+            if (!LibraryApi.ExcludedCollectionTypes.Contains(library.CollectionType))
             {
-                PlaySessionMonitor.UpdateLibraryPathsInScope();
-                FingerprintApi.UpdateLibraryPathsInScope();
+                LibraryApi.UpdateLibraryPathsInScope();
 
-                if (IntroSkipStore.GetOptions().UnlockIntroSkip)
-                    FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength();
+                if (library.CollectionType == CollectionType.TvShows.ToString() || library.CollectionType is null)
+                {
+                    PlaySessionMonitor.UpdateLibraryPathsInScope();
+                    FingerprintApi.UpdateLibraryPathsInScope();
 
-                if (ExperienceEnhanceStore.GetOptions().MergeMultiVersion)
-                    LibraryApi.EnsureLibraryEnabledAutomaticSeriesGrouping();
+                    if (IntroSkipStore.GetOptions().UnlockIntroSkip)
+                        FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength();
+
+                    if (ExperienceEnhanceStore.GetOptions().MergeMultiVersion)
+                        LibraryApi.EnsureLibraryEnabledAutomaticSeriesGrouping();
+                }
             }
-
-            LibraryApi.UpdateLibraryPathsInScope();
         }
 
         private async void OnItemAdded(object sender, ItemChangeEventArgs e)
@@ -349,12 +353,26 @@ namespace StrmAssistant
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
             }
 
-            if (e.Item is CollectionFolder library && library.CollectionType == "boxsets" &&
-                !ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation)
+            if (e.Item is CollectionFolder library)
             {
-                PatchManager.NoBoxsetsAutoCreation.Patch();
-                ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation = true;
-                ExperienceEnhanceStore.SavePluginOptionsSuppress();
+                if (library.CollectionType == CollectionType.BoxSets.ToString() &&
+                    !ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation)
+                {
+                    PatchManager.NoBoxsetsAutoCreation.Patch();
+                    ExperienceEnhanceStore.GetOptions().UIFunctionOptions.NoBoxsetsAutoCreation = true;
+                    ExperienceEnhanceStore.SavePluginOptionsSuppress();
+                }
+
+                if (!LibraryApi.ExcludedCollectionTypes.Contains(library.CollectionType))
+                {
+                    LibraryApi.UpdateLibraryPathsInScope();
+
+                    if (library.CollectionType == CollectionType.TvShows.ToString() || library.CollectionType is null)
+                    {
+                        PlaySessionMonitor.UpdateLibraryPathsInScope();
+                        FingerprintApi.UpdateLibraryPathsInScope();
+                    }
+                }
             }
         }
 

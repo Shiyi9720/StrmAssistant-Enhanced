@@ -86,6 +86,16 @@ namespace StrmAssistant.Common
             }
         }
 
+        public static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
+        {
+            CollectionType.Books.ToString(),
+            CollectionType.Photos.ToString(),
+            CollectionType.Games.ToString(),
+            CollectionType.LiveTv.ToString(),
+            CollectionType.Playlists.ToString(),
+            CollectionType.BoxSets.ToString()
+        };
+
         public static List<string> LibraryPathsInScope;
         public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
@@ -149,10 +159,14 @@ namespace StrmAssistant.Common
 
         public void UpdateLibraryPathsInScope(string currentScope)
         {
-            var libraryIds = currentScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
-            LibraryPathsInScope = _libraryManager.GetVirtualFolders()
-                .Where(f => libraryIds is null || !libraryIds.Any() || libraryIds.Contains(f.Id))
-                .SelectMany(l => l.Locations)
+            var validLibraryIds = GetValidLibraryIds(currentScope);
+
+            var libraries = _libraryManager.GetVirtualFolders()
+                .Where(f => !ExcludedCollectionTypes.Contains(f.CollectionType) &&
+                            (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
+                .ToList();
+
+            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
                 .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
                     ? ls
                     : ls + Path.DirectorySeparatorChar)
