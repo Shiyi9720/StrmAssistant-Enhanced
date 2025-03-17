@@ -72,8 +72,11 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug(e.Message);
-                _logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
             }
 
             if (_subtitleResolver is null || _getExternalSubtitleFiles is null || _getExternalSubtitleStreams is null ||

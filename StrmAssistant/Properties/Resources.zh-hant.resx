@@ -180,7 +180,7 @@
     <value>遊戲</value>
   </data>
   <data name="ItemType_Genre_Genre" xml:space="preserve">
-    <value>類型風格</value>
+    <value>流派</value>
   </data>
   <data name="ItemType_LiveTv_LiveTv" xml:space="preserve">
     <value>電視直播</value>
@@ -465,7 +465,7 @@
     <value>次最大並發線程數</value>
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
-    <value>刷新演員，掃外掛字幕，處理本地任務等共享，必須在 1 至 20 之間，預設為 1。</value>
+    <value>刷新演員，劇集，掃外掛字幕，處理本地任務等共享，必須在 1 至 20 之間，預設為 1。</value>
   </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>單線程模式有效，必須在 0 至 60 之間，預設為 0。</value>
@@ -585,7 +585,7 @@
     <value>提取影片預覽縮圖和章節圖</value>
   </data>
   <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
-    <value>刷新無簡介的劇集的元數據</value>
+    <value>刷新無簡介或無圖的劇集的元數據</value>
   </data>
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>劇集元資料刷新</value>

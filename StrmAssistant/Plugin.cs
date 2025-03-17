@@ -35,6 +35,7 @@ using StrmAssistant.ScheduledTask;
 using StrmAssistant.Web.Helper;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -113,6 +114,17 @@ namespace StrmAssistant
             IntroSkipStore = new IntroSkipOptionsStore(applicationHost, Logger, Name + "_" + nameof(IntroSkipOptions));
             ExperienceEnhanceStore = new ExperienceEnhanceOptionsStore(applicationHost, Logger,
                 Name + "_" + nameof(ExperienceEnhanceOptions));
+
+            if (MainOptionsStore.GetOptions().AboutOptions.DebugMode)
+            {
+                DebugMode = true;
+                MainOptionsStore.GetOptions().AboutOptions.DebugMode = false;
+                MainOptionsStore.SavePluginOptionsSuppress();
+            }
+            else if (Debugger.IsAttached)
+            {
+                DebugMode = true;
+            }
 
             if (IsModSupported) PatchManager.Initialize();
 
@@ -419,6 +431,8 @@ namespace StrmAssistant
 
         public CultureInfo DefaultUICulture =>
             new CultureInfo(MainOptionsStore.GetOptions().AboutOptions.DefaultUICulture);
+
+        public bool DebugMode;
 
         public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
 

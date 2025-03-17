@@ -184,13 +184,21 @@ namespace StrmAssistant.Mod
         public static void PatchCacheTime()
         {
             _cacheTime?.SetValue(null, NewCacheTime);
-            Plugin.Instance.Logger.Debug("Patch CacheTime Success by Reflection");
+
+            if (Plugin.Instance.DebugMode)
+            {
+                Plugin.Instance.Logger.Debug("Patch CacheTime Success by Reflection");
+            }
         }
 
         public static void UnpatchCacheTime()
         {
             _cacheTime?.SetValue(null, OriginalCacheTime);
-            Plugin.Instance.Logger.Debug("Unpatch CacheTime Success by Reflection");
+
+            if (Plugin.Instance.DebugMode)
+            {
+                Plugin.Instance.Logger.Debug("Unpatch CacheTime Success by Reflection");
+            }
         }
 
         private static bool IsUpdateNeeded(string currentValue, string newValue = null)

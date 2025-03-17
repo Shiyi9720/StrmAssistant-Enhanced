@@ -552,7 +552,7 @@
     <value>Tier 2 Max Concurrent Thread Count</value>
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
-    <value>Shared by refreshing persons, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1.</value>
+    <value>Shared by refreshing persons, episodes, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1.</value>
   </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>Applicable to single thread mode. It must be between 0 and 60. Default is 0.</value>
@@ -672,7 +672,7 @@
     <value>Extract video thumbnail preview and chatper images</value>
   </data>
   <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
-    <value>Refresh metadata for episodes without overview</value>
+    <value>Refresh metadata for episodes without overview or image</value>
   </data>
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>Episode Refresh</value>

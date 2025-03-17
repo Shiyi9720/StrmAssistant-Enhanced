@@ -65,8 +65,11 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug(e.Message);
-                _logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
             }
 
             if (_thumbnailGenerator is null || _refreshThumbnailImages is null)

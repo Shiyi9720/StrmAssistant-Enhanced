@@ -84,8 +84,11 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        _logger.Debug(e.Message);
+                        _logger.Debug(e.StackTrace);
+                    }
                 }
 
                 if (_getPlaybackMediaSources is null || _getStaticMediaSources is null)
@@ -117,8 +120,12 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug(e.Message);
-                _logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
+
                 _logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }

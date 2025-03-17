@@ -49,8 +49,12 @@ namespace StrmAssistant.Mod
                 SemaphoreFFmpeg = new SemaphoreSlim(SemaphoreFFmpegMaxCount);
                 PatchResourcePool();
                 var resourcePool = (SemaphoreSlim)_resourcePoolField?.GetValue(null);
-                Plugin.Instance.Logger.Info(
-                    "Current FFmpeg ResourcePool: " + resourcePool?.CurrentCount ?? string.Empty);
+
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug("Current FFmpeg ResourcePool: " + resourcePool?.CurrentCount ??
+                                                 string.Empty);
+                }
 
                 Patch();
             }
@@ -135,12 +139,20 @@ namespace StrmAssistant.Mod
             try
             {
                 _resourcePoolField.SetValue(null, SemaphoreFFmpeg);
-                Plugin.Instance.Logger.Debug("Patch FFmpeg ResourcePool Success by Reflection");
+
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug("Patch FFmpeg ResourcePool Success by Reflection");
+                }
             }
             catch (Exception re)
             {
-                Plugin.Instance.Logger.Debug("Patch FFmpeg ResourcePool Failed by Reflection");
-                Plugin.Instance.Logger.Debug(re.Message);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug("Patch FFmpeg ResourcePool Failed by Reflection");
+                    Plugin.Instance.Logger.Debug(re.Message);
+                }
+
                 Instance.PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
         }
@@ -226,8 +238,12 @@ namespace StrmAssistant.Mod
                     }
                     catch (Exception re)
                     {
-                        Plugin.Instance.Logger.Debug("Patch IsShortcut Failed by Reflection");
-                        Plugin.Instance.Logger.Debug(re.Message);
+                        if (Plugin.Instance.DebugMode)
+                        {
+                            Plugin.Instance.Logger.Debug("Patch IsShortcut Failed by Reflection");
+                            Plugin.Instance.Logger.Debug(re.Message);
+                        }
+
                         Instance.PatchTracker.FallbackPatchApproach = PatchApproach.None;
                     }
                     break;
@@ -250,8 +266,11 @@ namespace StrmAssistant.Mod
                     }
                     catch (Exception re)
                     {
-                        Plugin.Instance.Logger.Debug("Unpatch IsShortcut Failed by Reflection");
-                        Plugin.Instance.Logger.Debug(re.Message);
+                        if (Plugin.Instance.DebugMode)
+                        {
+                            Plugin.Instance.Logger.Debug("Unpatch IsShortcut Failed by Reflection");
+                            Plugin.Instance.Logger.Debug(re.Message);
+                        }
                     }
                     break;
             }

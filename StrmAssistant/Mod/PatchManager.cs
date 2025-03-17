@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 namespace StrmAssistant.Mod
 {
@@ -50,9 +49,12 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Debug("Harmony Init Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug("Harmony Init Failed");
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                }
             }
 
             EnableImageCapture = new EnableImageCapture();
@@ -127,17 +129,24 @@ namespace StrmAssistant.Mod
                 {
                     HarmonyMod.CreateReversePatcher(targetMethod, stubMethod).Patch();
 
-                    Plugin.Instance.Logger.Debug(
-                        $"{nameof(ReversePatch)} {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name} for {tracker.PatchType.Name} Success");
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug(
+                            $"{nameof(ReversePatch)} {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name} for {tracker.PatchType.Name} Success");
+                    }
 
                     return true;
                 }
                 catch (Exception he)
                 {
-                    Plugin.Instance.Logger.Debug(
-                        $"{nameof(ReversePatch)} {targetMethod.Name} for {tracker.PatchType.Name} Failed");
-                    Plugin.Instance.Logger.Debug(he.Message);
-                    Plugin.Instance.Logger.Debug(he.StackTrace);
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug(
+                            $"{nameof(ReversePatch)} {targetMethod.Name} for {tracker.PatchType.Name} Failed");
+                        Plugin.Instance.Logger.Debug(he.Message);
+                        Plugin.Instance.Logger.Debug(he.StackTrace);
+                    }
+
                     tracker.FallbackPatchApproach = PatchApproach.Reflection;
 
                     Plugin.Instance.Logger.Warn($"{tracker.PatchType.Name} Init Failed");
@@ -187,17 +196,24 @@ namespace StrmAssistant.Mod
 
                 if (!suppress)
                 {
-                    Plugin.Instance.Logger.Debug(
-                        $"{action} {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name} for {tracker.PatchType.Name} Success");
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        Plugin.Instance.Logger.Debug(
+                            $"{action} {(targetMethod.DeclaringType != null ? targetMethod.DeclaringType.Name + "." : string.Empty)}{targetMethod.Name} for {tracker.PatchType.Name} Success");
+                    }
                 }
 
                 return true;
             }
             catch (Exception he)
             {
-                Plugin.Instance.Logger.Debug($"{action} {targetMethod.Name} for {tracker.PatchType.Name} Failed");
-                Plugin.Instance.Logger.Debug(he.Message);
-                Plugin.Instance.Logger.Debug(he.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug($"{action} {targetMethod.Name} for {tracker.PatchType.Name} Failed");
+                    Plugin.Instance.Logger.Debug(he.Message);
+                    Plugin.Instance.Logger.Debug(he.StackTrace);
+                }
+
                 tracker.FallbackPatchApproach = PatchApproach.Reflection;
             }
 

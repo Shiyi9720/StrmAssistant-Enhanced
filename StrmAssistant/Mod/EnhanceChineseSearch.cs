@@ -100,7 +100,11 @@ namespace StrmAssistant.Mod
             if (EnsureTokenizerExists() && PatchUnpatch(Instance.PatchTracker, true, _createConnection,
                     postfix: nameof(CreateConnectionPostfix))) return;
 
-            Plugin.Instance.Logger.Debug("EnhanceChineseSearch - PatchPhase1 Failed");
+            if (Plugin.Instance.DebugMode)
+            {
+                Plugin.Instance.Logger.Debug("EnhanceChineseSearch - PatchPhase1 Failed");
+            }
+            
             ResetOptions();
         }
 
@@ -184,9 +188,12 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Warn("EnhanceChineseSearch - PatchPhase2 Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug("EnhanceChineseSearch - PatchPhase2 Failed");
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                }
             }
 
             if (!patchSearchFunctionsResult || !rebuildFtsResult ||
@@ -244,9 +251,13 @@ namespace StrmAssistant.Mod
             catch (Exception e)
             {
                 connection.RollbackTransaction();
-                Plugin.Instance.Logger.Warn("EnhanceChineseSearch - RebuildFts Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug("EnhanceChineseSearch - RebuildFts Failed");
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                }
             }
 
             return false;
@@ -304,9 +315,12 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Warn("EnhanceChineseSearch - EnsureTokenizerExists Failed");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug("EnhanceChineseSearch - EnsureTokenizerExists Failed");
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                }
             }
 
             return false;
@@ -402,9 +416,12 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Warn("EnhanceChineseSearch - Load tokenizer failed.");
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Warn("EnhanceChineseSearch - Load tokenizer failed.");
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                }
             }
 
             return false;

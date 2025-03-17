@@ -58,11 +58,6 @@ namespace StrmAssistant.Options.Store
                     options.GeneralOptions.CatchupTaskScope = string.Join(",", selectedTasks);
                 }
 
-                var isSimpleTokenizer = string.Equals(EnhanceChineseSearch.CurrentTokenizerName, "simple",
-                    StringComparison.Ordinal);
-                options.ModOptions.EnhanceChineseSearchRestore =
-                    !options.ModOptions.EnhanceChineseSearch && isSimpleTokenizer;
-
                 options.NetworkOptions.ProxyServerUrl =
                     !string.IsNullOrWhiteSpace(options.NetworkOptions.ProxyServerUrl)
                         ? options.NetworkOptions.ProxyServerUrl.Trim().TrimEnd('/')
@@ -135,11 +130,19 @@ namespace StrmAssistant.Options.Store
                     QueueManager.UpdateTier2Semaphore(options.GeneralOptions.Tier2MaxConcurrentCount);
                 }
 
-                if (changedProperties.Contains(nameof(PluginOptions.ModOptions.EnhanceChineseSearch)) &&
-                    ((!options.ModOptions.EnhanceChineseSearch && isSimpleTokenizer) ||
-                     (options.ModOptions.EnhanceChineseSearch && !isSimpleTokenizer)))
+                if (PatchManager.EnhanceChineseSearch != null)
                 {
-                    Plugin.Instance.ApplicationHost.NotifyPendingRestart();
+                    var isSimpleTokenizer = string.Equals(EnhanceChineseSearch.CurrentTokenizerName, "simple",
+                        StringComparison.Ordinal);
+                    options.ModOptions.EnhanceChineseSearchRestore =
+                        !options.ModOptions.EnhanceChineseSearch && isSimpleTokenizer;
+
+                    if (changedProperties.Contains(nameof(PluginOptions.ModOptions.EnhanceChineseSearch)) &&
+                        ((!options.ModOptions.EnhanceChineseSearch && isSimpleTokenizer) ||
+                         (options.ModOptions.EnhanceChineseSearch && !isSimpleTokenizer)))
+                    {
+                        Plugin.Instance.ApplicationHost.NotifyPendingRestart();
+                    }
                 }
 
                 if (changedProperties.Contains(nameof(PluginOptions.ModOptions.SearchScope)) ||

@@ -129,8 +129,11 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                }
             }
 
             return true;
@@ -176,8 +179,11 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Debug(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug(e.Message);
+                    Plugin.Instance.Logger.Debug(e.StackTrace);
+                }
             }
         }
     }
