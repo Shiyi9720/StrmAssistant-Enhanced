@@ -689,4 +689,7 @@
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
     <value>MediaInfo Restore Mode</value>
   </data>
+  <data name="Disclaimer" xml:space="preserve">
+    <value>Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!</value>
+  </data>
 </root>

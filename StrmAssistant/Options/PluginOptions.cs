@@ -1,5 +1,6 @@
 using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Elements;
+using Emby.Web.GenericEdit.Elements.List;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Mod;
@@ -15,6 +16,8 @@ namespace StrmAssistant.Options
         public override string EditorTitle => Resources.PluginOptions_EditorTitle_Strm_Assistant;
 
         public override string EditorDescription => string.Empty;
+        
+        public GenericItemList Disclaimer { get; set; } = new GenericItemList();
 
         [VisibleCondition(nameof(ShowConflictPluginLoadedStatus), SimpleCondition.IsTrue)]
         public StatusItem ConflictPluginLoadedStatus { get; set; } = new StatusItem();
@@ -45,6 +48,16 @@ namespace StrmAssistant.Options
 
         public void Initialize()
         {
+            Disclaimer.Clear();
+            Disclaimer.Add(
+                new GenericListItem
+                {
+                    PrimaryText = Resources.Disclaimer,
+                    Icon = IconNames.privacy_tip,
+                    IconMode = ItemListIconMode.SmallRegular,
+                    HyperLink = "https://github.com/sjtuross/StrmAssistant#%E5%A3%B0%E6%98%8E"
+                });
+
             if (ShowConflictPluginLoadedStatus)
             {
                 ConflictPluginLoadedStatus.Caption = Resources

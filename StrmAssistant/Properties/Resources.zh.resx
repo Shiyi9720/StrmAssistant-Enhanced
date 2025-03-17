@@ -602,4 +602,7 @@
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
     <value>媒体信息恢复模式</value>
   </data>
+  <data name="Disclaimer" xml:space="preserve">
+    <value>点击查看免责声明。未删除插件前，请勿发送日志至官方。请务必牢记！</value>
+  </data>
 </root>
