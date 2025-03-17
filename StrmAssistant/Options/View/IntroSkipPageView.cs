@@ -1,6 +1,7 @@
 ﻿using Emby.Media.Common.Extensions;
 using Emby.Web.GenericEdit.Elements;
 using Emby.Web.GenericEdit.Elements.List;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Tasks;
 using MediaBrowser.Model.Plugins;
@@ -8,6 +9,8 @@ using MediaBrowser.Model.Plugins.UI.Views;
 using StrmAssistant.Options.Store;
 using StrmAssistant.Options.UIBaseClasses.Views;
 using StrmAssistant.Properties;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace StrmAssistant.Options.View
@@ -43,8 +46,15 @@ namespace StrmAssistant.Options.View
             switch (commandId)
             {
                 case "ClearIntroCreditsMarkers":
+                {
+                    if (ContentData is IntroSkipOptions options)
+                    {
+                        options.ValidateOrThrow();
+                    }
+
                     Task.Run(HandleClearIntroButton).FireAndForget(Plugin.Instance.Logger);
                     return Task.FromResult<IPluginUIView>(this);
+                }
             }
 
             return base.RunCommand(itemId, commandId, data);
@@ -53,7 +63,7 @@ namespace StrmAssistant.Options.View
         private async Task HandleClearIntroButton()
         {
             IntroSkipOptions.ClearIntroButton.IsEnabled = false;
-            IntroSkipOptions.ClearIntroProgress.Clear();
+            IntroSkipOptions.ClearIntroResult.Clear();
             var progressItem = new GenericListItem
             {
                 Icon = IconNames.work_outline,
@@ -61,26 +71,57 @@ namespace StrmAssistant.Options.View
                 Status = ItemStatus.InProgress,
                 HasPercentage = true
             };
-            IntroSkipOptions.ClearIntroProgress.Add(progressItem);
+            IntroSkipOptions.ClearIntroResult.Add(progressItem);
             RaiseUIViewInfoChanged();
             await Task.Delay(10.ms());
 
-            var items = Plugin.ChapterApi.FetchClearTaskItems();
+            var clearIntroShowIds = IntroSkipOptions.ClearIntroShows
+                .Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => long.TryParse(part.Trim(), out var id) ? id : (long?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id.Value)
+                .ToArray();
+
+            var clearShowItems = Plugin.LibraryApi.GetItemsByIds(clearIntroShowIds)
+                .Where(item => item is Series || item is Season).ToList();
+
+            foreach (var item in clearShowItems)
+            {
+                var listItem = new GenericListItem();
+
+                if (item is Series series)
+                {
+                    listItem.PrimaryText = $"{series.Name} ({series.InternalId}) - {series.ContainingFolderPath}";
+                }
+                else if (item is Season season)
+                {
+                    listItem.PrimaryText =
+                        $"{season.SeriesName} - {season.Name} ({season.InternalId}) - {season.ContainingFolderPath}";
+                }
+
+                listItem.Icon = IconNames.clear_all;
+                listItem.IconMode = ItemListIconMode.SmallRegular;
+
+                IntroSkipOptions.ClearIntroResult.Add(listItem);
+            }
+            
+            var episodes = Plugin.ChapterApi.FetchClearTaskItems(clearShowItems);
+
             progressItem.PercentComplete = 20;
             RaiseUIViewInfoChanged();
             await Task.Delay(10.ms());
 
-            var total = items.Count;
+            var total = episodes.Count;
             var current = 0;
 
-            foreach (var item in items)
+            foreach (var item in episodes)
             {
                 Plugin.ChapterApi.RemoveIntroCreditsMarkers(item);
                 current++;
                 var percentDone = current * 100 / total;
                 var adjustedProgress = 20 + percentDone * 80 / 100;
                 progressItem.PercentComplete = adjustedProgress;
-                Plugin.Instance.Logger.Info("IntroSkip - Clear Task " + current + "/" + total + " - " + item.Path);
+                Plugin.Instance.Logger.Info("IntroSkipClear - Task " + current + "/" + total + " - " + item.Path);
                 RaiseUIViewInfoChanged();
                 await Task.Delay(10.ms());
             }
@@ -91,8 +132,8 @@ namespace StrmAssistant.Options.View
             progressItem.Icon = IconNames.info;
             progressItem.Status = ItemStatus.Succeeded;
             RaiseUIViewInfoChanged();
-            await Task.Delay(2000);
-            IntroSkipOptions.ClearIntroProgress.Clear();
+            await Task.Delay(5000);
+            IntroSkipOptions.ClearIntroResult.Clear();
             RaiseUIViewInfoChanged();
         }
     }

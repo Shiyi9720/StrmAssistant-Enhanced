@@ -124,7 +124,6 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public string IntroSkipPreferences { get; set; } = string.Empty;
 
-        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public ButtonItem ClearIntroButton =>
             new ButtonItem(
                 Resources.ClearChapterMarkersTask_Description_Clears_behavior_based_intro_and_credits_markers)
@@ -133,11 +132,13 @@ namespace StrmAssistant.Options
                 ConfirmationPrompt = Resources.AreYouSureToContinue
             };
 
-        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
-        public GenericItemList ClearIntroProgress { get; set; } = new GenericItemList();
-        
-        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
-        public SpacerItem ClearIntroProgressSeparator { get; set; } = new SpacerItem(SpacerSize.Small);
+        [DisplayName("")]
+        [DescriptionL("IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY", typeof(Resources))]
+        public string ClearIntroShows { get; set; } = string.Empty;
+
+        public GenericItemList ClearIntroResult { get; set; } = new GenericItemList();
+
+        public SpacerItem ClearIntroResultSeparator { get; set; } = new SpacerItem(SpacerSize.Small);
 
         [Browsable(false)]
         public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;
@@ -150,9 +151,16 @@ namespace StrmAssistant.Options
                 context.AddValidationError(Resources.InvalidMarkerEnabledLibraryScope);
             }
 
-            if (!string.IsNullOrWhiteSpace(FingerprintBlacklistShows))
+            ValidateShowIds(context, FingerprintBlacklistShows, Resources.InvalidShowSeasonIds);
+
+            ValidateShowIds(context, ClearIntroShows, Resources.InvalidShowSeasonIds);
+        }
+
+        public void ValidateShowIds(ValidationContext context, string showIds, string errorMessage)
+        {
+            if (!string.IsNullOrWhiteSpace(showIds))
             {
-                var ids = FingerprintBlacklistShows.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                var ids = showIds.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(id => id.Trim())
                     .ToArray();
 
@@ -173,7 +181,7 @@ namespace StrmAssistant.Options
 
                 if (allInvalidIds.Any())
                 {
-                    context.AddValidationError(string.Format(Resources.InvalidBlacklistShowIds, string.Join(", ", allInvalidIds)));
+                    context.AddValidationError(string.Format(errorMessage, string.Join(", ", allInvalidIds)));
                 }
             }
         }

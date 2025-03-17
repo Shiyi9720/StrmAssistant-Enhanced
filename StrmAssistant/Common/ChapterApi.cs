@@ -7,9 +7,9 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
+using StrmAssistant.IntroSkip;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using static StrmAssistant.Options.IntroSkipOptions;
 using static StrmAssistant.Options.Utility;
@@ -154,6 +154,11 @@ namespace StrmAssistant.Common
                    IsIntroSkipPreferenceSelected(IntroSkipPreference.ResetAndOverwrite);
         }
 
+        private static bool AllowOverwrite(ChapterInfo chapter, bool ignore)
+        {
+            return IsMarkerAddedByIntroSkip(chapter) || ignore;
+        }
+
         private static BaseItem[] GetEpisodesInSeason(Season season, int? minIndexNumber = null)
         {
             return season.GetEpisodes(new InternalItemsQuery
@@ -249,54 +254,89 @@ namespace StrmAssistant.Common
         {
             var chapters = _itemRepository.GetChapters(item);
             chapters.RemoveAll(c =>
-                (c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
-                 c.MarkerType == MarkerType.CreditsStart) && IsMarkerAddedByIntroSkip(c));
+                c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
+                c.MarkerType == MarkerType.CreditsStart);
             _itemRepository.SaveChapters(item.InternalId, chapters);
         }
 
-        public List<BaseItem> FetchClearTaskItems()
+        public List<BaseItem> FetchClearTaskItems(List<BaseItem> clearItems)
         {
-            var libraryIds = Plugin.Instance.IntroSkipStore.GetOptions().LibraryScope
-                ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
-            var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => libraryIds != null && libraryIds.Any()
-                    ? libraryIds.Contains(f.Id)
-                    : f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null).ToList();
-
-            _logger.Info("IntroSkip - LibraryScope: " +
-                         (libraryIds != null && libraryIds.Any()
-                             ? string.Join(", ", libraries.Select(l => l.Name))
-                             : "ALL"));
-
             var itemsIntroSkipQuery = new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { nameof(Episode) },
                 HasPath = true,
-                MediaTypes = new[] { MediaType.Video },
-                PathStartsWithAny = libraries.SelectMany(l => l.Locations).Select(ls =>
-                    ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                        ? ls
-                        : ls + Path.DirectorySeparatorChar).ToArray()
+                MediaTypes = new[] { MediaType.Video }
             };
 
-            var results = _libraryManager.GetItemList(itemsIntroSkipQuery);
+            var clearAll = !clearItems.Any();
+            List<BaseItem> results;
+
+            if (clearAll)
+            {
+                var currentScope = Plugin.Instance.IntroSkipStore.GetOptions().LibraryScope;
+                var validLibraryIds = GetValidLibraryIds(currentScope);
+                var libraries = _libraryManager.GetVirtualFolders()
+                    .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
+                                (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
+                    .ToList();
+
+                _logger.Info("IntroSkipClear - LibraryScope: " +
+                             (validLibraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
+
+                itemsIntroSkipQuery.PathStartsWithAny = PlaySessionMonitor.LibraryPathsInScope.ToArray();
+
+                results = _libraryManager.GetItemList(itemsIntroSkipQuery).ToList();
+            }
+            else
+            {
+                results = new List<BaseItem>();
+
+                foreach (var item in clearItems)
+                {
+                    if (item is Series series)
+                    {
+                        itemsIntroSkipQuery.SeriesPresentationUniqueKey = series.PresentationUniqueKey;
+                        itemsIntroSkipQuery.ParentWithPresentationUniqueKey = null;
+
+                        results.AddRange(_libraryManager.GetItemList(itemsIntroSkipQuery));
+
+                        _logger.Info(
+                            $"IntroSkipClear - {series.Name} ({series.InternalId}) - {series.ContainingFolderPath}");
+                    }
+                    else if (item is Season season)
+                    {
+                        itemsIntroSkipQuery.ParentWithPresentationUniqueKey = season.PresentationUniqueKey;
+                        itemsIntroSkipQuery.SeriesPresentationUniqueKey = null;
+
+                        results.AddRange(_libraryManager.GetItemList(itemsIntroSkipQuery));
+
+                        _logger.Info(
+                            $"IntroSkipClear - {season.SeriesName} - {season.Name} ({season.InternalId}) - {season.ContainingFolderPath}");
+                    }
+                }
+
+                results = results.GroupBy(i => i.InternalId).Select(g => g.First()).ToList();
+            }
 
             var items = new List<BaseItem>();
+
             foreach (var item in results)
             {
                 var chapters = _itemRepository.GetChapters(item);
+
                 if (chapters != null && chapters.Any())
                 {
                     var hasMarkers = chapters.Any(c =>
                         (c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
-                         c.MarkerType == MarkerType.CreditsStart) && IsMarkerAddedByIntroSkip(c));
+                         c.MarkerType == MarkerType.CreditsStart) && AllowOverwrite(c, !clearAll));
                     if (hasMarkers)
                     {
                         items.Add(item);
                     }
                 }
             }
-            _logger.Info("IntroSkip - Number of items: " + items.Count);
+
+            _logger.Info("IntroSkipClear - Number of items: " + items.Count);
 
             return items;
         }
