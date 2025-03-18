@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1</TargetFrameworks>
-    <AssemblyVersion>2.0.0.19</AssemblyVersion>
-    <FileVersion>2.0.0.19</FileVersion>
+    <AssemblyVersion>2.0.0.20</AssemblyVersion>
+    <FileVersion>2.0.0.20</FileVersion>
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>$(MSBuildProjectName)Lite</AssemblyName>
@@ -29,7 +29,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Resource.Embedder" Version="2.2.0" />
-    <PackageReference Include="System.Memory" Version="4.6.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
