@@ -160,7 +160,10 @@ setTimeout(() => {
 
             if (dataExplorer2Assembly != null)
             {
-                Plugin.Instance.Logger.Debug($"{nameof(ShortcutMenuHelper)} - Emby.DataExplorer2 plugin is installed");
+                if (Plugin.Instance.DebugMode)
+                {
+                    Plugin.Instance.Logger.Debug($"{nameof(ShortcutMenuHelper)} - Emby.DataExplorer2 plugin is installed");
+                }
 
                 var contextMenuHelperType = dataExplorer2Assembly.GetType("Emby.DataExplorer2.Api.ContextMenuHelper");
                 var modifiedShortcutsProperty = contextMenuHelperType?.GetProperty("ModifiedShortcutsString",

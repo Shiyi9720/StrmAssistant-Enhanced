@@ -1,5 +1,6 @@
 using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Elements;
+using Emby.Web.GenericEdit.Elements.List;
 using Emby.Web.GenericEdit.Validation;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
@@ -16,6 +17,8 @@ namespace StrmAssistant.Options
         public override string EditorTitle => Resources.PluginOptions_EditorTitle_Strm_Assistant;
 
         public override string EditorDescription => string.Empty;
+        
+        public GenericItemList Disclaimer { get; set; } = new GenericItemList();
 
         [VisibleCondition(nameof(ShowConflictPluginLoadedStatus), SimpleCondition.IsTrue)]
         public StatusItem ConflictPluginLoadedStatus { get; set; } = new StatusItem();

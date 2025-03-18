@@ -40,8 +40,14 @@ namespace StrmAssistant.ScheduledTask
                 : (int?)null;
             if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
+            var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
+            _logger.Info("Persist MediaInfo: " + persistMediaInfo);
+            var mediaInfoRestoreMode =
+                persistMediaInfo && Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
+            _logger.Info("MediaInfo Restore Mode: " + mediaInfoRestoreMode);
+
             var items = Plugin.VideoThumbnailApi.FetchExtractTaskItems();
-            _logger.Info("VideoThumbnailExtract - Number of items: " + items.Count);
+            _logger.Info($"VideoThumbnailExtract - Number of items: {items.Count}");
 
             if (items.Count > 0) IsRunning = true;
 
@@ -50,6 +56,7 @@ namespace StrmAssistant.ScheduledTask
             double total = items.Count;
             var index = 0;
             var current = 0;
+            var skip = 0;
 
             var tasks = new List<Task>();
 
@@ -92,20 +99,26 @@ namespace StrmAssistant.ScheduledTask
 
                         if (!thumbnailResult)
                         {
-                            var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
-                            result = await Plugin.VideoThumbnailApi
-                                .RefreshThumbnailImages(taskItem, libraryOptions, directoryService, chapters, true,
-                                    true, cancellationToken).ConfigureAwait(false);
+                            if (!mediaInfoRestoreMode)
+                            {
+                                var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
+                                result = await Plugin.VideoThumbnailApi
+                                    .RefreshThumbnailImages(taskItem, libraryOptions, directoryService, chapters, true,
+                                        true, cancellationToken).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                Interlocked.Increment(ref skip);
+                            }
                         }
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
-                        _logger.Info("VideoThumbnailExtract - Item cancelled: " + taskItem.Name + " - " +
-                                     taskItem.Path);
+                        _logger.Info($"VideoThumbnailExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
                     }
                     catch (Exception e)
                     {
-                        _logger.Error("VideoThumbnailExtract - Item failed: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger.Error($"VideoThumbnailExtract - Item failed: {taskItem.Name} - {taskItem.Path}");
                         _logger.Error(e.Message);
                         _logger.Debug(e.StackTrace);
                     }
@@ -127,9 +140,12 @@ namespace StrmAssistant.ScheduledTask
 
                         var currentCount = Interlocked.Increment(ref current);
                         progress.Report(currentCount / total * 100);
-                        _logger.Info("VideoThumbnailExtract - Progress " + currentCount + "/" + total + " - " +
-                                     "Task " + taskIndex + ": " +
-                                     taskItem.Path);
+
+                        if (!mediaInfoRestoreMode)
+                        {
+                            _logger.Info(
+                                $"VideoThumbnailExtract - Progress {currentCount}/{total} - Task {taskIndex}: {taskItem.Path}");
+                        }
                     }
                 }, cancellationToken);
                 tasks.Add(task);
@@ -139,6 +155,7 @@ namespace StrmAssistant.ScheduledTask
             if (items.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
+            _logger.Info($"VideoThumbnailExtract - Number of items skipped: {skip}");
             _logger.Info("VideoThumbnailExtract - Scheduled Task Complete");
         }
 

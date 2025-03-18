@@ -9,6 +9,7 @@ using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Serialization;
 using System;
 using System.Collections.Generic;
@@ -77,8 +78,11 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        _logger.Debug(e.Message);
+                        _logger.Debug(e.StackTrace);
+                    }
                 }
 
                 if (_getPlaybackMediaSources is null || _getStaticMediaSources is null)
@@ -102,8 +106,12 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug(e.Message);
-                _logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
+
                 _logger.Warn($"{nameof(MediaInfoApi)} Init Failed");
             }
         }
@@ -202,6 +210,13 @@ namespace StrmAssistant.Common
                                 jsonItem.MediaSourceInfo.ItemId = null;
                                 jsonItem.MediaSourceInfo.Path = null;
 
+                                foreach (var subtitle in jsonItem.MediaSourceInfo.MediaStreams.Where(m =>
+                                             m.IsExternal && m.Type == MediaStreamType.Subtitle &&
+                                             m.Protocol == MediaProtocol.File))
+                                {
+                                    subtitle.Path = _fileSystem.GetFileInfo(subtitle.Path).Name;
+                                }
+
                                 foreach (var chapter in jsonItem.Chapters)
                                 {
                                     chapter.ImageTag = null;
@@ -259,12 +274,13 @@ namespace StrmAssistant.Common
             return await SerializeMediaInfo(workItem, ds, overwrite, source).ConfigureAwait(false);
         }
 
-        public async Task<bool> DeserializeMediaInfo(BaseItem item, IDirectoryService directoryService, string source)
+        public async Task<bool> DeserializeMediaInfo(BaseItem item, IDirectoryService directoryService, string source,
+            bool ignoreFileChange)
         {
             var workItem = _libraryManager.GetItemById(item.InternalId);
-            
+
             if (Plugin.LibraryApi.HasMediaInfo(workItem)) return true;
-            
+
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
@@ -278,8 +294,16 @@ namespace StrmAssistant.Common
                             .ConfigureAwait(false)).ToArray()[0];
 
                     if (mediaSourceWithChapters.MediaSourceInfo.RunTimeTicks.HasValue &&
-                        !Plugin.LibraryApi.HasFileChanged(item, directoryService))
+                        (ignoreFileChange || !Plugin.LibraryApi.HasFileChanged(item, directoryService)))
                     {
+                        foreach (var subtitle in mediaSourceWithChapters.MediaSourceInfo.MediaStreams.Where(m =>
+                                     m.IsExternal && m.Type == MediaStreamType.Subtitle &&
+                                     m.Protocol == MediaProtocol.File))
+                        {
+                            subtitle.Path = Path.Combine(workItem.ContainingFolderPath,
+                                _fileSystem.GetFileInfo(subtitle.Path).Name);
+                        }
+
                         _itemRepository.SaveMediaStreams(item.InternalId,
                             mediaSourceWithChapters.MediaSourceInfo.MediaStreams, CancellationToken.None);
 
@@ -287,6 +311,17 @@ namespace StrmAssistant.Common
                         workItem.RunTimeTicks = mediaSourceWithChapters.MediaSourceInfo.RunTimeTicks;
                         workItem.Container = mediaSourceWithChapters.MediaSourceInfo.Container;
                         workItem.TotalBitrate = mediaSourceWithChapters.MediaSourceInfo.Bitrate.GetValueOrDefault();
+
+                        var videoStream = mediaSourceWithChapters.MediaSourceInfo.MediaStreams
+                            .Where(s => s.Type == MediaStreamType.Video && s.Width.HasValue && s.Height.HasValue)
+                            .OrderByDescending(s => (long)s.Width.Value * s.Height.Value)
+                            .FirstOrDefault();
+
+                        if (videoStream != null)
+                        {
+                            workItem.Width = videoStream.Width.GetValueOrDefault();
+                            workItem.Height = videoStream.Height.GetValueOrDefault();
+                        }
 
                         _libraryManager.UpdateItems(new List<BaseItem> { workItem }, null,
                             ItemUpdateType.MetadataImport, false, false, null, CancellationToken.None);

@@ -6,10 +6,11 @@ using System.ComponentModel;
 
 namespace StrmAssistant.Options
 {
-    public enum RefreshPersonMode
+    public enum RefreshPersonOption
     {
         Default,
-        FullRefresh
+        FullRefresh,
+        NoAdult
     }
 
     public class MetadataEnhanceOptions : EditableOptionsBase
@@ -19,6 +20,10 @@ namespace StrmAssistant.Options
         
         [Browsable(false)]
         [Required]
-        public RefreshPersonMode RefreshPersonMode { get; set; } = RefreshPersonMode.Default;
+        public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
+
+        [Browsable(false)]
+        [Required]
+        public int EpisodeRefreshLookBackDays { get; set; } = 365;
     }
 }

@@ -81,8 +81,11 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug(e.Message);
-                _logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
             }
 
             if (_audioFingerprintManager is null || _createTitleFingerprint is null ||
@@ -135,16 +138,17 @@ namespace StrmAssistant.Common
 
         public void UpdateLibraryPathsInScope()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions()
-                .IntroSkipOptions.MarkerEnabledLibraryScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .ToArray();
+            var validLibraryIds = GetValidLibraryIds(Plugin.Instance.GetPluginOptions()
+                .IntroSkipOptions.MarkerEnabledLibraryScope);
 
-            LibraryPathsInScope = _libraryManager.GetVirtualFolders()
-                .Where(f => libraryIds != null && libraryIds.Any(id => id != "-1")
-                    ? libraryIds.Contains(f.Id)
-                    : f.LibraryOptions.EnableMarkerDetection &&
-                      (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null))
-                .SelectMany(l => l.Locations)
+            var libraries = _libraryManager.GetVirtualFolders()
+                .Where(f => f.LibraryOptions.EnableMarkerDetection &&
+                            (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
+                            (!validLibraryIds.Any() || validLibraryIds.All(id => id == "-1") ||
+                             validLibraryIds.Contains(f.Id)))
+                .ToList();
+
+            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
                 .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
                     ? ls
                     : ls + Path.DirectorySeparatorChar)

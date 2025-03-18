@@ -1,4 +1,5 @@
 using Emby.Media.Common.Extensions;
+using MediaBrowser.Controller.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -64,6 +65,31 @@ namespace StrmAssistant.Options
                     .Where(type => type.HasValue)
                     .OrderBy(type => type)
                     .Select(type => type.Value.GetDescription()));
+        }
+
+        public static string[] GetValidLibraryIds(string scope)
+        {
+            var libraryIds = scope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            var validLibraryIds = Array.Empty<string>();
+
+            if (libraryIds?.Any() is true)
+            {
+                var parsedIds = libraryIds.Select(id => long.TryParse(id, out var result) ? result : (long?)null)
+                    .Where(id => id.HasValue)
+                    .Select(id => id.Value)
+                    .ToArray();
+
+                if (parsedIds.Any())
+                {
+                    validLibraryIds = BaseItem.LibraryManager
+                        .GetInternalItemIds(new InternalItemsQuery { ItemIds = parsedIds })
+                        .Select(id => id.ToString())
+                        .ToArray();
+                }
+            }
+
+            return validLibraryIds;
         }
     }
 }

@@ -51,16 +51,19 @@ namespace StrmAssistant.ScheduledTask
             _logger.Info("Intro Detection Fingerprint Length (Minutes): " + Plugin.Instance.GetPluginOptions()
                 .IntroSkipOptions.IntroDetectionFingerprintMinutes);
 
-            var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
             var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
+            _logger.Info("Persist MediaInfo: " + persistMediaInfo);
+            var mediaInfoRestoreMode =
+                persistMediaInfo && Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
+            _logger.Info("MediaInfo Restore Mode: " + mediaInfoRestoreMode);
 
             var preExtractEpisodes = Plugin.FingerprintApi.FetchIntroPreExtractTaskItems();
             var postExtractEpisodes = Plugin.FingerprintApi.FetchIntroFingerprintTaskItems();
             var episodes= preExtractEpisodes.Concat(postExtractEpisodes).ToList();
             var groupedBySeason = episodes.GroupBy(e => e.Season).ToList();
 
-            _logger.Info("IntroFingerprintExtract - Number of seasons: " + groupedBySeason.Count);
-            _logger.Info("IntroFingerprintExtract - Number of episodes: " + episodes.Count);
+            _logger.Info($"IntroFingerprintExtract - Number of seasons: {groupedBySeason.Count}");
+            _logger.Info($"IntroFingerprintExtract - Number of episodes: {episodes.Count}");
 
             if (episodes.Count > 0) IsRunning = true;
 
@@ -69,6 +72,7 @@ namespace StrmAssistant.ScheduledTask
             double total = episodes.Count;
             var index = 0;
             var current = 0;
+            var episodeSkipCount = 0;
             var seasonSkipCount = 0;
 
             var episodeTasks = new List<Task>();
@@ -125,13 +129,17 @@ namespace StrmAssistant.ScheduledTask
                             {
                                 result1 = await Plugin.LibraryApi
                                     .OrchestrateMediaInfoProcessAsync(taskEpisode, directoryService,
-                                        "IntroFingerprintExtract Task",
-                                        cancellationToken).ConfigureAwait(false);
+                                        "IntroFingerprintExtract Task", cancellationToken).ConfigureAwait(false);
 
                                 if (result1 is null)
                                 {
-                                    _logger.Info("IntroFingerprintExtract - Episode skipped or non-existent: " + taskEpisode.Name +
-                                                 " - " + taskEpisode.Path);
+                                    if (!mediaInfoRestoreMode)
+                                    {
+                                        _logger.Info(
+                                            $"IntroFingerprintExtract - Episode skipped or non-existent: {taskEpisode.Name} - {taskEpisode.Path}");
+                                    }
+                                    
+                                    Interlocked.Increment(ref episodeSkipCount);
                                     seasonSkip = true;
                                     return;
                                 }
@@ -144,20 +152,28 @@ namespace StrmAssistant.ScheduledTask
 
                             if ((!persistMediaInfo || !deserializeResult) && !Plugin.ChapterApi.HasIntro(taskEpisode))
                             {
-                                result2 = await Plugin.FingerprintApi
-                                    .CreateTitleFingerprint(taskEpisode, directoryService, cancellationToken)
-                                    .ConfigureAwait(false);
+                                if (!mediaInfoRestoreMode)
+                                {
+                                    result2 = await Plugin.FingerprintApi
+                                        .CreateTitleFingerprint(taskEpisode, directoryService, cancellationToken)
+                                        .ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    Interlocked.Increment(ref episodeSkipCount);
+                                    seasonSkip = true;
+                                }
                             }
                         }
-                        catch (TaskCanceledException)
+                        catch (OperationCanceledException)
                         {
-                            _logger.Info("IntroFingerprintExtract - Episode cancelled: " + taskEpisode.Name + " - " +
-                                         taskEpisode.Path);
+                            _logger.Info(
+                                $"IntroFingerprintExtract - Episode cancelled: {taskEpisode.Name} - {taskEpisode.Path}");
                         }
                         catch (Exception e)
                         {
-                            _logger.Error("IntroFingerprintExtract - Episode failed: " + taskEpisode.Name + " - " +
-                                          taskEpisode.Path);
+                            _logger.Error(
+                                $"IntroFingerprintExtract - Episode failed: {taskEpisode.Name} - {taskEpisode.Path}");
                             _logger.Error(e.Message);
                             _logger.Debug(e.StackTrace);
                         }
@@ -180,18 +196,26 @@ namespace StrmAssistant.ScheduledTask
 
                             var currentCount = Interlocked.Increment(ref current);
                             progress.Report(currentCount / total * 100);
-                            _logger.Info("IntroFingerprintExtract - Progress " + currentCount + "/" + total + " - " +
-                                         "Task " + taskIndex + ": " + taskEpisode.Path);
+
+                            if (!mediaInfoRestoreMode)
+                            {
+                                _logger.Info(
+                                    $"IntroFingerprintExtract - Progress {currentCount}/{total} - Task {taskIndex}: {taskEpisode.Path}");
+                            }
                         }
                     }, cancellationToken);
                     episodeTasks.Add(task);
+                }
 
-                    if (seasonSkip)
+                if (seasonSkip)
+                {
+                    if (!mediaInfoRestoreMode)
                     {
-                        Interlocked.Increment(ref seasonSkipCount);
-                        _logger.Info("IntroFingerprintExtract - Season Skipped: " + taskSeason.Name + " - " + taskSeason.Path);
-                        break;
+                        _logger.Info(
+                            $"IntroFingerprintExtract - Season Skipped: {taskSeason.Name} - {taskSeason.Path}");
                     }
+
+                    Interlocked.Increment(ref seasonSkipCount);
                 }
             }
 
@@ -210,6 +234,8 @@ namespace StrmAssistant.ScheduledTask
                 _logger.Info("IntroFingerprintExtract - Triggered Detect Episode Intros to process fingerprints");
             }
 
+            _logger.Info($"IntroFingerprintExtract - Number of episodes skipped: {episodeSkipCount}");
+            _logger.Info($"IntroFingerprintExtract - Number of seasons skipped: {seasonSkipCount}");
             _logger.Info("IntroFingerprintExtract - Scheduled Task Complete");
         }
 

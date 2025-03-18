@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant.IntroSkip
 {
@@ -53,13 +54,14 @@ namespace StrmAssistant.IntroSkip
 
         public void UpdateLibraryPathsInScope()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope
-                ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
-            LibraryPathsInScope = _libraryManager.GetVirtualFolders()
-                .Where(f => libraryIds != null && libraryIds.Any()
-                    ? libraryIds.Contains(f.Id)
-                    : f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null)
-                .SelectMany(l => l.Locations)
+            var validLibraryIds = GetValidLibraryIds(Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope);
+
+            var libraries = _libraryManager.GetVirtualFolders()
+                .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
+                            (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
+                .ToList();
+
+            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
                 .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
                     ? ls
                     : ls + Path.DirectorySeparatorChar)

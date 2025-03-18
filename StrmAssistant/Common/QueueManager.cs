@@ -277,7 +277,7 @@ namespace StrmAssistant.Common
                                     Logger.Info("MediaInfoExtract - Item processed: " + taskItem.Name + " - " +
                                                 taskItem.Path);
                                 }
-                                catch (TaskCanceledException)
+                                catch (OperationCanceledException)
                                 {
                                     Logger.Info("MediaInfoExtract - Item cancelled: " + taskItem.Name + " - " +
                                                 taskItem.Path);
@@ -496,7 +496,7 @@ namespace StrmAssistant.Common
                                         Logger.Info("IntroFingerprintExtract - Episode processed: " + taskItem.Name + " - " +
                                                     taskItem.Path);
                                     }
-                                    catch (TaskCanceledException)
+                                    catch (OperationCanceledException)
                                     {
                                         Logger.Info("IntroFingerprintExtract - Episode cancelled: " + taskItem.Name + " - " +
                                                     taskItem.Path);
@@ -562,7 +562,7 @@ namespace StrmAssistant.Common
                                         .UpdateIntroMarkerForSeason(taskSeason, cancellationToken)
                                         .ConfigureAwait(false);
                                 }
-                                catch (TaskCanceledException)
+                                catch (OperationCanceledException)
                                 {
                                     Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                                 taskSeason.Path);
@@ -757,7 +757,7 @@ namespace StrmAssistant.Common
                                     Logger.Info("EpisodeRefresh - Item processed: " + taskItem.Name + " - " +
                                                 taskItem.Path);
                                 }
-                                catch (TaskCanceledException)
+                                catch (OperationCanceledException)
                                 {
                                     Logger.Info("EpisodeRefresh - Item cancelled: " + taskItem.Name + " - " +
                                                 taskItem.Path);

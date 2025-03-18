@@ -41,6 +41,12 @@ namespace StrmAssistant.Options
         [Required]
         public bool PersistMediaInfo { get; set; } = false;
 
+        [DisplayNameL("MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(PersistMediaInfo), SimpleCondition.IsTrue)]
+        [Required]
+        public bool MediaInfoRestoreMode { get; set; } = false;
+
         [DisplayNameL("MediaInfoExtractOptions_MediaInfoJsonRootFolder_MediaInfo_Json_Root_Folder", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_MediaInfoJsonRootFolder_Store_or_load_media_info_JSON_files_under_this_root_folder__Default_is_EMPTY_", typeof(Resources))]
         [EditFolderPicker]

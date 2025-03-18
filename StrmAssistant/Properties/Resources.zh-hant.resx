@@ -180,7 +180,7 @@
     <value>遊戲</value>
   </data>
   <data name="ItemType_Genre_Genre" xml:space="preserve">
-    <value>類型風格</value>
+    <value>流派</value>
   </data>
   <data name="ItemType_LiveTv_LiveTv" xml:space="preserve">
     <value>電視直播</value>
@@ -330,7 +330,7 @@
     <value>清除片頭片尾標記</value>
   </data>
   <data name="ClearChapterMarkersTask_Description_Clears_behavior_based_intro_and_credits_markers" xml:space="preserve">
-    <value>清除由基於行為片頭片尾探測所產生的標記</value>
+    <value>清除指定節目或所有由行為偵測產生的片頭片尾標記</value>
   </data>
   <data name="ExtractIntroFingerprintTask_Name_Extract_Intro_Fingerprint" xml:space="preserve">
     <value>擷取片頭聲紋</value>
@@ -452,20 +452,20 @@
   <data name="GeneralOptions_CooldownSeconds_Cooldown_Time__Seconds___Default_is_0" xml:space="preserve">
     <value>主線程冷卻時間 (秒)</value>
   </data>
-  <data name="InvalidBlacklistShowIds" xml:space="preserve">
-    <value>黑名單電視節目或播出季 ID 無效: {0}</value>
+  <data name="InvalidShowSeasonIds" xml:space="preserve">
+    <value>電視節目或播出季 ID 無效: {0}</value>
   </data>
   <data name="IntroSkipOptions_BlacklistShows_Optional_Blacklist_Shows" xml:space="preserve">
     <value>可選黑名單</value>
   </data>
   <data name="IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY" xml:space="preserve">
-    <value>電視節目或播出季的 ID 列表，逗號或分號分隔，預設為空。</value>
+    <value>電視節目或播出季的 ID 列表，逗號或分號分隔，留空清除所有僅由行為偵測產生的標記。</value>
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Tier_2_Max_Concurrent_Count" xml:space="preserve">
     <value>次最大並發線程數</value>
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
-    <value>刷新演員，掃外掛字幕，處理本地任務等共享，必須在 1 至 20 之間，預設為 1。</value>
+    <value>刷新演員，劇集，掃外掛字幕，處理本地任務等共享，必須在 1 至 20 之間，預設為 1。</value>
   </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>單線程模式有效，必須在 0 至 60 之間，預設為 0。</value>
@@ -585,7 +585,7 @@
     <value>提取影片預覽縮圖和章節圖</value>
   </data>
   <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
-    <value>刷新無簡介的劇集的元數據</value>
+    <value>刷新無簡介或無圖的劇集的元數據</value>
   </data>
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>劇集元資料刷新</value>
@@ -595,5 +595,20 @@
   </data>
   <data name="Update_Failed_Message" xml:space="preserve">
     <value>更新失敗，請至控制台查看詳細錯誤訊息。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_" xml:space="preserve">
+    <value>僅從 JSON 或 BIF 恢復媒體訊息，章節片頭片尾標記，預覽縮圖，跳過實際提取，預設關閉。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
+    <value>媒體資訊恢復模式</value>
+  </data>
+  <data name="Disclaimer" xml:space="preserve">
+    <value>點擊查看免責聲明。未刪除插件前，請勿發送日誌至官方​​。請務必牢記！</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_" xml:space="preserve">
+    <value>外掛名稱以逗號或分號隔開，例如 MovieDb,Tvdb，預設為空。</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates" xml:space="preserve">
+    <value>阻止外掛自動更新</value>
   </data>
 </root>

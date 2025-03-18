@@ -37,6 +37,7 @@ using StrmAssistant.ScheduledTask;
 using StrmAssistant.Web.Helper;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -123,6 +124,17 @@ namespace StrmAssistant
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
 
+            if (GetOptions().AboutOptions.DebugMode)
+            {
+                DebugMode = true;
+                GetOptions().AboutOptions.DebugMode = false;
+                SavePluginOptionsSuppress();
+            }
+            else if (Debugger.IsAttached)
+            {
+                DebugMode = true;
+            }
+
             LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, userManager);
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
                 itemRepository, jsonSerializer, libraryMonitor);
@@ -172,7 +184,7 @@ namespace StrmAssistant
 
                 if (!LibraryApi.HasMediaInfo(item))
                 {
-                    _ = MediaInfoApi.DeserializeMediaInfo(item, directoryService, "OnRefreshCompleted Restore")
+                    _ = MediaInfoApi.DeserializeMediaInfo(item, directoryService, "OnRefreshCompleted Restore", false)
                         .ConfigureAwait(false);
                 }
                 else
@@ -221,20 +233,24 @@ namespace StrmAssistant
 
         private void OnLibraryOptionsUpdated(object sender, GenericEventArgs<Tuple<CollectionFolder, LibraryOptions>> e)
         {
-            if (e.Argument.Item1.CollectionType == CollectionType.TvShows.ToString() ||
-                e.Argument.Item1.CollectionType is null)
+            var library = e.Argument.Item1;
+
+            if (!LibraryApi.ExcludedCollectionTypes.Contains(library.CollectionType))
             {
-                PlaySessionMonitor.UpdateLibraryPathsInScope();
-                FingerprintApi.UpdateLibraryPathsInScope();
+                LibraryApi.UpdateLibraryPathsInScope();
 
-                if (_currentUnlockIntroSkip)
-                    FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength();
+                if (library.CollectionType == CollectionType.TvShows.ToString() || library.CollectionType is null)
+                {
+                    PlaySessionMonitor.UpdateLibraryPathsInScope();
+                    FingerprintApi.UpdateLibraryPathsInScope();
 
-                if (_currentMergeMultiVersion)
-                    LibraryApi.EnsureLibraryEnabledAutomaticSeriesGrouping();
+                    if (_currentUnlockIntroSkip)
+                        FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength();
+
+                    if (_currentMergeMultiVersion)
+                        LibraryApi.EnsureLibraryEnabledAutomaticSeriesGrouping();
+                }
             }
-
-            LibraryApi.UpdateLibraryPathsInScope();
         }
 
         private async void OnItemAdded(object sender, ItemChangeEventArgs e)
@@ -252,7 +268,7 @@ namespace StrmAssistant
                         if (!deserializeResult)
                         {
                             deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
-                                "OnItemAdded Restore").ConfigureAwait(false);
+                                "OnItemAdded Restore", true).ConfigureAwait(false);
                         }
                         else
                         {
@@ -291,7 +307,7 @@ namespace StrmAssistant
                         }
 
                         if (IsCatchupTaskSelected(CatchupTask.EpisodeRefresh) && e.Item is Episode ep &&
-                            ep.PremiereDate >= DateTimeOffset.UtcNow.AddDays(-90))
+                            LibraryApi.IsPremiereDateInScope(ep, DateTimeOffset.UtcNow.AddDays(-90), false))
                         {
                             QueueManager.EpisodeRefreshItemQueue.Enqueue(ep);
                         }
@@ -348,6 +364,8 @@ namespace StrmAssistant
         public string UserAgent => $"{Name}/{CurrentVersion}";
 
         public CultureInfo DefaultUICulture => new CultureInfo("zh-CN");
+
+        public bool DebugMode;
 
         public bool IsModSupported => false;
 
@@ -475,6 +493,7 @@ namespace StrmAssistant
             if (!suppress)
             {
                 Logger.Info("PersistMediaInfo is set to {0}", options.MediaInfoExtractOptions.PersistMediaInfo);
+                Logger.Info("MediaInfoRestoreMode is set to {0}", options.MediaInfoExtractOptions.MediaInfoRestoreMode);
                 Logger.Info("MediaInfoJsonRootFolder is set to {0}",
                     !string.IsNullOrEmpty(options.MediaInfoExtractOptions.MediaInfoJsonRootFolder)
                         ? options.MediaInfoExtractOptions.MediaInfoJsonRootFolder
@@ -566,6 +585,16 @@ namespace StrmAssistant
 
         protected override PluginOptions OnBeforeShowUI(PluginOptions options)
         {
+            options.Disclaimer.Clear();
+            options.Disclaimer.Add(
+                new GenericListItem
+                {
+                    PrimaryText = Resources.Disclaimer,
+                    Icon = IconNames.privacy_tip,
+                    IconMode = ItemListIconMode.SmallRegular,
+                    HyperLink = "https://github.com/sjtuross/StrmAssistant#%E5%A3%B0%E6%98%8E"
+                });
+
             if (options.ShowConflictPluginLoadedStatus)
             {
                 options.ConflictPluginLoadedStatus.Caption = Resources

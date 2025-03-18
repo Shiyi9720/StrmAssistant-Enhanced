@@ -51,7 +51,8 @@ namespace StrmAssistant.ScheduledTask
 
             var personQuery = new InternalItemsQuery
             {
-                IncludeItemTypes = new[] { "Person" }
+                IncludeItemTypes = new[] { nameof(Person) },
+                IsLocked = false
             };
             var personItems = _libraryManager.GetItemList(personQuery).Cast<Person>().ToList();
             _logger.Info("RefreshPerson - Number of Persons Before: " + personItems.Count);
@@ -112,6 +113,10 @@ namespace StrmAssistant.ScheduledTask
 
             var refreshPersonMode = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.RefreshPersonMode;
             _logger.Info("Refresh Person Mode: " + refreshPersonMode);
+            var refreshPersonOptions = new HashSet<string>(
+                refreshPersonMode.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
+            NoAdult = refreshPersonOptions.Contains(RefreshPersonOption.NoAdult.ToString());
 
             for (var startIndex = 0; startIndex < remainingCount; startIndex += batchSize)
             {
@@ -131,13 +136,12 @@ namespace StrmAssistant.ScheduledTask
                 {
                     var taskItem = item;
 
-                    var nameRefreshSkip = refreshPersonMode == RefreshPersonMode.Default &&
+                    var nameRefreshSkip = !refreshPersonOptions.Contains(RefreshPersonOption.FullRefresh.ToString()) &&
                                           IsChinese(taskItem.Name) && IsChinese(taskItem.Overview) &&
                                           taskItem.DateLastSaved >= DateTimeOffset.UtcNow.AddDays(-30);
                     var imageRefreshSkip = taskItem.HasImage(ImageType.Primary) ||
-                                           refreshPersonMode == RefreshPersonMode.Default &&
-                                            taskItem.DateLastRefreshed >=
-                                            DateTimeOffset.UtcNow.AddDays(-30);
+                                           !refreshPersonOptions.Contains(RefreshPersonOption.FullRefresh.ToString()) &&
+                                           taskItem.DateLastRefreshed >= DateTimeOffset.UtcNow.AddDays(-30);
 
                     if (nameRefreshSkip && imageRefreshSkip)
                     {
@@ -206,7 +210,7 @@ namespace StrmAssistant.ScheduledTask
                                     .ConfigureAwait(false);
                             }
                         }
-                        catch (TaskCanceledException)
+                        catch (OperationCanceledException)
                         {
                             _logger.Info("RefreshPerson - Item Cancelled: " + taskItem.Name);
                         }
@@ -254,5 +258,9 @@ namespace StrmAssistant.ScheduledTask
         {
             return Array.Empty<TaskTriggerInfo>();
         }
+
+        public static bool IsRunning { get; private set; }
+
+        public static bool NoAdult { get; private set; }
     }
 }

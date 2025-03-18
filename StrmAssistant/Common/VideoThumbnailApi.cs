@@ -59,8 +59,11 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug(e.Message);
-                _logger.Debug(e.StackTrace);
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
             }
 
             if (_thumbnailGenerator is null || _refreshThumbnailImages is null)
@@ -101,7 +104,7 @@ namespace StrmAssistant.Common
                             f.LibraryOptions.EnableChapterImageExtraction).ToList();
 
             _logger.Info("VideoThumbnailExtract - LibraryScope: " +
-                         (libraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
+                         (libraries.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "NONE"));
 
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
             _logger.Info("Include Extra: " + includeExtra);

@@ -28,7 +28,7 @@ namespace StrmAssistant.ScheduledTask
 
             await Task.Run(() =>
             {
-                items = Plugin.ChapterApi.FetchClearTaskItems();
+                items = Plugin.ChapterApi.FetchClearTaskItems(new List<BaseItem>());
             }, cancellationToken);
 
             progress.Report(50.0);

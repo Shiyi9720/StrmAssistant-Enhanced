@@ -71,7 +71,7 @@ namespace StrmAssistant.ScheduledTask
                         await taskItem.RefreshMetadata(MetadataApi.MetadataOnlyRefreshOptions, cancellationToken)
                             .ConfigureAwait(false);
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
                         _logger.Info("EpisodeRefresh - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
                     }

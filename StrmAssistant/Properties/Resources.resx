@@ -417,7 +417,7 @@
     <value>Clear Episode Intros</value>
   </data>
   <data name="ClearChapterMarkersTask_Description_Clears_behavior_based_intro_and_credits_markers" xml:space="preserve">
-    <value>Clears behavior-based intro and credits markers</value>
+    <value>Clears specified shows or all behavior-based intro and credits markers</value>
   </data>
   <data name="ExtractIntroFingerprintTask_Name_Extract_Intro_Fingerprint" xml:space="preserve">
     <value>Extract Intro Fingerprint</value>
@@ -539,20 +539,20 @@
   <data name="GeneralOptions_CooldownSeconds_Cooldown_Time__Seconds___Default_is_0" xml:space="preserve">
     <value>Master Cooldown Duration (Seconds)</value>
   </data>
-  <data name="InvalidBlacklistShowIds" xml:space="preserve">
-    <value>Blacklist series or season id is invalid: {0}</value>
+  <data name="InvalidShowSeasonIds" xml:space="preserve">
+    <value>TV show or season ID is invalid: {0}</value>
   </data>
   <data name="IntroSkipOptions_BlacklistShows_Optional_Blacklist_Shows" xml:space="preserve">
     <value>Optional Blacklist</value>
   </data>
   <data name="IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY" xml:space="preserve">
-    <value>List of Series Id or Season Id separated by comma or semicolon. Default is EMPTY</value>
+    <value>List of Series Id or Season Id separated by comma or semicolon. Leave EMPTY will clear all behaviour-based markers.</value>
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Tier_2_Max_Concurrent_Count" xml:space="preserve">
     <value>Tier 2 Max Concurrent Thread Count</value>
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
-    <value>Shared by refreshing persons, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1.</value>
+    <value>Shared by refreshing persons, episodes, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1.</value>
   </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>Applicable to single thread mode. It must be between 0 and 60. Default is 0.</value>
@@ -672,7 +672,7 @@
     <value>Extract video thumbnail preview and chatper images</value>
   </data>
   <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
-    <value>Refresh metadata for episodes without overview</value>
+    <value>Refresh metadata for episodes without overview or image</value>
   </data>
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>Episode Refresh</value>
@@ -682,5 +682,20 @@
   </data>
   <data name="Update_Failed_Message" xml:space="preserve">
     <value>Update failed. Check error details in admin dashboard.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_" xml:space="preserve">
+    <value>Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction. Default is OFF.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
+    <value>MediaInfo Restore Mode</value>
+  </data>
+  <data name="Disclaimer" xml:space="preserve">
+    <value>Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_" xml:space="preserve">
+    <value>Plugin names separated by comma or semicolon like MovieDb,Tvdb. Default is BLANK.</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates" xml:space="preserve">
+    <value>Suppress Plugin Auto Updates</value>
   </data>
 </root>

@@ -75,7 +75,7 @@ namespace StrmAssistant
                         await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, false,
                             "Persist MediaInfo Task").ConfigureAwait(false);
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
                         _logger.Info("MediaInfoPersist - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
                     }

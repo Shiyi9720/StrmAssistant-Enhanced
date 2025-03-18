@@ -35,7 +35,11 @@ namespace StrmAssistant.ScheduledTask
             if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
             var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
-            _logger.Info("Persist Media Info: " + persistMediaInfo);
+            _logger.Info("Persist MediaInfo: " + persistMediaInfo);
+            var mediaInfoRestoreMode =
+                persistMediaInfo && Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
+            _logger.Info("MediaInfo Restore Mode: " + mediaInfoRestoreMode);
+
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
             _logger.Info("Enable Image Capture: " + enableImageCapture);
             var enableIntroSkip = Plugin.Instance.GetPluginOptions().IntroSkipOptions.EnableIntroSkip;
@@ -50,6 +54,7 @@ namespace StrmAssistant.ScheduledTask
             double total = items.Count;
             var index = 0;
             var current = 0;
+            var skip = 0;
 
             var tasks = new List<Task>();
 
@@ -91,7 +96,13 @@ namespace StrmAssistant.ScheduledTask
 
                         if (result is null)
                         {
-                            _logger.Info("MediaInfoExtract - Item skipped or non-existent: " + taskItem.Name + " - " + taskItem.Path);
+                            if (!mediaInfoRestoreMode)
+                            {
+                                _logger.Info(
+                                    $"MediaInfoExtract - Item skipped or non-existent: {taskItem.Name} - {taskItem.Path}");
+                            }
+
+                            Interlocked.Increment(ref skip);
                             return;
                         }
 
@@ -102,13 +113,13 @@ namespace StrmAssistant.ScheduledTask
                             QueueManager.IntroSkipItemQueue.Enqueue(episode);
                         }
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
-                        _logger.Info("MediaInfoExtract - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger.Info($"MediaInfoExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
                     }
                     catch (Exception e)
                     {
-                        _logger.Error("MediaInfoExtract - Item failed: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger.Error($"MediaInfoExtract - Item failed: {taskItem.Name} - {taskItem.Path}");
                         _logger.Error(e.Message);
                         _logger.Debug(e.StackTrace);
                     }
@@ -130,9 +141,12 @@ namespace StrmAssistant.ScheduledTask
 
                         var currentCount = Interlocked.Increment(ref current);
                         progress.Report(currentCount / total * 100);
-                        _logger.Info("MediaInfoExtract - Progress " + currentCount + "/" + total + " - " +
-                                     "Task " + taskIndex + ": " +
-                                     taskItem.Path);
+
+                        if (!mediaInfoRestoreMode)
+                        {
+                            _logger.Info(
+                                $"MediaInfoExtract - Progress {currentCount}/{total} - Task {taskIndex}: {taskItem.Path}");
+                        }
                     }
                 }, cancellationToken);
                 tasks.Add(task);
@@ -142,6 +156,7 @@ namespace StrmAssistant.ScheduledTask
             if (items.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
+            _logger.Info($"MediaInfoExtract - Number of items skipped: {skip}");
             _logger.Info("MediaInfoExtract - Scheduled Task Complete");
         }
 

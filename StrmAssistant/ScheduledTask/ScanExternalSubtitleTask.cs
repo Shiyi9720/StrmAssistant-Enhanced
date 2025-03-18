@@ -81,7 +81,7 @@ namespace StrmAssistant.ScheduledTask
                             _logger.Info("ExternalSubtitle - Item Processed: " + taskItem.Name + " - " + taskItem.Path);
                         }
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
                         _logger.Info("ExternalSubtitle - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
                     }

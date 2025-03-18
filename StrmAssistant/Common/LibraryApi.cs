@@ -85,6 +85,16 @@ namespace StrmAssistant.Common
             }
         }
 
+        public static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
+        {
+            CollectionType.Books.ToString(),
+            CollectionType.Photos.ToString(),
+            CollectionType.Games.ToString(),
+            CollectionType.LiveTv.ToString(),
+            CollectionType.Playlists.ToString(),
+            CollectionType.BoxSets.ToString()
+        };
+
         public static List<string> LibraryPathsInScope;
         public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
@@ -148,11 +158,15 @@ namespace StrmAssistant.Common
 
         public void UpdateLibraryPathsInScope()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope?
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
-            LibraryPathsInScope = _libraryManager.GetVirtualFolders()
-                .Where(f => libraryIds is null || !libraryIds.Any() || libraryIds.Contains(f.Id))
-                .SelectMany(l => l.Locations)
+            var validLibraryIds =
+                GetValidLibraryIds(Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope);
+
+            var libraries = _libraryManager.GetVirtualFolders()
+                .Where(f => !ExcludedCollectionTypes.Contains(f.CollectionType) &&
+                            (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
+                .ToList();
+
+            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
                 .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
                     ? ls
                     : ls + Path.DirectorySeparatorChar)
@@ -446,15 +460,42 @@ namespace StrmAssistant.Common
             return results;
         }
 
-        public List<BaseItem> OrderByDescending(List<BaseItem> items)
+        private static List<BaseItem> OrderByDescending(List<BaseItem> items)
         {
-            var results = items.OrderBy(i => i.ExtraType == null ? 0 : 1)
+            var results = items.OrderBy(i => i.ExtraType is null ? 0 : 1)
                 .ThenByDescending(i =>
-                    i is Episode e && e.PremiereDate == DateTimeOffset.MinValue ? e.Series.PremiereDate :
-                    i.ExtraType != null ? i.DateCreated : i.PremiereDate)
-                .ThenByDescending(i => i.IndexNumber)
+                    i is Episode e ? GetPremiereDateOrDefault(e) :
+                    i.ExtraType != null ? i.DateCreated : i.PremiereDate ?? i.DateCreated)
+                .ThenByDescending(i => i.IndexNumber ?? int.MinValue)
                 .ToList();
             return results;
+        }
+
+        private static DateTimeOffset GetPremiereDateOrDefault(Episode item)
+        {
+            if (item.PremiereDate.HasValue && item.PremiereDate.Value != DateTimeOffset.MinValue)
+                return item.PremiereDate.Value;
+
+            if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
+                return item.Series.PremiereDate.Value;
+
+            if (item.Series.ProductionYear.HasValue)
+                return new DateTimeOffset(new DateTime(item.Series.ProductionYear.Value, 1, 1));
+
+            return item.DateCreated;
+        }
+
+        public static bool IsPremiereDateInScope(Episode item, DateTimeOffset lookBackTime, bool includeNoPrem)
+        {
+            if (item.PremiereDate.HasValue && item.PremiereDate.Value != DateTimeOffset.MinValue)
+                return item.PremiereDate.Value > lookBackTime;
+
+            if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
+                return item.Series.PremiereDate.Value > lookBackTime;
+
+            if (item.Series.ProductionYear.HasValue) return item.Series.ProductionYear.Value == lookBackTime.Year;
+
+            return includeNoPrem;
         }
 
         private List<BaseItem> FilterUnprocessed(List<BaseItem> items)
@@ -491,8 +532,14 @@ namespace StrmAssistant.Common
                 if (ExcludeMediaExtensions.Contains(fileExtension)) return false;
             }
 
-            return !HasMediaInfo(item) ||
-                   enableImageCapture && !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item);
+            if (!HasMediaInfo(item)) return true;
+
+            var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
+            var mediaInfoRestoreMode =
+                persistMediaInfo && Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
+
+            return !mediaInfoRestoreMode && enableImageCapture && !item.HasImage(ImageType.Primary) &&
+                   ImageCaptureEnabled(item);
         }
 
         public List<BaseItem> ExpandFavorites(List<BaseItem> items, bool filterNeeded, bool? preExtract,
@@ -614,6 +661,8 @@ namespace StrmAssistant.Common
             string source, CancellationToken cancellationToken)
         {
             var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
+            var mediaInfoRestoreMode = persistMediaInfo &&
+                                       Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
 
             var filePath = taskItem.Path;
             if (taskItem.IsShortcut)
@@ -624,7 +673,7 @@ namespace StrmAssistant.Common
             if (string.IsNullOrEmpty(filePath)) return null;
 
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
-            if (ExcludeMediaExtensions.Contains(fileExtension)) return null;
+            var extractSkip = mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension);
 
             if (Uri.TryCreate(filePath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
                 uri.Scheme == Uri.UriSchemeFile)
@@ -633,34 +682,36 @@ namespace StrmAssistant.Common
                 if (file?.Exists != true) return null;
             }
 
-            var deserializeResult = false;
-
             if (persistMediaInfo)
             {
-                deserializeResult =
-                    await Plugin.MediaInfoApi.DeserializeMediaInfo(taskItem, directoryService, source).ConfigureAwait(false);
-            }
-
-            if (!deserializeResult)
-            {
-                await Plugin.MediaInfoApi.GetPlaybackMediaSources(taskItem, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (persistMediaInfo)
-            {
-                if (!deserializeResult)
-                {
-                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
+                var deserializeResult =
+                    await Plugin.MediaInfoApi
+                        .DeserializeMediaInfo(taskItem, directoryService, source, mediaInfoRestoreMode)
                         .ConfigureAwait(false);
-                }
-                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+
+                if (deserializeResult)
                 {
-                    await Plugin.SubtitleApi
-                        .UpdateExternalSubtitles(taskItem, directoryService, false).ConfigureAwait(false);
+                    if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                    {
+                        await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, directoryService, false)
+                            .ConfigureAwait(false);
+                    }
+
+                    return false;
                 }
             }
 
-            return !deserializeResult;
+            if (extractSkip) return null;
+
+            await Plugin.MediaInfoApi.GetPlaybackMediaSources(taskItem, cancellationToken).ConfigureAwait(false);
+
+            if (persistMediaInfo)
+            {
+                await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
+                    .ConfigureAwait(false);
+            }
+
+            return true;
         }
 
         public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source,
@@ -800,43 +851,55 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchEpisodeRefreshTaskItems()
         {
+            var lookBackDays = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshLookBackDays;
+            _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+
+            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+
             var itemsToRefresh = _libraryManager
                 .GetItemList(new InternalItemsQuery
                 {
-                    IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true
+                    IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
                 })
+                .OfType<Episode>()
                 .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
+                            IsPremiereDateInScope(e, lookBackTime, true) && e.Series.ProviderIds.Count > 0 &&
                             e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
+                .OrderByDescending(GetPremiereDateOrDefault)
                 .ToList();
 
-            var result = OrderByDescending(itemsToRefresh).OfType<Episode>().ToList();
+            _logger.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
 
-            _logger.Info("EpisodeRefresh - Number of items: " + result.Count);
-
-            return result;
+            return itemsToRefresh;
         }
 
         public List<Episode> FetchEpisodeRefreshQueueItems(List<Episode> items)
         {
-            var itemsToRefresh = new List<Episode>();
+            const int lookBackDays = 90;
+            _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+
+            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+
             var groupedBySeason = items.GroupBy(i => i.Season);
-            var excludeItemIds = items.Select(e => e.InternalId).ToHashSet();
+            var itemsToRefresh = new List<Episode>();
 
             foreach (var group in groupedBySeason)
             {
                 var season = group.Key;
 
-                var episodes = season.GetEpisodes(new InternalItemsQuery
+                var episodes = season
+                    .GetEpisodes(new InternalItemsQuery
                     {
+                        ExcludeItemIds = group.Select(e => e.InternalId).ToArray(),
                         IncludeItemTypes = new[] { nameof(Episode) },
                         HasIndexNumber = true,
-                        MinPremiereDate = DateTimeOffset.UtcNow.AddDays(-90),
+                        IsLocked = false,
                         OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
                     })
                     .Items.OfType<Episode>()
-                    .Where(e => !excludeItemIds.Contains(e.InternalId) &&
-                                e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6) &&
-                                (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)));
+                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
+                                IsPremiereDateInScope(e, lookBackTime, false) && e.Series.ProviderIds.Count > 0 &&
+                                e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6));
 
                 itemsToRefresh.AddRange(episodes);
             }
