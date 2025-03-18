@@ -134,7 +134,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Refresh metadata for episodes without overview.
+        ///   Looks up a localized string similar to Refresh metadata for episodes without overview or image.
         /// </summary>
         public static string EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview {
             get {
@@ -400,7 +400,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shared by refreshing persons, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1..
+        ///   Looks up a localized string similar to Shared by refreshing persons, episodes, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1..
         /// </summary>
         public static string GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_ {
             get {
@@ -919,6 +919,25 @@ namespace StrmAssistant.Properties {
             get {
                 return ResourceManager.GetString("MediaInfoExtractOptions_MediaInfoJsonRootFolder_Store_or_load_media_info_JSON_fil" +
                         "es_under_this_root_folder__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfo Restore Mode.
+        /// </summary>
+        public static string MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction. Default is OFF..
+        /// </summary>
+        public static string MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__a" +
+                        "nd_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_", resourceCulture);
             }
         }
         
@@ -1820,7 +1839,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Update error. Check details in admin dashboard..
+        ///   Looks up a localized string similar to Update failed. Check error details in admin dashboard..
         /// </summary>
         public static string Update_Failed_Message {
             get {

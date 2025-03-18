@@ -69,8 +69,7 @@ namespace StrmAssistant.Mod
 
             if (Plugin.Instance.MediaInfoExtractStore.GetOptions().ExclusiveExtract)
             {
-                UpdateExclusiveControlFeatures(Plugin.Instance.MediaInfoExtractStore.GetOptions()
-                    .ExclusiveControlFeatures);
+                UpdateExclusiveControlFeatures(Plugin.Instance.MediaInfoExtractStore.GetOptions());
                 Patch();
             }
         }
@@ -454,12 +453,14 @@ namespace StrmAssistant.Mod
                 {
                     if (__instance.IsShortcut && !refreshOptions.EnableRemoteContentProbe)
                     {
+                        var ignoreFileChange = IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange);
+
                         if (!CurrentRefreshContext.Value.IsFileChanged)
                         {
                             _ = Plugin.MediaInfoApi.DeserializeMediaInfo(__instance, directoryService,
-                                "Exclusive Restore").ConfigureAwait(false);
+                                "Exclusive Restore", ignoreFileChange).ConfigureAwait(false);
                         }
-                        else if (!IsExclusiveFeatureSelected(ExclusiveControl.IgnoreFileChange))
+                        else if (!ignoreFileChange)
                         {
                             Plugin.MediaInfoApi.DeleteMediaInfoJson(__instance, directoryService,
                                 "Exclusive Delete on Change");

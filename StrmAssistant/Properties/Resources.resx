@@ -683,4 +683,10 @@
   <data name="Update_Failed_Message" xml:space="preserve">
     <value>Update failed. Check error details in admin dashboard.</value>
   </data>
+  <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_" xml:space="preserve">
+    <value>Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction. Default is OFF.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
+    <value>MediaInfo Restore Mode</value>
+  </data>
 </root>

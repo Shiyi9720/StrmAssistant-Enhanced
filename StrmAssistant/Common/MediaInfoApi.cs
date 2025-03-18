@@ -314,12 +314,13 @@ namespace StrmAssistant.Common
             return await SerializeMediaInfo(workItem, ds, overwrite, source).ConfigureAwait(false);
         }
 
-        public async Task<bool> DeserializeMediaInfo(BaseItem item, IDirectoryService directoryService, string source)
+        public async Task<bool> DeserializeMediaInfo(BaseItem item, IDirectoryService directoryService, string source,
+            bool ignoreFileChange)
         {
             var workItem = _libraryManager.GetItemById(item.InternalId);
-            
+
             if (Plugin.LibraryApi.HasMediaInfo(workItem)) return true;
-            
+
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
@@ -333,7 +334,7 @@ namespace StrmAssistant.Common
                             .ConfigureAwait(false)).ToArray()[0];
 
                     if (mediaSourceWithChapters.MediaSourceInfo.RunTimeTicks.HasValue &&
-                        !Plugin.LibraryApi.HasFileChanged(item, directoryService))
+                        (ignoreFileChange || !Plugin.LibraryApi.HasFileChanged(item, directoryService)))
                     {
                         foreach (var subtitle in mediaSourceWithChapters.MediaSourceInfo.MediaStreams.Where(m =>
                                      m.IsExternal && m.Type == MediaStreamType.Subtitle &&

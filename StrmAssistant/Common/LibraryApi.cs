@@ -496,8 +496,14 @@ namespace StrmAssistant.Common
                 if (ExcludeMediaExtensions.Contains(fileExtension)) return false;
             }
 
-            return !HasMediaInfo(item) ||
-                   enableImageCapture && !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item);
+            if (!HasMediaInfo(item)) return true;
+
+            var persistMediaInfo = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo;
+            var mediaInfoRestoreMode =
+                persistMediaInfo && Plugin.Instance.MediaInfoExtractStore.GetOptions().MediaInfoRestoreMode;
+
+            return !mediaInfoRestoreMode && enableImageCapture && !item.HasImage(ImageType.Primary) &&
+                   ImageCaptureEnabled(item);
         }
 
         public List<BaseItem> ExpandFavorites(List<BaseItem> items, bool filterNeeded, bool? preExtract,
@@ -619,6 +625,8 @@ namespace StrmAssistant.Common
             string source, CancellationToken cancellationToken)
         {
             var persistMediaInfo = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfo;
+            var mediaInfoRestoreMode =
+                persistMediaInfo && Plugin.Instance.MediaInfoExtractStore.GetOptions().MediaInfoRestoreMode;
             var enableImageCapture = Plugin.Instance.MediaInfoExtractStore.GetOptions().EnableImageCapture;
 
             ExclusiveExtract.AllowExtractInstance(taskItem);
@@ -634,7 +642,7 @@ namespace StrmAssistant.Common
             if (string.IsNullOrEmpty(filePath)) return null;
 
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
-            if (ExcludeMediaExtensions.Contains(fileExtension)) return null;
+            var extractSkip = mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension);
 
             if (Uri.TryCreate(filePath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
                 uri.Scheme == Uri.UriSchemeFile)
@@ -645,7 +653,7 @@ namespace StrmAssistant.Common
 
             var imageCapture = false;
 
-            if (enableImageCapture && !taskItem.HasImage(ImageType.Primary))
+            if (!extractSkip && enableImageCapture && !taskItem.HasImage(ImageType.Primary))
             {
                 EnableImageCapture.AllowImageCaptureInstance(taskItem);
                 imageCapture = true;
@@ -653,37 +661,38 @@ namespace StrmAssistant.Common
                 await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
             }
 
-            var deserializeResult = false;
-
             if (!imageCapture)
             {
                 if (persistMediaInfo)
                 {
-                    deserializeResult =
-                        await Plugin.MediaInfoApi.DeserializeMediaInfo(taskItem, directoryService, source).ConfigureAwait(false);
+                    var deserializeResult = await Plugin.MediaInfoApi
+                        .DeserializeMediaInfo(taskItem, directoryService, source, mediaInfoRestoreMode)
+                        .ConfigureAwait(false);
+
+                    if (deserializeResult)
+                    {
+                        if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                        {
+                            await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, directoryService, false)
+                                .ConfigureAwait(false);
+                        }
+
+                        return false;
+                    }
                 }
 
-                if (!deserializeResult)
-                {
-                    await Plugin.MediaInfoApi.GetPlaybackMediaSources(taskItem, cancellationToken).ConfigureAwait(false);
-                }
+                if (extractSkip) return null;
+
+                await Plugin.MediaInfoApi.GetPlaybackMediaSources(taskItem, cancellationToken).ConfigureAwait(false);
             }
 
             if (persistMediaInfo)
             {
-                if (!deserializeResult)
-                {
-                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
-                        .ConfigureAwait(false);
-                }
-                else if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
-                {
-                    await Plugin.SubtitleApi
-                        .UpdateExternalSubtitles(taskItem, directoryService, false).ConfigureAwait(false);
-                }
+                await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
+                    .ConfigureAwait(false);
             }
 
-            return !deserializeResult;
+            return true;
         }
 
         public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source,

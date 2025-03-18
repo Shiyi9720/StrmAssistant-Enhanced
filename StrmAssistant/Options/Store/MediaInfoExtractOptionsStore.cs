@@ -49,7 +49,7 @@ namespace StrmAssistant.Options.Store
 
                 var changes = PropertyChangeDetector.DetectObjectPropertyChanges(MediaInfoExtractOptions, options);
                 var changedProperties = new HashSet<string>(changes.Select(c => c.PropertyName));
-                
+
                 if (changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfo)))
                 {
                     if (options.IsModSupported)
@@ -95,9 +95,11 @@ namespace StrmAssistant.Options.Store
                 }
 
                 if (changedProperties.Contains(nameof(MediaInfoExtractOptions.ExclusiveControlFeatures)) ||
-                    changedProperties.Contains(nameof(MediaInfoExtractOptions.ExclusiveExtract)))
+                    changedProperties.Contains(nameof(MediaInfoExtractOptions.ExclusiveExtract)) ||
+                    changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfo)) ||
+                    changedProperties.Contains(nameof(MediaInfoExtractOptions.MediaInfoRestoreMode)))
                 {
-                    if (options.ExclusiveExtract) UpdateExclusiveControlFeatures(options.ExclusiveControlFeatures);
+                    if (options.ExclusiveExtract) UpdateExclusiveControlFeatures(options);
                 }
 
                 if (changedProperties.Contains(nameof(MediaInfoExtractOptions.LibraryScope)))
@@ -112,6 +114,7 @@ namespace StrmAssistant.Options.Store
             if (e.Options is MediaInfoExtractOptions options)
             {
                 _logger.Info("PersistMediaInfo is set to {0}", options.PersistMediaInfo);
+                _logger.Info("MediaInfoRestoreMode is set to {0}", options.MediaInfoRestoreMode);
                 _logger.Info("MediaInfoJsonRootFolder is set to {0}",
                     !string.IsNullOrEmpty(options.MediaInfoJsonRootFolder) ? options.MediaInfoJsonRootFolder : "EMPTY");
                 _logger.Info("IncludeExtra is set to {0}", options.IncludeExtra);

@@ -26,13 +26,19 @@ namespace StrmAssistant.Options
         private static HashSet<string> _selectedIntroSkipPreferences = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static string[] _includeItemTypes = Array.Empty<string>();
 
-        public static void UpdateExclusiveControlFeatures(string currentScope)
+        public static void UpdateExclusiveControlFeatures(MediaInfoExtractOptions options)
         {
-            _selectedExclusiveFeatures = new HashSet<string>(
-                currentScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Where(f => !(f == ExclusiveControl.CatchAllAllow.ToString() &&
-                                  currentScope.Contains(ExclusiveControl.CatchAllBlock.ToString()))) ??
+            var featureSet = new HashSet<string>(
+                options.ExclusiveControlFeatures?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries) ??
                 Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+
+            if (options.PersistMediaInfo && options.MediaInfoRestoreMode)
+            {
+                featureSet.Add(ExclusiveControl.IgnoreFileChange.ToString());
+                featureSet.Add(ExclusiveControl.CatchAllBlock.ToString());
+            }
+
+            _selectedExclusiveFeatures = featureSet;
         }
 
         public static bool IsExclusiveFeatureSelected(long? itemId = null, params ExclusiveControl[] featuresToCheck)

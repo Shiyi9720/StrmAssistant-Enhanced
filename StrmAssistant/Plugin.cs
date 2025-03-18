@@ -167,7 +167,7 @@ namespace StrmAssistant
 
                 if (!LibraryApi.HasMediaInfo(item))
                 {
-                    _ = MediaInfoApi.DeserializeMediaInfo(item, directoryService, "OnRefreshCompleted Restore")
+                    _ = MediaInfoApi.DeserializeMediaInfo(item, directoryService, "OnRefreshCompleted Restore", false)
                         .ConfigureAwait(false);
                 }
                 else
@@ -251,7 +251,7 @@ namespace StrmAssistant
                         if (!deserializeResult)
                         {
                             deserializeResult = await MediaInfoApi.DeserializeMediaInfo(e.Item, directoryService,
-                                "OnItemAdded Restore").ConfigureAwait(false);
+                                "OnItemAdded Restore", true).ConfigureAwait(false);
                         }
                         else
                         {
@@ -342,7 +342,8 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if (e.Item is Video || e.Item is Audio)
+            if ((e.Item is Video || e.Item is Audio) && !(MediaInfoExtractStore.GetOptions().PersistMediaInfo &&
+                                                          MediaInfoExtractStore.GetOptions().MediaInfoRestoreMode))
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");

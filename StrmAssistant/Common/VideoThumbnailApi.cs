@@ -142,7 +142,7 @@ namespace StrmAssistant.Common
                             f.LibraryOptions.EnableChapterImageExtraction).ToList();
 
             _logger.Info("VideoThumbnailExtract - LibraryScope: " +
-                         (libraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
+                         (libraries.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "NONE"));
 
             var includeExtra = Plugin.Instance.MediaInfoExtractStore.GetOptions().IncludeExtra;
             _logger.Info("Include Extra: " + includeExtra);
