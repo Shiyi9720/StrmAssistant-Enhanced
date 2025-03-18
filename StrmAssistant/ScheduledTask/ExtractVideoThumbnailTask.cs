@@ -115,7 +115,7 @@ namespace StrmAssistant.ScheduledTask
                             }
                         }
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
                         _logger.Info($"VideoThumbnailExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
                     }

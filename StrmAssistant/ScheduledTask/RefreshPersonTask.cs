@@ -220,7 +220,7 @@ namespace StrmAssistant.ScheduledTask
                                     .ConfigureAwait(false);
                             }
                         }
-                        catch (TaskCanceledException)
+                        catch (OperationCanceledException)
                         {
                             _logger.Info("RefreshPerson - Item Cancelled: " + taskItem.Name);
                         }

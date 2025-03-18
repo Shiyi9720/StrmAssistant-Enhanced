@@ -165,7 +165,7 @@ namespace StrmAssistant.ScheduledTask
                                 }
                             }
                         }
-                        catch (TaskCanceledException)
+                        catch (OperationCanceledException)
                         {
                             _logger.Info(
                                 $"IntroFingerprintExtract - Episode cancelled: {taskEpisode.Name} - {taskEpisode.Path}");

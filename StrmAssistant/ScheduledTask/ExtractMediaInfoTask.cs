@@ -113,7 +113,7 @@ namespace StrmAssistant.ScheduledTask
                             QueueManager.IntroSkipItemQueue.Enqueue(episode);
                         }
                     }
-                    catch (TaskCanceledException)
+                    catch (OperationCanceledException)
                     {
                         _logger.Info($"MediaInfoExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
                     }
