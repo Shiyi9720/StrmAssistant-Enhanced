@@ -13,8 +13,6 @@ namespace StrmAssistant.Mod
     {
         private static MethodInfo _getAvailablePluginUpdates;
 
-        private static HashSet<string> _suppressPluginUpdates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         public SuppressPluginUpdate()
         {
             Initialize();
@@ -23,10 +21,6 @@ namespace StrmAssistant.Mod
 
             if (!string.IsNullOrWhiteSpace(suppressPluginUpdates))
             {
-                _suppressPluginUpdates = new HashSet<string>(
-                    suppressPluginUpdates.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
-
                 Patch();
             }
         }
@@ -61,7 +55,12 @@ namespace StrmAssistant.Mod
 
             if (result is null) return Task.FromResult(Array.Empty<PackageVersionInfo>());
 
-            result = result.Where(p => !_suppressPluginUpdates.Contains(p.name)).ToArray();
+            var suppressPluginUpdates = new HashSet<string>(
+                Plugin.Instance.ExperienceEnhanceStore.GetOptions().SuppressPluginUpdates
+                    .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
+
+            result = result.Where(p => !suppressPluginUpdates.Contains(p.name)).ToArray();
 
             return Task.FromResult(result);
         }
