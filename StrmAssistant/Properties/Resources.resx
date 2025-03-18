@@ -692,4 +692,10 @@
   <data name="Disclaimer" xml:space="preserve">
     <value>Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!</value>
   </data>
+  <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_" xml:space="preserve">
+    <value>Plugin names separated by comma or semicolon like MovieDb,Tvdb. Default is BLANK.</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates" xml:space="preserve">
+    <value>Suppress Plugin Auto Updates</value>
+  </data>
 </root>

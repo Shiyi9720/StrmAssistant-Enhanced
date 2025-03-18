@@ -87,6 +87,18 @@ namespace StrmAssistant.Options.Store
                     }
                 }
 
+                if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.SuppressPluginUpdates)))
+                {
+                    if (!string.IsNullOrWhiteSpace(options.SuppressPluginUpdates))
+                    {
+                        PatchManager.SuppressPluginUpdate.Patch();
+                    }
+                    else
+                    {
+                        PatchManager.SuppressPluginUpdate.Unpatch();
+                    }
+                }
+
                 if (changedProperties.Contains(nameof(ExperienceEnhanceOptions.UIFunctionOptions.HidePersonNoImage)))
                 {
                     if (options.UIFunctionOptions.HidePersonNoImage)
