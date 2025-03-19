@@ -484,8 +484,8 @@ namespace StrmAssistant.Common
             if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
                 return item.Series.PremiereDate.Value;
 
-            if (item.Series.ProductionYear.HasValue)
-                return new DateTimeOffset(new DateTime(item.Series.ProductionYear.Value, 1, 1));
+            if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
+                return new DateTimeOffset(new DateTime(year, 1, 1), TimeSpan.Zero);
 
             return item.DateCreated;
         }
@@ -498,7 +498,8 @@ namespace StrmAssistant.Common
             if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
                 return item.Series.PremiereDate.Value > lookBackTime;
 
-            if (item.Series.ProductionYear.HasValue) return item.Series.ProductionYear.Value == lookBackTime.Year;
+            if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
+                return year == lookBackTime.Year;
 
             return includeNoPrem;
         }
