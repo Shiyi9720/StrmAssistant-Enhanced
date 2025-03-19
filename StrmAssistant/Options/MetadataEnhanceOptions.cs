@@ -137,19 +137,20 @@ namespace StrmAssistant.Options
         public int EpisodeRefreshLookBackDays { get; set; } = 365;
 
         [Browsable(false)]
+        [Required]
+        public bool EpisodeRefreshNonChineseOverview { get; set; } = false;
+
+        [Browsable(false)]
         public bool IsMovieDbPluginLoaded =>
-            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "MovieDb") &&
-            RuntimeInformation.ProcessArchitecture == Architecture.X64;
+            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "MovieDb") && IsModSupported;
 
         [Browsable(false)]
         public bool IsTvdbPluginLoaded =>
-            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Tvdb") &&
-            RuntimeInformation.ProcessArchitecture == Architecture.X64;
+            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "Tvdb") && IsModSupported;
 
         [Browsable(false)]
         public bool IsNfoMetadataPluginLoaded =>
-            EnhanceNfoMetadata || AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "NfoMetadata") &&
-            RuntimeInformation.ProcessArchitecture == Architecture.X64;
+            AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "NfoMetadata") && IsModSupported;
 
         [Browsable(false)]
         public bool IsModSupported => RuntimeInformation.ProcessArchitecture == Architecture.X64;

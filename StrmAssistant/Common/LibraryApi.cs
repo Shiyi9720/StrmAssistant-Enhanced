@@ -20,6 +20,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.CommonUtility;
+using static StrmAssistant.Common.LanguageUtility;
 using static StrmAssistant.Options.Utility;
 using CollectionExtensions = System.Collections.Generic.CollectionExtensions;
 
@@ -1015,6 +1016,9 @@ namespace StrmAssistant.Common
         {
             var lookBackDays = Plugin.Instance.MetadataEnhanceStore.GetOptions().EpisodeRefreshLookBackDays;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+            var includeNonChineseOverview =
+                Plugin.Instance.MetadataEnhanceStore.GetOptions().EpisodeRefreshNonChineseOverview;
+            _logger.Info("EpisodeRefresh - Include Non Chinese Overview: " + includeNonChineseOverview);
 
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
@@ -1024,7 +1028,8 @@ namespace StrmAssistant.Common
                     IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
                 })
                 .OfType<Episode>()
-                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
+                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary) ||
+                             (includeNonChineseOverview && !IsChinese(e.Overview))) &&
                             IsPremiereDateInScope(e, lookBackTime, true) && e.Series.ProviderIds.Count > 0 &&
                             e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
                 .OrderByDescending(GetPremiereDateOrDefault)
@@ -1039,6 +1044,9 @@ namespace StrmAssistant.Common
         {
             const int lookBackDays = 90;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+            var includeNonChineseOverview =
+                Plugin.Instance.MetadataEnhanceStore.GetOptions().EpisodeRefreshNonChineseOverview;
+            _logger.Info("EpisodeRefresh - Include Non Chinese Overview: " + includeNonChineseOverview);
 
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
@@ -1059,7 +1067,8 @@ namespace StrmAssistant.Common
                         OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
                     })
                     .Items.OfType<Episode>()
-                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
+                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary) ||
+                                 (includeNonChineseOverview && !IsChinese(e.Overview))) &&
                                 IsPremiereDateInScope(e, lookBackTime, false) && e.Series.ProviderIds.Count > 0 &&
                                 e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6));
 
