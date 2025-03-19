@@ -16,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Common.LanguageUtility;
 using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.Utility;
 using CollectionExtensions = System.Collections.Generic.CollectionExtensions;
@@ -479,8 +480,8 @@ namespace StrmAssistant.Common
             if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
                 return item.Series.PremiereDate.Value;
 
-            if (item.Series.ProductionYear.HasValue)
-                return new DateTimeOffset(new DateTime(item.Series.ProductionYear.Value, 1, 1));
+            if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
+                return new DateTimeOffset(new DateTime(year, 1, 1), TimeSpan.Zero);
 
             return item.DateCreated;
         }
@@ -493,7 +494,8 @@ namespace StrmAssistant.Common
             if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
                 return item.Series.PremiereDate.Value > lookBackTime;
 
-            if (item.Series.ProductionYear.HasValue) return item.Series.ProductionYear.Value == lookBackTime.Year;
+            if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
+                return year == lookBackTime.Year;
 
             return includeNoPrem;
         }
@@ -853,6 +855,9 @@ namespace StrmAssistant.Common
         {
             var lookBackDays = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshLookBackDays;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+            var includeNonChineseOverview =
+                Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshNonChineseOverview;
+            _logger.Info("EpisodeRefresh - Include Non Chinese Overview: " + includeNonChineseOverview);
 
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
@@ -862,7 +867,8 @@ namespace StrmAssistant.Common
                     IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
                 })
                 .OfType<Episode>()
-                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
+                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary) ||
+                             (includeNonChineseOverview && !IsChinese(e.Overview))) &&
                             IsPremiereDateInScope(e, lookBackTime, true) && e.Series.ProviderIds.Count > 0 &&
                             e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
                 .OrderByDescending(GetPremiereDateOrDefault)
@@ -877,6 +883,9 @@ namespace StrmAssistant.Common
         {
             const int lookBackDays = 90;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+            var includeNonChineseOverview =
+                Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshNonChineseOverview;
+            _logger.Info("EpisodeRefresh - Include Non Chinese Overview: " + includeNonChineseOverview);
 
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
@@ -897,7 +906,8 @@ namespace StrmAssistant.Common
                         OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
                     })
                     .Items.OfType<Episode>()
-                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary)) &&
+                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary) ||
+                                 (includeNonChineseOverview && !IsChinese(e.Overview))) &&
                                 IsPremiereDateInScope(e, lookBackTime, false) && e.Series.ProviderIds.Count > 0 &&
                                 e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6));
 

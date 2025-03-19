@@ -25,5 +25,9 @@ namespace StrmAssistant.Options
         [Browsable(false)]
         [Required]
         public int EpisodeRefreshLookBackDays { get; set; } = 365;
+
+        [Browsable(false)]
+        [Required]
+        public bool EpisodeRefreshNonChineseOverview { get; set; } = false;
     }
 }

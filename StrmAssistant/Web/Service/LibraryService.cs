@@ -17,7 +17,6 @@ using static StrmAssistant.Common.LanguageUtility;
 
 namespace StrmAssistant.Web.Service
 {
-    [Authenticated]
     public class LibraryService : BaseApiService
     {
         private readonly ILogger _logger;

@@ -115,7 +115,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Clears specified shows or all behavior-based intro and credits markers.
+        ///   Looks up a localized string similar to Clears behavior-based intro and credits markers.
         /// </summary>
         public static string ClearChapterMarkersTask_Description_Clears_behavior_based_intro_and_credits_markers {
             get {
@@ -483,7 +483,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to List of Series Id or Season Id separated by comma or semicolon. Leave EMPTY will clear all behaviour-based markers..
+        ///   Looks up a localized string similar to List of Series Id or Season Id separated by comma or semicolon. Default is EMPTY..
         /// </summary>
         public static string IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY {
             get {
