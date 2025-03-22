@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.LanguageUtility;
@@ -116,6 +117,7 @@ namespace StrmAssistant.Mod
         }
         
         [HarmonyPrefix]
+        [MethodImpl(MethodImplOptions.NoOptimization)]
         private static bool GetTranslationPrefix(ref List<object> translations, ref string[] tvdbLanguages, int field,
             ref bool defaultToFirst)
         {
@@ -140,8 +142,7 @@ namespace StrmAssistant.Mod
                     });
 
                     tvdbLanguages = tvdbLanguages.Where(l =>
-                        l is string &&
-                        (considerJapanese || !string.Equals(l, "jpn", StringComparison.OrdinalIgnoreCase))).ToArray();
+                        considerJapanese || !string.Equals(l, "jpn", StringComparison.OrdinalIgnoreCase)).ToArray();
                 }
 
                 if (field == 0)
