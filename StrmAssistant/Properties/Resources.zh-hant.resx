@@ -617,4 +617,7 @@
   <data name="Notification_DeepDelete_EventDescription" xml:space="preserve">
     <value>Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}</value>
   </data>
+  <data name="DeletePersonTask_Description_Deletes_all_persons" xml:space="preserve">
+    <value>清除所有人員數據</value>
+  </data>
 </root>

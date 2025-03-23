@@ -134,6 +134,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Deletes all persons.
+        /// </summary>
+        public static string DeletePersonTask_Description_Deletes_all_persons {
+            get {
+                return ResourceManager.GetString("DeletePersonTask_Description_Deletes_all_persons", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!.
         /// </summary>
         public static string Disclaimer {
@@ -1453,7 +1462,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Delete Item Path: {0}\nMount Paths:{1}.
+        ///   Looks up a localized string similar to Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}.
         /// </summary>
         public static string Notification_DeepDelete_EventDescription {
             get {
