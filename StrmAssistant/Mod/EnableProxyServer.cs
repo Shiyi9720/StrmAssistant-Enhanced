@@ -13,6 +13,13 @@ namespace StrmAssistant.Mod
     {
         private static MethodInfo _createHttpClientHandler;
 
+        private static readonly string[] BypassAddressList =
+        {
+            @"^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$",
+            @"^172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}$",
+            @"^192\.168\.\d{1,3}\.\d{1,3}$"
+        };
+
         public EnableProxyServer()
         {
             Initialize();
@@ -52,6 +59,7 @@ namespace StrmAssistant.Mod
                 var proxy = new WebProxy(proxyUri)
                 {
                     BypassProxyOnLocal = true,
+                    BypassList = BypassAddressList,
                     Credentials = !string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password)
                         ? new NetworkCredential(username, password)
                         : null
