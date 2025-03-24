@@ -686,7 +686,7 @@
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
     <value>MediaInfo Restore Mode</value>
   </data>
-  <data name="Disclaimer" xml:space="preserve">
+  <data name="DisclaimerButtonText" xml:space="preserve">
     <value>Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!</value>
   </data>
   <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_" xml:space="preserve">
@@ -709,5 +709,11 @@
   </data>
   <data name="PersistMediaInfoOption_None_None" xml:space="preserve">
     <value>OFF</value>
+  </data>
+  <data name="Disclaimer" xml:space="preserve">
+    <value>Disclaimer</value>
+  </data>
+  <data name="OKButtonCaption" xml:space="preserve">
+    <value>Accept</value>
   </data>
 </root>

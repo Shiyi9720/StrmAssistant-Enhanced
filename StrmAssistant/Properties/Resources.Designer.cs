@@ -143,11 +143,20 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!.
+        ///   Looks up a localized string similar to Disclaimer.
         /// </summary>
         public static string Disclaimer {
             get {
                 return ResourceManager.GetString("Disclaimer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!.
+        /// </summary>
+        public static string DisclaimerButtonText {
+            get {
+                return ResourceManager.GetString("DisclaimerButtonText", resourceCulture);
             }
         }
         
@@ -270,7 +279,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show episode details in add/remove series group notification. Default is OFF..
+        ///   Looks up a localized string similar to Show episode details in add/remove series group notification, provide deep delete notification. Default is OFF..
         /// </summary>
         public static string ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_ {
             get {
@@ -969,7 +978,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction. Default is OFF..
+        ///   Looks up a localized string similar to Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction..
         /// </summary>
         public static string MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_ {
             get {
@@ -979,7 +988,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF. Default is OFF..
+        ///   Looks up a localized string similar to Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF..
         /// </summary>
         public static string MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_ {
             get {
@@ -1507,6 +1516,15 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string OKButtonCaption {
+            get {
+                return ResourceManager.GetString("OKButtonCaption", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Operation completed successfully.
         /// </summary>
         public static string Operation_Success {
@@ -1516,7 +1534,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to None.
+        ///   Looks up a localized string similar to OFF.
         /// </summary>
         public static string PersistMediaInfoOption_None_None {
             get {

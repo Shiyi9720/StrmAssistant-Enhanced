@@ -7,8 +7,9 @@
     using MediaBrowser.Model.Events;
     using MediaBrowser.Model.GenericEdit;
     using MediaBrowser.Model.Plugins.UI.Views;
+    using MediaBrowser.Model.Plugins.UI.Views.Enums;
 
-    internal abstract class PluginViewBase : IPluginUIView
+    internal abstract class PluginViewBase : IPluginUIView, IPluginViewWithOptions
     {
         protected PluginViewBase(string pluginId)
         {
@@ -40,6 +41,20 @@
 
         public string RedirectViewUrl { get; set; }
 
+        public Uri HelpUrl { get; set; }
+
+        public QueryCloseAction QueryCloseAction { get; set; }
+
+        public WizardHidingBehavior WizardHidingBehavior { get; set; }
+
+        public CompactViewAppearance CompactViewAppearance { get; set; }
+
+        public DialogSize DialogSize { get; set; }
+
+        public string OKButtonCaption { get; set; }
+
+        public DialogAction PrimaryDialogAction { get; set; }
+
         protected virtual IEditableObject ContentDataCore { get; set; }
 
         public virtual bool IsCommandAllowed(string commandKey)
@@ -69,6 +84,23 @@
         protected virtual void RaiseUIViewInfoChanged(GenericEventArgs<IPluginUIView> e)
         {
             this.UIViewInfoChanged?.Invoke(this, e);
+        }
+
+        public virtual PluginViewOptions ViewOptions
+        {
+            get
+            {
+                return new PluginViewOptions
+                {
+                    HelpUrl = this.HelpUrl,
+                    CompactViewAppearance = this.CompactViewAppearance,
+                    QueryCloseAction = this.QueryCloseAction,
+                    DialogSize = this.DialogSize,
+                    OKButtonCaption = this.OKButtonCaption,
+                    PrimaryDialogAction = this.PrimaryDialogAction,
+                    WizardHidingBehavior = this.WizardHidingBehavior,
+                };
+            }
         }
     }
 }

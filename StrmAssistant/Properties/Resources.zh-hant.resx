@@ -599,7 +599,7 @@
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
     <value>媒體資訊恢復模式</value>
   </data>
-  <data name="Disclaimer" xml:space="preserve">
+  <data name="DisclaimerButtonText" xml:space="preserve">
     <value>點擊查看免責聲明。未刪除插件前，請勿發送日誌至官方​​。請務必牢記！</value>
   </data>
   <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_" xml:space="preserve">
@@ -622,5 +622,11 @@
   </data>
   <data name="PersistMediaInfoOption_None_None" xml:space="preserve">
     <value>關閉</value>
+  </data>
+  <data name="Disclaimer" xml:space="preserve">
+    <value>免責聲明</value>
+  </data>
+  <data name="OKButtonCaption" xml:space="preserve">
+    <value>接受</value>
   </data>
 </root>
