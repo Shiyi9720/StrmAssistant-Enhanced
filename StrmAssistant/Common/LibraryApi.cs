@@ -885,12 +885,12 @@ namespace StrmAssistant.Common
             return new[] { _fileSystem.GetFileInfo(path) }.Concat(relatedFiles).Where(f => f.Exists).ToArray();
         }
 
-        public HashSet<string> PrepareDeepDelete(BaseItem item)
+        public Dictionary<string, bool> PrepareDeepDelete(BaseItem item)
         {
             return PrepareDeepDelete(item, null);
         }
 
-        public HashSet<string> PrepareDeepDelete(BaseItem item, string[] scope)
+        public Dictionary<string, bool> PrepareDeepDelete(BaseItem item, string[] scope)
         {
             var deleteItems = new List<BaseItem> { item };
 
@@ -905,7 +905,7 @@ namespace StrmAssistant.Common
 
             deleteItems = deleteItems.Where(i => i is IHasMediaSources).ToList();
 
-            var mountPaths = new HashSet<string>();
+            var mountPaths = new Dictionary<string, bool>();
             var single = scope is null;
 
             foreach (var workItem in deleteItems)
@@ -925,9 +925,9 @@ namespace StrmAssistant.Common
                     {
                         if (staticMediaSources.TryGetValue(source.Id, out var mountPath) &&
                             Uri.TryCreate(mountPath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
-                            uri.Scheme == Uri.UriSchemeFile && !IsFileShortcut(mountPath))
+                            !string.IsNullOrEmpty(mountPath) && !IsFileShortcut(mountPath))
                         {
-                            mountPaths.Add(mountPath);
+                            mountPaths.Add(mountPath, uri.Scheme == Uri.UriSchemeFile);
                         }
                     }
                     else if (IsSymlink(source.Path))
@@ -938,7 +938,7 @@ namespace StrmAssistant.Common
                             Uri.TryCreate(targetPath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
                             uri.Scheme == Uri.UriSchemeFile)
                         {
-                            mountPaths.Add(targetPath);
+                            mountPaths.Add(targetPath, true);
                         }
                     }
                 }

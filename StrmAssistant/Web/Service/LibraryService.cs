@@ -59,17 +59,20 @@ namespace StrmAssistant.Web.Service
             }
 
             var enableDeepDelete = Plugin.Instance.ExperienceEnhanceStore.GetOptions().EnableDeepDelete;
+            var enableNotification = Plugin.Instance.ExperienceEnhanceStore.GetOptions().EnhanceNotificationSystem;
 
             var deleteItems = item is Episode episode && request.DeleteParent
                 ? GetSeasonEpisodesSameVersion(episode)
                 : new List<BaseItem> { item };
 
-            var allMountPaths = new HashSet<string>();
+            var allMountPaths = new Dictionary<string, bool>();
 
             foreach (var deleteItem in deleteItems)
             {
-                var mountPaths = enableDeepDelete ? Plugin.LibraryApi.PrepareDeepDelete(deleteItem) : null;
-
+                var mountPaths = enableDeepDelete || enableNotification
+                    ? Plugin.LibraryApi.PrepareDeepDelete(deleteItem)
+                    : null;
+                
                 var proceedToDelete = true;
                 var deletePaths = Plugin.LibraryApi.GetDeletePaths(deleteItem);
 
@@ -108,16 +111,27 @@ namespace StrmAssistant.Web.Service
                         // ignored
                     }
                 }
-                
-                if (enableDeepDelete && proceedToDelete)
+
+                if (proceedToDelete && mountPaths != null)
                 {
-                    allMountPaths.UnionWith(mountPaths);
+                    allMountPaths = allMountPaths
+                        .Concat(mountPaths)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value);;
                 }
             }
 
-            if (allMountPaths.Count > 0)
+            var localMountPaths = new HashSet<string>(allMountPaths.Where(kv => kv.Value).Select(kv => kv.Key));
+
+            if (enableDeepDelete && localMountPaths.Count > 0)
             {
-                Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(allMountPaths)).ConfigureAwait(false);
+                Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(localMountPaths)).ConfigureAwait(false);
+            }
+
+            if (enableNotification && allMountPaths.Count > 0)
+            {
+                Task.Run(() => Plugin.NotificationApi.DeepDeleteSendNotification(item,
+                        new HashSet<string>(allMountPaths.Keys)))
+                    .ConfigureAwait(false);
             }
         }
 

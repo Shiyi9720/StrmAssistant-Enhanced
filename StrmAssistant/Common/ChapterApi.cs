@@ -105,7 +105,7 @@ namespace StrmAssistant.Common
             _logger.Info("Intro start time: " + introStartTime);
             var introEndTime = new TimeSpan(introEndPositionTicks).ToString(@"hh\:mm\:ss\.fff");
             _logger.Info("Intro end time: " + introEndTime);
-            Plugin.NotificationApi.IntroUpdateSendNotification(item, session, introStartTime, introEndTime);
+            _ = Plugin.NotificationApi.IntroUpdateSendNotification(item, session, introStartTime, introEndTime);
         }
 
         public void UpdateCredits(Episode item, SessionInfo session, long creditsDurationTicks)
@@ -140,7 +140,7 @@ namespace StrmAssistant.Common
                          item.FindSeriesName() + " - " + item.FindSeasonName() + " - " + item.Season.Path);
             var creditsDuration = new TimeSpan(creditsDurationTicks).ToString(@"hh\:mm\:ss\.fff");
             _logger.Info("Credits duration: " + new TimeSpan(creditsDurationTicks).ToString(@"hh\:mm\:ss\.fff"));
-            Plugin.NotificationApi.CreditsUpdateSendNotification(item, session, creditsDuration);
+            _ = Plugin.NotificationApi.CreditsUpdateSendNotification(item, session, creditsDuration);
         }
 
         private static bool IsMarkerAddedByIntroSkip(ChapterInfo chapter)

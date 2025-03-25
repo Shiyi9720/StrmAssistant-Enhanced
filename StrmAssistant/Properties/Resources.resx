@@ -618,7 +618,7 @@
     <value>Notification Enhanced</value>
   </data>
   <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
-    <value>Show episode details in add/remove series group notification. Default is OFF.</value>
+    <value>Show episode details in add/remove series group notification, provide deep delete notification. Default is OFF.</value>
   </data>
   <data name="MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_" xml:space="preserve">
     <value>Try to get Chinese or Japanese metadata from Tvdb. Default is OFF.</value>
@@ -697,5 +697,11 @@
   </data>
   <data name="IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY" xml:space="preserve">
     <value>List of Series Id or Season Id separated by comma or semicolon. Default is EMPTY.</value>
+  </data>
+  <data name="Notification_DeepDelete_EventName" xml:space="preserve">
+    <value>Media Deep Delete</value>
+  </data>
+  <data name="Notification_DeepDelete_EventDescription" xml:space="preserve">
+    <value>Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}</value>
   </data>
 </root>

@@ -41,8 +41,8 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool DeleteItemPrefix(ILibraryManager __instance, BaseItem item, DeleteOptions options,
-            BaseItem parent, bool notifyParentItem, out HashSet<string> __state)
+        private static void DeleteItemPrefix(ILibraryManager __instance, BaseItem item, DeleteOptions options,
+            BaseItem parent, bool notifyParentItem, out Dictionary<string, bool> __state)
         {
             __state = null;
 
@@ -53,16 +53,19 @@ namespace StrmAssistant.Mod
 
                 __state = Plugin.LibraryApi.PrepareDeepDelete(item, scope);
             }
-
-            return true;
         }
 
         [HarmonyFinalizer]
-        private static void DeleteItemFinalizer(Exception __exception, HashSet<string> __state)
+        private static void DeleteItemFinalizer(Exception __exception, Dictionary<string, bool> __state)
         {
             if (__state != null && __state.Count > 0 && __exception is null)
             {
-                Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(__state)).ConfigureAwait(false);
+                var localMountPaths = new HashSet<string>(__state.Where(kv => kv.Value).Select(kv => kv.Key));
+
+                if (localMountPaths.Count > 0)
+                {
+                    Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(localMountPaths)).ConfigureAwait(false);
+                }
             }
         }
     }

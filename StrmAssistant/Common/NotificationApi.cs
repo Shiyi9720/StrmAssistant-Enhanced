@@ -8,6 +8,7 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Session;
 using StrmAssistant.Properties;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,8 +39,7 @@ namespace StrmAssistant.Common
             {
                 var request = new NotificationRequest
                 {
-                    Title =
-                        Resources.PluginOptions_EditorTitle_Strm_Assistant,
+                    Title = Resources.PluginOptions_EditorTitle_Strm_Assistant,
                     EventId = "favorites.update",
                     User = user,
                     Item = item,
@@ -52,7 +52,32 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async void IntroUpdateSendNotification(Episode episode, SessionInfo session, string introStartTime,
+        public void DeepDeleteSendNotification(BaseItem item, HashSet<string> mountPaths)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            var mountPathList = string.Join(Environment.NewLine, mountPaths);
+            var users = LibraryApi.AllUsers.Select(e => e.Key);
+
+            foreach (var user in users)
+            {
+                var request = new NotificationRequest
+                {
+                    Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
+                            Resources.Notification_DeepDelete_EventName,
+                    EventId = "deep.delete",
+                    User = user,
+                    Item = item,
+                    Description =
+                        string.Format(
+                            Resources.Notification_DeepDelete_EventDescription.Replace("\\n", Environment.NewLine),
+                            item.Name, item.Path, mountPathList)
+                };
+                _notificationManager.SendNotification(request);
+            }
+        }
+
+        public async Task IntroUpdateSendNotification(Episode episode, SessionInfo session, string introStartTime,
             string introEndTime)
         {
             Resources.Culture = Thread.CurrentThread.CurrentUICulture;
@@ -85,7 +110,7 @@ namespace StrmAssistant.Common
             _notificationManager.SendNotification(request);
         }
 
-        public async void CreditsUpdateSendNotification(Episode episode, SessionInfo session, string creditsDuration)
+        public async Task CreditsUpdateSendNotification(Episode episode, SessionInfo session, string creditsDuration)
         {
             Resources.Culture = Thread.CurrentThread.CurrentUICulture;
 

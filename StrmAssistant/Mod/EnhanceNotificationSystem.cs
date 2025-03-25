@@ -1,5 +1,6 @@
 ﻿using Emby.Notifications;
 using HarmonyLib;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
@@ -8,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using static StrmAssistant.Mod.PatchManager;
 
 namespace StrmAssistant.Mod
@@ -17,6 +19,7 @@ namespace StrmAssistant.Mod
         private static MethodInfo _convertToGroups;
         private static MethodInfo _sendNotification;
         private static MethodInfo _queueNotification;
+        private static MethodInfo _deleteItem;
 
         private static readonly AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>
             GroupDetails = new AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>();
@@ -46,6 +49,13 @@ namespace StrmAssistant.Mod
             _queueNotification = notificationQueueManager.GetMethod("QueueNotification",
                 BindingFlags.Instance | BindingFlags.Public, null,
                 new[] { typeof(INotifier), typeof(InternalNotificationRequest), typeof(int) }, null);
+
+            var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+            var libraryManager =
+                embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Library.LibraryManager");
+            _deleteItem = libraryManager.GetMethod("DeleteItem",
+                BindingFlags.Instance | BindingFlags.Public, null,
+                new[] { typeof(BaseItem), typeof(DeleteOptions), typeof(BaseItem), typeof(bool) }, null);
         }
 
         protected override void Prepare(bool apply)
@@ -53,6 +63,8 @@ namespace StrmAssistant.Mod
             PatchUnpatch(PatchTracker, apply, _convertToGroups, postfix: nameof(ConvertToGroupsPostfix));
             PatchUnpatch(PatchTracker, apply, _sendNotification, prefix: nameof(SendNotificationPrefix));
             PatchUnpatch(PatchTracker, apply, _queueNotification, prefix: nameof(QueueNotificationPrefix));
+            PatchUnpatch(PatchTracker, apply, _deleteItem, prefix: nameof(DeleteItemPrefix),
+                finalizer: nameof(DeleteItemFinalizer));
         }
 
         [HarmonyPostfix]
@@ -139,6 +151,32 @@ namespace StrmAssistant.Mod
             {
                 request.Description = Description.Value;
                 Description.Value = null;
+            }
+        }
+
+        [HarmonyPrefix]
+        private static void DeleteItemPrefix(ILibraryManager __instance, BaseItem item, DeleteOptions options,
+            BaseItem parent, bool notifyParentItem, out Dictionary<string, bool> __state)
+        {
+            __state = null;
+
+            if (options.DeleteFileLocation)
+            {
+                var collectionFolder = options.CollectionFolders ?? __instance.GetCollectionFolders(item);
+                var scope = item.GetDeletePaths(true, collectionFolder).Select(i => i.FullName).ToArray();
+
+                __state = Plugin.LibraryApi.PrepareDeepDelete(item, scope);
+            }
+        }
+
+        [HarmonyFinalizer]
+        private static void DeleteItemFinalizer(Exception __exception, BaseItem item, Dictionary<string, bool> __state)
+        {
+            if (__state != null && __state.Count > 0 && __exception is null)
+            {
+                Task.Run(() =>
+                        Plugin.NotificationApi.DeepDeleteSendNotification(item, new HashSet<string>(__state.Keys)))
+                    .ConfigureAwait(false);
             }
         }
     }

@@ -531,7 +531,7 @@
     <value>通知系統增強</value>
   </data>
   <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
-    <value>按電視節目分組的通知中新增集訊息，預設為關閉。</value>
+    <value>按電視節目分組的新增和刪除通知中新增集訊息，提供媒體深度刪除通知，預設為關閉。</value>
   </data>
   <data name="MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_" xml:space="preserve">
     <value>盡可能從 TVDB 取得中文或日文元數據，預設為關閉。</value>
@@ -610,5 +610,11 @@
   </data>
   <data name="IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY" xml:space="preserve">
     <value>電視節目或播出季的 ID 列表，逗號或分號分隔，預設為空。</value>
+  </data>
+  <data name="Notification_DeepDelete_EventName" xml:space="preserve">
+    <value>媒體深度刪除</value>
+  </data>
+  <data name="Notification_DeepDelete_EventDescription" xml:space="preserve">
+    <value>Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}</value>
   </data>
 </root>

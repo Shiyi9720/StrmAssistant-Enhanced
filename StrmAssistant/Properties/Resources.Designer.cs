@@ -483,7 +483,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to List of Series Id or Season Id separated by comma or semicolon. Default is EMPTY..
         /// </summary>
         public static string IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY {
             get {
@@ -1449,6 +1449,24 @@ namespace StrmAssistant.Properties {
         public static string Notification_CreditsUpdate_Message {
             get {
                 return ResourceManager.GetString("Notification_CreditsUpdate_Message", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete Item Path: {0}\nMount Paths:{1}.
+        /// </summary>
+        public static string Notification_DeepDelete_EventDescription {
+            get {
+                return ResourceManager.GetString("Notification_DeepDelete_EventDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Media Deep Delete.
+        /// </summary>
+        public static string Notification_DeepDelete_EventName {
+            get {
+                return ResourceManager.GetString("Notification_DeepDelete_EventName", resourceCulture);
             }
         }
         
