@@ -18,6 +18,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.LanguageUtility;
 using static StrmAssistant.Options.GeneralOptions;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
+using static StrmAssistant.Options.MetadataEnhanceOptions;
 using static StrmAssistant.Options.Utility;
 using CollectionExtensions = System.Collections.Generic.CollectionExtensions;
 
@@ -30,11 +32,6 @@ namespace StrmAssistant.Common
         private readonly IFileSystem _fileSystem;
         private readonly IMediaMountManager _mediaMountManager;
         private readonly IUserManager _userManager;
-
-        public static MetadataRefreshOptions MinimumRefreshOptions;
-        public static MetadataRefreshOptions MediaInfoRefreshOptions;
-        public static MetadataRefreshOptions ImageCaptureRefreshOptions;
-        public static MetadataRefreshOptions FullRefreshOptions;
 
         public static ExtraType[] IncludeExtraTypes =
         {
@@ -111,50 +108,6 @@ namespace StrmAssistant.Common
 
             UpdateLibraryPathsInScope();
             FetchUsers();
-
-            MinimumRefreshOptions = new MetadataRefreshOptions(_fileSystem)
-            {
-                EnableRemoteContentProbe = false,
-                ReplaceAllMetadata = false,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                ReplaceAllImages = false
-            };
-
-            MediaInfoRefreshOptions = new MetadataRefreshOptions(_fileSystem)
-            {
-                EnableRemoteContentProbe = true,
-                ReplaceAllMetadata = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                ReplaceAllImages = false
-            };
-
-            ImageCaptureRefreshOptions = new MetadataRefreshOptions(_fileSystem)
-            {
-                EnableRemoteContentProbe = true,
-                ReplaceAllMetadata = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.Default,
-                MetadataRefreshMode = MetadataRefreshMode.Default,
-                ReplaceAllImages = true
-            };
-
-            FullRefreshOptions = new MetadataRefreshOptions(_fileSystem)
-            {
-                EnableRemoteContentProbe = true,
-                ReplaceAllMetadata = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
-                ReplaceAllImages = true
-            };
         }
 
         public void UpdateLibraryPathsInScope()
@@ -208,10 +161,7 @@ namespace StrmAssistant.Common
 
             if (item.Size == 0) return false;
 
-            var mediaStreamCount = item.GetMediaStreams()
-                .FindAll(i => i.Type == MediaStreamType.Video || i.Type == MediaStreamType.Audio).Count;
-
-            return mediaStreamCount > 0;
+            return item.GetMediaStreams().Any(i => i.Type == MediaStreamType.Video || i.Type == MediaStreamType.Audio);
         }
 
         public bool ImageCaptureEnabled(BaseItem item)
@@ -220,17 +170,21 @@ namespace StrmAssistant.Common
             var typeName = item.ExtraType == null ? item.GetType().Name : item.DisplayParent.GetType().Name;
             var typeOptions = libraryOptions.GetTypeOptions(typeName);
 
-            return typeOptions?.ImageFetchers?.Contains("Image Capture") == true;
+            return typeOptions?.ImageFetchers?.Any(f => f == "Image Capture" || f == "Embedded Images") is true;
         }
 
         private List<VirtualFolderInfo> GetLibrariesWithImageCapture(List<VirtualFolderInfo> libraries)
         {
             var librariesWithImageCapture = libraries.Where(l => l.LibraryOptions.TypeOptions.Any(t =>
-                    t.ImageFetchers.Contains("Image Capture") &&
-                    ((l.CollectionType == CollectionType.TvShows.ToString() && t.Type == nameof(Episode)) ||
-                     (l.CollectionType == CollectionType.Movies.ToString() && t.Type == nameof(Movie)) ||
-                     (l.CollectionType == CollectionType.HomeVideos.ToString() && t.Type == nameof(Video)) ||
-                     (l.CollectionType is null && (t.Type == nameof(Episode) || t.Type == nameof(Movie))))))
+                    (t.ImageFetchers.Contains("Image Capture") &&
+                     ((l.CollectionType == CollectionType.TvShows.ToString() && t.Type == nameof(Episode)) ||
+                      (l.CollectionType == CollectionType.Movies.ToString() && t.Type == nameof(Movie)) ||
+                      (l.CollectionType == CollectionType.HomeVideos.ToString() && t.Type == nameof(Video)) ||
+                      (l.CollectionType == CollectionType.MusicVideos.ToString() && t.Type == nameof(MusicVideo)) ||
+                      (l.CollectionType is null && (t.Type == nameof(Episode) || t.Type == nameof(Movie))))) ||
+                    (t.ImageFetchers.Contains("Embedded Images") &&
+                     ((l.CollectionType == CollectionType.Music.ToString() && t.Type == nameof(Audio)) ||
+                      (l.CollectionType == CollectionType.AudioBooks.ToString() && t.Type == nameof(Audio))))))
                 .ToList();
 
             return librariesWithImageCapture;
@@ -342,7 +296,7 @@ namespace StrmAssistant.Common
                 var itemsImageCaptureQuery = new InternalItemsQuery
                 {
                     HasPath = true,
-                    MediaTypes = new[] { MediaType.Video }
+                    MediaTypes = new[] { MediaType.Video, MediaType.Audio }
                 };
 
                 if (enableImageCapture && librariesWithImageCapture.Any())
@@ -477,11 +431,14 @@ namespace StrmAssistant.Common
             if (item.PremiereDate.HasValue && item.PremiereDate.Value != DateTimeOffset.MinValue)
                 return item.PremiereDate.Value;
 
-            if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
-                return item.Series.PremiereDate.Value;
+            if (item.Series != null)
+            {
+                if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
+                    return item.Series.PremiereDate.Value;
 
-            if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
-                return new DateTimeOffset(new DateTime(year, 1, 1), TimeSpan.Zero);
+                if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
+                    return new DateTimeOffset(new DateTime(year, 1, 1), TimeSpan.Zero);
+            }
 
             return item.DateCreated;
         }
@@ -491,11 +448,14 @@ namespace StrmAssistant.Common
             if (item.PremiereDate.HasValue && item.PremiereDate.Value != DateTimeOffset.MinValue)
                 return item.PremiereDate.Value > lookBackTime;
 
-            if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
-                return item.Series.PremiereDate.Value > lookBackTime;
+            if (item.Series != null)
+            {
+                if (item.Series.PremiereDate.HasValue && item.Series.PremiereDate.Value != DateTimeOffset.MinValue)
+                    return item.Series.PremiereDate.Value > lookBackTime;
 
-            if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
-                return year == lookBackTime.Year;
+                if (item.Series.ProductionYear is int year && year > 1 && year <= 9999)
+                    return year == lookBackTime.Year;
+            }
 
             return includeNoPrem;
         }
@@ -512,7 +472,7 @@ namespace StrmAssistant.Common
                 {
                     results.Add(item);
                 }
-                else
+                else if (item is Video)
                 {
                     _logger.Debug("MediaInfoExtract - Item dropped: " + item.Name + " - " + item.Path); // video without audio
                 }
@@ -536,12 +496,21 @@ namespace StrmAssistant.Common
 
             if (!HasMediaInfo(item)) return true;
 
-            var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
-            var mediaInfoRestoreMode =
-                persistMediaInfo && Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
+            if (!enableImageCapture) return false;
 
-            return !mediaInfoRestoreMode && enableImageCapture && !item.HasImage(ImageType.Primary) &&
-                   ImageCaptureEnabled(item);
+            if (Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode ==
+                PersistMediaInfoOption.Restore.ToString()) return false;
+
+            switch (item)
+            {
+                case Video _:
+                    return !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item);
+                case Audio _:
+                    return !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item) &&
+                           item.GetMediaStreams().Any(i => i.Type == MediaStreamType.EmbeddedImage);
+                default:
+                    return false;
+            }
         }
 
         public List<BaseItem> ExpandFavorites(List<BaseItem> items, bool filterNeeded, bool? preExtract,
@@ -659,12 +628,11 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, IDirectoryService directoryService,
-            string source, CancellationToken cancellationToken)
+        public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source, CancellationToken cancellationToken)
         {
-            var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
-            var mediaInfoRestoreMode = persistMediaInfo &&
-                                       Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
+            var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
+            var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
+            var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var filePath = taskItem.Path;
             if (taskItem.IsShortcut)
@@ -676,6 +644,19 @@ namespace StrmAssistant.Common
 
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
             var extractSkip = mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension);
+
+            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = true,
+                ReplaceAllMetadata = true,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false,
+                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllImages = false
+            };
+
+            var directoryService = refreshOptions.DirectoryService;
 
             if (Uri.TryCreate(filePath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
                 uri.Scheme == Uri.UriSchemeFile)
@@ -695,7 +676,7 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
                     {
-                        await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, directoryService, false)
+                        await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, refreshOptions, false, true)
                             .ConfigureAwait(false);
                     }
 
@@ -714,15 +695,6 @@ namespace StrmAssistant.Common
             }
 
             return true;
-        }
-
-        public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source,
-            CancellationToken cancellationToken)
-        {
-            var directoryService = new DirectoryService(_logger, _fileSystem);
-
-            return await OrchestrateMediaInfoProcessAsync(taskItem, directoryService, source, cancellationToken)
-                .ConfigureAwait(false);
         }
 
         public static bool IsFileShortcut(string path)
@@ -855,11 +827,14 @@ namespace StrmAssistant.Common
         {
             var lookBackDays = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshLookBackDays;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
-            var includeNonChineseOverview =
-                Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshNonChineseOverview;
-            _logger.Info("EpisodeRefresh - Include Non Chinese Overview: " + includeNonChineseOverview);
+            var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
+            _logger.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
 
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+            var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
+                .Cast<EpisodeRefreshOption>()
+                .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
+                .ToHashSet();
 
             var itemsToRefresh = _libraryManager
                 .GetItemList(new InternalItemsQuery
@@ -867,10 +842,14 @@ namespace StrmAssistant.Common
                     IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
                 })
                 .OfType<Episode>()
-                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary) ||
-                             (includeNonChineseOverview && !IsChinese(e.Overview))) &&
-                            IsPremiereDateInScope(e, lookBackTime, true) && e.Series.ProviderIds.Count > 0 &&
-                            e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6))
+                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) ||
+                             (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&
+                              !e.HasImage(ImageType.Primary)) ||
+                             (episodeRefreshOptions.Contains(EpisodeRefreshOption.NonChineseOverview) &&
+                              !IsChinese(e.Overview)) ||
+                             (episodeRefreshOptions.Contains(EpisodeRefreshOption.DefaultEpisodeName) &&
+                              IsDefaultChineseEpisodeName(e.Name))) && IsPremiereDateInScope(e, lookBackTime, true) &&
+                            e.Series.ProviderIds.Count > 0)
                 .OrderByDescending(GetPremiereDateOrDefault)
                 .ToList();
 
@@ -883,11 +862,14 @@ namespace StrmAssistant.Common
         {
             const int lookBackDays = 90;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
-            var includeNonChineseOverview =
-                Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshNonChineseOverview;
-            _logger.Info("EpisodeRefresh - Include Non Chinese Overview: " + includeNonChineseOverview);
+            var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
+            _logger.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
 
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+            var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
+                .Cast<EpisodeRefreshOption>()
+                .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
+                .ToHashSet();
 
             var groupedBySeason = items.GroupBy(i => i.Season);
             var itemsToRefresh = new List<Episode>();
@@ -906,10 +888,14 @@ namespace StrmAssistant.Common
                         OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
                     })
                     .Items.OfType<Episode>()
-                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) || !e.HasImage(ImageType.Primary) ||
-                                 (includeNonChineseOverview && !IsChinese(e.Overview))) &&
-                                IsPremiereDateInScope(e, lookBackTime, false) && e.Series.ProviderIds.Count > 0 &&
-                                e.DateLastRefreshed < DateTimeOffset.UtcNow.AddHours(-6));
+                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) ||
+                                 (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&
+                                  !e.HasImage(ImageType.Primary)) ||
+                                 (episodeRefreshOptions.Contains(EpisodeRefreshOption.NonChineseOverview) &&
+                                  !IsChinese(e.Overview)) ||
+                                 (episodeRefreshOptions.Contains(EpisodeRefreshOption.DefaultEpisodeName) &&
+                                  IsDefaultChineseEpisodeName(e.Name))) &&
+                                IsPremiereDateInScope(e, lookBackTime, false) && e.Series.ProviderIds.Count > 0);
 
                 itemsToRefresh.AddRange(episodes);
             }

@@ -134,11 +134,65 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!.
+        ///   Looks up a localized string similar to Deletes all persons.
+        /// </summary>
+        public static string DeletePersonTask_Description_Deletes_all_persons {
+            get {
+                return ResourceManager.GetString("DeletePersonTask_Description_Deletes_all_persons", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Disclaimer.
         /// </summary>
         public static string Disclaimer {
             get {
                 return ResourceManager.GetString("Disclaimer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!.
+        /// </summary>
+        public static string DisclaimerButtonText {
+            get {
+                return ResourceManager.GetString("DisclaimerButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default Episode Name.
+        /// </summary>
+        public static string EpisodeRefreshOption_DefaultEpisodeName_Default_Episode_Name {
+            get {
+                return ResourceManager.GetString("EpisodeRefreshOption_DefaultEpisodeName_Default_Episode_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Image.
+        /// </summary>
+        public static string EpisodeRefreshOption_NoImage_No_Image {
+            get {
+                return ResourceManager.GetString("EpisodeRefreshOption_NoImage_No_Image", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Non Chinese Overview.
+        /// </summary>
+        public static string EpisodeRefreshOption_NonChineseOverview_Non_Chinese_Overview {
+            get {
+                return ResourceManager.GetString("EpisodeRefreshOption_NonChineseOverview_Non_Chinese_Overview", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No Overview.
+        /// </summary>
+        public static string EpisodeRefreshOption_NoOverview_No_Overview {
+            get {
+                return ResourceManager.GetString("EpisodeRefreshOption_NoOverview_No_Overview", resourceCulture);
             }
         }
         
@@ -261,7 +315,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show episode details in add/remove series group notification. Default is OFF..
+        ///   Looks up a localized string similar to Show episode details in add/remove series group notification, provide deep delete notification. Default is OFF..
         /// </summary>
         public static string ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_ {
             get {
@@ -960,7 +1014,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction. Default is OFF..
+        ///   Looks up a localized string similar to Only restore media info, chapter markers, and video thumbnails from JSON or BIF, skipping extraction..
         /// </summary>
         public static string MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_ {
             get {
@@ -970,7 +1024,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF. Default is OFF..
+        ///   Looks up a localized string similar to Store or load media info and chapters to/from JSON file and also restore video thumbnail BIF..
         /// </summary>
         public static string MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_ {
             get {
@@ -1155,6 +1209,25 @@ namespace StrmAssistant.Properties {
         public static string MetadataEnhanceOptions_EnhanceNfoMetadata_Nfo_Metadata_Import_Enhanced {
             get {
                 return ResourceManager.GetString("MetadataEnhanceOptions_EnhanceNfoMetadata_Nfo_Metadata_Import_Enhanced", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Episode Refresh Scope.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeRefreshScope_Episode_Metadata_Refresh_Scope {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeRefreshScope_Episode_Metadata_Refresh_Scope", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Episode metadata refresh scope for scheduled task and catch-up. Default is No Overview and No Image..
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeRefreshScope_Episode_refresh_scope_for_scheduled_task_and_catch_up__Default_is_no_overview_and_no_image_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeRefreshScope_Episode_refresh_scope_for_scheduled_ta" +
+                        "sk_and_catch_up__Default_is_no_overview_and_no_image_", resourceCulture);
             }
         }
         
@@ -1453,6 +1526,24 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}.
+        /// </summary>
+        public static string Notification_DeepDelete_EventDescription {
+            get {
+                return ResourceManager.GetString("Notification_DeepDelete_EventDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Media Deep Delete.
+        /// </summary>
+        public static string Notification_DeepDelete_EventName {
+            get {
+                return ResourceManager.GetString("Notification_DeepDelete_EventName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to IntroSkip Updated.
         /// </summary>
         public static string Notification_IntroSkipUpdate_EventName {
@@ -1480,11 +1571,29 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Accept.
+        /// </summary>
+        public static string OKButtonCaption {
+            get {
+                return ResourceManager.GetString("OKButtonCaption", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Operation completed successfully.
         /// </summary>
         public static string Operation_Success {
             get {
                 return ResourceManager.GetString("Operation_Success", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OFF.
+        /// </summary>
+        public static string PersistMediaInfoOption_None_None {
+            get {
+                return ResourceManager.GetString("PersistMediaInfoOption_None_None", resourceCulture);
             }
         }
         

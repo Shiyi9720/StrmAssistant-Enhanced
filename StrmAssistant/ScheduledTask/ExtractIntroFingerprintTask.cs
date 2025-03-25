@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 
 namespace StrmAssistant.ScheduledTask
 {
@@ -51,11 +52,10 @@ namespace StrmAssistant.ScheduledTask
             _logger.Info("Intro Detection Fingerprint Length (Minutes): " + Plugin.Instance.GetPluginOptions()
                 .IntroSkipOptions.IntroDetectionFingerprintMinutes);
 
-            var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
-            _logger.Info("Persist MediaInfo: " + persistMediaInfo);
-            var mediaInfoRestoreMode =
-                persistMediaInfo && Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
-            _logger.Info("MediaInfo Restore Mode: " + mediaInfoRestoreMode);
+            var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
+            _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
+            var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var preExtractEpisodes = Plugin.FingerprintApi.FetchIntroPreExtractTaskItems();
             var postExtractEpisodes = Plugin.FingerprintApi.FetchIntroFingerprintTaskItems();
@@ -128,8 +128,8 @@ namespace StrmAssistant.ScheduledTask
                             if (!Plugin.LibraryApi.HasMediaInfo(taskEpisode))
                             {
                                 result1 = await Plugin.LibraryApi
-                                    .OrchestrateMediaInfoProcessAsync(taskEpisode, directoryService,
-                                        "IntroFingerprintExtract Task", cancellationToken).ConfigureAwait(false);
+                                    .OrchestrateMediaInfoProcessAsync(taskEpisode, "IntroFingerprintExtract Task",
+                                        cancellationToken).ConfigureAwait(false);
 
                                 if (result1 is null)
                                 {

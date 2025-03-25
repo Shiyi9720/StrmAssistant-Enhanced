@@ -44,6 +44,8 @@ using System.Linq;
 using System.Reflection;
 using static StrmAssistant.Options.GeneralOptions;
 using static StrmAssistant.Options.IntroSkipOptions;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
+using static StrmAssistant.Options.MetadataEnhanceOptions;
 using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant
@@ -78,6 +80,7 @@ namespace StrmAssistant
         private int _currentMaxConcurrentCount;
         private int _currentTier2ConcurrentCount;
         private bool _currentPersistMediaInfo;
+        private bool _currentMediaInfoRestoreMode;
         private bool _currentCatchupMode;
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
@@ -118,7 +121,10 @@ namespace StrmAssistant
             _taskManager = taskManager;
 
             _currentMaxConcurrentCount = GetOptions().GeneralOptions.MaxConcurrentCount;
-            _currentPersistMediaInfo = GetOptions().MediaInfoExtractOptions.PersistMediaInfo;
+            _currentPersistMediaInfo = GetOptions().MediaInfoExtractOptions.PersistMediaInfoMode !=
+                                       PersistMediaInfoOption.None.ToString();
+            _currentMediaInfoRestoreMode = GetOptions().MediaInfoExtractOptions.PersistMediaInfoMode ==
+                                           PersistMediaInfoOption.Restore.ToString();
             _currentCatchupMode = GetOptions().GeneralOptions.CatchupMode;
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
@@ -328,7 +334,7 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if (e.Item is Video || e.Item is Audio)
+            if ((e.Item is Video || e.Item is Audio) && !_currentMediaInfoRestoreMode)
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
@@ -492,14 +498,17 @@ namespace StrmAssistant
 
             if (!suppress)
             {
-                Logger.Info("PersistMediaInfo is set to {0}", options.MediaInfoExtractOptions.PersistMediaInfo);
-                Logger.Info("MediaInfoRestoreMode is set to {0}", options.MediaInfoExtractOptions.MediaInfoRestoreMode);
+                Logger.Info("PersistMediaInfoMode is set to {0}", options.MediaInfoExtractOptions.PersistMediaInfoMode);
                 Logger.Info("MediaInfoJsonRootFolder is set to {0}",
                     !string.IsNullOrEmpty(options.MediaInfoExtractOptions.MediaInfoJsonRootFolder)
                         ? options.MediaInfoExtractOptions.MediaInfoJsonRootFolder
                         : "EMPTY");
             }
-            _currentPersistMediaInfo = options.MediaInfoExtractOptions.PersistMediaInfo;
+
+            _currentPersistMediaInfo = options.MediaInfoExtractOptions.PersistMediaInfoMode !=
+                                       PersistMediaInfoOption.None.ToString();
+            _currentMediaInfoRestoreMode = options.MediaInfoExtractOptions.PersistMediaInfoMode ==
+                                           PersistMediaInfoOption.Restore.ToString();
 
             if (!suppress)
             {
@@ -589,7 +598,7 @@ namespace StrmAssistant
             options.Disclaimer.Add(
                 new GenericListItem
                 {
-                    PrimaryText = Resources.Disclaimer,
+                    PrimaryText = Resources.DisclaimerButtonText,
                     Icon = IconNames.privacy_tip,
                     IconMode = ItemListIconMode.SmallRegular,
                     HyperLink = "https://github.com/sjtuross/StrmAssistant#%E5%A3%B0%E6%98%8E"
@@ -674,6 +683,48 @@ namespace StrmAssistant
             }
 
             options.GeneralOptions.CatchupTaskList = catchTaskList;
+
+            var persistOptionList = new List<EditorRadioOption>
+            {
+                new EditorRadioOption
+                {
+                    Value = PersistMediaInfoOption.Default,
+                    PrimaryText = Resources.MediaInfoExtractOptions_PersistMediaInfo_Persist_MediaInfo,
+                    SecondaryText =
+                        Resources
+                            .MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_
+                },
+                new EditorRadioOption
+                {
+                    Value = PersistMediaInfoOption.Restore,
+                    PrimaryText = Resources.MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode,
+                    SecondaryText =
+                        Resources
+                            .MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_
+                },
+                new EditorRadioOption
+                {
+                    Value = PersistMediaInfoOption.None,
+                    PrimaryText = Resources.PersistMediaInfoOption_None_None
+                }
+            };
+
+            options.MediaInfoExtractOptions.PersistMediaInfoOptionList = persistOptionList;
+
+            var episodeRefreshOptionList = new List<EditorSelectOption>();
+            foreach (Enum item in Enum.GetValues(typeof(EpisodeRefreshOption)))
+            {
+                var selectOption = new EditorSelectOption
+                {
+                    Value = item.ToString(),
+                    Name = EnumExtensions.GetDescription(item),
+                    IsEnabled = true,
+                };
+
+                episodeRefreshOptionList.Add(selectOption);
+            }
+
+            options.MetadataEnhanceOptions.EpisodeRefreshOptionList = episodeRefreshOptionList;
 
             var introSkipPreferenceList = new List<EditorSelectOption>();
             foreach (Enum item in Enum.GetValues(typeof(IntroSkipPreference)))

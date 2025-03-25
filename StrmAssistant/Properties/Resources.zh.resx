@@ -312,7 +312,7 @@
     <value>媒体信息持久化</value>
   </data>
   <data name="MediaInfoExtractOptions_PersistMediaInfo_Persist_media_info_in_JSON_file__Default_is_OFF_" xml:space="preserve">
-    <value>保存或加载媒体信息和章节片头片尾标记至/自 JSON 文件，以及恢复预览缩略图 BIF，默认关闭。</value>
+    <value>保存或加载媒体信息和章节片头片尾标记至/自 JSON 文件，以及恢复预览缩略图 BIF。</value>
   </data>
   <data name="UIFunctionOptions_EnhanceMissingEpisodes_Missing_Episodes_Enhanced" xml:space="preserve">
     <value>查看缺少的集增强</value>
@@ -531,7 +531,7 @@
     <value>通知系统增强</value>
   </data>
   <data name="ExperienceEnhanceOptions_EnhanceNotification_Show_episode_details_in_series_notification__Default_is_OFF_" xml:space="preserve">
-    <value>按电视节目分组的新增和删除通知中添加集信息，默认关闭。</value>
+    <value>按电视节目分组的新增和删除通知中添加集信息，提供媒体深度删除通知，默认关闭。</value>
   </data>
   <data name="MetadataEnhanceOptions_ChineseTvdb_Try_to_get_Chinese_or_Japanese_metadata_from_Tvdb__Default_is_OFF_" xml:space="preserve">
     <value>尽可能从 TVDB 获取中文或日文元数据，默认关闭。</value>
@@ -594,12 +594,12 @@
     <value>更新失败，请至控制台查看详细错误信息。</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_Only_restore_media_info__chapters__and_video_thumbnails_from_JSON_or_BIF__skipping_extraction__Default_is_OFF_" xml:space="preserve">
-    <value>仅从 JSON 或 BIF 恢复媒体信息，章节片头片尾标记，预览缩略图，跳过实际提取，默认关闭。</value>
+    <value>仅从 JSON 或 BIF 恢复媒体信息，章节片头片尾标记，预览缩略图，跳过实际提取。</value>
   </data>
   <data name="MediaInfoExtractOptions_MediaInfoRestoreMode_MediaInfo_Restore_Mode" xml:space="preserve">
     <value>媒体信息恢复模式</value>
   </data>
-  <data name="Disclaimer" xml:space="preserve">
+  <data name="DisclaimerButtonText" xml:space="preserve">
     <value>点击查看免责声明。未删除插件前，请勿发送日志至官方。请务必牢记！</value>
   </data>
   <data name="ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_" xml:space="preserve">
@@ -610,5 +610,41 @@
   </data>
   <data name="IntroSkipOptions_BlacklistShows_List_of_Series_Id_or_Season_Id_separated_by_comma_or_semicolon__Default_is_EMPTY" xml:space="preserve">
     <value>电视节目或播出季的 ID 列表，逗号或分号分隔，默认为空。</value>
+  </data>
+  <data name="Notification_DeepDelete_EventName" xml:space="preserve">
+    <value>媒体深度删除</value>
+  </data>
+  <data name="Notification_DeepDelete_EventDescription" xml:space="preserve">
+    <value>Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}</value>
+  </data>
+  <data name="DeletePersonTask_Description_Deletes_all_persons" xml:space="preserve">
+    <value>清除所有人员数据</value>
+  </data>
+  <data name="PersistMediaInfoOption_None_None" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Disclaimer" xml:space="preserve">
+    <value>免责声明</value>
+  </data>
+  <data name="OKButtonCaption" xml:space="preserve">
+    <value>接受</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeRefreshScope_Episode_Metadata_Refresh_Scope" xml:space="preserve">
+    <value>剧集刷新范围</value>
+  </data>
+  <data name="EpisodeRefreshOption_NoOverview_No_Overview" xml:space="preserve">
+    <value>无简介</value>
+  </data>
+  <data name="EpisodeRefreshOption_NoImage_No_Image" xml:space="preserve">
+    <value>无图</value>
+  </data>
+  <data name="EpisodeRefreshOption_NonChineseOverview_Non_Chinese_Overview" xml:space="preserve">
+    <value>非中文简介</value>
+  </data>
+  <data name="EpisodeRefreshOption_DefaultEpisodeName_Default_Episode_Name" xml:space="preserve">
+    <value>默认集标题</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeRefreshScope_Episode_refresh_scope_for_scheduled_task_and_catch_up__Default_is_no_overview_and_no_image_" xml:space="preserve">
+    <value>计划任务和追更模式剧集元数据刷新的范围，默认为无图无简介。</value>
   </data>
 </root>

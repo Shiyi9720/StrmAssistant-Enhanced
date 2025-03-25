@@ -1,6 +1,4 @@
 using MediaBrowser.Controller.Entities.TV;
-using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
@@ -9,19 +7,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 
 namespace StrmAssistant.ScheduledTask
 {
     public class ExtractMediaInfoTask : IScheduledTask
     {
-        private readonly ILogger _logger;
-        private readonly IFileSystem _fileSystem;
-
-        public ExtractMediaInfoTask(IFileSystem fileSystem)
-        {
-            _logger = Plugin.Instance.Logger;
-            _fileSystem = fileSystem;
-        }
+        private readonly ILogger _logger = Plugin.Instance.Logger;
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
@@ -34,11 +26,9 @@ namespace StrmAssistant.ScheduledTask
                 : (int?)null;
             if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
-            var persistMediaInfo = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfo;
-            _logger.Info("Persist MediaInfo: " + persistMediaInfo);
-            var mediaInfoRestoreMode =
-                persistMediaInfo && Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoRestoreMode;
-            _logger.Info("MediaInfo Restore Mode: " + mediaInfoRestoreMode);
+            var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
+            _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
             _logger.Info("Enable Image Capture: " + enableImageCapture);
@@ -48,8 +38,6 @@ namespace StrmAssistant.ScheduledTask
             var items = Plugin.LibraryApi.FetchPreExtractTaskItems();
 
             if (items.Count > 0) IsRunning = true;
-
-            var directoryService = new DirectoryService(_logger, _fileSystem);
 
             double total = items.Count;
             var index = 0;
@@ -91,8 +79,8 @@ namespace StrmAssistant.ScheduledTask
                         }
 
                         result = await Plugin.LibraryApi
-                            .OrchestrateMediaInfoProcessAsync(taskItem,directoryService, "MediaInfoExtract Task",
-                                cancellationToken).ConfigureAwait(false);
+                            .OrchestrateMediaInfoProcessAsync(taskItem, "MediaInfoExtract Task", cancellationToken)
+                            .ConfigureAwait(false);
 
                         if (result is null)
                         {
