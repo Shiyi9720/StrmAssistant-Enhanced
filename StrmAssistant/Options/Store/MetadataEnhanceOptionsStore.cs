@@ -211,6 +211,7 @@ namespace StrmAssistant.Options.Store
                                 : null)
                         .Where(d => d != null) ?? Enumerable.Empty<string>());
                 _logger.Info("EpisodeRefreshScope is set to {0}", episodeRefreshScope);
+                _logger.Info("EpisodeRefreshLookbackDays is set to {0}", options.EpisodeRefreshLookbackDays);
                 _logger.Info("AltMovieDbConfig is set to {0}", options.AltMovieDbConfig);
                 _logger.Info("AltMovieDbApiUrl is set to {0}",
                     !string.IsNullOrEmpty(options.AltMovieDbApiUrl)

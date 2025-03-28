@@ -669,7 +669,7 @@
     <value>Extract video thumbnail preview and chatper images</value>
   </data>
   <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
-    <value>Refresh metadata for episodes without overview or image</value>
+    <value>Refresh missing metadata and images for episodes by preference</value>
   </data>
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>Episode Refresh</value>
@@ -736,5 +736,11 @@
   </data>
   <data name="EpisodeRefreshOption_ReplaceCapturedImage_Replace_Captured_Image" xml:space="preserve">
     <value>Replace Captured Image</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeRefreshLookBackDays_Episode_Refresh_Lookback_Days" xml:space="preserve">
+    <value>Episode Refresh Lookback Days</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_" xml:space="preserve">
+    <value>Episode metadata refresh lookback days for scheduled task. Default is 365 days.</value>
   </data>
 </root>

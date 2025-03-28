@@ -1222,6 +1222,25 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Episode metadata refresh lookback days. Default is 365..
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookba" +
+                        "ck_days__Default_is_365_", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Episode Refresh Lookback Days.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeRefreshLookBackDays_Episode_Refresh_Lookback_Days {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeRefreshLookBackDays_Episode_Refresh_Lookback_Days", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Episode Refresh Scope.
         /// </summary>
         public static string MetadataEnhanceOptions_EpisodeRefreshScope_Episode_Metadata_Refresh_Scope {

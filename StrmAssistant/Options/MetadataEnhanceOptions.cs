@@ -133,10 +133,11 @@ namespace StrmAssistant.Options
         [SelectItemsSource(nameof(EpisodeRefreshOptionList))]
         public string EpisodeRefreshScope { get; set; } = string.Join(",", EpisodeRefreshOption.NoOverview.ToString(),
             EpisodeRefreshOption.NoImage.ToString());
-        
-        [Browsable(false)]
-        [Required]
-        public int EpisodeRefreshLookBackDays { get; set; } = 365;
+
+        [DisplayNameL("MetadataEnhanceOptions_EpisodeRefreshLookBackDays_Episode_Refresh_Lookback_Days", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_", typeof(Resources))]
+        [Required, MinValue(1)]
+        public int EpisodeRefreshLookbackDays { get; set; } = 365;
 
         [DisplayNameL("MetadataEnhanceOptions_EnableAltMovieDbUrl", typeof(Resources))]
         [EnabledCondition(nameof(IsMovieDbPluginLoaded), SimpleCondition.IsTrue)]

@@ -582,7 +582,7 @@
     <value>提取视频预览缩略图和章节图</value>
   </data>
   <data name="EpisodeRefreshTask_Description_Refresh_metadata_for_episodes_missing_overview" xml:space="preserve">
-    <value>刷新无简介或无图的剧集的元数据</value>
+    <value>按偏好刷新剧集缺失的元数据和图片</value>
   </data>
   <data name="CatchupTask_EpisodeRefresh_EpisodeRefresh" xml:space="preserve">
     <value>剧集元数据刷新</value>
@@ -649,5 +649,11 @@
   </data>
   <data name="EpisodeRefreshOption_ReplaceCapturedImage_Replace_Captured_Image" xml:space="preserve">
     <value>替换视频截图</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeRefreshLookBackDays_Episode_Refresh_Lookback_Days" xml:space="preserve">
+    <value>剧集刷新回溯天数</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_" xml:space="preserve">
+    <value>计划任务剧集元数据刷新回溯天数，默认为365天。</value>
   </data>
 </root>

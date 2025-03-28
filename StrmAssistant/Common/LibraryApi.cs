@@ -1013,7 +1013,7 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchEpisodeRefreshTaskItems()
         {
-            var lookBackDays = Plugin.Instance.MetadataEnhanceStore.GetOptions().EpisodeRefreshLookBackDays;
+            var lookBackDays = Plugin.Instance.MetadataEnhanceStore.GetOptions().EpisodeRefreshLookbackDays;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
