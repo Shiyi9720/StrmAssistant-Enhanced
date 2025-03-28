@@ -1,15 +1,17 @@
-﻿using HarmonyLib;
-using MediaBrowser.Common.Net;
+using HarmonyLib;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using System;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Threading;
 using static StrmAssistant.Common.CommonUtility;
 using static StrmAssistant.Mod.PatchManager;
+using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
 
 namespace StrmAssistant.Mod
 {
@@ -19,6 +21,7 @@ namespace StrmAssistant.Mod
         private static MethodInfo _getMovieDbResponse;
         private static MethodInfo _saveImageFromRemoteUrl;
         private static MethodInfo _downloadImage;
+        private static MethodInfo _createHttpClientHandler;
 
         private static readonly string DefaultMovieDbApiUrl = "https://api.themoviedb.org";
         private static readonly string DefaultAltMovieDbApiUrl = "https://api.tmdb.org";
@@ -92,6 +95,12 @@ namespace StrmAssistant.Mod
                 var remoteImageService = embyApi.GetType("Emby.Api.Images.RemoteImageService");
                 _downloadImage = remoteImageService.GetMethod("DownloadImage",
                     BindingFlags.NonPublic | BindingFlags.Instance);
+
+                var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
+                var applicationHost =
+                    embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.ApplicationHost");
+                _createHttpClientHandler = applicationHost.GetMethod("CreateHttpClientHandler",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
             }
             else
             {
@@ -109,6 +118,8 @@ namespace StrmAssistant.Mod
         private void PrepareApiUrl(bool apply)
         {
             PatchUnpatch(PatchTracker, apply, _getMovieDbResponse, prefix: nameof(GetMovieDbResponsePrefix));
+            PatchUnpatch(PatchTracker, apply, _createHttpClientHandler,
+                postfix: nameof(CreateHttpClientHandlerPostfix));
         }
 
         public void PatchApiUrl() => PrepareApiUrl(true);
@@ -124,6 +135,20 @@ namespace StrmAssistant.Mod
         public void PatchImageUrl() => PrepareImageUrl(true);
 
         public void UnpatchImageUrl() => PrepareImageUrl(false);
+
+        [HarmonyPostfix]
+        private static void CreateHttpClientHandlerPostfix(ref HttpMessageHandler __result)
+        {
+            switch (__result)
+            {
+                case HttpClientHandler httpClientHandler:
+                    httpClientHandler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                    break;
+                case SocketsHttpHandler socketsHttpHandler:
+                    socketsHttpHandler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                    break;
+            }
+        }
 
         [HarmonyPrefix]
         private static bool GetMovieDbResponsePrefix(HttpRequestOptions options)
