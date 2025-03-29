@@ -3,7 +3,6 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Net;
 using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -127,9 +126,9 @@ namespace StrmAssistant.Web.Service
                 Task.Run(() => Plugin.LibraryApi.ExecuteDeepDelete(localMountPaths)).ConfigureAwait(false);
             }
 
-            if (enableNotification && allMountPaths.Count > 0)
+            if (enableNotification && allMountPaths.Count > 0 && user != null)
             {
-                Task.Run(() => Plugin.NotificationApi.DeepDeleteSendNotification(item,
+                Task.Run(() => Plugin.NotificationApi.DeepDeleteSendNotification(item, user,
                         new HashSet<string>(allMountPaths.Keys)))
                     .ConfigureAwait(false);
             }

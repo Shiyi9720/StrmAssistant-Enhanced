@@ -1,9 +1,11 @@
 ﻿using Emby.Notifications;
 using HarmonyLib;
+using MediaBrowser.Controller.Api;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,11 +21,14 @@ namespace StrmAssistant.Mod
         private static MethodInfo _convertToGroups;
         private static MethodInfo _sendNotification;
         private static MethodInfo _queueNotification;
+        private static MethodInfo _deleteItemsRequest;
+        private static MethodInfo _getUserForRequest;
         private static MethodInfo _deleteItem;
 
         private static readonly AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>
             GroupDetails = new AsyncLocal<Dictionary<long, List<(int? IndexNumber, int? ParentIndexNumber)>>>();
         private static readonly AsyncLocal<string> Description = new AsyncLocal<string>();
+        private static readonly AsyncLocal<User> DeleteByUser = new AsyncLocal<User>();
 
         public EnhanceNotificationSystem()
         {
@@ -50,6 +55,14 @@ namespace StrmAssistant.Mod
                 BindingFlags.Instance | BindingFlags.Public, null,
                 new[] { typeof(INotifier), typeof(InternalNotificationRequest), typeof(int) }, null);
 
+            var embyApi = Assembly.Load("Emby.Api");
+            var libraryService = embyApi.GetType("Emby.Api.Library.LibraryService");
+            _deleteItemsRequest =
+                libraryService.GetMethod("Any", new[] { embyApi.GetType("Emby.Api.Library.DeleteItems") });
+            _getUserForRequest = typeof(BaseApiService).GetMethod("GetUserForRequest",
+                BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(string), typeof(bool) }, null);
+            ReversePatch(PatchTracker, _getUserForRequest, nameof(GetUserForRequestStub));
+
             var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
             var libraryManager =
                 embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.Library.LibraryManager");
@@ -63,6 +76,7 @@ namespace StrmAssistant.Mod
             PatchUnpatch(PatchTracker, apply, _convertToGroups, postfix: nameof(ConvertToGroupsPostfix));
             PatchUnpatch(PatchTracker, apply, _sendNotification, prefix: nameof(SendNotificationPrefix));
             PatchUnpatch(PatchTracker, apply, _queueNotification, prefix: nameof(QueueNotificationPrefix));
+            PatchUnpatch(PatchTracker, apply, _deleteItemsRequest, prefix: nameof(DeleteItemsRequestPrefix));
             PatchUnpatch(PatchTracker, apply, _deleteItem, prefix: nameof(DeleteItemPrefix),
                 finalizer: nameof(DeleteItemFinalizer));
         }
@@ -154,6 +168,16 @@ namespace StrmAssistant.Mod
             }
         }
 
+        [HarmonyReversePatch]
+        private static User GetUserForRequestStub(BaseApiService instance, string requestedUserId,
+            bool autoRevertToLoggedInUser = true) => throw new NotImplementedException();
+
+        [HarmonyPrefix]
+        private static void DeleteItemsRequestPrefix(BaseApiService __instance, IReturnVoid request)
+        {
+            DeleteByUser.Value = GetUserForRequestStub(__instance, null);
+        }
+
         [HarmonyPrefix]
         private static void DeleteItemPrefix(ILibraryManager __instance, BaseItem item, DeleteOptions options,
             BaseItem parent, bool notifyParentItem, out Dictionary<string, bool> __state)
@@ -172,10 +196,14 @@ namespace StrmAssistant.Mod
         [HarmonyFinalizer]
         private static void DeleteItemFinalizer(Exception __exception, BaseItem item, Dictionary<string, bool> __state)
         {
-            if (__state != null && __state.Count > 0 && __exception is null)
+            if (__state != null && __state.Count > 0 && __exception is null && DeleteByUser.Value != null)
             {
+                var user = DeleteByUser.Value;
+                DeleteByUser.Value = null;
+
                 Task.Run(() =>
-                        Plugin.NotificationApi.DeepDeleteSendNotification(item, new HashSet<string>(__state.Keys)))
+                        Plugin.NotificationApi.DeepDeleteSendNotification(item, user,
+                            new HashSet<string>(__state.Keys)))
                     .ConfigureAwait(false);
             }
         }
