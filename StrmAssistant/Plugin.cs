@@ -5,7 +5,6 @@ using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
@@ -173,8 +172,8 @@ namespace StrmAssistant
         {
             var item = e.Argument.Item;
 
-            if (MediaInfoExtractStore.GetOptions().PersistMediaInfoMode != PersistMediaInfoOption.None.ToString() &&
-                (item is Video || item is Audio) && item.DateLastRefreshed != DateTimeOffset.MinValue)
+            if (item is Video && item.DateLastRefreshed != DateTimeOffset.MinValue &&
+                MediaInfoExtractStore.GetOptions().PersistMediaInfoMode != PersistMediaInfoOption.None.ToString())
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
 
@@ -257,7 +256,7 @@ namespace StrmAssistant
         {
             try
             {
-                if (e.Item is Video || e.Item is Audio)
+                if (e.Item is Video)
                 {
                     var deserializeResult = LibraryApi.HasMediaInfo(e.Item);
 
@@ -329,8 +328,8 @@ namespace StrmAssistant
 
         private void OnPlaybackStopped(object sender, PlaybackProgressEventArgs e)
         {
-            if (MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract &&
-                IsExclusiveFeatureSelected(MediaInfoExtractOptions.ExclusiveControl.ExtractAlternative))
+            if (e.Item is Video && MediaInfoExtractStore.MediaInfoExtractOptions.ExclusiveExtract &&
+                IsExclusiveFeatureSelected(ExclusiveControl.ExtractAlternative))
             {
                 var targetItem = MediaInfoApi.GetItemByMediaSourceId(e.Item, e.MediaSourceId);
 
@@ -370,7 +369,7 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if ((e.Item is Video || e.Item is Audio) && MediaInfoExtractStore.GetOptions().PersistMediaInfoMode !=
+            if (e.Item is Video && MediaInfoExtractStore.GetOptions().PersistMediaInfoMode !=
                 PersistMediaInfoOption.Restore.ToString())
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);

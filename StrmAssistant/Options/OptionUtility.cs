@@ -37,6 +37,10 @@ namespace StrmAssistant.Options
                 featureSet.Add(ExclusiveControl.IgnoreFileChange.ToString());
                 featureSet.Add(ExclusiveControl.CatchAllBlock.ToString());
             }
+            else if (options.PersistMediaInfoMode == PersistMediaInfoOption.None.ToString())
+            {
+                featureSet.Add(ExclusiveControl.NoPersistIntegration.ToString());
+            }
 
             _selectedExclusiveFeatures = featureSet;
         }

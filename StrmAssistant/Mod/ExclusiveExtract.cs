@@ -405,9 +405,7 @@ namespace StrmAssistant.Mod
         {
             if (!__state) return;
 
-            var isPersistInScope = !IsExclusiveFeatureSelected(ExclusiveControl.NoPersistIntegration) &&
-                                   Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfoMode !=
-                                   PersistMediaInfoOption.None.ToString() && (item is Video || item is Audio);
+            var isPersistInScope = !IsExclusiveFeatureSelected(ExclusiveControl.NoPersistIntegration) && item is Video;
             CurrentRefreshContext.Value.IsPersistInScope = isPersistInScope;
 
             if (__result)
