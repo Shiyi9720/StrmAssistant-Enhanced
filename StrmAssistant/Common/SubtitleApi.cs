@@ -32,7 +32,6 @@ namespace StrmAssistant.Common
             new PatchTracker(typeof(SubtitleApi),
                 Plugin.Instance.IsModSupported ? PatchApproach.Harmony : PatchApproach.Reflection);
         private readonly object _subtitleResolver;
-        private readonly MethodInfo _getExternalSubtitleFiles;
         private readonly MethodInfo _getExternalSubtitleStreams;
         private readonly object _ffProbeSubtitleInfo;
         private readonly MethodInfo _updateExternalSubtitleStream;
@@ -59,7 +58,6 @@ namespace StrmAssistant.Common
                 {
                     localizationManager, fileSystem, libraryManager
                 });
-                _getExternalSubtitleFiles = subtitleResolverType.GetMethod("GetExternalSubtitleFiles");
                 _getExternalSubtitleStreams = subtitleResolverType.GetMethod("GetExternalSubtitleStreams");
 
                 var ffProbeSubtitleInfoType = embyProviders.GetType("Emby.Providers.MediaInfo.FFProbeSubtitleInfo");
@@ -79,7 +77,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            if (_subtitleResolver is null || _getExternalSubtitleFiles is null || _getExternalSubtitleStreams is null ||
+            if (_subtitleResolver is null || _getExternalSubtitleStreams is null ||
                 _ffProbeSubtitleInfo is null || _updateExternalSubtitleStream is null)
             {
                 _logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
@@ -87,35 +85,10 @@ namespace StrmAssistant.Common
             }
             else if (Plugin.Instance.IsModSupported)
             {
-                PatchManager.ReversePatch(PatchTracker, _getExternalSubtitleFiles,
-                    nameof(GetExternalSubtitleFilesStub));
                 PatchManager.ReversePatch(PatchTracker, _getExternalSubtitleStreams,
                     nameof(GetExternalSubtitleStreamsStub));
                 PatchManager.ReversePatch(PatchTracker, _updateExternalSubtitleStream,
                     nameof(UpdateExternalSubtitleStreamStub));
-            }
-        }
-
-        [HarmonyReversePatch]
-        private static List<string> GetExternalSubtitleFilesStub(object instance, BaseItem item,
-            IDirectoryService directoryService, NamingOptions namingOptions, bool clearCache) =>
-            throw new NotImplementedException();
-
-        private List<string> GetExternalSubtitleFiles(BaseItem item, IDirectoryService directoryService,
-            bool clearCache)
-        {
-            var namingOptions = _libraryManager.GetNamingOptions();
-
-            switch (PatchTracker.FallbackPatchApproach)
-            {
-                case PatchApproach.Harmony:
-                    return GetExternalSubtitleFilesStub(_subtitleResolver, item, directoryService, namingOptions,
-                        clearCache);
-                case PatchApproach.Reflection:
-                    return (List<string>)_getExternalSubtitleFiles.Invoke(_subtitleResolver,
-                        new object[] { item, directoryService, namingOptions, clearCache });
-                default:
-                    throw new NotImplementedException();
             }
         }
 
@@ -171,12 +144,16 @@ namespace StrmAssistant.Common
         public bool HasExternalSubtitleChanged(BaseItem item, IDirectoryService directoryService, bool clearCache)
         {
             var currentExternalSubtitleFiles = _libraryManager.GetExternalSubtitleFiles(item.InternalId);
+            var currentSet = new HashSet<string>(currentExternalSubtitleFiles, StringComparer.Ordinal);
 
             try
             {
-                return GetExternalSubtitleFiles(item, directoryService, clearCache) is
-                           { } newExternalSubtitleFiles &&
-                       !currentExternalSubtitleFiles.SequenceEqual(newExternalSubtitleFiles, StringComparer.Ordinal);
+                var newExternalSubtitleFiles = GetExternalSubtitleStreams(item, 0, directoryService, clearCache)
+                    .Select(i => i.Path)
+                    .ToArray();
+                var newSet = new HashSet<string>(newExternalSubtitleFiles, StringComparer.Ordinal);
+
+                return !currentSet.SetEquals(newSet);
             }
             catch
             {
