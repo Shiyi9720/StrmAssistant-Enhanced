@@ -16,7 +16,7 @@ namespace StrmAssistant.Options
         [Required]
         public bool MergeMultiVersion { get; set; } = false;
 
-        public enum MergeScopeOption
+        public enum MergeMoviesScopeOption
         {
             [DescriptionL("MergeScopeOption_LibraryScope_LibraryScope", typeof(Resources))]
             LibraryScope,
@@ -26,10 +26,18 @@ namespace StrmAssistant.Options
         
         [DisplayName("")]
         [VisibleCondition(nameof(MergeMultiVersion), SimpleCondition.IsTrue)]
-        public MergeScopeOption MergeMoviesPreference { get; set; } = MergeScopeOption.LibraryScope;
-        
+        public MergeMoviesScopeOption MergeMoviesPreference { get; set; } = MergeMoviesScopeOption.LibraryScope;
+
+        public enum MergeSeriesScopeOption
+        {
+            [DescriptionL("MergeScopeOption_LibraryScope_LibraryScope", typeof(Resources))]
+            LibraryScope,
+            [DescriptionL("MergeScopeOption_GlobalScope_GlobalScope", typeof(Resources))]
+            GlobalScope
+        }
+
         [VisibleCondition(nameof(MergeMultiVersion), SimpleCondition.IsTrue)]
         [Browsable(false)]
-        public MergeScopeOption MergeSeriesPreference => MergeScopeOption.LibraryScope;
+        public MergeSeriesScopeOption MergeSeriesPreference => MergeSeriesScopeOption.LibraryScope;
     }
 }

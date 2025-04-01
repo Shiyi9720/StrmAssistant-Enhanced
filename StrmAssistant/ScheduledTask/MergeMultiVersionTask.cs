@@ -73,16 +73,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (processSeries)
             {
-                var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
-                {
-                    EnableRemoteContentProbe = false,
-                    ReplaceAllMetadata = false,
-                    EnableThumbnailImageExtraction = false,
-                    EnableSubtitleDownloading = false,
-                    ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                    MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                    ReplaceAllImages = false
-                };
+                var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
 
                 //Traverse.Create(refreshOptions).Property("Recursive").SetValue(true);
 
@@ -192,11 +183,11 @@ namespace StrmAssistant.ScheduledTask
 
         private long[] PrepareMergeSeries()
         {
-            var globalScope = Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.MergeSeriesPreference ==
-                              MergeScopeOption.GlobalScope;
-            _logger.Info("MergeMultiVersion - Series Across Libraries: " + globalScope);
+            var mergeSeriesPreference = Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.MergeSeriesPreference;
+            _logger.Info("MergeMultiVersion - Merge Series Preference: " + mergeSeriesPreference);
 
-            if (!Plugin.Instance.IsModSupported || !globalScope) return Array.Empty<long>();
+            if (!Plugin.Instance.IsModSupported || mergeSeriesPreference != MergeSeriesScopeOption.GlobalScope)
+                return Array.Empty<long>();
 
             var libraries = Plugin.LibraryApi.GetSeriesLibraries()
                 .Where(l => l.GetLibraryOptions().EnableAutomaticSeriesGrouping)
@@ -284,13 +275,12 @@ namespace StrmAssistant.ScheduledTask
 
         private long[][] PrepareMergeMovies(CollectionFolder currentScanLibrary)
         {
-            var globalScope = Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.MergeMoviesPreference ==
-                              MergeScopeOption.GlobalScope;
-            _logger.Info("MergeMultiVersion - Movies Across Libraries: " + globalScope);
+            var mergeMoviesPreference = Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.MergeMoviesPreference;
+            _logger.Info("MergeMultiVersion - Merge Movies Preference: " + mergeMoviesPreference);
 
             var libraryGroups = Array.Empty<long[]>();
 
-            if (!globalScope && currentScanLibrary != null)
+            if (mergeMoviesPreference == MergeMoviesScopeOption.LibraryScope && currentScanLibrary != null)
             {
                 libraryGroups = new[] { new[] { currentScanLibrary.InternalId } };
                 _logger.Info("MergeMultiVersion - Movies Libraries: " + currentScanLibrary.Name);
@@ -301,11 +291,11 @@ namespace StrmAssistant.ScheduledTask
 
                 if (!libraries.Any()) return libraryGroups;
 
-                _logger.Info("MergeMultiVersion - Movies Libraries: " +
-                             string.Join(", ", libraries.Select(l => l.Name)));
+                _logger.Info(
+                    "MergeMultiVersion - Movies Libraries: " + string.Join(", ", libraries.Select(l => l.Name)));
 
                 var libraryIds = libraries.Select(l => l.InternalId).ToArray();
-                libraryGroups = globalScope
+                libraryGroups = mergeMoviesPreference == MergeMoviesScopeOption.GlobalScope
                     ? new[] { libraryIds }
                     : libraryIds.Select(library => new[] { library }).ToArray();
             }

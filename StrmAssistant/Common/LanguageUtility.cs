@@ -9,9 +9,9 @@ namespace StrmAssistant.Common
         private static readonly Regex ChineseRegex = new Regex(@"[\u4E00-\u9FFF]", RegexOptions.Compiled);
         private static readonly Regex JapaneseRegex = new Regex(@"[\u3040-\u30FF]", RegexOptions.Compiled);
         private static readonly Regex KoreanRegex = new Regex(@"[\uAC00-\uD7A3]", RegexOptions.Compiled);
-        private static readonly Regex DefaultEnglishEpisodeNameRegex = new Regex(@"\bEpisode\s*\d+\b", RegexOptions.Compiled);
-        private static readonly Regex DefaultChineseEpisodeNameRegex = new Regex(@"第\s*\d+\s*集", RegexOptions.Compiled);
-        private static readonly Regex DefaultJapaneseEpisodeNameRegex = new Regex(@"第\s*\d+\s*話", RegexOptions.Compiled);
+        private static readonly Regex DefaultEnglishEpisodeNameRegex = new Regex(@"^Episode\s*\d+$", RegexOptions.Compiled);
+        private static readonly Regex DefaultChineseEpisodeNameRegex = new Regex(@"^第\s*\d+\s*集$", RegexOptions.Compiled);
+        private static readonly Regex DefaultJapaneseEpisodeNameRegex = new Regex(@"^第\s*\d+\s*話$", RegexOptions.Compiled);
         private static readonly Regex DefaultChineseCollectionNameRegex = new Regex(@"（系列）$", RegexOptions.Compiled);
         private static readonly Regex CleanPersonNameRegex = new Regex(@"\s+", RegexOptions.Compiled);
         private static readonly Regex CleanEpisodeNameRegex =

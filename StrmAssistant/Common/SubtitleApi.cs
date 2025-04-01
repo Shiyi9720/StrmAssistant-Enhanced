@@ -15,7 +15,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using static StrmAssistant.Options.MediaInfoExtractOptions;
 
 namespace StrmAssistant.Common
 {
@@ -24,9 +23,9 @@ namespace StrmAssistant.Common
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
+        private readonly IFileSystem _fileSystem;
 
         private readonly object _subtitleResolver;
-        private readonly MethodInfo _getExternalSubtitleFiles;
         private readonly MethodInfo _getExternalSubtitleStreams;
         private readonly object _ffProbeSubtitleInfo;
         private readonly MethodInfo _updateExternalSubtitleStream;
@@ -40,6 +39,7 @@ namespace StrmAssistant.Common
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _itemRepository = itemRepository;
+            _fileSystem = fileSystem;
 
             try
             {
@@ -53,7 +53,6 @@ namespace StrmAssistant.Common
                 {
                     localizationManager, fileSystem, libraryManager
                 });
-                _getExternalSubtitleFiles = subtitleResolverType.GetMethod("GetExternalSubtitleFiles");
                 _getExternalSubtitleStreams = subtitleResolverType.GetMethod("GetExternalSubtitleStreams");
 
                 var ffProbeSubtitleInfoType = embyProviders.GetType("Emby.Providers.MediaInfo.FFProbeSubtitleInfo");
@@ -73,20 +72,11 @@ namespace StrmAssistant.Common
                 }
             }
 
-            if (_subtitleResolver is null || _getExternalSubtitleFiles is null || _getExternalSubtitleStreams is null ||
+            if (_subtitleResolver is null || _getExternalSubtitleStreams is null ||
                 _ffProbeSubtitleInfo is null || _updateExternalSubtitleStream is null)
             {
                 _logger.Warn($"{nameof(SubtitleApi)} Init Failed");
             }
-        }
-
-        private List<string> GetExternalSubtitleFiles(BaseItem item, IDirectoryService directoryService,
-            bool clearCache)
-        {
-            var namingOptions = _libraryManager.GetNamingOptions();
-
-            return (List<string>)_getExternalSubtitleFiles.Invoke(_subtitleResolver,
-                new object[] { item, directoryService, namingOptions, clearCache });
         }
 
         private List<MediaStream> GetExternalSubtitleStreams(BaseItem item, int startIndex,
@@ -107,15 +97,33 @@ namespace StrmAssistant.Common
                 new object[] { item, subtitleStream, options, libraryOptions, cancellationToken });
         }
 
+        public MetadataRefreshOptions GetExternalSubtitleRefreshOptions()
+        {
+            return new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = true,
+                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllMetadata = false,
+                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
+                ReplaceAllImages = false,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
+        }
+
         public bool HasExternalSubtitleChanged(BaseItem item, IDirectoryService directoryService, bool clearCache)
         {
             var currentExternalSubtitleFiles = _libraryManager.GetExternalSubtitleFiles(item.InternalId);
+            var currentSet = new HashSet<string>(currentExternalSubtitleFiles, StringComparer.Ordinal);
 
             try
             {
-                return GetExternalSubtitleFiles(item, directoryService, clearCache) is
-                           { } newExternalSubtitleFiles &&
-                       !currentExternalSubtitleFiles.SequenceEqual(newExternalSubtitleFiles, StringComparer.Ordinal);
+                var newExternalSubtitleFiles = GetExternalSubtitleStreams(item, 0, directoryService, clearCache)
+                    .Select(i => i.Path)
+                    .ToArray();
+                var newSet = new HashSet<string>(newExternalSubtitleFiles, StringComparer.Ordinal);
+
+                return !currentSet.SetEquals(newSet);
             }
             catch
             {

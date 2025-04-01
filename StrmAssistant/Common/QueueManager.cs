@@ -1,6 +1,5 @@
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -715,18 +714,7 @@ namespace StrmAssistant.Common
                             Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount;
                         Logger.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
 
-                        var refreshOptions =
-                            new MetadataRefreshOptions(new DirectoryService(Logger, BaseItem.FileSystem))
-                            {
-                                EnableRemoteContentProbe = false,
-                                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
-                                ReplaceAllMetadata = true,
-                                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-                                ReplaceAllImages = true,
-                                IsAutomated = true,
-                                EnableThumbnailImageExtraction = false,
-                                EnableSubtitleDownloading = false
-                            };
+                        var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
 
                         IsEpisodeRefreshProcessTaskRunning = true;
 

@@ -1,4 +1,3 @@
-using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
@@ -37,17 +36,7 @@ namespace StrmAssistant.ScheduledTask
 
             IsRunning = true;
 
-            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
-            {
-                EnableRemoteContentProbe = false,
-                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
-                ReplaceAllMetadata = true,
-                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
-                ReplaceAllImages = true,
-                IsAutomated = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false
-            };
+            var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
 
             double total = itemsToRefresh.Count;
             var index = 0;

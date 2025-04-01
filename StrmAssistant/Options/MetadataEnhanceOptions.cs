@@ -33,7 +33,9 @@ namespace StrmAssistant.Options
             [DescriptionL("EpisodeRefreshOption_NonChineseOverview_Non_Chinese_Overview", typeof(Resources))]
             NonChineseOverview,
             [DescriptionL("EpisodeRefreshOption_DefaultEpisodeName_Default_Episode_Name", typeof(Resources))]
-            DefaultEpisodeName
+            DefaultEpisodeName,
+            [DescriptionL("EpisodeRefreshOption_ReplaceCapturedImage_Replace_Captured_Image", typeof(Resources))]
+            ReplaceCapturedImage
         }
 
         [Browsable(false)]
@@ -46,8 +48,9 @@ namespace StrmAssistant.Options
         public string EpisodeRefreshScope { get; set; } = string.Join(",", EpisodeRefreshOption.NoOverview.ToString(),
             EpisodeRefreshOption.NoImage.ToString());
         
-        [Browsable(false)]
-        [Required]
-        public int EpisodeRefreshLookBackDays { get; set; } = 365;
+        [DisplayNameL("MetadataEnhanceOptions_EpisodeRefreshLookBackDays_Episode_Refresh_Lookback_Days", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_", typeof(Resources))]
+        [Required, MinValue(1)]
+        public int EpisodeRefreshLookbackDays { get; set; } = 365;
     }
 }

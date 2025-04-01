@@ -9,7 +9,6 @@ using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
@@ -141,7 +140,7 @@ namespace StrmAssistant
                 DebugMode = true;
             }
 
-            LibraryApi = new LibraryApi(libraryManager, fileSystem, mediaMountManager, userManager);
+            LibraryApi = new LibraryApi(libraryManager, providerManager, fileSystem, mediaMountManager, userManager);
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
                 itemRepository, jsonSerializer, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository, jsonSerializer);
@@ -183,8 +182,7 @@ namespace StrmAssistant
         {
             var item = e.Argument.Item;
 
-            if (_currentPersistMediaInfo && (item is Video || item is Audio) &&
-                item.DateLastRefreshed != DateTimeOffset.MinValue)
+            if (_currentPersistMediaInfo && item is Video && item.DateLastRefreshed != DateTimeOffset.MinValue)
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
 
@@ -263,7 +261,7 @@ namespace StrmAssistant
         {
             try
             {
-                if (e.Item is Video || e.Item is Audio)
+                if (e.Item is Video)
                 {
                     var deserializeResult = LibraryApi.HasMediaInfo(e.Item);
 
@@ -334,7 +332,7 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if ((e.Item is Video || e.Item is Audio) && !_currentMediaInfoRestoreMode)
+            if (e.Item is Video && !_currentMediaInfoRestoreMode)
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");

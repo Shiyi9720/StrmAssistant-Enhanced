@@ -5,6 +5,7 @@ using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -29,6 +30,7 @@ namespace StrmAssistant.Common
     {
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
+        private readonly IProviderManager _providerManager;
         private readonly IFileSystem _fileSystem;
         private readonly IMediaMountManager _mediaMountManager;
         private readonly IUserManager _userManager;
@@ -97,11 +99,12 @@ namespace StrmAssistant.Common
         public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
 
-        public LibraryApi(ILibraryManager libraryManager, IFileSystem fileSystem, IMediaMountManager mediaMountManager,
-            IUserManager userManager)
+        public LibraryApi(ILibraryManager libraryManager, IProviderManager providerManager, IFileSystem fileSystem,
+            IMediaMountManager mediaMountManager, IUserManager userManager)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
+            _providerManager = providerManager;
             _fileSystem = fileSystem;
             _mediaMountManager = mediaMountManager;
             _userManager = userManager;
@@ -180,6 +183,7 @@ namespace StrmAssistant.Common
                      ((l.CollectionType == CollectionType.TvShows.ToString() && t.Type == nameof(Episode)) ||
                       (l.CollectionType == CollectionType.Movies.ToString() && t.Type == nameof(Movie)) ||
                       (l.CollectionType == CollectionType.HomeVideos.ToString() && t.Type == nameof(Video)) ||
+                      (l.CollectionType == CollectionType.Music.ToString() && t.Type == nameof(MusicVideo)) ||
                       (l.CollectionType == CollectionType.MusicVideos.ToString() && t.Type == nameof(MusicVideo)) ||
                       (l.CollectionType is null && (t.Type == nameof(Episode) || t.Type == nameof(Movie))))) ||
                     (t.ImageFetchers.Contains("Embedded Images") &&
@@ -631,7 +635,7 @@ namespace StrmAssistant.Common
         public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source, CancellationToken cancellationToken)
         {
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
-            var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
+            var persistMediaInfo = taskItem is Video && persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var filePath = taskItem.Path;
@@ -645,16 +649,7 @@ namespace StrmAssistant.Common
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
             var extractSkip = mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension);
 
-            var refreshOptions = new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
-            {
-                EnableRemoteContentProbe = true,
-                ReplaceAllMetadata = true,
-                EnableThumbnailImageExtraction = false,
-                EnableSubtitleDownloading = false,
-                ImageRefreshMode = MetadataRefreshMode.ValidationOnly,
-                MetadataRefreshMode = MetadataRefreshMode.ValidationOnly,
-                ReplaceAllImages = false
-            };
+            var refreshOptions = Plugin.MediaInfoApi.GetMediaInfoRefreshOptions();
 
             var directoryService = refreshOptions.DirectoryService;
 
@@ -663,6 +658,17 @@ namespace StrmAssistant.Common
             {
                 var file = directoryService.GetFile(filePath);
                 if (file?.Exists != true) return null;
+            }
+
+            var collectionFolders = (BaseItem[])_libraryManager.GetCollectionFolders(taskItem);
+            var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
+            var dummyLibraryOptions = CopyLibraryOptions(libraryOptions);
+            dummyLibraryOptions.DisabledLocalMetadataReaders = new[] { "Nfo" };
+            dummyLibraryOptions.MetadataSavers = Array.Empty<string>();
+            foreach (var option in dummyLibraryOptions.TypeOptions)
+            {
+                option.MetadataFetchers = Array.Empty<string>();
+                option.ImageFetchers = Array.Empty<string>();
             }
 
             if (persistMediaInfo)
@@ -686,7 +692,9 @@ namespace StrmAssistant.Common
 
             if (extractSkip) return null;
 
-            await Plugin.MediaInfoApi.GetPlaybackMediaSources(taskItem, cancellationToken).ConfigureAwait(false);
+            await _providerManager
+                .RefreshSingleItem(taskItem, refreshOptions, collectionFolders, dummyLibraryOptions, cancellationToken)
+                .ConfigureAwait(false);
 
             if (persistMediaInfo)
             {
@@ -695,6 +703,83 @@ namespace StrmAssistant.Common
             }
 
             return true;
+        }
+
+        public static LibraryOptions CopyLibraryOptions(LibraryOptions options)
+        {
+            return new LibraryOptions
+            {
+                EnableArchiveMediaFiles = options.EnableArchiveMediaFiles,
+                EnablePhotos = options.EnablePhotos,
+                EnableRealtimeMonitor = options.EnableRealtimeMonitor,
+                EnableMarkerDetection = options.EnableMarkerDetection,
+                EnableMarkerDetectionDuringLibraryScan = options.EnableMarkerDetectionDuringLibraryScan,
+                IntroDetectionFingerprintLength = options.IntroDetectionFingerprintLength,
+                EnableChapterImageExtraction = options.EnableChapterImageExtraction,
+                ExtractChapterImagesDuringLibraryScan = options.ExtractChapterImagesDuringLibraryScan,
+                DownloadImagesInAdvance = options.DownloadImagesInAdvance,
+                CacheImages = options.CacheImages,
+                PathInfos = options.PathInfos,
+                IgnoreHiddenFiles = options.IgnoreHiddenFiles,
+                IgnoreFileExtensions = options.IgnoreFileExtensions,
+                SaveLocalMetadata = options.SaveLocalMetadata,
+                SaveMetadataHidden = options.SaveMetadataHidden,
+                SaveLocalThumbnailSets = options.SaveLocalThumbnailSets,
+                ImportPlaylists = options.ImportPlaylists,
+                EnableAutomaticSeriesGrouping = options.EnableAutomaticSeriesGrouping,
+                ShareEmbeddedMusicAlbumImages = options.ShareEmbeddedMusicAlbumImages,
+                EnableEmbeddedTitles = options.EnableEmbeddedTitles,
+                EnableAudioResume = options.EnableAudioResume,
+                AutoGenerateChapters = options.AutoGenerateChapters,
+                AutomaticRefreshIntervalDays = options.AutomaticRefreshIntervalDays,
+                PlaceholderMetadataRefreshIntervalDays = options.PlaceholderMetadataRefreshIntervalDays,
+                PreferredMetadataLanguage = options.PreferredMetadataLanguage,
+                PreferredImageLanguage = options.PreferredImageLanguage,
+                ContentType = options.ContentType,
+                MetadataCountryCode = options.MetadataCountryCode,
+                MetadataSavers = options.MetadataSavers,
+                DisabledLocalMetadataReaders = options.DisabledLocalMetadataReaders,
+                LocalMetadataReaderOrder = options.LocalMetadataReaderOrder,
+                DisabledLyricsFetchers = options.DisabledLyricsFetchers,
+                SaveLyricsWithMedia = options.SaveLyricsWithMedia,
+                LyricsDownloadMaxAgeDays = options.LyricsDownloadMaxAgeDays,
+                LyricsFetcherOrder = options.LyricsFetcherOrder,
+                LyricsDownloadLanguages = options.LyricsDownloadLanguages,
+                DisabledSubtitleFetchers = options.DisabledSubtitleFetchers,
+                SubtitleFetcherOrder = options.SubtitleFetcherOrder,
+                SkipSubtitlesIfEmbeddedSubtitlesPresent = options.SkipSubtitlesIfEmbeddedSubtitlesPresent,
+                SkipSubtitlesIfAudioTrackMatches = options.SkipSubtitlesIfAudioTrackMatches,
+                SubtitleDownloadLanguages = options.SubtitleDownloadLanguages,
+                SubtitleDownloadMaxAgeDays = options.SubtitleDownloadMaxAgeDays,
+                RequirePerfectSubtitleMatch = options.RequirePerfectSubtitleMatch,
+                SaveSubtitlesWithMedia = options.SaveSubtitlesWithMedia,
+                ForcedSubtitlesOnly = options.ForcedSubtitlesOnly,
+                HearingImpairedSubtitlesOnly = options.HearingImpairedSubtitlesOnly,
+                CollapseSingleItemFolders = options.CollapseSingleItemFolders,
+                EnableAdultMetadata = options.EnableAdultMetadata,
+                ImportCollections = options.ImportCollections,
+                MinCollectionItems = options.MinCollectionItems,
+                MusicFolderStructure = options.MusicFolderStructure,
+                MinResumePct = options.MinResumePct,
+                MaxResumePct = options.MaxResumePct,
+                MinResumeDurationSeconds = options.MinResumeDurationSeconds,
+                ThumbnailImagesIntervalSeconds = options.ThumbnailImagesIntervalSeconds,
+                SampleIgnoreSize = options.SampleIgnoreSize,
+                TypeOptions = options.TypeOptions.Select(t =>
+                    {
+                        var typeOption = new TypeOptions
+                        {
+                            Type = t.Type,
+                            MetadataFetchers = t.MetadataFetchers,
+                            MetadataFetcherOrder = t.MetadataFetcherOrder,
+                            ImageFetchers = t.ImageFetchers,
+                            ImageFetcherOrder = t.ImageFetcherOrder,
+                            ImageOptions = t.ImageOptions
+                        };
+                        return typeOption;
+                    })
+                    .ToArray()
+            };
         }
 
         public static bool IsFileShortcut(string path)
@@ -823,14 +908,37 @@ namespace StrmAssistant.Common
                 .ToArray();
         }
 
+        private bool EpisodeNeedsRefresh(Episode item, DateTimeOffset lookBackTime,
+            HashSet<EpisodeRefreshOption> episodeRefreshOptions, bool includeNoPrem)
+        {
+            var name = item.Name;
+            var overview = item.Overview;
+            var primaryImageInfo = item.GetImageInfo(ImageType.Primary, 0);
+            var dimensionsMatch = item.Width > 0 && item.Height > 0 && item.Width == primaryImageInfo?.Width &&
+                                  item.Height == primaryImageInfo?.Height;
+            var hasProviderIds = item.Series != null && item.Series.ProviderIds.Count > 0;
+
+            var needsRefresh = string.IsNullOrWhiteSpace(overview) ||
+                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&
+                                primaryImageInfo is null) ||
+                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.NonChineseOverview) &&
+                                !IsChinese(overview)) ||
+                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.DefaultEpisodeName) &&
+                                IsDefaultChineseEpisodeName(name)) ||
+                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.ReplaceCapturedImage) &&
+                                dimensionsMatch);
+
+            return needsRefresh && hasProviderIds && IsPremiereDateInScope(item, lookBackTime, includeNoPrem);
+        }
+
         public List<Episode> FetchEpisodeRefreshTaskItems()
         {
-            var lookBackDays = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshLookBackDays;
+            var lookBackDays = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshLookbackDays;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+
             var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
             _logger.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
-
-            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
             var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
                 .Cast<EpisodeRefreshOption>()
                 .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
@@ -842,14 +950,7 @@ namespace StrmAssistant.Common
                     IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
                 })
                 .OfType<Episode>()
-                .Where(e => (string.IsNullOrWhiteSpace(e.Overview) ||
-                             (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&
-                              !e.HasImage(ImageType.Primary)) ||
-                             (episodeRefreshOptions.Contains(EpisodeRefreshOption.NonChineseOverview) &&
-                              !IsChinese(e.Overview)) ||
-                             (episodeRefreshOptions.Contains(EpisodeRefreshOption.DefaultEpisodeName) &&
-                              IsDefaultChineseEpisodeName(e.Name))) && IsPremiereDateInScope(e, lookBackTime, true) &&
-                            e.Series.ProviderIds.Count > 0)
+                .Where(e => EpisodeNeedsRefresh(e, lookBackTime, episodeRefreshOptions, true))
                 .OrderByDescending(GetPremiereDateOrDefault)
                 .ToList();
 
@@ -862,10 +963,10 @@ namespace StrmAssistant.Common
         {
             const int lookBackDays = 90;
             _logger.Info("EpisodeRefresh - Look back days: " + lookBackDays);
+            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+
             var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
             _logger.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
-
-            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
             var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
                 .Cast<EpisodeRefreshOption>()
                 .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
@@ -878,8 +979,7 @@ namespace StrmAssistant.Common
             {
                 var season = group.Key;
 
-                var episodes = season
-                    .GetEpisodes(new InternalItemsQuery
+                var episodes = season.GetEpisodes(new InternalItemsQuery
                     {
                         ExcludeItemIds = group.Select(e => e.InternalId).ToArray(),
                         IncludeItemTypes = new[] { nameof(Episode) },
@@ -888,14 +988,7 @@ namespace StrmAssistant.Common
                         OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
                     })
                     .Items.OfType<Episode>()
-                    .Where(e => (string.IsNullOrWhiteSpace(e.Overview) ||
-                                 (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&
-                                  !e.HasImage(ImageType.Primary)) ||
-                                 (episodeRefreshOptions.Contains(EpisodeRefreshOption.NonChineseOverview) &&
-                                  !IsChinese(e.Overview)) ||
-                                 (episodeRefreshOptions.Contains(EpisodeRefreshOption.DefaultEpisodeName) &&
-                                  IsDefaultChineseEpisodeName(e.Name))) &&
-                                IsPremiereDateInScope(e, lookBackTime, false) && e.Series.ProviderIds.Count > 0);
+                    .Where(e => EpisodeNeedsRefresh(e, lookBackTime, episodeRefreshOptions, false));
 
                 itemsToRefresh.AddRange(episodes);
             }
