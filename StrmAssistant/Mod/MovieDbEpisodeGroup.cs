@@ -279,6 +279,11 @@ namespace StrmAssistant.Mod
 
             if (shouldAssignSeasonName) metadataResult.Item.Name = __state.GroupName;
 
+            if (isZh && string.IsNullOrEmpty(metadataResult.Item.Name))
+            {
+                metadataResult.Item.Name = $"第 {__state.LookupSeasonNumber} 季";
+            }
+
             metadataResult.Item.PremiereDate = null;
             metadataResult.Item.ProductionYear = null;
 

@@ -60,6 +60,7 @@ namespace StrmAssistant.Mod
 
             EnableImageCapture = new EnableImageCapture();
             EnhanceChineseSearch = new EnhanceChineseSearch();
+            MovieDbEpisodeGroup = new MovieDbEpisodeGroup();
             MergeMultiVersion = new MergeMultiVersion();
             ExclusiveExtract = new ExclusiveExtract();
             ChineseMovieDb = new ChineseMovieDb();
@@ -76,7 +77,6 @@ namespace StrmAssistant.Mod
             BeautifyMissingMetadata = new BeautifyMissingMetadata();
             EnhanceMissingEpisodes = new EnhanceMissingEpisodes();
             ChapterChangeTracker = new ChapterChangeTracker();
-            MovieDbEpisodeGroup = new MovieDbEpisodeGroup();
             NoBoxsetsAutoCreation = new NoBoxsetsAutoCreation();
             EnhanceNotificationSystem = new EnhanceNotificationSystem();
             EnableDeepDelete = new EnableDeepDelete();
