@@ -692,6 +692,8 @@ namespace StrmAssistant.Common
 
             if (extractSkip) return null;
 
+            taskItem.DateLastRefreshed = new DateTimeOffset();
+
             await _providerManager
                 .RefreshSingleItem(taskItem, refreshOptions, collectionFolders, dummyLibraryOptions, cancellationToken)
                 .ConfigureAwait(false);
