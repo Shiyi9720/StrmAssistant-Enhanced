@@ -6,7 +6,6 @@ using MediaBrowser.Controller.Providers;
 using StrmAssistant.Common;
 using StrmAssistant.ScheduledTask;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -22,6 +21,7 @@ namespace StrmAssistant.Mod
     public class ChineseMovieDb : PatchBase<ChineseMovieDb>
     {
         private static Assembly _movieDbAssembly;
+
         private static MethodInfo _genericMovieDbInfoProcessMainInfoMovie;
         private static MethodInfo _genericMovieDbInfoIsCompleteMovie;
         private static MethodInfo _getTitleMovieData;
@@ -29,32 +29,19 @@ namespace StrmAssistant.Mod
         private static MethodInfo _getMovieDbMetadataLanguages;
         private static MethodInfo _mapLanguageToProviderLanguage;
         private static MethodInfo _getImageLanguagesParam;
-        private static FieldInfo _cacheTime;
-        private static MethodInfo _getEpisodeInfoAsync;
 
         private static MethodInfo _movieDbSeriesProviderIsComplete;
         private static MethodInfo _movieDbSeriesProviderImportData;
         private static MethodInfo _ensureSeriesInfo;
         private static MethodInfo _getTitleSeriesInfo;
-        private static PropertyInfo _nameSeriesInfoProperty;
-        private static PropertyInfo _alternativeTitleSeriesInfoProperty;
-        private static PropertyInfo _alternativeTitleListProperty;
-        private static PropertyInfo _alternativeTitle;
-        private static PropertyInfo _alternativeTitleCountryCode;
-        private static PropertyInfo _genresProperty;
-        private static PropertyInfo _genreNameProperty;
 
         private static MethodInfo _movieDbSeasonProviderIsComplete;
         private static MethodInfo _movieDbSeasonProviderImportData;
-        private static PropertyInfo _nameSeasonInfoProperty;
-        private static PropertyInfo _overviewSeasonInfoProperty;
 
         private static MethodInfo _movieDbEpisodeProviderIsComplete;
         private static MethodInfo _movieDbEpisodeProviderImportData;
-        private static PropertyInfo _nameEpisodeInfoProperty;
-        private static PropertyInfo _overviewEpisodeInfoProperty;
-
-        private static PropertyInfo _seriesInfoTaskResultProperty;
+        private static MethodInfo _getEpisodeInfoAsync;
+        private static FieldInfo _cacheTime;
 
         private static readonly AsyncLocal<string> CurrentLookupLanguageCountryCode = new AsyncLocal<string>();
 
@@ -87,6 +74,7 @@ namespace StrmAssistant.Mod
                 var completeMovieData = _movieDbAssembly.GetType("MovieDb.MovieDbProvider")
                     .GetNestedType("CompleteMovieData", BindingFlags.NonPublic);
                 _getTitleMovieData = completeMovieData.GetMethod("GetTitle");
+                ReversePatch(PatchTracker, _getTitleMovieData, nameof(MovieGetTitleStub));
                 var movieDbProviderBase = _movieDbAssembly.GetType("MovieDb.MovieDbProviderBase");
                 _getMovieDbMetadataLanguages = movieDbProviderBase.GetMethod("GetMovieDbMetadataLanguages",
                     BindingFlags.Public | BindingFlags.Instance);
@@ -106,33 +94,19 @@ namespace StrmAssistant.Mod
                     BindingFlags.Instance | BindingFlags.NonPublic);
                 var seriesRootObject = movieDbSeriesProvider.GetNestedType("SeriesRootObject", BindingFlags.Public);
                 _getTitleSeriesInfo = seriesRootObject.GetMethod("GetTitle");
-                _nameSeriesInfoProperty = seriesRootObject.GetProperty("name");
-                _alternativeTitleSeriesInfoProperty = seriesRootObject.GetProperty("alternative_titles");
-                _alternativeTitleListProperty = _movieDbAssembly.GetType("MovieDb.TmdbAlternativeTitles")
-                    .GetProperty("results");
-                var tmdbTitleType = _movieDbAssembly.GetType("MovieDb.TmdbTitle");
-                _alternativeTitle = tmdbTitleType.GetProperty("title");
-                _alternativeTitleCountryCode = tmdbTitleType.GetProperty("iso_3166_1");
-                _genresProperty = seriesRootObject.GetProperty("genres");
-                _genreNameProperty = _movieDbAssembly.GetType("MovieDb.TmdbGenre").GetProperty("name");
+                ReversePatch(PatchTracker, _getTitleSeriesInfo, nameof(SeriesGetTitleStub));
 
                 var movieDbSeasonProvider = _movieDbAssembly.GetType("MovieDb.MovieDbSeasonProvider");
                 _movieDbSeasonProviderIsComplete =
                     movieDbSeasonProvider.GetMethod("IsComplete", BindingFlags.NonPublic | BindingFlags.Instance);
                 _movieDbSeasonProviderImportData =
                     movieDbSeasonProvider.GetMethod("ImportData", BindingFlags.NonPublic | BindingFlags.Instance);
-                var seasonRootObject = movieDbSeasonProvider.GetNestedType("SeasonRootObject", BindingFlags.Public);
-                _nameSeasonInfoProperty = seasonRootObject.GetProperty("name");
-                _overviewSeasonInfoProperty = seasonRootObject.GetProperty("overview");
 
                 var movieDbEpisodeProvider = _movieDbAssembly.GetType("MovieDb.MovieDbEpisodeProvider");
                 _movieDbEpisodeProviderIsComplete =
                     movieDbEpisodeProvider.GetMethod("IsComplete", BindingFlags.NonPublic | BindingFlags.Instance);
                 _movieDbEpisodeProviderImportData =
                     movieDbEpisodeProvider.GetMethod("ImportData", BindingFlags.NonPublic | BindingFlags.Instance);
-                var episodeRootObject = movieDbProviderBase.GetNestedType("RootObject", BindingFlags.Public);
-                _nameEpisodeInfoProperty = episodeRootObject.GetProperty("name");
-                _overviewEpisodeInfoProperty = episodeRootObject.GetProperty("overview");
                 
                 var getEpisodeInfo =
                     movieDbProviderBase.GetMethod("GetEpisodeInfo", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -223,20 +197,21 @@ namespace StrmAssistant.Mod
 
             return false;
         }
+        
+        [HarmonyReversePatch]
+        private static string MovieGetTitleStub(object instance) => throw new NotImplementedException();
 
         [HarmonyPrefix]
         [MethodImpl(MethodImplOptions.NoOptimization)]
-        private static bool ProcessMainInfoMoviePrefix(MetadataResult<Movie> resultItem, object settings,
+        private static void ProcessMainInfoMoviePrefix(MetadataResult<Movie> resultItem, object settings,
             string preferredCountryCode, object movieData, bool isFirstLanguage)
         {
             var item = resultItem.Item;
 
-            if (_getTitleMovieData != null && IsUpdateNeeded(item.Name))
+            if (IsUpdateNeeded(item.Name))
             {
-                item.Name = _getTitleMovieData.Invoke(movieData, null) as string;
+                item.Name = MovieGetTitleStub(movieData);
             }
-
-            return true;
         }
 
         [HarmonyPrefix]
@@ -327,40 +302,43 @@ namespace StrmAssistant.Mod
             }
         }
 
+        [HarmonyReversePatch]
+        private static string SeriesGetTitleStub(object instance) => throw new NotImplementedException();
+
         [HarmonyPrefix]
-        private static bool SeriesImportDataPrefix(MetadataResult<Series> seriesResult, object seriesInfo,
+        private static void SeriesImportDataPrefix(MetadataResult<Series> seriesResult, object seriesInfo,
             string preferredCountryCode, object settings, bool isFirstLanguage)
         {
             var item = seriesResult.Item;
 
-            if (_getTitleSeriesInfo != null && IsUpdateNeeded(item.Name))
+            if (IsUpdateNeeded(item.Name))
             {
-                item.Name = _getTitleSeriesInfo.Invoke(seriesInfo, null) as string;
+                item.Name = SeriesGetTitleStub(seriesInfo);
             }
 
-            if (_genresProperty != null && _genreNameProperty != null && isFirstLanguage &&
-                string.Equals(CurrentLookupLanguageCountryCode.Value, "CN", StringComparison.OrdinalIgnoreCase))
+            if (isFirstLanguage && string.Equals(CurrentLookupLanguageCountryCode.Value, "CN",
+                    StringComparison.OrdinalIgnoreCase))
             {
-                if (_genresProperty.GetValue(seriesInfo) is IList genres)
-                {
-                    foreach (var genre in genres)
-                    {
-                        var genreValue = _genreNameProperty.GetValue(genre)?.ToString();
-                        if (!string.IsNullOrEmpty(genreValue))
-                        {
-                            if (string.Equals(genreValue, "Sci-Fi & Fantasy",
-                                    StringComparison.OrdinalIgnoreCase))
-                                _genreNameProperty.SetValue(genre, "科幻奇幻");
+                var genresList = Traverse.Create(seriesInfo).Property("genres").GetValue<IEnumerable<object>>();
 
-                            if (string.Equals(genreValue, "War & Politics",
-                                    StringComparison.OrdinalIgnoreCase))
-                                _genreNameProperty.SetValue(genre, "战争政治");
+                if (genresList != null)
+                {
+                    foreach (var genre in genresList)
+                    {
+                        var genreNameProperty = Traverse.Create(genre).Property("name");
+                        var genreNameValue = genreNameProperty.GetValue<string>();
+
+                        if (!string.IsNullOrEmpty(genreNameValue))
+                        {
+                            if (string.Equals(genreNameValue, "Sci-Fi & Fantasy", StringComparison.OrdinalIgnoreCase))
+                                genreNameProperty.SetValue("科幻奇幻");
+
+                            if (string.Equals(genreNameValue, "War & Politics", StringComparison.OrdinalIgnoreCase))
+                                genreNameProperty.SetValue("战争政治");
                         }
                     }
                 }
             }
-
-            return true;
         }
 
         [HarmonyPostfix]
@@ -375,33 +353,33 @@ namespace StrmAssistant.Mod
 
             CurrentLookupLanguageCountryCode.Value = lookupLanguageCountryCode;
 
-            if (_seriesInfoTaskResultProperty == null)
-                _seriesInfoTaskResultProperty = __result.GetType().GetProperty("Result");
+            var seriesInfo = Traverse.Create(__result).Property("Result").GetValue();
 
-            var seriesInfo = _seriesInfoTaskResultProperty?.GetValue(__result);
-            if (seriesInfo != null && _nameSeriesInfoProperty != null)
+            if (seriesInfo != null)
             {
-                var name = _nameSeriesInfoProperty.GetValue(seriesInfo) as string;
+                var nameProperty = Traverse.Create(seriesInfo).Property("name");
+                var nameValue = nameProperty.GetValue<string>();
 
-                if (!HasMovieDbJapaneseFallback()
-                        ? !IsChinese(name)
-                        : !IsChineseJapanese(name) &&
-                          _alternativeTitleSeriesInfoProperty != null &&
-                          _alternativeTitleListProperty != null &&
-                          _alternativeTitleCountryCode != null && _alternativeTitle != null)
+                if (!HasMovieDbJapaneseFallback() ? !IsChinese(nameValue) : !IsChineseJapanese(nameValue))
                 {
-                    var alternativeTitles = _alternativeTitleSeriesInfoProperty.GetValue(seriesInfo);
-                    if (_alternativeTitleListProperty.GetValue(alternativeTitles) is IList altTitles)
+                    var alternativeTitles = Traverse.Create(seriesInfo)
+                        .Property("alternative_titles")
+                        .Property("results")
+                        .GetValue<IEnumerable<object>>();
+
+                    if (alternativeTitles != null)
                     {
-                        foreach (var altTitle in altTitles)
+                        foreach (var altTitle in alternativeTitles)
                         {
-                            var iso3166Value = _alternativeTitleCountryCode.GetValue(altTitle)?.ToString();
-                            var titleValue = _alternativeTitle.GetValue(altTitle)?.ToString();
+                            var traverseAltTitle = Traverse.Create(altTitle);
+                            var iso3166Value = traverseAltTitle.Property("iso_3166_1").GetValue<string>();
+                            var titleValue = traverseAltTitle.Property("title").GetValue<string>();
+
                             if (!string.IsNullOrEmpty(iso3166Value) && !string.IsNullOrEmpty(titleValue) &&
-                                lookupLanguageCountryCode != null && string.Equals(iso3166Value,
-                                    lookupLanguageCountryCode, StringComparison.OrdinalIgnoreCase))
+                                string.Equals(iso3166Value, lookupLanguageCountryCode,
+                                    StringComparison.OrdinalIgnoreCase))
                             {
-                                _nameSeriesInfoProperty.SetValue(seriesInfo, titleValue);
+                                nameProperty.SetValue(titleValue);
                                 break;
                             }
                         }
@@ -411,40 +389,37 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool SeasonImportDataPrefix(Season item, object seasonInfo, string name, int seasonNumber,
+        private static void SeasonImportDataPrefix(Season item, object seasonInfo, string name, int seasonNumber,
             bool isFirstLanguage)
         {
-            if (_nameSeasonInfoProperty != null && IsUpdateNeeded(item.Name))
+            if (IsUpdateNeeded(item.Name))
             {
-                item.Name = _nameSeasonInfoProperty.GetValue(seasonInfo) as string;
+                item.Name = Traverse.Create(seasonInfo).Property("name").GetValue<string>();
             }
 
-            if (_overviewSeasonInfoProperty != null && IsUpdateNeeded(item.Overview))
+            if (IsUpdateNeeded(item.Overview))
             {
-                item.Overview = _overviewSeasonInfoProperty.GetValue(seasonInfo) as string;
+                item.Overview = Traverse.Create(seasonInfo).Property("overview").GetValue<string>();
             }
-
-            return true;
         }
 
         [HarmonyPrefix]
-        private static bool EpisodeImportDataPrefix(MetadataResult<Episode> result, EpisodeInfo info, object response,
+        private static void EpisodeImportDataPrefix(MetadataResult<Episode> result, EpisodeInfo info, object response,
             object settings, bool isFirstLanguage)
         {
             var item = result.Item;
 
-            if (_nameEpisodeInfoProperty != null && _nameEpisodeInfoProperty.GetValue(response) is string nameValue &&
-                IsUpdateNeeded(item.Name, nameValue))
+            var nameValue = Traverse.Create(response).Property("name").GetValue<string>();
+
+            if (IsUpdateNeeded(item.Name, nameValue))
             {
                 item.Name = nameValue;
             }
 
-            if (_overviewEpisodeInfoProperty != null && IsUpdateNeeded(item.Overview))
+            if (IsUpdateNeeded(item.Overview))
             {
-                item.Overview = _overviewEpisodeInfoProperty.GetValue(response) as string;
+                item.Overview = Traverse.Create(response).Property("overview").GetValue<string>();
             }
-
-            return true;
         }
 
         [HarmonyReversePatch]
