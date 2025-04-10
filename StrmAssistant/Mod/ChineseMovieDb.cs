@@ -233,19 +233,15 @@ namespace StrmAssistant.Mod
 
             if (!isJapaneseFallback)
             {
-                if (!IsChinese(currentValue)) return true;
-
-                return IsDefaultChineseEpisodeName(currentValue) && IsEnglish(newValue) &&
-                       !IsDefaultEnglishEpisodeName(newValue);
+                return IsDefaultChineseEpisodeName(currentValue) && IsChinese(newValue) &&
+                       !IsDefaultChineseEpisodeName(newValue);
             }
-
-            if (!IsChineseJapanese(currentValue)) return true;
 
             if (IsDefaultChineseEpisodeName(currentValue))
             {
-                if (IsJapanese(newValue) && !IsDefaultJapaneseEpisodeName(newValue)) return true;
+                if (IsChinese(newValue) && !IsDefaultChineseEpisodeName(newValue)) return true;
 
-                if (IsEnglish(newValue) && !IsDefaultEnglishEpisodeName(newValue)) return true;
+                if (IsJapanese(newValue) && !IsDefaultJapaneseEpisodeName(newValue)) return true;
             }
 
             return false;
@@ -306,20 +302,13 @@ namespace StrmAssistant.Mod
 
                 if (!isJapaneseFallback)
                 {
-                    if (IsChinese(name))
+                    if (IsDefaultChineseEpisodeName(name))
                     {
-                        if (IsDefaultChineseEpisodeName(name))
-                        {
-                            __result = false;
-                        }
-                        else if (IsChinese(overview))
-                        {
-                            __result = true;
-                        }
-                        else
-                        {
-                            __result = false;
-                        }
+                        __result = false;
+                    }
+                    else if (IsChinese(overview))
+                    {
+                        __result = true;
                     }
                     else
                     {
@@ -328,24 +317,17 @@ namespace StrmAssistant.Mod
                 }
                 else
                 {
-                    if (IsChineseJapanese(name))
+                    if (IsDefaultChineseEpisodeName(name))
                     {
-                        if (IsDefaultChineseEpisodeName(name))
-                        {
-                            __result = false;
-                        }
-                        else if (IsDefaultJapaneseEpisodeName(name))
-                        {
-                            __result = false;
-                        }
-                        else if (IsChineseJapanese(overview))
-                        {
-                            __result = true;
-                        }
-                        else
-                        {
-                            __result = false;
-                        }
+                        __result = false;
+                    }
+                    else if (IsDefaultJapaneseEpisodeName(name))
+                    {
+                        __result = false;
+                    }
+                    else if (IsChineseJapanese(overview))
+                    {
+                        __result = true;
                     }
                     else
                     {
