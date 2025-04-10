@@ -1,16 +1,8 @@
 ﻿using HarmonyLib;
-using MediaBrowser.Common.Net;
-using MediaBrowser.Controller;
-using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
-using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.Globalization;
-using MediaBrowser.Model.IO;
-using MediaBrowser.Model.Logging;
-using MediaBrowser.Model.Serialization;
 using StrmAssistant.Common;
 using StrmAssistant.ScheduledTask;
 using System;
@@ -19,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.LanguageUtility;
@@ -29,7 +22,6 @@ namespace StrmAssistant.Mod
     public class ChineseMovieDb : PatchBase<ChineseMovieDb>
     {
         private static Assembly _movieDbAssembly;
-        private static ConstructorInfo _genericMovieDbInfoConstructor;
         private static MethodInfo _genericMovieDbInfoProcessMainInfoMovie;
         private static MethodInfo _genericMovieDbInfoIsCompleteMovie;
         private static MethodInfo _getTitleMovieData;
@@ -88,14 +80,6 @@ namespace StrmAssistant.Mod
             {
                 var genericMovieDbInfo = _movieDbAssembly.GetType("MovieDb.GenericMovieDbInfo`1");
                 var genericMovieDbInfoMovie = genericMovieDbInfo.MakeGenericType(typeof(Movie));
-                _genericMovieDbInfoConstructor = genericMovieDbInfoMovie.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public, null,
-                    new[]
-                    {
-                        typeof(IJsonSerializer), typeof(IHttpClient), typeof(IFileSystem),
-                        typeof(IServerConfigurationManager), typeof(ILogManager), typeof(ILocalizationManager),
-                        typeof(IServerApplicationHost), typeof(ILibraryManager)
-                    }, null);
                 _genericMovieDbInfoIsCompleteMovie = genericMovieDbInfoMovie.GetMethod("IsComplete",
                     BindingFlags.NonPublic | BindingFlags.Instance);
                 _genericMovieDbInfoProcessMainInfoMovie = genericMovieDbInfoMovie.GetMethod("ProcessMainInfo",
@@ -164,17 +148,10 @@ namespace StrmAssistant.Mod
 
         protected override void Prepare(bool apply)
         {
-            PatchUnpatch(PatchTracker, apply, _genericMovieDbInfoConstructor,
-                prefix: nameof(GenericMovieDbInfoConstructorPrefix));
-
-            if (!apply)
-            {
-                PatchUnpatch(Instance.PatchTracker, false, _genericMovieDbInfoProcessMainInfoMovie,
-                    prefix: nameof(ProcessMainInfoMoviePrefix));
-                PatchUnpatch(Instance.PatchTracker, false, _genericMovieDbInfoIsCompleteMovie,
-                    prefix: nameof(IsCompletePrefix), postfix: nameof(IsCompletePostfix));
-            }
-
+            PatchUnpatch(Instance.PatchTracker, apply, _genericMovieDbInfoProcessMainInfoMovie,
+                prefix: nameof(ProcessMainInfoMoviePrefix));
+            PatchUnpatch(Instance.PatchTracker, apply, _genericMovieDbInfoIsCompleteMovie,
+                prefix: nameof(IsCompletePrefix), postfix: nameof(IsCompletePostfix));
             PatchUnpatch(PatchTracker, apply, _getMovieDbMetadataLanguages, postfix: nameof(MetadataLanguagesPostfix));
             PatchUnpatch(PatchTracker, apply, _getImageLanguagesParam, postfix: nameof(GetImageLanguagesParamPostfix));
             PatchUnpatch(PatchTracker, apply, _movieDbSeriesProviderIsComplete, prefix: nameof(IsCompletePrefix),
@@ -248,21 +225,7 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        private static bool GenericMovieDbInfoConstructorPrefix(object __instance)
-        {
-            PatchUnpatch(Instance.PatchTracker, false, _genericMovieDbInfoProcessMainInfoMovie,
-                prefix: nameof(ProcessMainInfoMoviePrefix), suppress: true);
-            PatchUnpatch(Instance.PatchTracker, false, _genericMovieDbInfoIsCompleteMovie, prefix: nameof(IsCompletePrefix),
-                postfix: nameof(IsCompletePostfix), suppress: true);
-            PatchUnpatch(Instance.PatchTracker, true, _genericMovieDbInfoProcessMainInfoMovie,
-                prefix: nameof(ProcessMainInfoMoviePrefix), suppress: true);
-            PatchUnpatch(Instance.PatchTracker, true, _genericMovieDbInfoIsCompleteMovie, prefix: nameof(IsCompletePrefix),
-                postfix: nameof(IsCompletePostfix), suppress: true);
-
-            return true;
-        }
-
-        [HarmonyPrefix]
+        [MethodImpl(MethodImplOptions.NoOptimization)]
         private static bool ProcessMainInfoMoviePrefix(MetadataResult<Movie> resultItem, object settings,
             string preferredCountryCode, object movieData, bool isFirstLanguage)
         {
@@ -277,6 +240,7 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
+        [MethodImpl(MethodImplOptions.NoOptimization)]
         private static bool IsCompletePrefix(BaseItem item, ref bool __result, out bool __state)
         {
             __state = false;
@@ -342,6 +306,7 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPostfix]
+        [MethodImpl(MethodImplOptions.NoOptimization)]
         private static void IsCompletePostfix(BaseItem item, ref bool __result, bool __state)
         {
             if (__state)
