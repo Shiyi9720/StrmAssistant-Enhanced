@@ -1,4 +1,3 @@
-using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
@@ -7,21 +6,15 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant.ScheduledTask
 {
     public class RefreshEpisodeTask : IScheduledTask, IConfigurableScheduledTask
     {
-        private readonly ILogger _logger;
-        private readonly IFileSystem _fileSystem;
+        private readonly ILogger _logger = Plugin.Instance.Logger;
 
         private static readonly Random Random = new Random();
-
-        public RefreshEpisodeTask(IFileSystem fileSystem)
-        {
-            _logger = Plugin.Instance.Logger;
-            _fileSystem = fileSystem;
-        }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
@@ -35,8 +28,6 @@ namespace StrmAssistant.ScheduledTask
             var itemsToRefresh = Plugin.LibraryApi.FetchEpisodeRefreshTaskItems();
 
             IsRunning = true;
-
-            var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
 
             double total = itemsToRefresh.Count;
             var index = 0;
@@ -80,7 +71,8 @@ namespace StrmAssistant.ScheduledTask
                             return;
                         }
 
-                        await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
+                        await Plugin.LibraryApi.OrchestrateEpisodeRefreshAsync(taskItem, cancellationToken)
+                            .ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {

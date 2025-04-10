@@ -540,7 +540,7 @@
     <value>自訂 TVDB 備選語言</value>
   </data>
   <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_Non_Fallback_Language" xml:space="preserve">
-    <value>屏蔽非備選語言</value>
+    <value>屏蔽非備選語言簡介</value>
   </data>
   <data name="MetadataEnhanceOptions_BlockNonFallbackLanguage_Block_English_such_non_fallback_language_in_overview__Default_is_OFF_" xml:space="preserve">
     <value>為電影，節目和劇集的簡介屏蔽英文等非替代語言，支援 TMDB, TVDB，預設為關閉。</value>

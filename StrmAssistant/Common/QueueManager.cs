@@ -714,8 +714,6 @@ namespace StrmAssistant.Common
                             Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount;
                         Logger.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
 
-                        var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
-
                         IsEpisodeRefreshProcessTaskRunning = true;
 
                         foreach (var item in itemsToRefresh)
@@ -756,7 +754,8 @@ namespace StrmAssistant.Common
                                         return;
                                     }
 
-                                    await taskItem.RefreshMetadata(refreshOptions, cancellationToken).ConfigureAwait(false);
+                                    await Plugin.LibraryApi.OrchestrateEpisodeRefreshAsync(taskItem, cancellationToken)
+                                        .ConfigureAwait(false);
 
                                     Logger.Info("EpisodeRefresh - Item processed: " + taskItem.Name + " - " +
                                                 taskItem.Path);
