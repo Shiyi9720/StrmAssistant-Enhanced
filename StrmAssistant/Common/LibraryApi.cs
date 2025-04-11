@@ -1082,7 +1082,7 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task OrchestrateEpisodeRefreshAsync(Episode taskItem, CancellationToken cancellationToken)
+        public async Task RefreshEpisodeMetadata(Episode taskItem, CancellationToken cancellationToken)
         {
             var collectionFolders = (BaseItem[])_libraryManager.GetCollectionFolders(taskItem);
             var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
@@ -1101,9 +1101,6 @@ namespace StrmAssistant.Common
                     typeOption.ImageFetchers = new[] { "TheMovieDb" };
                 }
             }
-
-            EnableItemExclusiveFeatures(taskItem.InternalId, ExclusiveControl.CatchAllBlock,
-                ExclusiveControl.IgnoreExtSubChange);
 
             var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
 

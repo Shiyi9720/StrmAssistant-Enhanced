@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Options.GeneralOptions;
+using static StrmAssistant.Options.MediaInfoExtractOptions;
 using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant.Common
@@ -752,7 +753,10 @@ namespace StrmAssistant.Common
                                         return;
                                     }
 
-                                    await Plugin.LibraryApi.OrchestrateEpisodeRefreshAsync(taskItem, cancellationToken)
+                                    EnableItemExclusiveFeatures(taskItem.InternalId, ExclusiveControl.CatchAllBlock,
+                                        ExclusiveControl.IgnoreExtSubChange);
+
+                                    await Plugin.LibraryApi.RefreshEpisodeMetadata(taskItem, cancellationToken)
                                         .ConfigureAwait(false);
 
                                     Logger.Info("EpisodeRefresh - Item processed: " + taskItem.Name + " - " +
