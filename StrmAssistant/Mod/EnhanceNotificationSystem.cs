@@ -76,7 +76,8 @@ namespace StrmAssistant.Mod
             PatchUnpatch(PatchTracker, apply, _convertToGroups, postfix: nameof(ConvertToGroupsPostfix));
             PatchUnpatch(PatchTracker, apply, _sendNotification, prefix: nameof(SendNotificationPrefix));
             PatchUnpatch(PatchTracker, apply, _queueNotification, prefix: nameof(QueueNotificationPrefix));
-            PatchUnpatch(PatchTracker, apply, _deleteItemsRequest, prefix: nameof(DeleteItemsRequestPrefix));
+            PatchUnpatch(PatchTracker, apply, _deleteItemsRequest, prefix: nameof(DeleteItemsRequestPrefix),
+                postfix: nameof(DeleteItemsRequestPostfix));
             PatchUnpatch(PatchTracker, apply, _deleteItem, prefix: nameof(DeleteItemPrefix),
                 finalizer: nameof(DeleteItemFinalizer));
         }
@@ -178,6 +179,12 @@ namespace StrmAssistant.Mod
             DeleteByUser.Value = GetUserForRequestStub(__instance, null);
         }
 
+        [HarmonyPostfix]
+        private static void DeleteItemsRequestPostfix(BaseApiService __instance, IReturnVoid request)
+        {
+            DeleteByUser.Value = null;
+        }
+
         [HarmonyPrefix]
         private static void DeleteItemPrefix(ILibraryManager __instance, BaseItem item, DeleteOptions options,
             BaseItem parent, bool notifyParentItem, out Dictionary<string, bool> __state)
@@ -199,7 +206,6 @@ namespace StrmAssistant.Mod
             if (__state != null && __state.Count > 0 && __exception is null && DeleteByUser.Value != null)
             {
                 var user = DeleteByUser.Value;
-                DeleteByUser.Value = null;
 
                 Task.Run(() =>
                         Plugin.NotificationApi.DeepDeleteSendNotification(item, user,
