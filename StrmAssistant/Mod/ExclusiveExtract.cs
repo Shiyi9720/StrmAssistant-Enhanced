@@ -236,7 +236,9 @@ namespace StrmAssistant.Mod
         [HarmonyFinalizer]
         private static void RunFfProcessFinalizer(Task __result, Exception __exception)
         {
-            if (__exception is OperationCanceledException) return;
+            if (__result.IsCanceled || __result.IsFaulted) return;
+
+            if (ExclusiveItem.Value == 0) return;
 
             var result = Traverse.Create(__result).Property("Result").GetValue();
 
