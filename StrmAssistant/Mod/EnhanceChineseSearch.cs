@@ -52,7 +52,6 @@ namespace StrmAssistant.Mod
             {
                 if (AppVer >= Ver4830)
                 {
-                    UpdateSearchScope(Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.SearchScope);
                     PatchPhase1();
                 }
                 else

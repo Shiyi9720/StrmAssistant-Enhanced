@@ -49,7 +49,8 @@ namespace StrmAssistant.Options.Store
                 {
                     options.GeneralOptions.CatchupTaskScope = CatchupTask.MediaInfo.ToString();
                 }
-                else if (!Plugin.Instance.IntroSkipStore.GetOptions().UnlockIntroSkip)
+                else if (options.GeneralOptions.CatchupMode &&
+                         !Plugin.Instance.IntroSkipStore.GetOptions().UnlockIntroSkip)
                 {
                     var taskScope = options.GeneralOptions.CatchupTaskScope;
                     var selectedTasks = taskScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -107,10 +108,9 @@ namespace StrmAssistant.Options.Store
                     }
                 }
 
-                if (changedProperties.Contains(nameof(PluginOptions.GeneralOptions.CatchupMode)) ||
-                    changedProperties.Contains(nameof(PluginOptions.GeneralOptions.CatchupTaskScope)))
+                if (changedProperties.Contains(nameof(PluginOptions.GeneralOptions.CatchupTaskScope)))
                 {
-                    if (options.GeneralOptions.CatchupMode) UpdateCatchupScope(options.GeneralOptions.CatchupTaskScope);
+                    UpdateCatchupScope(options.GeneralOptions.CatchupTaskScope);
                 }
 
                 if (changedProperties.Contains(nameof(PluginOptions.GeneralOptions.MaxConcurrentCount)))
@@ -145,11 +145,9 @@ namespace StrmAssistant.Options.Store
                     }
                 }
 
-                if (changedProperties.Contains(nameof(PluginOptions.ModOptions.SearchScope)) ||
-                    changedProperties.Contains(nameof(PluginOptions.ModOptions.EnhanceChineseSearch)))
+                if (changedProperties.Contains(nameof(PluginOptions.ModOptions.SearchScope)))
                 {
-                    if (options.ModOptions.EnhanceChineseSearch)
-                        UpdateSearchScope(options.ModOptions.SearchScope);
+                    UpdateSearchScope(options.ModOptions.SearchScope);
                 }
 
                 if (changedProperties.Contains(nameof(PluginOptions.NetworkOptions.EnableProxyServer)))

@@ -111,10 +111,9 @@ namespace StrmAssistant.Options.Store
                     }
                 }
 
-                if (changedProperties.Contains(nameof(IntroSkipOptions.EnableIntroSkip)) ||
-                    changedProperties.Contains(nameof(IntroSkipOptions.IntroSkipPreferences)))
+                if (changedProperties.Contains(nameof(IntroSkipOptions.IntroSkipPreferences)))
                 {
-                    if (options.EnableIntroSkip) UpdateIntroSkipPreferences(options.IntroSkipPreferences);
+                    UpdateIntroSkipPreferences(options.IntroSkipPreferences);
                 }
 
                 if (changedProperties.Contains(nameof(IntroSkipOptions.LibraryScope)) ||

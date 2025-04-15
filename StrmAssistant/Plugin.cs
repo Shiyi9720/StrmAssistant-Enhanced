@@ -115,6 +115,7 @@ namespace StrmAssistant
             IntroSkipStore = new IntroSkipOptionsStore(applicationHost, Logger, Name + "_" + nameof(IntroSkipOptions));
             ExperienceEnhanceStore = new ExperienceEnhanceOptionsStore(applicationHost, Logger,
                 Name + "_" + nameof(ExperienceEnhanceOptions));
+            InitializeOptionCache();
 
             if (MainOptionsStore.GetOptions().AboutOptions.DebugMode)
             {
@@ -145,17 +146,8 @@ namespace StrmAssistant
                 mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager);
             ShortcutMenuHelper.Initialize(configurationManager);
 
-            if (MainOptionsStore.GetOptions().GeneralOptions.CatchupMode)
-            {
-                UpdateCatchupScope(MainOptionsStore.GetOptions().GeneralOptions.CatchupTaskScope);
-                QueueManager.Initialize();
-            }
-
-            if (IntroSkipStore.GetOptions().EnableIntroSkip)
-            {
-                UpdateIntroSkipPreferences(IntroSkipStore.GetOptions().IntroSkipPreferences);
-                PlaySessionMonitor.Initialize();
-            }
+            if (MainOptionsStore.GetOptions().GeneralOptions.CatchupMode) QueueManager.Initialize();
+            if (IntroSkipStore.GetOptions().EnableIntroSkip) PlaySessionMonitor.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemUpdated += OnItemUpdated;

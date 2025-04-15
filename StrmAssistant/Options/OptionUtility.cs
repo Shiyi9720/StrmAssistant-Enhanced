@@ -26,6 +26,14 @@ namespace StrmAssistant.Options
         private static HashSet<string> _selectedIntroSkipPreferences = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static string[] _includeItemTypes = Array.Empty<string>();
 
+        public static void InitializeOptionCache()
+        {
+            UpdateExclusiveControlFeatures(Plugin.Instance.MediaInfoExtractStore.GetOptions());
+            UpdateCatchupScope(Plugin.Instance.MainOptionsStore.GetOptions().GeneralOptions.CatchupTaskScope);
+            UpdateIntroSkipPreferences(Plugin.Instance.IntroSkipStore.GetOptions().IntroSkipPreferences);
+            UpdateSearchScope(Plugin.Instance.MainOptionsStore.GetOptions().ModOptions.SearchScope);
+        }
+
         public static void UpdateExclusiveControlFeatures(MediaInfoExtractOptions options)
         {
             var featureSet = new HashSet<string>(

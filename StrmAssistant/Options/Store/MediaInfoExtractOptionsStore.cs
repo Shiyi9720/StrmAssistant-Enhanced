@@ -95,10 +95,9 @@ namespace StrmAssistant.Options.Store
                 }
 
                 if (changedProperties.Contains(nameof(MediaInfoExtractOptions.ExclusiveControlFeatures)) ||
-                    changedProperties.Contains(nameof(MediaInfoExtractOptions.ExclusiveExtract)) ||
                     changedProperties.Contains(nameof(MediaInfoExtractOptions.PersistMediaInfoMode)))
                 {
-                    if (options.ExclusiveExtract) UpdateExclusiveControlFeatures(options);
+                    UpdateExclusiveControlFeatures(options);
                 }
 
                 if (changedProperties.Contains(nameof(MediaInfoExtractOptions.LibraryScope)))
