@@ -645,7 +645,7 @@
     <value>默认集标题</value>
   </data>
   <data name="MetadataEnhanceOptions_EpisodeRefreshScope_Episode_refresh_scope_for_scheduled_task_and_catch_up__Default_is_no_overview_and_no_image_" xml:space="preserve">
-    <value>计划任务和追更模式剧集元数据刷新的范围，默认为无图无简介。</value>
+    <value>计划任务和追更模式剧集元数据刷新的范围，涵盖所有剧集媒体库，默认为无图无简介。</value>
   </data>
   <data name="EpisodeRefreshOption_ReplaceCapturedImage_Replace_Captured_Image" xml:space="preserve">
     <value>替换视频截图</value>
@@ -654,7 +654,7 @@
     <value>剧集刷新回溯天数</value>
   </data>
   <data name="MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_" xml:space="preserve">
-    <value>计划任务剧集元数据刷新回溯天数，默认为365天。</value>
+    <value>计划任务剧集元数据刷新的回溯天数，默认为365天。</value>
   </data>
   <data name="MergeScopeOption_FolderScope_FolderScope" xml:space="preserve">
     <value>同目录合并</value>

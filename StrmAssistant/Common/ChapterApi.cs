@@ -332,7 +332,13 @@ namespace StrmAssistant.Common
                     if (hasMarkers)
                     {
                         items.Add(item);
+                        continue;
                     }
+                }
+
+                if (!string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId)))
+                {
+                    items.Add(item);
                 }
             }
 

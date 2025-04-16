@@ -55,7 +55,8 @@ namespace StrmAssistant.Options
 
         protected override void Validate(ValidationContext context)
         {
-            if (GeneralOptions.CatchupTaskScope.Contains(CatchupTask.Fingerprint.ToString()) &&
+            if (GeneralOptions.CatchupMode &&
+                GeneralOptions.CatchupTaskScope.Contains(CatchupTask.Fingerprint.ToString()) &&
                 !IntroSkipOptions.UnlockIntroSkip)
             {
                 context.AddValidationError(Resources.InvalidFingerprintCatchup);

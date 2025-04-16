@@ -645,7 +645,7 @@
     <value>預設集標題</value>
   </data>
   <data name="MetadataEnhanceOptions_EpisodeRefreshScope_Episode_refresh_scope_for_scheduled_task_and_catch_up__Default_is_no_overview_and_no_image_" xml:space="preserve">
-    <value>規劃任務與追更模式劇集元資料刷新的範圍，預設為無圖無簡介。</value>
+    <value>規劃任務和追更模式劇集元資料刷新的範圍，涵蓋所有劇集媒體庫，預設為無圖無簡介。</value>
   </data>
   <data name="EpisodeRefreshOption_ReplaceCapturedImage_Replace_Captured_Image" xml:space="preserve">
     <value>替換影片截圖</value>
@@ -654,7 +654,7 @@
     <value>劇集刷新回溯天數</value>
   </data>
   <data name="MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_" xml:space="preserve">
-    <value>計畫任務劇集元資料刷新回溯天數，預設為365天。</value>
+    <value>規劃任務劇集元資料刷新的回溯天數，預設為365天。</value>
   </data>
   <data name="MergeScopeOption_FolderScope_FolderScope" xml:space="preserve">
     <value>同目錄合併</value>

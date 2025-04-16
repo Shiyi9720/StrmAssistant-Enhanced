@@ -13,6 +13,12 @@ namespace StrmAssistant.Options
         private static HashSet<string> _selectedCatchupTasks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static HashSet<string> _selectedIntroSkipPreferences = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        public static void InitializeOptionCache()
+        {
+            UpdateCatchupScope();
+            UpdateIntroSkipPreferences();
+        }
+
         public static void UpdateCatchupScope()
         {
             var catchupTaskScope = Plugin.Instance.GetPluginOptions().GeneralOptions.CatchupTaskScope;

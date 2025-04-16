@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using static StrmAssistant.Options.Utility;
 
 namespace StrmAssistant.ScheduledTask
 {
@@ -71,7 +70,7 @@ namespace StrmAssistant.ScheduledTask
                             return;
                         }
 
-                        await Plugin.LibraryApi.OrchestrateEpisodeRefreshAsync(taskItem, cancellationToken)
+                        await Plugin.LibraryApi.RefreshEpisodeMetadata(taskItem, cancellationToken)
                             .ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)

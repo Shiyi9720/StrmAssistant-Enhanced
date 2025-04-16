@@ -129,6 +129,7 @@ namespace StrmAssistant
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
+            InitializeOptionCache();
 
             if (GetOptions().AboutOptions.DebugMode)
             {
@@ -157,17 +158,8 @@ namespace StrmAssistant
                 mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager);
             ShortcutMenuHelper.Initialize(configurationManager);
 
-            if (_currentCatchupMode)
-            {
-                UpdateCatchupScope();
-                QueueManager.Initialize();
-            }
-
-            if (_currentEnableIntroSkip)
-            {
-                UpdateIntroSkipPreferences();
-                PlaySessionMonitor.Initialize();
-            }
+            if (_currentCatchupMode) QueueManager.Initialize();
+            if (_currentEnableIntroSkip) PlaySessionMonitor.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
