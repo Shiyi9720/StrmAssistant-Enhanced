@@ -112,6 +112,12 @@ namespace StrmAssistant.Mod
                 .All(p => p.FallbackPatchApproach == p.DefaultPatchApproach);
         }
 
+        public static void CopyProperty(object source, object target, string propertyName)
+        {
+            var value = Traverse.Create(source).Property(propertyName).GetValue();
+            Traverse.Create(target).Property(propertyName).SetValue(value);
+        }
+
         public static bool ReversePatch(PatchTracker tracker, MethodBase targetMethod, string stub)
         {
             if (tracker.FallbackPatchApproach != PatchApproach.Harmony) return false;
