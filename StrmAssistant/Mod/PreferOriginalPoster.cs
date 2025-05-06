@@ -434,19 +434,24 @@ namespace StrmAssistant.Mod
 
             var remoteImages = result.ToList();
 
-            foreach (var image in remoteImages.Where(image => image.Type == ImageType.Backdrop))
+            if (BackdropByLanguage.Count > 0)
             {
-                var match = BackdropByLanguage
-                    .FirstOrDefault(kvp => image.Url.EndsWith(kvp.Key, StringComparison.Ordinal)).Key;
-
-                if (match != null)
+                foreach (var image in remoteImages.Where(i => i.Type == ImageType.Backdrop))
                 {
-                    image.Language = BackdropByLanguage[match];
-                    BackdropByLanguage.TryRemove(match, out _);
+                    foreach (var kvp in BackdropByLanguage)
+                    {
+                        if (image.Url.EndsWith(kvp.Key, StringComparison.Ordinal))
+                        {
+                            image.Language = kvp.Value;
+                            BackdropByLanguage.TryRemove(kvp.Key, out _);
+                            break;
+                        }
+                    }
                 }
             }
 
             var reorderedImages = remoteImages.OrderBy(i =>
+                i.Type == ImageType.Backdrop ? 2 :
                 !string.IsNullOrEmpty(libraryPreferredImageLanguage) && string.Equals(i.Language,
                     libraryPreferredImageLanguage, StringComparison.OrdinalIgnoreCase) ? 0 :
                 !string.IsNullOrEmpty(originalLanguage) && string.Equals(i.Language, originalLanguage,
