@@ -1134,7 +1134,9 @@ namespace StrmAssistant.Common
             var primaryImageInfo = item.GetImageInfo(ImageType.Primary, 0);
             var dimensionsMatch = item.Width > 0 && item.Height > 0 && item.Width == primaryImageInfo?.Width &&
                                   item.Height == primaryImageInfo?.Height;
-            var hasProviderIds = item.Series != null && item.Series.ProviderIds.Count > 0;
+            var hasProviderIds = item.Series != null && (item.Series.HasProviderId(MetadataProviders.Tmdb) ||
+                                                         item.Series.HasProviderId(MetadataProviders.Imdb) ||
+                                                         item.Series.HasProviderId(MetadataProviders.Tvdb));
 
             var needsRefresh = string.IsNullOrWhiteSpace(overview) ||
                                (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&
