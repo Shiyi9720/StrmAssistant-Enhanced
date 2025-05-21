@@ -11,7 +11,6 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.LanguageUtility;
@@ -23,8 +22,9 @@ namespace StrmAssistant.Mod
     {
         private static Assembly _movieDbAssembly;
 
-        private static MethodInfo _genericMovieDbInfoProcessMainInfoMovie;
-        private static MethodInfo _genericMovieDbInfoIsCompleteMovie;
+        private static MethodInfo _genericProcessMainInfoMovie;
+        private static MethodInfo _genericIsCompleteMovie;
+        private static MethodInfo _movieGetMetadata;
         private static MethodInfo _getTitleMovieData;
 
         private static MethodInfo _getMovieDbMetadataLanguages;
@@ -45,6 +45,8 @@ namespace StrmAssistant.Mod
         private static FieldInfo _cacheTime;
 
         private static readonly AsyncLocal<string> CurrentLookupLanguageCountryCode = new AsyncLocal<string>();
+
+        private static readonly object _lock = new object();
 
         public ChineseMovieDb()
         {
@@ -68,12 +70,14 @@ namespace StrmAssistant.Mod
             {
                 var genericMovieDbInfo = _movieDbAssembly.GetType("MovieDb.GenericMovieDbInfo`1");
                 var genericMovieDbInfoMovie = genericMovieDbInfo.MakeGenericType(typeof(Movie));
-                _genericMovieDbInfoIsCompleteMovie = genericMovieDbInfoMovie.GetMethod("IsComplete",
+                _genericIsCompleteMovie = genericMovieDbInfoMovie.GetMethod("IsComplete",
                     BindingFlags.NonPublic | BindingFlags.Instance);
-                _genericMovieDbInfoProcessMainInfoMovie = genericMovieDbInfoMovie.GetMethod("ProcessMainInfo",
+                _genericProcessMainInfoMovie = genericMovieDbInfoMovie.GetMethod("ProcessMainInfo",
                     BindingFlags.NonPublic | BindingFlags.Instance);
-                var completeMovieData = _movieDbAssembly.GetType("MovieDb.MovieDbProvider")
-                    .GetNestedType("CompleteMovieData", BindingFlags.NonPublic);
+                var movieDbProvider = _movieDbAssembly.GetType("MovieDb.MovieDbProvider");
+                _movieGetMetadata = movieDbProvider.GetMethod("GetMetadata");
+                var completeMovieData = movieDbProvider.GetNestedType("CompleteMovieData", BindingFlags.NonPublic);
+
                 _getTitleMovieData = completeMovieData.GetMethod("GetTitle");
                 ReversePatch(PatchTracker, _getTitleMovieData, nameof(MovieGetTitleStub));
                 var movieDbProviderBase = _movieDbAssembly.GetType("MovieDb.MovieDbProviderBase");
@@ -123,12 +127,18 @@ namespace StrmAssistant.Mod
 
         protected override void Prepare(bool apply)
         {
-            PatchUnpatch(Instance.PatchTracker, apply, _genericMovieDbInfoProcessMainInfoMovie,
-                prefix: nameof(ProcessMainInfoMoviePrefix));
-            PatchUnpatch(Instance.PatchTracker, apply, _genericMovieDbInfoIsCompleteMovie,
-                prefix: nameof(IsCompletePrefix), postfix: nameof(IsCompletePostfix));
             PatchUnpatch(PatchTracker, apply, _getMovieDbMetadataLanguages, postfix: nameof(MetadataLanguagesPostfix));
             PatchUnpatch(PatchTracker, apply, _getImageLanguagesParam, postfix: nameof(GetImageLanguagesParamPostfix));
+
+            PatchUnpatch(PatchTracker, apply, _movieGetMetadata, prefix: nameof(MovieGetMetadataPrefix));
+            if (!apply)
+            {
+                PatchUnpatch(Instance.PatchTracker, false, _genericProcessMainInfoMovie,
+                    prefix: nameof(ProcessMainInfoMoviePrefix));
+                PatchUnpatch(Instance.PatchTracker, false, _genericIsCompleteMovie,
+                    prefix: nameof(IsCompletePrefix), postfix: nameof(IsCompletePostfix));
+            }
+            
             PatchUnpatch(PatchTracker, apply, _movieDbSeriesProviderIsComplete, prefix: nameof(IsCompletePrefix),
                 postfix: nameof(IsCompletePostfix));
             PatchUnpatch(PatchTracker, apply, _movieDbSeriesProviderImportData, prefix: nameof(SeriesImportDataPrefix));
@@ -203,11 +213,29 @@ namespace StrmAssistant.Mod
         private static string MovieGetTitleStub(object instance) => throw new NotImplementedException();
 
         [HarmonyPrefix]
-        [MethodImpl(MethodImplOptions.NoOptimization)]
-        private static void ProcessMainInfoMoviePrefix(MetadataResult<Movie> resultItem, object settings,
+        private static void MovieGetMetadataPrefix(MovieInfo info)
+        {
+            lock (_lock)
+            {
+                PatchUnpatch(Instance.PatchTracker, false, _genericProcessMainInfoMovie,
+                    prefix: nameof(ProcessMainInfoMoviePrefix), suppress: true);
+                PatchUnpatch(Instance.PatchTracker, false, _genericIsCompleteMovie, prefix: nameof(IsCompletePrefix),
+                    postfix: nameof(IsCompletePostfix), suppress: true);
+
+                PatchUnpatch(Instance.PatchTracker, true, _genericProcessMainInfoMovie,
+                    prefix: nameof(ProcessMainInfoMoviePrefix), suppress: true);
+                PatchUnpatch(Instance.PatchTracker, true, _genericIsCompleteMovie, prefix: nameof(IsCompletePrefix),
+                    postfix: nameof(IsCompletePostfix), suppress: true);
+            }
+        }
+
+        [HarmonyPrefix]
+        private static void ProcessMainInfoMoviePrefix(object resultItem, object settings,
             string preferredCountryCode, object movieData, bool isFirstLanguage)
         {
-            var item = resultItem.Item;
+            if (!(resultItem is MetadataResult<Movie> metadataResult)) return;
+
+            var item = metadataResult.Item;
 
             if (IsUpdateNeeded(item.Name))
             {
@@ -223,7 +251,6 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPrefix]
-        [MethodImpl(MethodImplOptions.NoOptimization)]
         private static bool IsCompletePrefix(BaseItem item, ref bool __result, out bool __state)
         {
             __state = false;
@@ -289,7 +316,6 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPostfix]
-        [MethodImpl(MethodImplOptions.NoOptimization)]
         private static void IsCompletePostfix(BaseItem item, ref bool __result, bool __state)
         {
             if (__state)
