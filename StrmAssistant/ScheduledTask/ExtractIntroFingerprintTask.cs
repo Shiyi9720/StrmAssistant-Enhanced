@@ -51,9 +51,6 @@ namespace StrmAssistant.ScheduledTask
                 : (int?)null;
             if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
-            _logger.Info("Intro Detection Fingerprint Length (Minutes): " +
-                         Plugin.Instance.IntroSkipStore.GetOptions().IntroDetectionFingerprintMinutes);
-
             var persistMediaInfoMode = Plugin.Instance.MediaInfoExtractStore.GetOptions().PersistMediaInfoMode;
             _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
             var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();

@@ -14,6 +14,7 @@ using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Querying;
 using StrmAssistant.Mod;
 using StrmAssistant.Options;
+using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -254,8 +255,12 @@ namespace StrmAssistant.Common
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id)).ToList();
             var librariesWithImageCapture = GetLibrariesWithImageCapture(libraries);
 
-            _logger.Info("MediaInfoExtract - LibraryScope: " +
-                         (libraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
+            _logger.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
+                ? "ALL"
+                : string.Join(", ",
+                    libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
+                        : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
             var includeExtra = Plugin.Instance.MediaInfoExtractStore.GetOptions().IncludeExtra;
             _logger.Info("Include Extra: " + includeExtra);
@@ -361,8 +366,12 @@ namespace StrmAssistant.Common
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id))
                 .ToList();
 
-            _logger.Info("MediaInfoExtract - LibraryScope: " +
-                         (libraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
+            _logger.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
+                ? "ALL"
+                : string.Join(", ",
+                    libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
+                        : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
             var includeExtra = Plugin.Instance.MediaInfoExtractStore.GetOptions().IncludeExtra;
             _logger.Info("Include Extra: " + includeExtra);

@@ -13,6 +13,7 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using StrmAssistant.Mod;
 using StrmAssistant.Options;
+using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -50,7 +51,7 @@ namespace StrmAssistant.Common
             _libraryManager = libraryManager;
             _fileSystem = fileSystem;
 
-            UpdateLibraryPathsInScope(Plugin.Instance.IntroSkipStore.GetOptions().MarkerEnabledLibraryScope);
+            UpdateLibraryPathsInScope();
 
             try
             {
@@ -381,9 +382,25 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchIntroFingerprintTaskItems()
         {
-            var markerEnabledLibraryScope = Plugin.Instance.IntroSkipStore.GetOptions().MarkerEnabledLibraryScope;
+            var libraryIds = Plugin.Instance.IntroSkipStore.GetOptions()
+                .MarkerEnabledLibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .ToArray();
+            var librariesWithMarkerDetection = _libraryManager.GetVirtualFolders()
+                .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
+                            f.LibraryOptions.EnableMarkerDetection)
+                .ToList();
+            var librariesSelected = librariesWithMarkerDetection.Where(f => libraryIds.Contains(f.Id)).ToList();
+
+            _logger.Info("IntroFingerprintExtract - LibraryScope: " + (!librariesWithMarkerDetection.Any()
+                ? "NONE"
+                : string.Join(", ",
+                    (libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(librariesSelected.Select(l => l.Name))
+                        : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
+
             var introDetectionFingerprintMinutes =
                 Plugin.Instance.IntroSkipStore.GetOptions().IntroDetectionFingerprintMinutes;
+            _logger.Info("Intro Detection Fingerprint Length (Minutes): " + introDetectionFingerprintMinutes);
 
             var itemsFingerprintQuery = new InternalItemsQuery
             {
@@ -396,7 +413,7 @@ namespace StrmAssistant.Common
                 HasAudioStream = true
             };
 
-            if (!string.IsNullOrEmpty(markerEnabledLibraryScope) && markerEnabledLibraryScope.Contains("-1"))
+            if (libraryIds.All(i => i == "-1"))
             {
                 itemsFingerprintQuery.ParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
             }
