@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using System;
@@ -42,7 +42,7 @@ namespace StrmAssistant.Mod
 
         [HarmonyPrefix]
         private static void DeleteItemPrefix(ILibraryManager __instance, BaseItem item, DeleteOptions options,
-            BaseItem parent, bool notifyParentItem, out Dictionary<string, bool> __state)
+            BaseItem parent, bool notifyParentItem, out Dictionary<string, bool?> __state)
         {
             __state = null;
 
@@ -56,11 +56,11 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyFinalizer]
-        private static void DeleteItemFinalizer(Exception __exception, Dictionary<string, bool> __state)
+        private static void DeleteItemFinalizer(Exception __exception, Dictionary<string, bool?> __state)
         {
             if (__state != null && __state.Count > 0 && __exception is null)
             {
-                var localMountPaths = new HashSet<string>(__state.Where(kv => kv.Value).Select(kv => kv.Key));
+                var localMountPaths = new HashSet<string>(__state.Where(kv => kv.Value is true).Select(kv => kv.Key));
 
                 if (localMountPaths.Count > 0)
                 {

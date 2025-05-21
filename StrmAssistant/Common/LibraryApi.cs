@@ -972,12 +972,12 @@ namespace StrmAssistant.Common
             return new[] { _fileSystem.GetFileInfo(path) }.Concat(relatedFiles).Where(f => f.Exists).ToArray();
         }
 
-        public Dictionary<string, bool> PrepareDeepDelete(BaseItem item)
+        public Dictionary<string, bool?> PrepareDeepDelete(BaseItem item)
         {
             return PrepareDeepDelete(item, null);
         }
 
-        public Dictionary<string, bool> PrepareDeepDelete(BaseItem item, string[] scope)
+        public Dictionary<string, bool?> PrepareDeepDelete(BaseItem item, string[] scope)
         {
             var deleteItems = new List<BaseItem> { item };
 
@@ -992,7 +992,7 @@ namespace StrmAssistant.Common
 
             deleteItems = deleteItems.Where(i => i is IHasMediaSources).ToList();
 
-            var mountPaths = new Dictionary<string, bool>();
+            var mountPaths = new Dictionary<string, bool?>();
             var single = scope is null;
 
             foreach (var workItem in deleteItems)
@@ -1027,6 +1027,10 @@ namespace StrmAssistant.Common
                         {
                             mountPaths.TryAdd(targetPath, true);
                         }
+                    }
+                    else
+                    {
+                        mountPaths.TryAdd(source.Path, null);
                     }
                 }
             }

@@ -64,7 +64,7 @@ namespace StrmAssistant.Web.Service
                 ? GetSeasonEpisodesSameVersion(episode)
                 : new List<BaseItem> { item };
 
-            var allMountPaths = new Dictionary<string, bool>();
+            var allMountPaths = new Dictionary<string, bool?>();
 
             foreach (var deleteItem in deleteItems)
             {
@@ -119,7 +119,7 @@ namespace StrmAssistant.Web.Service
                 }
             }
 
-            var localMountPaths = new HashSet<string>(allMountPaths.Where(kv => kv.Value).Select(kv => kv.Key));
+            var localMountPaths = new HashSet<string>(allMountPaths.Where(kv => kv.Value is true).Select(kv => kv.Key));
 
             if (enableDeepDelete && localMountPaths.Count > 0)
             {

@@ -1,4 +1,4 @@
-﻿using Emby.Notifications;
+using Emby.Notifications;
 using HarmonyLib;
 using MediaBrowser.Controller.Api;
 using MediaBrowser.Controller.Entities;
@@ -187,7 +187,7 @@ namespace StrmAssistant.Mod
 
         [HarmonyPrefix]
         private static void DeleteItemPrefix(ILibraryManager __instance, BaseItem item, DeleteOptions options,
-            BaseItem parent, bool notifyParentItem, out Dictionary<string, bool> __state)
+            BaseItem parent, bool notifyParentItem, out Dictionary<string, bool?> __state)
         {
             __state = null;
 
@@ -201,7 +201,7 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyFinalizer]
-        private static void DeleteItemFinalizer(Exception __exception, BaseItem item, Dictionary<string, bool> __state)
+        private static void DeleteItemFinalizer(Exception __exception, BaseItem item, Dictionary<string, bool?> __state)
         {
             if (__state != null && __state.Count > 0 && __exception is null && DeleteByUser.Value != null)
             {
