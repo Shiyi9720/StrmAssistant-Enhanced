@@ -124,8 +124,6 @@ namespace StrmAssistant.ScheduledTask
                     .Select(p => p.Trim()), StringComparer.OrdinalIgnoreCase);
             NoAdult = refreshPersonOptions.Contains(RefreshPersonOption.NoAdult.ToString());
 
-            var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
-
             for (var startIndex = 0; startIndex < remainingCount; startIndex += batchSize)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -185,6 +183,8 @@ namespace StrmAssistant.ScheduledTask
                                 _logger.Info("RefreshPerson - Scheduled Task Cancelled");
                                 return;
                             }
+
+                            var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
 
                             if (!nameRefreshSkip)
                             {

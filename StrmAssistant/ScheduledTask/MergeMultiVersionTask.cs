@@ -71,10 +71,6 @@ namespace StrmAssistant.ScheduledTask
 
             if (processSeries)
             {
-                var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
-
-                Traverse.Create(refreshOptions).Property("Recursive").SetValue(true);
-
                 var multiply = processMovies ? 1 : 2;
 
                 var alternativeSeries = FindDuplicateSeries(seriesLibraryGroups);
@@ -91,6 +87,9 @@ namespace StrmAssistant.ScheduledTask
                         if (currentScanLibrary is null || _libraryManager.GetCollectionFolders(series)
                                 .Any(c => c.InternalId != currentScanLibrary.InternalId))
                         {
+                            var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
+                            Traverse.Create(refreshOptions).Property("Recursive").SetValue(true);
+
                             await _providerManager.RefreshFullItem(series, refreshOptions, cancellationToken)
                                 .ConfigureAwait(false);
                         }
@@ -117,6 +116,9 @@ namespace StrmAssistant.ScheduledTask
                     foreach (var series in inconsistentSeries)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
+
+                        var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
+                        Traverse.Create(refreshOptions).Property("Recursive").SetValue(true);
 
                         await _providerManager.RefreshFullItem(series, refreshOptions, cancellationToken)
                             .ConfigureAwait(false);
