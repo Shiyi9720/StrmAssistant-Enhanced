@@ -173,24 +173,6 @@ namespace StrmAssistant
 
         private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
         {
-            var item = e.Argument.Item;
-
-            if (_currentPersistMediaInfo && item is Video && item.DateLastRefreshed != DateTimeOffset.MinValue)
-            {
-                var directoryService = new DirectoryService(Logger, _fileSystem);
-
-                if (!LibraryApi.HasMediaInfo(item))
-                {
-                    _ = MediaInfoApi.DeserializeMediaInfo(item, directoryService, "OnRefreshCompleted Restore", false)
-                        .ConfigureAwait(false);
-                }
-                else
-                {
-                    _ = MediaInfoApi.SerializeMediaInfo(item.InternalId, directoryService, false,
-                        "OnRefreshCompleted Non-existent").ConfigureAwait(false);
-                }
-            }
-
             if (_libraryManager.IsScanRunning) return;
 
             if (_currentMergeMultiVersion && e.Argument.Item.IsTopParent)
@@ -324,7 +306,7 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
-            if (e.Item is Video && !_currentMediaInfoRestoreMode)
+            if (!_currentMediaInfoRestoreMode && e.Item is Video)
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
