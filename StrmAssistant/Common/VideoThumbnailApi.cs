@@ -8,6 +8,7 @@ using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -97,33 +98,43 @@ namespace StrmAssistant.Common
 
         public List<Video> FetchExtractTaskItems()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
-            var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => (!libraryIds.Any() || libraryIds.Contains(f.Id)) &&
-                            f.LibraryOptions.EnableChapterImageExtraction).ToList();
+            var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions
+                .LibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .ToArray();
+            var librariesWithVideoThumbnail = _libraryManager.GetVirtualFolders()
+                .Where(f => f.LibraryOptions.EnableChapterImageExtraction)
+                .ToList();
+            var librariesSelected = librariesWithVideoThumbnail.Where(f => libraryIds.Contains(f.Id)).ToList();
 
-            _logger.Info("VideoThumbnailExtract - LibraryScope: " +
-                         (libraries.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "NONE"));
+            _logger.Info("VideoThumbnailExtract - LibraryScope: " + (!librariesWithVideoThumbnail.Any()
+                ? "NONE"
+                : string.Join(", ",
+                    (libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(librariesSelected.Select(l => l.Name))
+                        : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
 
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
             _logger.Info("Include Extra: " + includeExtra);
 
-            var libraryPathsInScope = libraries.SelectMany(l => l.Locations).Select(ls =>
-                ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                    ? ls
-                    : ls + Path.DirectorySeparatorChar).ToArray();
+            var librariesWithVideoThumbnailPaths = librariesWithVideoThumbnail.SelectMany(l => l.Locations)
+                .Select(ls =>
+                    ls.EndsWith(Path.DirectorySeparatorChar.ToString()) ? ls : ls + Path.DirectorySeparatorChar)
+                .ToArray();
+            var librariesSelectedPaths = librariesSelected.SelectMany(l => l.Locations)
+                .Select(ls =>
+                    ls.EndsWith(Path.DirectorySeparatorChar.ToString()) ? ls : ls + Path.DirectorySeparatorChar)
+                .ToArray();
 
             var favoritesWithExtra = Array.Empty<BaseItem>();
 
-            if (libraryIds.Contains("-1") && libraryPathsInScope.Any())
+            if (libraryIds.Contains("-1") && librariesWithVideoThumbnailPaths.Any())
             {
                 var favorites = LibraryApi.AllUsers.Select(e => e.Key)
                     .SelectMany(user => _libraryManager.GetItemList(new InternalItemsQuery
                     {
                         User = user,
                         IsFavorite = true,
-                        PathStartsWithAny = libraryPathsInScope
+                        PathStartsWithAny = librariesWithVideoThumbnailPaths
                     })).GroupBy(i => i.InternalId).Select(g => g.First()).ToList();
 
                 var expanded = Plugin.LibraryApi.ExpandFavorites(favorites, false, false, false);
@@ -139,14 +150,15 @@ namespace StrmAssistant.Common
             var items = Array.Empty<BaseItem>();
             var extras = Array.Empty<BaseItem>();
 
-            if ((!libraryIds.Any() || libraryIds.Any(id => id != "-1")) && libraryPathsInScope.Any())
+            if (!libraryIds.Any() && librariesWithVideoThumbnailPaths.Any() ||
+                libraryIds.Any(id => id != "-1") && librariesSelectedPaths.Any())
             {
                 var videoThumbnailQuery = new InternalItemsQuery
                 {
                     MediaTypes = new[] { MediaType.Video },
                     HasAudioStream = true,
                     HasChapterImages = false,
-                    PathStartsWithAny = libraryPathsInScope
+                    PathStartsWithAny = !libraryIds.Any() ? librariesWithVideoThumbnailPaths : librariesSelectedPaths
                 };
 
                 items = _libraryManager.GetItemList(videoThumbnailQuery);

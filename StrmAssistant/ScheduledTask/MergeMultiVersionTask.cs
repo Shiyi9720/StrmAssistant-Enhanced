@@ -4,7 +4,6 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Properties;
@@ -37,19 +36,17 @@ namespace StrmAssistant.ScheduledTask
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IProviderManager _providerManager;
-        private readonly IFileSystem _fileSystem;
 
-        private static readonly HashSet<string> CheckKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            { "tmdb", "imdb", "tvdb" };
+        private static readonly HashSet<string> ProviderIdCheckKeys =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "tmdb", "imdb", "tvdb" };
 
         public static readonly AsyncLocal<CollectionFolder> CurrentScanLibrary = new AsyncLocal<CollectionFolder>();
 
-        public MergeMultiVersionTask(ILibraryManager libraryManager, IProviderManager providerManager, IFileSystem fileSystem)
+        public MergeMultiVersionTask(ILibraryManager libraryManager, IProviderManager providerManager)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _providerManager = providerManager;
-            _fileSystem = fileSystem;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
@@ -73,10 +70,6 @@ namespace StrmAssistant.ScheduledTask
 
             if (processSeries)
             {
-                var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
-
-                //Traverse.Create(refreshOptions).Property("Recursive").SetValue(true);
-
                 var multiply = processMovies ? 1 : 2;
 
                 var alternativeSeries = FindDuplicateSeries(seriesLibraryGroups);
@@ -93,6 +86,8 @@ namespace StrmAssistant.ScheduledTask
                         if (currentScanLibrary is null || _libraryManager.GetCollectionFolders(series)
                                 .Any(c => c.InternalId != currentScanLibrary.InternalId))
                         {
+                            var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
+
                             await _providerManager.RefreshFullItem(series, refreshOptions, cancellationToken)
                                 .ConfigureAwait(false);
                         }
@@ -119,6 +114,8 @@ namespace StrmAssistant.ScheduledTask
                     foreach (var series in inconsistentSeries)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
+
+                        var refreshOptions = Plugin.MetadataApi.GetMetadataValidationRefreshOptions();
 
                         await _providerManager.RefreshFullItem(series, refreshOptions, cancellationToken)
                             .ConfigureAwait(false);
@@ -219,7 +216,7 @@ namespace StrmAssistant.ScheduledTask
 
             var dupSeries = allSeries
                 .SelectMany(item =>
-                    item.ProviderIds.Where(kvp => CheckKeys.Contains(kvp.Key))
+                    item.ProviderIds.Where(kvp => ProviderIdCheckKeys.Contains(kvp.Key))
                         .Select(kvp => new { kvp.Key, kvp.Value, item }))
                 .GroupBy(x => new { x.Key, x.Value })
                 .Where(g =>
@@ -248,12 +245,7 @@ namespace StrmAssistant.ScheduledTask
                     Recursive = true,
                     ParentIds = parents,
                     IncludeItemTypes = new[] { nameof(Season), nameof(Episode) },
-                    GroupBySeriesPresentationUniqueKey = true,
-                    HasAnyProviderId = new[]
-                    {
-                        MetadataProviders.Tmdb.ToString(), MetadataProviders.Imdb.ToString(),
-                        MetadataProviders.Tvdb.ToString()
-                    }
+                    GroupBySeriesPresentationUniqueKey = true
                 })
                 .ToList();
 
@@ -320,7 +312,7 @@ namespace StrmAssistant.ScheduledTask
 
             var dupMovies = allMovies
                 .SelectMany(item =>
-                    item.ProviderIds.Where(kvp => CheckKeys.Contains(kvp.Key))
+                    item.ProviderIds.Where(kvp => ProviderIdCheckKeys.Contains(kvp.Key))
                         .Select(kvp => new { kvp.Key, kvp.Value, item }))
                 .GroupBy(kvp => new { kvp.Key, kvp.Value })
                 .Where(g =>

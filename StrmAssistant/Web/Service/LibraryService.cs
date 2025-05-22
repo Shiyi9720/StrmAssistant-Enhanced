@@ -140,7 +140,7 @@ namespace StrmAssistant.Web.Service
                 var cleanedName = CleanEpisodeName(ep.FileNameWithoutExtension);
                 var similarity = LevenshteinDistance(targetCleaned, cleanedName);
 
-                if (similarity > 0.85)
+                if (similarity > 0.92)
                 {
                     similarEpisodes.Add(ep);
                 }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -170,6 +172,16 @@ namespace StrmAssistant.Common
             var root1 = Find(x, parent);
             var root2 = Find(y, parent);
             if (root1 != root2) parent[root1] = root2;
+        }
+
+        public static bool IsDirectoryEmpty(string directoryPath)
+        {
+            if (!Directory.Exists(directoryPath))
+                return false;
+
+            var entries = Directory.EnumerateFileSystemEntries(directoryPath).Take(1);
+
+            return !entries.Any();
         }
 
         public static double LevenshteinDistance(string str1, string str2)

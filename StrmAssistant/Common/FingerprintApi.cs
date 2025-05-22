@@ -4,6 +4,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
+using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
@@ -11,6 +12,7 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using StrmAssistant.Options;
+using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,6 +28,7 @@ namespace StrmAssistant.Common
     {
         private readonly ILibraryManager _libraryManager;
         private readonly IFileSystem _fileSystem;
+        private readonly IItemRepository _itemRepository;
         private readonly ILogger _logger;
 
         private readonly object _audioFingerprintManager;
@@ -38,12 +41,13 @@ namespace StrmAssistant.Common
 
         public FingerprintApi(ILibraryManager libraryManager, IFileSystem fileSystem,
             IApplicationPaths applicationPaths, IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder,
-            IMediaMountManager mediaMountManager, IJsonSerializer jsonSerializer,
+            IMediaMountManager mediaMountManager, IJsonSerializer jsonSerializer, IItemRepository itemRepository,
             IServerApplicationHost serverApplicationHost)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _fileSystem = fileSystem;
+            _itemRepository = itemRepository;
 
             UpdateLibraryPathsInScope();
 
@@ -238,7 +242,7 @@ namespace StrmAssistant.Common
         public bool IsExtractNeeded(BaseItem item)
         {
             return !Plugin.ChapterApi.HasIntro(item) &&
-                   string.IsNullOrEmpty(BaseItem.ItemRepository.GetIntroDetectionFailureResult(item.InternalId));
+                   string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId));
         }
 
         public List<Episode> FetchIntroPreExtractTaskItems()
@@ -275,8 +279,26 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchIntroFingerprintTaskItems()
         {
+            var libraryIds = Plugin.Instance.GetPluginOptions()
+                .IntroSkipOptions.MarkerEnabledLibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .ToArray();
+            var librariesWithMarkerDetection = _libraryManager.GetVirtualFolders()
+                .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
+                            f.LibraryOptions.EnableMarkerDetection)
+                .ToList();
+            var librariesSelected = librariesWithMarkerDetection.Where(f => libraryIds.Contains(f.Id)).ToList();
+
+            _logger.Info("IntroFingerprintExtract - LibraryScope: " + (!librariesWithMarkerDetection.Any()
+                ? "NONE"
+                : string.Join(", ",
+                    (libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(librariesSelected.Select(l => l.Name))
+                        : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
+
             var introDetectionFingerprintMinutes =
                 Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
+            _logger.Info("Intro Detection Fingerprint Length (Minutes): " + introDetectionFingerprintMinutes);
+
             var itemsFingerprintQuery = new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { nameof(Episode) },
@@ -288,9 +310,7 @@ namespace StrmAssistant.Common
                 HasAudioStream = true
             };
 
-            var markerEnabledLibraryScope =
-                Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope;
-            if (!string.IsNullOrEmpty(markerEnabledLibraryScope) && markerEnabledLibraryScope.Contains("-1"))
+            if (libraryIds.All(i => i == "-1"))
             {
                 itemsFingerprintQuery.ParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
             }
@@ -330,7 +350,9 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task UpdateIntroMarkerForSeason(Season season, CancellationToken cancellationToken)
+#nullable enable
+        public async Task UpdateIntroMarkerForSeason(Season season, CancellationToken cancellationToken,
+            IProgress<double>? progress = null)
         {
             var introDetectionFingerprintMinutes =
                 Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
@@ -349,16 +371,25 @@ namespace StrmAssistant.Common
             var allEpisodes = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToArray();
 
             episodeQuery.WithoutChapterMarkers = new[] { MarkerType.IntroStart };
-            var episodesWithoutMarkers = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToArray();
+            var episodesWithoutMarkers = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToList();
 
             var seasonFingerprintInfo = await GetAllFingerprintFilesForSeason(season,
                 allEpisodes, libraryOptions, directoryService, cancellationToken).ConfigureAwait(false);
+
+            double total = episodesWithoutMarkers.Count;
+            var index = 0;
 
             foreach (var episode in episodesWithoutMarkers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 UpdateSequencesForSeason(season, seasonFingerprintInfo, episode, libraryOptions, directoryService);
+
+                index++;
+                progress?.Report(index / total);
             }
+
+            progress?.Report(1.0);
         }
+#nullable restore
     }
 }

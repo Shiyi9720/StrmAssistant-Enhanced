@@ -171,13 +171,13 @@ namespace StrmAssistant.Common
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
-            if (overwrite || file?.Exists != true || Plugin.LibraryApi.HasFileChanged(item, directoryService))
+            if (overwrite || file?.Exists != true)
             {
                 try
                 {
                     var options = _libraryManager.GetLibraryOptions(item);
                     var mediaSources = item.GetMediaSources(false, false, options);
-                    var chapters = BaseItem.ItemRepository.GetChapters(item);
+                    var chapters = _itemRepository.GetChapters(item);
                     var mediaSourcesWithChapters = mediaSources.Select(mediaSource =>
                             new MediaSourceWithChapters
                                 { MediaSourceInfo = mediaSource, Chapters = chapters })
@@ -204,9 +204,7 @@ namespace StrmAssistant.Common
                         if (item is Episode)
                         {
                             jsonItem.ZeroFingerprintConfidence =
-                                !string.IsNullOrEmpty(
-                                    BaseItem.ItemRepository.GetIntroDetectionFailureResult(
-                                        item.InternalId));
+                                !string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId));
                         }
 
                         if (item is Audio)
@@ -283,7 +281,7 @@ namespace StrmAssistant.Common
                             .DeserializeFromFileAsync<List<MediaSourceWithChapters>>(mediaInfoJsonPath)
                             .ConfigureAwait(false)).ToArray()[0];
 
-                    if (mediaSourceWithChapters.MediaSourceInfo.RunTimeTicks.HasValue &&
+                    if (mediaSourceWithChapters?.MediaSourceInfo?.RunTimeTicks.HasValue is true &&
                         (ignoreFileChange || !Plugin.LibraryApi.HasFileChanged(item, directoryService)))
                     {
                         foreach (var subtitle in mediaSourceWithChapters.MediaSourceInfo.MediaStreams.Where(m =>
@@ -337,7 +335,7 @@ namespace StrmAssistant.Common
 
                             if (video is Episode && mediaSourceWithChapters.ZeroFingerprintConfidence is true)
                             {
-                                BaseItem.ItemRepository.LogIntroDetectionFailureFailure(video.InternalId,
+                                _itemRepository.LogIntroDetectionFailureFailure(video.InternalId,
                                     item.DateModified.ToUnixTimeSeconds());
                             }
                         }
@@ -366,16 +364,35 @@ namespace StrmAssistant.Common
 
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
-            if (file?.Exists == true)
+            if (file?.Exists is true)
             {
                 try
                 {
-                    _logger.Info("MediaInfoPersist - Attempting to delete (" + source + "): " + mediaInfoJsonPath);
+                    _logger.Info($"MediaInfoPersist - Attempting to delete ({source}): {mediaInfoJsonPath}");
                     _fileSystem.DeleteFile(mediaInfoJsonPath);
+
+                    var jsonRoot = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoJsonRootFolder;
+
+                    if (!string.IsNullOrWhiteSpace(jsonRoot))
+                    {
+                        jsonRoot = _fileSystem.GetFullPath(jsonRoot).TrimEnd(Path.DirectorySeparatorChar);
+
+                        var currentDir =
+                            _fileSystem.GetFullPath(_fileSystem.GetDirectoryName(mediaInfoJsonPath) ?? string.Empty);
+
+                        while (!string.IsNullOrEmpty(currentDir) &&
+                               !string.Equals(currentDir, jsonRoot, StringComparison.OrdinalIgnoreCase) &&
+                               CommonUtility.IsDirectoryEmpty(currentDir))
+                        {
+                            _logger.Info(
+                                $"MediaInfoPersist - Attempting to delete empty folder ({source}): {currentDir}");
+                            _fileSystem.DeleteDirectory(currentDir, false);
+                            currentDir = Path.GetDirectoryName(currentDir);
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("MediaInfoPersist - Failed to delete (" + source + "): " + mediaInfoJsonPath);
                     _logger.Error(e.Message);
                     _logger.Debug(e.StackTrace);
                 }
@@ -398,7 +415,7 @@ namespace StrmAssistant.Common
 
                     if (mediaSourceWithChapters.ZeroFingerprintConfidence is true)
                     {
-                        BaseItem.ItemRepository.LogIntroDetectionFailureFailure(item.InternalId,
+                        _itemRepository.LogIntroDetectionFailureFailure(item.InternalId,
                             item.DateModified.ToUnixTimeSeconds());
 
                         _logger.Info("ChapterInfoPersist - Log Zero Fingerprint Confidence (" + source + "): " + mediaInfoJsonPath);

@@ -11,6 +11,8 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Querying;
+using StrmAssistant.Options;
+using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -167,9 +169,8 @@ namespace StrmAssistant.Common
             return item.GetMediaStreams().Any(i => i.Type == MediaStreamType.Video || i.Type == MediaStreamType.Audio);
         }
 
-        public bool ImageCaptureEnabled(BaseItem item)
+        public bool ImageCaptureEnabled(BaseItem item, LibraryOptions libraryOptions)
         {
-            var libraryOptions = _libraryManager.GetLibraryOptions(item);
             var typeName = item.ExtraType == null ? item.GetType().Name : item.DisplayParent.GetType().Name;
             var typeOptions = libraryOptions.GetTypeOptions(typeName);
 
@@ -250,8 +251,12 @@ namespace StrmAssistant.Common
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id)).ToList();
             var librariesWithImageCapture = GetLibrariesWithImageCapture(libraries);
 
-            _logger.Info("MediaInfoExtract - LibraryScope: " +
-                         (libraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
+            _logger.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
+                ? "ALL"
+                : string.Join(", ",
+                    libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
+                        : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
             _logger.Info("Include Extra: " + includeExtra);
@@ -357,8 +362,12 @@ namespace StrmAssistant.Common
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id))
                 .ToList();
 
-            _logger.Info("MediaInfoExtract - LibraryScope: " +
-                         (libraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
+            _logger.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
+                ? "ALL"
+                : string.Join(", ",
+                    libraryIds.Contains("-1")
+                        ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
+                        : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
             _logger.Info("Include Extra: " + includeExtra);
@@ -505,12 +514,14 @@ namespace StrmAssistant.Common
             if (Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode ==
                 PersistMediaInfoOption.Restore.ToString()) return false;
 
+            var libraryOptions = _libraryManager.GetLibraryOptions(item);
+
             switch (item)
             {
                 case Video _:
-                    return !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item);
+                    return !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item, libraryOptions);
                 case Audio _:
-                    return !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item) &&
+                    return !item.HasImage(ImageType.Primary) && ImageCaptureEnabled(item, libraryOptions) &&
                            item.GetMediaStreams().Any(i => i.Type == MediaStreamType.EmbeddedImage);
                 default:
                     return false;
@@ -662,9 +673,11 @@ namespace StrmAssistant.Common
 
             var collectionFolders = (BaseItem[])_libraryManager.GetCollectionFolders(taskItem);
             var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
+
             var dummyLibraryOptions = CopyLibraryOptions(libraryOptions);
             dummyLibraryOptions.DisabledLocalMetadataReaders = new[] { "Nfo" };
             dummyLibraryOptions.MetadataSavers = Array.Empty<string>();
+
             foreach (var option in dummyLibraryOptions.TypeOptions)
             {
                 option.MetadataFetchers = Array.Empty<string>();
@@ -957,7 +970,9 @@ namespace StrmAssistant.Common
             var primaryImageInfo = item.GetImageInfo(ImageType.Primary, 0);
             var dimensionsMatch = item.Width > 0 && item.Height > 0 && item.Width == primaryImageInfo?.Width &&
                                   item.Height == primaryImageInfo?.Height;
-            var hasProviderIds = item.Series != null && item.Series.ProviderIds.Count > 0;
+            var hasProviderIds = item.Series != null && (item.Series.HasProviderId(MetadataProviders.Tmdb) ||
+                                                         item.Series.HasProviderId(MetadataProviders.Imdb) ||
+                                                         item.Series.HasProviderId(MetadataProviders.Tvdb));
 
             var needsRefresh = string.IsNullOrWhiteSpace(overview) ||
                                (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&

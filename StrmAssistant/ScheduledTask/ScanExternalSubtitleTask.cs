@@ -38,8 +38,6 @@ namespace StrmAssistant.ScheduledTask
             var items = Plugin.LibraryApi.FetchPostExtractTaskItems(false);
             _logger.Info("ExternalSubtitle - Number of items: " + items.Count);
 
-            var refreshOptions = Plugin.SubtitleApi.GetExternalSubtitleRefreshOptions();
-
             double total = items.Count;
             var index = 0;
             var current = 0;
@@ -75,6 +73,8 @@ namespace StrmAssistant.ScheduledTask
                             _logger.Info("ExternalSubtitle - Scheduled Task Cancelled");
                             return;
                         }
+
+                        var refreshOptions = Plugin.SubtitleApi.GetExternalSubtitleRefreshOptions();
 
                         if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, refreshOptions.DirectoryService,
                                 true))
