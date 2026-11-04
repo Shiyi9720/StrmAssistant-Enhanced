@@ -113,7 +113,9 @@ namespace StrmAssistant.Common
 
         public bool HasExternalSubtitleChanged(BaseItem item, IDirectoryService directoryService, bool clearCache)
         {
-            var currentExternalSubtitleFiles = _libraryManager.GetExternalSubtitleFiles(item.InternalId);
+            var currentExternalSubtitleFiles = _libraryManager
+                .GetExternalTracks(item.InternalId, new[] { MediaStreamType.Subtitle }, CancellationToken.None)
+                .Select(i => i.Item1);
             var currentSet = new HashSet<string>(currentExternalSubtitleFiles, StringComparer.Ordinal);
 
             try

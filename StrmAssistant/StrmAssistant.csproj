@@ -23,12 +23,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="mediabrowser.server.core" Version="4.8.0.80" />
+    <PackageReference Include="mediabrowser.server.core" Version="4.10.0.24-beta2" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Resource.Embedder" Version="2.2.0" />
+    <!-- Resource.Embedder 2.2.0 fails on non-Windows MSBuild when resolving its Core assembly. -->
+    <PackageReference Include="Resource.Embedder" Version="2.2.0" Condition="'$(OS)' == 'Windows_NT'" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
@@ -49,7 +50,16 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="$(ILRepack) /out:%25AppData%25\Emby-Server\programdata\plugins\$(TargetFileName) $(TargetPath) $(TargetDir)ChineseConverter.dll /lib:$(TargetDir)" />
+  <!--
+    Optional ILRepack step: merges ChineseConverter.dll into the plugin assembly.
+    It only runs when an output path is supplied, so that building on a developer
+    machine (including macOS) does not depend on a Windows-only %AppData% path.
+
+    Example:
+      dotnet build -c Release -p:EmbyPluginPath=/path/to/emby/programdata/plugins
+  -->
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(EmbyPluginPath)' != ''">
+    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="dotnet &quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
   </Target>
 </Project>
