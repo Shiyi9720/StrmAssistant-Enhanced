@@ -816,11 +816,9 @@ namespace StrmAssistant.Common
 
         public async Task<string> GetStrmMountPath(string strmPath)
         {
-            var path = strmPath.AsMemory();
-
-            using var mediaMount = await _mediaMountManager.Mount(path, null, CancellationToken.None);
+            using var mediaMount = await _mediaMountManager.Mount(strmPath, null, CancellationToken.None);
             
-            return mediaMount?.MountedPath;
+            return mediaMount?.MountedPathInfo?.FullName;
         }
 
         public BaseItem[] GetItemsByIds(long[] itemIds)
