@@ -27,4 +27,4 @@
 2. Restart Emby
 3. Go to the Plugins page and check the plugin version and settings
 
-**Note**: The minimum required Emby version is 4.8.5.0.
+**Note**: The minimum required Emby version is 4.10.0.

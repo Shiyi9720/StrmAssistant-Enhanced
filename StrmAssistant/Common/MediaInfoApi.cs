@@ -65,10 +65,10 @@ namespace StrmAssistant.Common
                         .GetMethod("GetStaticMediaSources",
                             new[]
                             {
-                                typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(LibraryOptions),
-                                typeof(DeviceProfile), typeof(User)
+                                typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(BaseItem[]),
+                                typeof(LibraryOptions), typeof(DeviceProfile), typeof(User)
                             });
-                    _fallbackApproach = true;
+                    _fallbackApproach = _getStaticMediaSources != null;
                 }
                 catch (Exception e)
                 {
@@ -113,7 +113,7 @@ namespace StrmAssistant.Common
         private List<MediaSourceInfo> GetStaticMediaSourcesByApi(BaseItem item, bool enableAlternateMediaSources,
             LibraryOptions libraryOptions)
         {
-            return _mediaSourceManager.GetStaticMediaSources(item, enableAlternateMediaSources, false,
+            return _mediaSourceManager.GetStaticMediaSources(item, enableAlternateMediaSources, false, false, null,
                 libraryOptions, null, null);
         }
 
@@ -121,7 +121,7 @@ namespace StrmAssistant.Common
             LibraryOptions libraryOptions)
         {
             return (List<MediaSourceInfo>)_getStaticMediaSources.Invoke(_mediaSourceManager,
-                new object[] { item, enableAlternateMediaSources, false, false, libraryOptions, null, null });
+                new object[] { item, enableAlternateMediaSources, false, false, null, libraryOptions, null, null });
         }
 
         public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enableAlternateMediaSources)
