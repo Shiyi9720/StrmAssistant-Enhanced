@@ -24,6 +24,10 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_NewLibraryMovieDb_Automatically_prefer_TheMovieDb_over_TheTVDB_as_the_metadata_and_image_fetcher_for_newly_created_libraries__Default_is_OFF_", typeof(Resources))]
         public bool NewLibraryMovieDb { get; set; } = false;
 
+        [DisplayNameL("MetadataEnhanceOptions_PreferTraditionalChinese_Prefer_Traditional_Chinese", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant__zh_TW__then_zh_CN__Default_is_OFF_", typeof(Resources))]
+        public bool PreferTraditionalChinese { get; set; } = false;
+
         [Browsable(false)]
         [Required]
         public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
