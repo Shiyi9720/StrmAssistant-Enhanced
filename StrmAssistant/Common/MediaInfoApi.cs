@@ -233,6 +233,75 @@ namespace StrmAssistant.Common
                          (stream.Codec ?? "EMPTY") + ", external=" + stream.IsExternal);
         }
 
+        private const string HdrVividTag = "HDR Vivid";
+
+        /// <summary>
+        /// Emby has no first class HDR Vivid (CUVA 2094-10) support, so the only reliable way to
+        /// identify it is reading the dynamic metadata side data of the first video frame with
+        /// ffprobe. Matching videos get an "HDR Vivid" tag so they can be filtered and searched.
+        /// </summary>
+        public async Task<bool> DetectHdrVividAsync(Video video, CancellationToken cancellationToken)
+        {
+            if (video is null) return false;
+
+            var options = Plugin.Instance?.GetPluginOptions().MediaInfoExtractOptions;
+
+            if (options?.DetectHdrVivid != true) return false;
+
+            if (video.Tags != null &&
+                video.Tags.Any(t => string.Equals(t, HdrVividTag, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            var videoStream = video.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video);
+
+            // HDR Vivid always uses the PQ transfer function. Skip obvious SDR files, but still
+            // probe when the transfer function is unknown.
+            if (videoStream != null && !string.IsNullOrEmpty(videoStream.ColorTransfer) &&
+                !string.Equals(videoStream.ColorTransfer, "smpte2084", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var inputPath = GetStaticMediaSources(video, false).FirstOrDefault()?.Path;
+
+            if (string.IsNullOrEmpty(inputPath)) inputPath = video.Path;
+
+            if (string.IsNullOrEmpty(inputPath)) return false;
+
+            var ffmpegManager = Plugin.Instance?.FfmpegManager;
+
+            if (ffmpegManager?.FfmpegConfiguration?.ProbePath is null) return false;
+
+            var arguments = "-hide_banner -loglevel error -select_streams v:0 -read_intervals %+#1 " +
+                            "-show_entries frame=side_data_list -of default=noprint_wrappers=1 " +
+                            $"\"{inputPath}\"";
+
+            var output = await FfmpegApi.RunAndCaptureAsync(ffmpegManager,
+                    ffmpegManager.FfmpegConfiguration.ProbePath, arguments, "HdrVividDetect", 60000,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (string.IsNullOrEmpty(output) ||
+                output.IndexOf("CUVA", StringComparison.OrdinalIgnoreCase) < 0 &&
+                output.IndexOf("HDR Vivid", StringComparison.OrdinalIgnoreCase) < 0 &&
+                output.IndexOf("2094-10", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return false;
+            }
+
+            _logger?.Info($"HdrVividDetect - HDR Vivid detected: {video.Name} - {video.Path}");
+
+            video.SetTags((video.Tags ?? Array.Empty<string>())
+                .Concat(new[] { HdrVividTag }).Distinct(StringComparer.OrdinalIgnoreCase));
+
+            _libraryManager.UpdateItems(new List<BaseItem> { video }, null,
+                ItemUpdateType.MetadataEdit, false, false, null, CancellationToken.None);
+
+            return true;
+        }
+
         public MetadataRefreshOptions GetMediaInfoRefreshOptions()
         {
             return new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))

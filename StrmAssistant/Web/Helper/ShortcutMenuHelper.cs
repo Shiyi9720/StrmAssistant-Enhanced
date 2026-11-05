@@ -133,11 +133,21 @@ const strmAssistantCommandSource = {
             }
             return result;
         }
-        if (!options.multiSelect && options.items?.length > 1 && options.items[0].Type !== 'CollectionFolder' &&
-            ((options.users && Object.values(options.users)[0]?.Policy.IsAdministrator) || false)) {
+        if (!options.multiSelect && options.items?.length > 1 && options.items[0].Type !== 'CollectionFolder') {
+            const multiUser = options.user || (options.users && Object.values(options.users)[0]);
+            const isAdmin = !!(multiUser && multiUser.Policy && multiUser.Policy.IsAdministrator);
             const result = [];
-            result.push({ name: lockCommandName, id: 'lock', icon: 'lock' });
-            result.push({ name: unlockCommandName, id: 'unlock', icon: 'lock_open' });
+            if (isAdmin && options.items.every(item => ['VirtualFolder', 'Movie'].includes(item.Type))) {
+                result.push({
+                    name: this.globalize.translate('HeaderScanLibraryFiles'),
+                    id: 'traverse',
+                    icon: 'refresh'
+                });
+            }
+            if (isAdmin && options.items.every(item => item.hasOwnProperty('LockData') && item.Type !== 'VirtualFolder')) {
+                result.push({ name: lockCommandName, id: 'lock', icon: 'lock' });
+                result.push({ name: unlockCommandName, id: 'unlock', icon: 'lock_open' });
+            }
             return result;
         }
         return [];
@@ -178,7 +188,18 @@ const strmAssistantCommandSource = {
         if (actions[command]) {
             return require(['components/strmassistant/strmassistant']).then(responses => {
                 if (command === 'traverse') {
-                    return responses[0][actions[command]](items[0].ParentId);
+                    const targets = [];
+                    items.forEach(item => {
+                        const target = (item.Type === 'VirtualFolder' || item.Type === 'CollectionFolder')
+                            ? item.Id
+                            : item.ParentId;
+                        if (target && targets.indexOf(target) === -1) targets.push(target);
+                    });
+                    if (!targets.length) return;
+                    if (targets.length > 1 && typeof responses[0].traverseMany === 'function') {
+                        return responses[0].traverseMany(targets);
+                    }
+                    return responses[0][actions[command]](targets[0]);
                 }
                 return responses[0][actions[command]](items[0].Id, items[0].Name);
             });

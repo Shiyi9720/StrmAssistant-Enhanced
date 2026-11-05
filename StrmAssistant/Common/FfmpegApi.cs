@@ -111,6 +111,200 @@ namespace StrmAssistant.Common
             return commandLineArgs.TrimEnd() + " " + injection;
         }
 
+        /// <summary>
+        /// User selected ffmpeg build. Used for Dolby Vision Profile 5 chapter images, which need
+        /// Vulkan + libplacebo to apply the DOVI reshaping before tone mapping.
+        /// </summary>
+        internal static string GetCustomFfmpegPath()
+        {
+            var path = Plugin.Instance?.GetPluginOptions().MediaInfoExtractOptions.CustomFfmpegPath;
+
+            if (string.IsNullOrWhiteSpace(path)) return null;
+
+            path = path.Trim().Trim('"');
+
+            return File.Exists(path) ? path : null;
+        }
+
+        internal static string GetEncoderPath(IFfmpegManager ffmpegManager)
+        {
+            return GetCustomFfmpegPath() ?? ffmpegManager?.FfmpegConfiguration?.EncoderPath;
+        }
+
+        internal static string GetProbePath(IFfmpegManager ffmpegManager)
+        {
+            return ffmpegManager?.FfmpegConfiguration?.ProbePath;
+        }
+
+        /// <summary>
+        /// Emby's ffmpeg runner can write the process output to a log file. That is the only way
+        /// to read ffprobe/filter output through the public runner API.
+        /// </summary>
+        internal static async Task<string> RunAndCaptureAsync(IFfmpegManager ffmpegManager, string exePath,
+            string arguments, string name, int timeoutMs, CancellationToken cancellationToken)
+        {
+            if (ffmpegManager is null || string.IsNullOrEmpty(exePath)) return null;
+
+            var logPath = Path.Combine(Path.GetTempPath(),
+                "strmassistant-" + Guid.NewGuid().ToString("N") + ".log");
+
+            try
+            {
+                using (var runner = ffmpegManager.CreateFfMpegRunner(name, logPath))
+                {
+                    if (runner is null) return null;
+
+                    if (!runner.Run(exePath, arguments))
+                    {
+                        return null;
+                    }
+
+                    var exited = await runner.WaitForExitAsync(timeoutMs, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!exited)
+                    {
+                        await runner.WaitAndKillAsync(2000).ConfigureAwait(false);
+                        return null;
+                    }
+
+                    // Output is flushed when the process exits; give the writer a moment.
+                    for (var i = 0; i < 10; i++)
+                    {
+                        if (File.Exists(logPath) && new FileInfo(logPath).Length > 0) break;
+                        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    return File.Exists(logPath) ? File.ReadAllText(logPath) : string.Empty;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(logPath)) File.Delete(logPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
+
+        internal static async Task<bool> RunAsync(IFfmpegManager ffmpegManager, string exePath, string arguments,
+            string name, int timeoutMs, CancellationToken cancellationToken)
+        {
+            if (ffmpegManager is null || string.IsNullOrEmpty(exePath)) return false;
+
+            var logPath = Path.Combine(Path.GetTempPath(),
+                "strmassistant-" + Guid.NewGuid().ToString("N") + ".log");
+
+            try
+            {
+                using (var runner = ffmpegManager.CreateFfMpegRunner(name, logPath))
+                {
+                    if (runner is null || !runner.Run(exePath, arguments)) return false;
+
+                    var exited = await runner.WaitForExitAsync(timeoutMs, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!exited)
+                    {
+                        await runner.WaitAndKillAsync(2000).ConfigureAwait(false);
+                        return false;
+                    }
+
+                    return runner.LastExitCode == 0;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(logPath)) File.Delete(logPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
+
+        private static bool? _customFfmpegSupported;
+
+        /// <summary>
+        /// Runs the self check required by the custom ffmpeg option and logs a single line,
+        /// mirroring the message the Pro build prints: "Custom ffmpeg supports vulkan+libplacebo: True".
+        /// </summary>
+        internal static bool CheckCustomFfmpeg(IFfmpegManager ffmpegManager, bool force = false)
+        {
+            if (!force && _customFfmpegSupported.HasValue) return _customFfmpegSupported.Value;
+
+            var logger = Plugin.Instance?.Logger;
+            var path = GetCustomFfmpegPath();
+
+            if (path is null)
+            {
+                _customFfmpegSupported = false;
+
+                var configured = Plugin.Instance?.GetPluginOptions().MediaInfoExtractOptions.CustomFfmpegPath;
+                if (!string.IsNullOrWhiteSpace(configured))
+                {
+                    logger?.Warn("CustomFfmpeg - File not found: " + configured);
+                }
+
+                return false;
+            }
+
+            var supported = false;
+
+            try
+            {
+                var filters = RunAndCaptureAsync(ffmpegManager, path, "-hide_banner -filters",
+                        "CustomFfmpegCheck", 20000, CancellationToken.None)
+                    .GetAwaiter().GetResult();
+
+                var hasLibplacebo = filters != null &&
+                                    filters.IndexOf("libplacebo", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                var hasVulkan = RunAsync(ffmpegManager, path,
+                        "-hide_banner -loglevel error -init_hw_device vulkan -f lavfi -i nullsrc -frames:v 1 -f null -",
+                        "CustomFfmpegVulkan", 20000, CancellationToken.None)
+                    .GetAwaiter().GetResult();
+
+                supported = hasLibplacebo && hasVulkan;
+            }
+            catch (Exception e)
+            {
+                if (Plugin.Instance?.DebugMode == true)
+                {
+                    logger?.Debug(e.Message);
+                    logger?.Debug(e.StackTrace);
+                }
+            }
+
+            _customFfmpegSupported = supported;
+            logger?.Info("Custom ffmpeg supports vulkan+libplacebo: " + supported);
+
+            return supported;
+        }
+
         private static List<string> Tokenize(string input)
         {
             var tokens = new List<string>();

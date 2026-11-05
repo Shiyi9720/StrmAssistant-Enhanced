@@ -7,6 +7,7 @@ using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Drawing;
+using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -28,6 +29,7 @@ namespace StrmAssistant.Common
         private readonly IFfmpegManager _ffmpegManager;
         private readonly IFileSystem _fileSystem;
         private readonly IImageProcessor _imageProcessor;
+        private readonly IItemRepository _itemRepository;
 
         private readonly object _thumbnailGenerator;
         private readonly MethodInfo _refreshThumbnailImages;
@@ -46,6 +48,7 @@ namespace StrmAssistant.Common
             _ffmpegManager = ffmpegManager;
             _fileSystem = fileSystem;
             _imageProcessor = imageProcessor;
+            _itemRepository = itemRepository;
 
             try
             {
@@ -115,20 +118,26 @@ namespace StrmAssistant.Common
 
             if (result)
             {
-                await PostProcessChapterImages(item, cancellationToken).ConfigureAwait(false);
+                await PostProcessChapterImages(item, mediaSource, chapters, cancellationToken).ConfigureAwait(false);
             }
 
             return result;
         }
 
-        private async Task PostProcessChapterImages(Video item, CancellationToken cancellationToken)
+        private async Task PostProcessChapterImages(Video item, MediaSourceInfo mediaSource,
+            List<ChapterInfo> chapters, CancellationToken cancellationToken)
         {
             var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
             var quality = options.ScreenshotQuality;
             var maxWidth = options.ScreenshotMaxWidth;
             var maxHeight = options.ScreenshotMaxHeight;
+            var cropUltraWide = options.CropUltraWideScreenshots;
+            var cropPortrait = options.CropPortraitScreenshots;
 
-            if (quality <= 0 && maxWidth <= 0 && maxHeight <= 0) return;
+            await ReExtractDolbyVisionProfile5Async(item, mediaSource, chapters, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (quality <= 0 && maxWidth <= 0 && maxHeight <= 0 && !cropUltraWide && !cropPortrait) return;
 
             if (_imageProcessor is null)
             {
@@ -151,6 +160,17 @@ namespace StrmAssistant.Common
                 var imagePath = image.Path;
 
                 if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+                {
+                    index++;
+                    continue;
+                }
+
+                if (cropUltraWide || cropPortrait)
+                {
+                    CropImage(imagePath, image, cropUltraWide, cropPortrait);
+                }
+
+                if (quality <= 0 && maxWidth <= 0 && maxHeight <= 0)
                 {
                     index++;
                     continue;
@@ -205,6 +225,180 @@ namespace StrmAssistant.Common
 
                 index++;
             }
+        }
+
+        /// <summary>
+        /// Emby extracts Dolby Vision Profile 5 chapter images with its own ffmpeg, which ignores
+        /// the DOVI reshaping and produces a green cast. When a custom ffmpeg with Vulkan and
+        /// libplacebo is configured, replace those images with frames extracted by that build.
+        /// </summary>
+        private async Task ReExtractDolbyVisionProfile5Async(Video item, MediaSourceInfo mediaSource,
+            List<ChapterInfo> chapters, CancellationToken cancellationToken)
+        {
+            if (chapters is null || chapters.Count == 0) return;
+
+            if (string.IsNullOrEmpty(FfmpegApi.GetCustomFfmpegPath())) return;
+
+            var videoStream = mediaSource?.MediaStreams?.FirstOrDefault(s => s.Type == MediaStreamType.Video) ??
+                              item.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video);
+
+            if (!DvP5Screenshot.CanHandle(_ffmpegManager, videoStream)) return;
+
+            var inputPath = mediaSource?.Path;
+
+            if (string.IsNullOrEmpty(inputPath) || !File.Exists(inputPath)) inputPath = item.Path;
+
+            if (string.IsNullOrEmpty(inputPath) || !File.Exists(inputPath))
+            {
+                _logger?.Warn("DvP5Screenshot - Media file not found: " + item.Path);
+                return;
+            }
+
+            var processed = 0;
+
+            foreach (var chapter in chapters)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var imagePath = chapter.ImagePath;
+
+                if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath)) continue;
+
+                // Emby extracts the first chapter at 15 seconds to avoid black frames.
+                var offset = chapter.StartPositionTicks <= 0
+                    ? TimeSpan.FromSeconds(15)
+                    : TimeSpan.FromTicks(chapter.StartPositionTicks);
+
+                var tempPath = await DvP5Screenshot
+                    .ExtractSingleImageAsync(_ffmpegManager, inputPath, offset, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (tempPath is null) continue;
+
+                try
+                {
+                    File.Copy(tempPath, imagePath, true);
+                    chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(imagePath);
+                    processed++;
+                }
+                catch (Exception e)
+                {
+                    _logger?.Error("DvP5Screenshot - Failed to replace chapter image: " + imagePath);
+                    _logger?.Error(e.Message);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(tempPath)) File.Delete(tempPath);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+            }
+
+            if (processed > 0)
+            {
+                _logger?.Info($"DvP5Screenshot - Replaced {processed} chapter image(s): {item.Name} - {item.Path}");
+
+                try
+                {
+                    _itemRepository?.SaveChapters(item.InternalId, chapters);
+                }
+                catch (Exception e)
+                {
+                    _logger?.Debug("DvP5Screenshot - Failed to save chapters: " + e.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Crops ultra wide screenshots to 16:9 and vertical screenshots to 2:3 so that the
+        /// chapter images follow the poster frame used by the web UI.
+        /// </summary>
+        private void CropImage(string imagePath, ItemImageInfo image, bool cropUltraWide, bool cropPortrait)
+        {
+            var tempPath = imagePath + ".crop.jpg";
+
+            try
+            {
+                var size = _imageProcessor.GetImageSize(imagePath);
+                var crop = GetCropFilter(size, cropUltraWide, cropPortrait);
+
+                if (crop is null) return;
+
+                var encoderPath = FfmpegApi.GetEncoderPath(_ffmpegManager);
+
+                if (string.IsNullOrEmpty(encoderPath)) return;
+
+                var arguments = $"-hide_banner -loglevel error -nostdin -i \"{imagePath}\" -vf \"{crop}\" -q:v 2 -y \"{tempPath}\"";
+
+                var success = FfmpegApi.RunAsync(_ffmpegManager, encoderPath, arguments, "ScreenshotCrop",
+                        60000, CancellationToken.None)
+                    .GetAwaiter().GetResult();
+
+                if (!success || !File.Exists(tempPath))
+                {
+                    _logger?.Warn("ScreenshotCrop - Failed: " + imagePath);
+                    return;
+                }
+
+                File.Copy(tempPath, imagePath, true);
+                image.Reset(_fileSystem.GetFileSystemInfo(imagePath));
+
+                _logger?.Info($"ScreenshotCrop - {crop}: {imagePath}");
+            }
+            catch (Exception e)
+            {
+                _logger?.Error("ScreenshotCrop - Failed: " + imagePath);
+                _logger?.Error(e.Message);
+                _logger?.Debug(e.StackTrace);
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
+
+        private static string GetCropFilter(ImageSize size, bool cropUltraWide, bool cropPortrait)
+        {
+            var width = (int)Math.Round(size.Width);
+            var height = (int)Math.Round(size.Height);
+
+            if (width <= 0 || height <= 0) return null;
+
+            var aspectRatio = (double)width / height;
+
+            if (cropUltraWide && aspectRatio > 16.0 / 9 + 0.01)
+            {
+                var newWidth = Math.Min(width, (int)Math.Round(height * 16.0 / 9)) & ~1;
+
+                if (newWidth < width)
+                {
+                    return $"crop={newWidth}:{height}:{(width - newWidth) / 2}:0";
+                }
+            }
+
+            if (cropPortrait && aspectRatio < 2.0 / 3 - 0.01)
+            {
+                var newHeight = Math.Min(height, (int)Math.Round(width * 3.0 / 2)) & ~1;
+
+                if (newHeight < height)
+                {
+                    return $"crop={width}:{newHeight}:0:{(height - newHeight) / 2}";
+                }
+            }
+
+            return null;
         }
 
         public List<Video> FetchExtractTaskItems()
