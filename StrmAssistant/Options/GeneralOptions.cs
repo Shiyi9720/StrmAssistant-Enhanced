@@ -49,7 +49,12 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(MaxConcurrentCount), ValueCondition.IsEqual, 1)]
         [Required, MinValue(0), MaxValue(60)]
         public int CooldownDurationSeconds { get; set; } = 0;
-        
+
+        [DisplayNameL("GeneralOptions_IntroDetectionMaxConcurrentCount_Intro_Detection_Max_Concurrent_Count", typeof(Resources))]
+        [DescriptionL("GeneralOptions_IntroDetectionMaxConcurrentCount_Number_of_episodes_processed_in_parallel__It_must_be_between_1_and_8__Default_is_2_", typeof(Resources))]
+        [Required, MinValue(1), MaxValue(8)]
+        public int IntroDetectionMaxConcurrentCount { get; set; } = 2;
+
         [DisplayNameL("GeneralOptions_Tier2MaxConcurrentCount_Tier_2_Max_Concurrent_Count", typeof(Resources))]
         [DescriptionL("GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_", typeof(Resources))]
         [Required, MinValue(1), MaxValue(20)]

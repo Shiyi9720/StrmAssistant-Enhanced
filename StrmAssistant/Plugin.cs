@@ -80,6 +80,7 @@ namespace StrmAssistant
         private bool _currentSuppressOnOptionsSaved;
         private int _currentMaxConcurrentCount;
         private int _currentTier2ConcurrentCount;
+        private int _currentIntroDetectionMaxConcurrentCount;
         private bool _currentPersistMediaInfo;
         private bool _currentMediaInfoRestoreMode;
         private bool _currentCatchupMode;
@@ -122,6 +123,7 @@ namespace StrmAssistant
             _taskManager = taskManager;
 
             _currentMaxConcurrentCount = GetOptions().GeneralOptions.MaxConcurrentCount;
+            _currentIntroDetectionMaxConcurrentCount = GetOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
             _currentPersistMediaInfo = GetOptions().MediaInfoExtractOptions.PersistMediaInfoMode !=
                                        PersistMediaInfoOption.None.ToString();
             _currentMediaInfoRestoreMode = GetOptions().MediaInfoExtractOptions.PersistMediaInfoMode ==
@@ -443,6 +445,8 @@ namespace StrmAssistant
             {
                 Logger.Info("IncludeExtra is set to {0}", options.MediaInfoExtractOptions.IncludeExtra);
                 Logger.Info("MaxConcurrentCount is set to {0}", options.GeneralOptions.MaxConcurrentCount);
+                Logger.Info("IntroDetectionMaxConcurrentCount is set to {0}",
+                    options.GeneralOptions.IntroDetectionMaxConcurrentCount);
                 Logger.Info("CooldownDurationSeconds is set to {0}", options.GeneralOptions.CooldownDurationSeconds);
                 Logger.Info("Tier2 MaxConcurrentCount is set to {0}", options.GeneralOptions.Tier2MaxConcurrentCount);
 
@@ -460,8 +464,14 @@ namespace StrmAssistant
                 _currentMaxConcurrentCount = options.GeneralOptions.MaxConcurrentCount;
 
                 QueueManager.UpdateMasterSemaphore(_currentMaxConcurrentCount);
+            }
+            if (_currentIntroDetectionMaxConcurrentCount != options.GeneralOptions.IntroDetectionMaxConcurrentCount)
+            {
+                _currentIntroDetectionMaxConcurrentCount = options.GeneralOptions.IntroDetectionMaxConcurrentCount;
 
-                FingerprintApi.PatchTimeout(_currentMaxConcurrentCount);
+                QueueManager.UpdateFingerprintSemaphore(_currentIntroDetectionMaxConcurrentCount);
+
+                FingerprintApi.PatchTimeout(_currentIntroDetectionMaxConcurrentCount);
             }
             if (_currentTier2ConcurrentCount != options.GeneralOptions.Tier2MaxConcurrentCount)
             {

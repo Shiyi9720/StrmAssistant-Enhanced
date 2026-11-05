@@ -37,6 +37,8 @@ namespace StrmAssistant.Common
         private readonly MethodInfo _updateSequencesForSeason;
         private readonly FieldInfo _timeoutMs;
 
+        private static readonly object MarkerWriteLock = new object();
+
         public static List<string> LibraryPathsInScope;
 
         public FingerprintApi(ILibraryManager libraryManager, IFileSystem fileSystem,
@@ -81,7 +83,7 @@ namespace StrmAssistant.Common
                     BindingFlags.Public | BindingFlags.Instance);
                 _timeoutMs = audioFingerprintManager.GetField("TimeoutMs",
                     BindingFlags.NonPublic | BindingFlags.Instance);
-                PatchTimeout(Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount);
+                PatchTimeout(Plugin.Instance.GetPluginOptions().GeneralOptions.IntroDetectionMaxConcurrentCount);
             }
             catch (Exception e)
             {
@@ -413,13 +415,19 @@ namespace StrmAssistant.Common
             double total = episodesWithoutMarkers.Count;
             var index = 0;
 
-            foreach (var episode in episodesWithoutMarkers)
+            // Seasons are processed in parallel, but chapter marker writes must stay serialized
+            // to avoid concurrent writes to the same SQLite database.
+            lock (MarkerWriteLock)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                UpdateSequencesForSeason(season, seasonFingerprintInfo, episode, libraryOptions, directoryService);
+                foreach (var episode in episodesWithoutMarkers)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    UpdateSequencesForSeason(season, seasonFingerprintInfo, episode, libraryOptions,
+                        directoryService);
 
-                index++;
-                progress?.Report(index / total);
+                    index++;
+                    progress?.Report(index / total);
+                }
             }
 
             progress?.Report(1.0);

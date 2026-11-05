@@ -44,9 +44,10 @@ namespace StrmAssistant.ScheduledTask
                 return;
             }
 
-            var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
-            _logger.Info("Master Max Concurrent Count: " + maxConcurrentCount);
-            var cooldownSeconds = maxConcurrentCount == 1
+            var introDetectionMaxConcurrentCount =
+                Plugin.Instance.GetPluginOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
+            _logger.Info("Intro Detection Max Concurrent Count: " + introDetectionMaxConcurrentCount);
+            var cooldownSeconds = introDetectionMaxConcurrentCount == 1
                 ? Plugin.Instance.GetPluginOptions().GeneralOptions.CooldownDurationSeconds
                 : (int?)null;
             if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
@@ -99,7 +100,7 @@ namespace StrmAssistant.ScheduledTask
 
                     try
                     {
-                        await QueueManager.MasterSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        await QueueManager.FingerprintSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -108,7 +109,7 @@ namespace StrmAssistant.ScheduledTask
 
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        QueueManager.MasterSemaphore.Release();
+                        QueueManager.FingerprintSemaphore.Release();
                         _logger.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
                         return;
                     }
@@ -195,7 +196,7 @@ namespace StrmAssistant.ScheduledTask
                                 }
                             }
 
-                            QueueManager.MasterSemaphore.Release();
+                            QueueManager.FingerprintSemaphore.Release();
 
                             var currentCount = Interlocked.Increment(ref processedEpisodes);
 
