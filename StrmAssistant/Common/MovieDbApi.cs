@@ -15,6 +15,8 @@ namespace StrmAssistant.Common
     {
         private const string MovieDbProviderBaseTypeName = "MovieDbProviderBase";
         private const string MovieDbApiHost = "api.themoviedb.org";
+        private const string MovieDbAltApiHost = "api.tmdb.org";
+        private const string MovieDbImageHost = "image.tmdb.org";
 
         // Emby uses zh-Hant as its Traditional Chinese code, which is not a TMDB request language.
         // TMDB exposes zh-TW for Traditional Chinese and zh-CN for Simplified Chinese.
@@ -26,7 +28,12 @@ namespace StrmAssistant.Common
         private static readonly Regex ImageLanguageParamRegex =
             new Regex(@"([?&]include_image_language=)([^&]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex ApiKeyParamRegex =
+            new Regex(@"([?&]api_key=)([^&]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly ILogger _logger;
+
+        private static string _originalImageBaseUrl;
 
         public MovieDbApi()
         {
@@ -56,11 +63,72 @@ namespace StrmAssistant.Common
                     httpClientField.SetValue(provider, new MovieDbHttpClient(httpClient));
                     _logger.Info("MovieDb provider is patched: {0}", provider.GetType().Name);
                 }
+
+                ApplyAlternativeImageBaseUrl();
             }
             catch (Exception e)
             {
                 _logger.ErrorException("MovieDbApi Initialize", e);
             }
+        }
+
+        private void ApplyAlternativeImageBaseUrl()
+        {
+            var tmdbSettings = FindTmdbSettings();
+
+            if (tmdbSettings is null) return;
+
+            try
+            {
+                var images = tmdbSettings.GetType().GetProperty("images")?.GetValue(tmdbSettings);
+                var secureBaseUrlProperty = images?.GetType().GetProperty("secure_base_url");
+
+                if (secureBaseUrlProperty is null || !secureBaseUrlProperty.CanWrite) return;
+
+                var options = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions;
+
+                if (options.EnableAltMovieDbUrl && CommonUtility.IsValidHttpUrl(options.AltMovieDbImageUrl))
+                {
+                    if (string.IsNullOrEmpty(_originalImageBaseUrl))
+                    {
+                        _originalImageBaseUrl = secureBaseUrlProperty.GetValue(images) as string;
+                    }
+
+                    var baseUrl = options.AltMovieDbImageUrl.Trim().TrimEnd('/');
+                    var imageBaseUrl = baseUrl.EndsWith("/t/p", StringComparison.OrdinalIgnoreCase)
+                        ? baseUrl + "/"
+                        : baseUrl + "/t/p/";
+                    secureBaseUrlProperty.SetValue(images, imageBaseUrl);
+                    _logger.Info("MovieDb image base url is set to {0}", imageBaseUrl);
+                }
+                else if (!string.IsNullOrEmpty(_originalImageBaseUrl))
+                {
+                    secureBaseUrlProperty.SetValue(images, _originalImageBaseUrl);
+                    _originalImageBaseUrl = null;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.ErrorException("MovieDbApi ApplyAlternativeImageBaseUrl", e);
+            }
+        }
+
+        private static object FindTmdbSettings()
+        {
+            var provider = Plugin.Instance.ApplicationHost.GetExports<IMetadataProvider>()
+                .FirstOrDefault(IsMovieDbProvider);
+
+            if (provider is null) return null;
+
+            for (var type = provider.GetType(); type != null; type = type.BaseType)
+            {
+                var field = type.GetField("_tmdbSettings",
+                    BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+
+                if (field != null) return field.GetValue(null);
+            }
+
+            return null;
         }
 
         private static bool IsMovieDbProvider(object provider)
@@ -104,28 +172,58 @@ namespace StrmAssistant.Common
 
         private static string RewriteUrl(string url)
         {
-            if (string.IsNullOrEmpty(url) || !Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions
-                    .PreferTraditionalChinese)
-            {
-                return url;
-            }
+            if (string.IsNullOrEmpty(url)) return url;
 
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-                !string.Equals(uri.Host, MovieDbApiHost, StringComparison.OrdinalIgnoreCase))
-            {
-                return url;
-            }
+            var options = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions;
 
-            var rewrittenUrl = LanguageParamRegex.Replace(url, match =>
-                match.Groups[1].Value + (IsChineseLanguage(match.Groups[2].Value)
-                    ? PreferredTraditionalChineseLanguage
-                    : match.Groups[2].Value));
-            rewrittenUrl = ImageLanguageParamRegex.Replace(rewrittenUrl, match =>
-                match.Groups[1].Value + string.Join(",",
-                    match.Groups[2].Value.Split(',').Select(language =>
-                        IsChineseLanguage(language) ? PreferredTraditionalChineseLanguage : language)));
+            if (!options.PreferTraditionalChinese && !options.EnableAltMovieDbUrl) return url;
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return url;
+
+            var rewrittenUrl = url;
+
+            if (string.Equals(uri.Host, MovieDbApiHost, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(uri.Host, MovieDbAltApiHost, StringComparison.OrdinalIgnoreCase))
+            {
+                if (options.PreferTraditionalChinese)
+                {
+                    rewrittenUrl = LanguageParamRegex.Replace(rewrittenUrl, match =>
+                        match.Groups[1].Value + (IsChineseLanguage(match.Groups[2].Value)
+                            ? PreferredTraditionalChineseLanguage
+                            : match.Groups[2].Value));
+                    rewrittenUrl = ImageLanguageParamRegex.Replace(rewrittenUrl, match =>
+                        match.Groups[1].Value + string.Join(",",
+                            match.Groups[2].Value.Split(',').Select(language =>
+                                IsChineseLanguage(language) ? PreferredTraditionalChineseLanguage : language)));
+                }
+
+                if (options.EnableAltMovieDbUrl)
+                {
+                    rewrittenUrl = ReplaceBaseUrl(rewrittenUrl, uri, options.AltMovieDbApiUrl);
+
+                    if (CommonUtility.IsValidMovieDbApiKey(options.AltMovieDbApiKey))
+                    {
+                        rewrittenUrl = ApiKeyParamRegex.Replace(rewrittenUrl,
+                            match => match.Groups[1].Value + options.AltMovieDbApiKey.Trim());
+                    }
+                }
+            }
+            else if (options.EnableAltMovieDbUrl &&
+                     string.Equals(uri.Host, MovieDbImageHost, StringComparison.OrdinalIgnoreCase))
+            {
+                rewrittenUrl = ReplaceBaseUrl(rewrittenUrl, uri, options.AltMovieDbImageUrl);
+            }
 
             return rewrittenUrl;
+        }
+
+        private static string ReplaceBaseUrl(string url, Uri uri, string altBaseUrl)
+        {
+            if (!CommonUtility.IsValidHttpUrl(altBaseUrl)) return url;
+
+            var baseUrl = altBaseUrl.Trim().TrimEnd('/');
+
+            return baseUrl + uri.PathAndQuery;
         }
 
         private class MovieDbHttpClient : IHttpClient
@@ -137,14 +235,12 @@ namespace StrmAssistant.Common
                 _httpClient = httpClient;
             }
 
-            private static string Rewrite(HttpRequestOptions options)
+            private static void Rewrite(HttpRequestOptions options)
             {
                 if (options != null)
                 {
                     options.Url = RewriteUrl(options.Url);
                 }
-
-                return options?.Url;
             }
 
             public Task<HttpResponseInfo> GetResponse(HttpRequestOptions options)
