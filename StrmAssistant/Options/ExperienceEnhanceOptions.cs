@@ -47,5 +47,21 @@ namespace StrmAssistant.Options
         [DisplayNameL("ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Reverse_Season_and_Episode_Order", typeof(Resources))]
         [DescriptionL("ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_", typeof(Resources))]
         public bool ReverseSeasonEpisodeOrder { get; set; } = false;
+
+        public enum EpisodeDisplayStyleOption
+        {
+            [DescriptionL("EpisodeDisplayStyleOption_Default_Default", typeof(Resources))]
+            Default,
+
+            [DescriptionL("EpisodeDisplayStyleOption_SeasonEpisodeNumber_SxxExx", typeof(Resources))]
+            SeasonEpisodeNumber,
+
+            [DescriptionL("EpisodeDisplayStyleOption_EpisodeName_Episode_Name", typeof(Resources))]
+            EpisodeName
+        }
+
+        [DisplayNameL("ExperienceEnhanceOptions_EpisodeDisplayStyle_Episode_Display_Style", typeof(Resources))]
+        [DescriptionL("ExperienceEnhanceOptions_EpisodeDisplayStyle_Force_a_consistent_episode_title_style_in_the_web_client__Default_is_Default_", typeof(Resources))]
+        public EpisodeDisplayStyleOption EpisodeDisplayStyle { get; set; } = EpisodeDisplayStyleOption.Default;
     }
 }
