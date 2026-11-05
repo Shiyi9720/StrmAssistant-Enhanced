@@ -10,7 +10,7 @@ namespace StrmAssistant.Web.Service
 {
     public class EpisodeStatsService : BaseApiService
     {
-        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(60);
         private static readonly ConcurrentDictionary<long, CacheEntry> Cache =
             new ConcurrentDictionary<long, CacheEntry>();
 

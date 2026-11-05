@@ -97,9 +97,9 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
         public int IntroDetectionFingerprintMinutes { get; set; } = 10;
 
-        [DisplayNameL("IntroSkipOptions_LibraryIntroDetectionFingerprint_Library_Intro_Detection_Fingerprint_Length", typeof(Resources))]
-        [DescriptionL("IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_intro_detection_fingerprint_length_per_library__Unchecked_uses_the_global_setting_", typeof(Resources))]
-        [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
+        // Emby 4.10 的通用设置页渲染这种 EditableObjectBase 集合会栈溢出直接把进程带走，
+        // 因此不在 UI 中暴露；按库覆盖仍可通过插件配置文件直接编辑。
+        [Browsable(false)]
         public LibraryIntroDetectionFingerprintOptionCollection LibraryIntroDetectionFingerprintOptions { get; set; } =
             new LibraryIntroDetectionFingerprintOptionCollection();
 
