@@ -90,6 +90,7 @@ namespace StrmAssistant
         private bool _currentMergeMultiVersion;
         private bool _currentNewLibraryMovieDb;
         private bool _currentPreferTraditionalChinese;
+        private bool _currentEnableAltMovieDbUrl;
 
         private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
         {
@@ -137,6 +138,7 @@ namespace StrmAssistant
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
             _currentNewLibraryMovieDb = GetOptions().MetadataEnhanceOptions.NewLibraryMovieDb;
             _currentPreferTraditionalChinese = GetOptions().MetadataEnhanceOptions.PreferTraditionalChinese;
+            _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
             InitializeOptionCache();
 
             if (GetOptions().AboutOptions.DebugMode)
@@ -171,7 +173,7 @@ namespace StrmAssistant
 
             if (_currentCatchupMode) QueueManager.Initialize();
             if (_currentEnableIntroSkip) PlaySessionMonitor.Initialize();
-            if (_currentPreferTraditionalChinese) MovieDbApi.Initialize();
+            if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl) MovieDbApi.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
@@ -601,11 +603,25 @@ namespace StrmAssistant
                     options.MetadataEnhanceOptions.PreferTraditionalChinese);
             }
             _currentNewLibraryMovieDb = options.MetadataEnhanceOptions.NewLibraryMovieDb;
-            if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese)
+            if (!suppress)
+            {
+                Logger.Info("EnableAltMovieDbUrl is set to {0}", options.MetadataEnhanceOptions.EnableAltMovieDbUrl);
+                Logger.Info("AltMovieDbApiUrl is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MetadataEnhanceOptions.AltMovieDbApiUrl)
+                        ? "EMPTY"
+                        : options.MetadataEnhanceOptions.AltMovieDbApiUrl);
+                Logger.Info("AltMovieDbImageUrl is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MetadataEnhanceOptions.AltMovieDbImageUrl)
+                        ? "EMPTY"
+                        : options.MetadataEnhanceOptions.AltMovieDbImageUrl);
+            }
+            if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
+                _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl)
             {
                 _currentPreferTraditionalChinese = options.MetadataEnhanceOptions.PreferTraditionalChinese;
+                _currentEnableAltMovieDbUrl = options.MetadataEnhanceOptions.EnableAltMovieDbUrl;
 
-                if (_currentPreferTraditionalChinese) MovieDbApi.Initialize();
+                MovieDbApi.Initialize();
             }
 
             if (suppress) _currentSuppressOnOptionsSaved = false;

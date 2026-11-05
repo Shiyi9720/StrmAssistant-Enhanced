@@ -28,6 +28,24 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant__zh_TW__then_zh_CN__Default_is_OFF_", typeof(Resources))]
         public bool PreferTraditionalChinese { get; set; } = false;
 
+        [DisplayNameL("MetadataEnhanceOptions_EnableAltMovieDbUrl", typeof(Resources))]
+        public bool EnableAltMovieDbUrl { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_AltMovieDbApiUrl_Alternative_MovieDb_Api_Url", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_AltMovieDbApiUrl_Default_alternative_is_https___api_tmdb_org", typeof(Resources))]
+        [VisibleCondition(nameof(EnableAltMovieDbUrl), SimpleCondition.IsTrue)]
+        public string AltMovieDbApiUrl { get; set; } = string.Empty;
+
+        [DisplayNameL("MetadataEnhanceOptions_AltMovieDbImageUrl_Alternative_MovieDb_Image_Url", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_AltMovieDbImageUrl_No_default_alternative__Provide_by_yourself_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableAltMovieDbUrl), SimpleCondition.IsTrue)]
+        public string AltMovieDbImageUrl { get; set; } = string.Empty;
+
+        [DisplayNameL("MetadataEnhanceOptions_AltMovieDbApiKey_Alternative_MovieDb_Api_Key", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_AltMovieDbApiKey_Provide_your_own_MovieDb_Api_Key__Blank_uses_system_default_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableAltMovieDbUrl), SimpleCondition.IsTrue)]
+        public string AltMovieDbApiKey { get; set; } = string.Empty;
+
         [Browsable(false)]
         [Required]
         public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
