@@ -390,7 +390,9 @@ namespace StrmAssistant.Common
                 var chinese = SearchTextHelper.HasChinese(title);
                 var variants = new HashSet<string>(StringComparer.Ordinal)
                 {
-                    SearchTextHelper.Compact(title)
+                    SearchTextHelper.Compact(title),
+                    SearchTextHelper.Compact(SearchTextHelper.ToSimplified(title)),
+                    SearchTextHelper.Compact(SearchTextHelper.ToTraditional(title))
                 };
 
                 foreach (var variant in variants)
@@ -609,6 +611,13 @@ namespace StrmAssistant.Common
 
             Add(compact, SearchTextHelper.HasChinese(raw));
 
+            if (options.ConversionSearch)
+            {
+                Add(SearchTextHelper.Compact(SearchTextHelper.ToSimplified(raw)),
+                    SearchTextHelper.HasChinese(SearchTextHelper.ToSimplified(raw)));
+                Add(SearchTextHelper.Compact(SearchTextHelper.ToTraditional(raw)),
+                    SearchTextHelper.HasChinese(SearchTextHelper.ToTraditional(raw)));
+            }
 
             return variants;
         }
