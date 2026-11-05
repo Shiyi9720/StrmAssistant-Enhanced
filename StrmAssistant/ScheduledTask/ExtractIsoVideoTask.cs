@@ -16,7 +16,7 @@ namespace StrmAssistant.ScheduledTask
 {
     public class ExtractIsoVideoTask : IScheduledTask, IConfigurableScheduledTask
     {
-        private readonly ILogger _logger = Plugin.Instance.Logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
         private readonly ILibraryManager _libraryManager;
 
         public ExtractIsoVideoTask(ILibraryManager libraryManager)
@@ -26,13 +26,13 @@ namespace StrmAssistant.ScheduledTask
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("IsoExtract - Scheduled Task Execute");
+            _logger?.Info("IsoExtract - Scheduled Task Execute");
 
             var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
 
             if (!options.EnableIsoExtraction)
             {
-                _logger.Info("IsoExtract - Disabled, skipping");
+                _logger?.Info("IsoExtract - Disabled, skipping");
                 progress.Report(100.0);
                 return;
             }
@@ -49,7 +49,7 @@ namespace StrmAssistant.ScheduledTask
                 .Where(i => IsoApi.IsIsoPath(i.Path))
                 .ToList();
 
-            _logger.Info("IsoExtract - Number of items: " + items.Count);
+            _logger?.Info("IsoExtract - Number of items: " + items.Count);
 
             double total = items.Count;
             var current = 0;
@@ -65,19 +65,19 @@ namespace StrmAssistant.ScheduledTask
 
                     if (string.IsNullOrEmpty(result))
                     {
-                        _logger.Info("IsoExtract - Skipped: " + item.Path);
+                        _logger?.Info("IsoExtract - Skipped: " + item.Path);
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger.Info("IsoExtract - Scheduled Task Cancelled");
+                    _logger?.Info("IsoExtract - Scheduled Task Cancelled");
                     return;
                 }
                 catch (Exception e)
                 {
-                    _logger.Info("IsoExtract - Item failed: " + item.Path);
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Info("IsoExtract - Item failed: " + item.Path);
+                    _logger?.Debug(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
 
                 current++;
@@ -85,7 +85,7 @@ namespace StrmAssistant.ScheduledTask
             }
 
             progress.Report(100.0);
-            _logger.Info("IsoExtract - Scheduled Task Complete");
+            _logger?.Info("IsoExtract - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",

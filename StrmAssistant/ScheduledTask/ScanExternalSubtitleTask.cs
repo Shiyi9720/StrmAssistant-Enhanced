@@ -24,19 +24,19 @@ namespace StrmAssistant.ScheduledTask
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("ExternalSubtitle - Scheduled Task Execute");
-            _logger.Info("Tier2 Max Concurrent Count: " +
+            _logger?.Info("ExternalSubtitle - Scheduled Task Execute");
+            _logger?.Info("Tier2 Max Concurrent Count: " +
                          Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount);
 
             await Task.Yield();
             progress.Report(0);
 
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
-            _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            _logger?.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
             var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
 
             var items = Plugin.LibraryApi.FetchPostExtractTaskItems(false);
-            _logger.Info("ExternalSubtitle - Number of items: " + items.Count);
+            _logger?.Info("ExternalSubtitle - Number of items: " + items.Count);
 
             double total = items.Count;
             var index = 0;
@@ -58,7 +58,7 @@ namespace StrmAssistant.ScheduledTask
                 if (cancellationToken.IsCancellationRequested)
                 {
                     QueueManager.Tier2Semaphore.Release();
-                    _logger.Info("ExternalSubtitle - Scheduled Task Cancelled");
+                    _logger?.Info("ExternalSubtitle - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -70,7 +70,7 @@ namespace StrmAssistant.ScheduledTask
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            _logger.Info("ExternalSubtitle - Scheduled Task Cancelled");
+                            _logger?.Info("ExternalSubtitle - Scheduled Task Cancelled");
                             return;
                         }
 
@@ -83,18 +83,18 @@ namespace StrmAssistant.ScheduledTask
                                 .UpdateExternalSubtitles(taskItem, refreshOptions, false, persistMediaInfo)
                                 .ConfigureAwait(false);
 
-                            _logger.Info("ExternalSubtitle - Item Processed: " + taskItem.Name + " - " + taskItem.Path);
+                            _logger?.Info("ExternalSubtitle - Item Processed: " + taskItem.Name + " - " + taskItem.Path);
                         }
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.Info("ExternalSubtitle - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger?.Info("ExternalSubtitle - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
                     }
                     catch (Exception e)
                     {
-                        _logger.Info("ExternalSubtitle - Item failed: " + taskItem.Name + " - " + taskItem.Path);
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Info("ExternalSubtitle - Item failed: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger?.Debug(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                     finally
                     {
@@ -102,7 +102,7 @@ namespace StrmAssistant.ScheduledTask
 
                         var currentCount = Interlocked.Increment(ref current);
                         progress.Report(currentCount / total * 100);
-                        _logger.Info("ExternalSubtitle - Progress " + currentCount + "/" + total + " - " +
+                        _logger?.Info("ExternalSubtitle - Progress " + currentCount + "/" + total + " - " +
                                      "Task " + taskIndex + ": " + taskItem.Path);
                     }
                 }, cancellationToken);
@@ -112,7 +112,7 @@ namespace StrmAssistant.ScheduledTask
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             progress.Report(100.0);
-            _logger.Info("ExternalSubtitle - Scheduled Task Complete");
+            _logger?.Info("ExternalSubtitle - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",

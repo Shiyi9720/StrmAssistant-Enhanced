@@ -20,7 +20,7 @@ namespace StrmAssistant.ScheduledTask
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("IntroSkip - Clear Task Execute");
+            _logger?.Info("IntroSkip - Clear Task Execute");
             await Task.Yield();
             progress.Report(0);
 
@@ -42,7 +42,7 @@ namespace StrmAssistant.ScheduledTask
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
-                        _logger.Info("IntroSkip - Clear Task Cancelled");
+                        _logger?.Info("IntroSkip - Clear Task Cancelled");
                         break;
                     }
 
@@ -53,14 +53,14 @@ namespace StrmAssistant.ScheduledTask
                     Plugin.ChapterApi.RemoveIntroCreditsMarkers(item);
 
                     current++;
-                    _logger.Info("IntroSkip - Clear Task " + current + "/" + total + " - " + item.Path);
+                    _logger?.Info("IntroSkip - Clear Task " + current + "/" + total + " - " + item.Path);
 
                     Task.Delay(10).Wait();
                 }
             }, cancellationToken);
 
             progress.Report(100.0);
-            _logger.Info("IntroSkip - Clear Task Complete");
+            _logger?.Info("IntroSkip - Clear Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",
