@@ -1,3 +1,4 @@
+using StrmAssistant.Options;
 using StrmAssistant.Properties;
 
 namespace StrmAssistant.Web.Helper
@@ -15,6 +16,8 @@ namespace StrmAssistant.Web.Helper
             var multiVersionSort = options?.GeneralOptions.MultiVersionSort ?? true;
             var reverseSeasonEpisodeOrder =
                 options?.ExperienceEnhanceOptions.ReverseSeasonEpisodeOrder ?? false;
+            var episodeDisplayStyle = options?.ExperienceEnhanceOptions.EpisodeDisplayStyle ??
+                                      ExperienceEnhanceOptions.EpisodeDisplayStyleOption.Default;
 
             var episodeStatsFormat = (Resources.EpisodeStats_Total_In_Library ??
                                       "Total Episodes {0} / In Library {1}")
@@ -23,7 +26,8 @@ namespace StrmAssistant.Web.Helper
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
                    GetCollectionMembershipScript() + "\n" +
-                   GetDashboardTasksScript() + "\n" + GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n";
+                   GetDashboardTasksScript() + "\n" + GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
+                   GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n";
         }
 
         private static string GetStyleScript()
@@ -46,6 +50,72 @@ namespace StrmAssistant.Web.Helper
     (document.head || document.documentElement).appendChild(style);
 })();
 ";
+        }
+
+        /// <summary>
+        /// Forces one episode title style everywhere in the web client by wrapping the shared
+        /// BaseItemController.getDisplayName method. The web client builds every card and list
+        /// title through that method, so patching it keeps all views consistent instead of
+        /// rewriting rendered text per view.
+        /// </summary>
+        private static string GetEpisodeDisplayStyleScript(ExperienceEnhanceOptions.EpisodeDisplayStyleOption style)
+        {
+            if (style == ExperienceEnhanceOptions.EpisodeDisplayStyleOption.Default) return string.Empty;
+
+            var forceNumber = style == ExperienceEnhanceOptions.EpisodeDisplayStyleOption.SeasonEpisodeNumber ? "true" : "false";
+
+            return @"
+(function () {
+    'use strict';
+
+    var forceNumber = @@FORCE_NUMBER@@;
+    var attempts = 0;
+
+    function patch(modules) {
+        var BaseItemController = modules && modules[0];
+        var prototype = BaseItemController && BaseItemController.prototype;
+
+        if (!prototype || typeof prototype.getDisplayName !== 'function') return false;
+        if (prototype.getDisplayName.__strmAssistant) return true;
+
+        var original = prototype.getDisplayName;
+
+        var patched = function (item, options) {
+            if (!item || item.Type !== 'Episode') {
+                return original.apply(this, arguments);
+            }
+
+            var opts = options ? Object.assign({}, options) : {};
+
+            if (forceNumber) {
+                opts.includeIndexNumber = true;
+                opts.includeParentInfo = true;
+            } else {
+                opts.includeIndexNumber = false;
+            }
+
+            return original.call(this, item, opts);
+        };
+
+        patched.__strmAssistant = true;
+        prototype.getDisplayName = patched;
+
+        return true;
+    }
+
+    var timer = setInterval(function () {
+        attempts++;
+
+        try {
+            require(['BaseItemController']).then(function (modules) {
+                if (patch(modules)) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+
+        if (attempts > 60) clearInterval(timer);
+    }, 1000);
+})();
+".Replace("@@FORCE_NUMBER@@", forceNumber);
         }
 
         /// <summary>

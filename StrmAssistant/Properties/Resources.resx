@@ -1001,4 +1001,19 @@
   <data name="ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_" xml:space="preserve">
     <value>Show seasons and episodes in descending order in the web client. Default is OFF.</value>
   </data>
+  <data name="ExperienceEnhanceOptions_EpisodeDisplayStyle_Episode_Display_Style" xml:space="preserve">
+    <value>Episode Display Style</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EpisodeDisplayStyle_Force_a_consistent_episode_title_style_in_the_web_client__Default_is_Default_" xml:space="preserve">
+    <value>Force a consistent episode title style in the web client. Season and Episode Number shows titles as SxxExx. Episode Name shows the episode name only. Default keeps the built-in style.</value>
+  </data>
+  <data name="EpisodeDisplayStyleOption_Default_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="EpisodeDisplayStyleOption_SeasonEpisodeNumber_SxxExx" xml:space="preserve">
+    <value>Season and Episode Number (SxxExx)</value>
+  </data>
+  <data name="EpisodeDisplayStyleOption_EpisodeName_Episode_Name" xml:space="preserve">
+    <value>Episode Name</value>
+  </data>
 </root>
