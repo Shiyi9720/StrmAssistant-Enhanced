@@ -1430,6 +1430,26 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Automatically prefer TheMovieDb over TheTVDB as the metadata and image fetcher for newly created libraries. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_NewLibraryMovieDb_Automatically_prefer_TheMovieDb_over_TheTVDB_as_the_metadata_and_image_fetcher_for_newly_created_libraries__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_NewLibraryMovieDb_Automatically_prefer_TheMovieDb_over_TheT" +
+                        "VDB_as_the_metadata_and_image_fetcher_for_newly_created_libraries__Default_is_O" +
+                        "FF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Prefer TMDB for New Library.
+        /// </summary>
+        public static string MetadataEnhanceOptions_NewLibraryMovieDb_Prefer_TMDB_For_New_Library {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_NewLibraryMovieDb_Prefer_TMDB_For_New_Library", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Customize MovieDb Fallback Language.
         /// </summary>
         public static string ModOptions_ChineseMovieDb_Chinese_MovieDb {
