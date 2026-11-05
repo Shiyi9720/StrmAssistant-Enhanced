@@ -27,6 +27,10 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", typeof(Resources))]
         public string CustomFfmpegArguments { get; set; } = string.Empty;
 
+        [DisplayNameL("MediaInfoExtractOptions_CustomFfmpegPath_Custom_ffmpeg_Path", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_CustomFfmpegPath_Path_to_a_custom_ffmpeg_build_with_vulkan_and_libplacebo_used_for_Dolby_Vision_Profile_5_screenshots__Default_is_EMPTY_", typeof(Resources))]
+        public string CustomFfmpegPath { get; set; } = string.Empty;
+
         [DisplayNameL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
         public string SubtitleBlacklistLanguages { get; set; } = string.Empty;
@@ -70,6 +74,18 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_height_of_generated_chapter_images__0_is_unlimited__Default_is_0_", typeof(Resources))]
         [Required, MinValue(0)]
         public int ScreenshotMaxHeight { get; set; } = 0;
+
+        [DisplayNameL("MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_Ultra_Wide_Screenshots", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_screenshots_wider_than_16_9_to_16_9_by_trimming_the_sides__Default_is_False_", typeof(Resources))]
+        public bool CropUltraWideScreenshots { get; set; } = false;
+
+        [DisplayNameL("MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_CropPortraitScreenshots_Crop_vertical_screenshots_to_a_2_3_aspect_ratio__Default_is_False_", typeof(Resources))]
+        public bool CropPortraitScreenshots { get; set; } = false;
+
+        [DisplayNameL("MediaInfoExtractOptions_DetectHdrVivid_Detect_HDR_Vivid", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_DetectHdrVivid_Probes_the_first_video_frame_for_CUVA_2094_10_metadata_and_tags_matching_videos_as_HDR_Vivid__Default_is_False_", typeof(Resources))]
+        public bool DetectHdrVivid { get; set; } = false;
 
         [DisplayNameL("PluginOptions_EnableImageCapture_Enable_Image_Capture", typeof(Resources))]
         [DescriptionL("PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_", typeof(Resources))]
