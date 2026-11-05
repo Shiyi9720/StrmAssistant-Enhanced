@@ -25,6 +25,12 @@ namespace StrmAssistant.Properties {
     public class Resources {
         
         private static global::System.Resources.ResourceManager resourceMan;
+
+        /// <summary>插件构造完成后调用：丢弃早期（卫星目录未就绪时）缓存的资源集。</summary>
+        internal static void ResetCachedResources()
+        {
+            resourceMan = null;
+        }
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
