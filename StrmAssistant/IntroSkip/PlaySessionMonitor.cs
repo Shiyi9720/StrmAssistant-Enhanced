@@ -126,15 +126,15 @@ namespace StrmAssistant.IntroSkip
 
             var options = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
 
-            _logger.Info("IntroSkip - Client Name: " + e.ClientName);
-            _logger.Info("IntroSkip - Allowed Clients: " + options.ClientScope);
+            _logger?.Info("IntroSkip - Client Name: " + e.ClientName);
+            _logger?.Info("IntroSkip - Allowed Clients: " + options.ClientScope);
 
             var intoSkipLibraryScope = string.Join(", ",
                 options.LibraryScope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(v => options.LibraryList
                         .FirstOrDefault(option => option.Value == v)
                         ?.Name) ?? Enumerable.Empty<string>());
-            _logger.Info("IntroSkip - LibraryScope is set to {0}",
+            _logger?.Info("IntroSkip - LibraryScope is set to {0}",
                 string.IsNullOrEmpty(intoSkipLibraryScope) ? "ALL" : intoSkipLibraryScope);
 
             var introSkipUserScope = string.Join(", ",
@@ -142,14 +142,14 @@ namespace StrmAssistant.IntroSkip
                     .Select(v => options.UserList
                         .FirstOrDefault(option => option.Value == v)
                         ?.Name) ?? Enumerable.Empty<string>());
-            _logger.Info("IntroSkip - UserScope is set to {0}",
+            _logger?.Info("IntroSkip - UserScope is set to {0}",
                 string.IsNullOrEmpty(introSkipUserScope) ? "ALL" : introSkipUserScope);
 
             _playSessionData.TryRemove(e.PlaySessionId, out _);
             var playSessionData = GetPlaySessionData(e);
             if (playSessionData is null)
             {
-                _logger.Info("IntroSkip - No detection as not in scope");
+                _logger?.Info("IntroSkip - No detection as not in scope");
                 return;
             }
 
@@ -159,29 +159,29 @@ namespace StrmAssistant.IntroSkip
 
             if (playSessionData.NoDetectionButReset)
             {
-                _logger.Info("IntroSkip - No detection but allows pause to reset");
+                _logger?.Info("IntroSkip - No detection but allows pause to reset");
                 return;
             }
 
             if (playSessionData.IntroStart.HasValue && playSessionData.CreditsStart.HasValue)
             {
-                _logger.Info("IntroSkip - Intro marker and Credits marker already exist");
+                _logger?.Info("IntroSkip - Intro marker and Credits marker already exist");
             }
             else
             {
-                _logger.Info("Playback start time: " +
+                _logger?.Info("Playback start time: " +
                              new TimeSpan(playSessionData.PlaybackStartTicks).ToString(@"hh\:mm\:ss\.fff"));
-                _logger.Info("IntroSkip - Detection Started");
-                _logger.Info("IntroSkip - Intro marker is " +
+                _logger?.Info("IntroSkip - Detection Started");
+                _logger?.Info("IntroSkip - Intro marker is " +
                              (playSessionData.IntroStart.HasValue ? "available" : "not available"));
-                _logger.Info("IntroSkip - Credits marker is " +
+                _logger?.Info("IntroSkip - Credits marker is " +
                              (playSessionData.CreditsStart.HasValue ? "available" : "not available"));
             }
         }
 
         private void OnPlaybackProgress(object sender, PlaybackProgressEventArgs e)
         {
-            //_logger.Debug("IntroSkip - EventName: " + e.EventName);
+            //_logger?.Debug("IntroSkip - EventName: " + e.EventName);
 
             if (!(e.Item is Episode episode) || e.EventName != ProgressEvent.TimeUpdate && e.EventName != ProgressEvent.Unpause &&
                 e.EventName != ProgressEvent.PlaybackRateChange && e.EventName != ProgressEvent.Pause ||
@@ -206,7 +206,7 @@ namespace StrmAssistant.IntroSkip
                 if (Math.Abs(positionTimeDiff) - elapsedTime > 5 &&
                     currentPositionTicks < playSessionData.MaxIntroDurationTicks)
                 {
-                    _logger.Info(
+                    _logger?.Info(
                         positionTimeDiff > 0
                             ? "Fast-forward {0} seconds by {1}."
                             : "Rewind {0} seconds by {1}.", positionTimeDiff - elapsedTime, e.Session.UserName);
@@ -218,18 +218,18 @@ namespace StrmAssistant.IntroSkip
                         playSessionData.FirstJumpPositionTicks = playSessionData.PreviousPositionTicks;
                         if (playSessionData.PreviousPositionTicks > playSessionData.MinOpeningPlotDurationTicks)
                         {
-                            _logger.Info("First jump start time: " +
+                            _logger?.Info("First jump start time: " +
                                          new TimeSpan(playSessionData.FirstJumpPositionTicks.Value).ToString(
                                              @"hh\:mm\:ss\.fff"));
                             playSessionData.MaxIntroDurationTicks += playSessionData.PreviousPositionTicks;
-                            _logger.Info("MaxIntroDurationSeconds is extended to: {0} ({1})",
+                            _logger?.Info("MaxIntroDurationSeconds is extended to: {0} ({1})",
                                 TimeSpan.FromTicks(playSessionData.MaxIntroDurationTicks).TotalSeconds
                                 , TimeSpan.FromTicks(playSessionData.MaxIntroDurationTicks).ToString(@"hh\:mm\:ss\.fff"));
                         }
                     }
 
                     playSessionData.LastJumpPositionTicks = currentPositionTicks;
-                    _logger.Info("Last jump to time: " +
+                    _logger?.Info("Last jump to time: " +
                                  new TimeSpan(playSessionData.LastJumpPositionTicks.Value).ToString(@"hh\:mm\:ss\.fff"));
                 }
 
@@ -390,14 +390,14 @@ namespace StrmAssistant.IntroSkip
 
                     if (marked > 0)
                     {
-                        _logger.Info(
+                        _logger?.Info(
                             $"AutoMarkPreviousEpisodes - {seriesName} - {seasonName} - Marked {marked} previous episode(s) as played before {episodeName}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error("AutoMarkPreviousEpisodes - Failed: " + ex.Message);
-                    _logger.Debug(ex.StackTrace);
+                    _logger?.Error("AutoMarkPreviousEpisodes - Failed: " + ex.Message);
+                    _logger?.Debug(ex.StackTrace);
                 }
             });
         }
@@ -471,8 +471,8 @@ namespace StrmAssistant.IntroSkip
                     }
                     catch (Exception e)
                     {
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                 });
 
@@ -515,8 +515,8 @@ namespace StrmAssistant.IntroSkip
                     }
                     catch (Exception e)
                     {
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                 });
 

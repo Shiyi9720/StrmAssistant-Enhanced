@@ -48,6 +48,9 @@ namespace StrmAssistant.Options
         [DisplayNameL("NotificationOptions_EditorTitle_Notification", typeof(Resources))]
         public NotificationOptions NotificationOptions { get; set; } = new NotificationOptions();
 
+        [DisplayNameL("SearchOptions_EditorTitle_Chinese_Search", typeof(Resources))]
+        public SearchOptions SearchOptions { get; set; } = new SearchOptions();
+
         [DisplayNameL("AboutOptions_EditorTitle_About", typeof(Resources))]
         public AboutOptions AboutOptions { get; set; } = new AboutOptions();
 

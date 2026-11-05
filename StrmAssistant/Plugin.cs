@@ -67,6 +67,7 @@ namespace StrmAssistant
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
         public static VersionPlaybackApi VersionPlaybackApi { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
+        public static SearchIndexService SearchIndexService { get; private set; }
 
         private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
 
@@ -124,22 +125,32 @@ namespace StrmAssistant
                     Plugin.Instance?.Logger.Info("[AssemblyResolve] {0} ui={1}", args.Name,
                         CultureInfo.CurrentUICulture?.Name);
                     var an = new AssemblyName(args.Name);
-                    if (!an.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase) ||
-                        !an.Name.StartsWith("StrmAssistantLite", StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(_satelliteRoot))
                     {
                         return null;
                     }
 
-                    var culture = an.CultureName;
-                    if (string.IsNullOrEmpty(culture) || string.IsNullOrEmpty(_satelliteRoot))
+                    string file;
+                    if (an.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
                     {
-                        return null;
+                        var culture = an.CultureName;
+                        if (string.IsNullOrEmpty(culture))
+                        {
+                            return null;
+                        }
+
+                        file = Path.Combine(_satelliteRoot, culture, an.Name + ".dll");
+                    }
+                    else
+                    {
+                        // 插件目录里的依赖（如 ToolGood.Words.Pinyin / ChineseConverter）：
+                        // 插件主程序集是按字节加载的，默认探测不会看插件目录，这里按简单名兜底
+                        file = Path.Combine(_satelliteRoot, an.Name + ".dll");
                     }
 
-                    var file = Path.Combine(_satelliteRoot, culture, an.Name + ".dll");
                     var loaded = File.Exists(file) ? Assembly.Load(File.ReadAllBytes(file)) : null;
                     System.Diagnostics.Debug.WriteLine($"[Satellite] {an.CultureName} -> {file} loaded={loaded != null}");
-                    Plugin.Instance?.Logger.Info("[Satellite] {0} -> {1} loaded={2}", an.CultureName, file, loaded != null);
+                    Plugin.Instance?.Logger.Info("[LoadDependency] {0} -> {1} loaded={2}", an.FullName, file, loaded != null);
                     return loaded;
                 }
                 catch
@@ -229,6 +240,7 @@ namespace StrmAssistant
             VersionPlaybackApi.Initialize();
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
             FingerprintLibraryApi = new FingerprintLibraryApi(libraryManager, jsonSerializer);
+            SearchIndexService = new SearchIndexService(libraryManager, jsonSerializer, httpClient);
             ShortcutMenuHelper.Initialize(configurationManager);
 
             if (_currentCatchupMode) QueueManager.Initialize();
@@ -250,6 +262,9 @@ namespace StrmAssistant
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
             CollectionFolder.LibraryOptionsUpdated += OnLibraryOptionsUpdated;
+
+            // Loads the persisted index or builds it in the background after startup has settled.
+            SearchIndexService.Initialize();
         }
 
         private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
@@ -326,6 +341,8 @@ namespace StrmAssistant
 
         private async void OnItemAdded(object sender, ItemChangeEventArgs e)
         {
+            SearchIndexService.NotifyItemChanged(e.Item);
+
             try
             {
                 if (GetOptions().NotificationOptions.EnableCollectionNotification)
@@ -415,6 +432,8 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
+            SearchIndexService.NotifyItemRemoved(e.Item.InternalId);
+
             try
             {
                 if (GetOptions().NotificationOptions.EnableCollectionNotification)
@@ -444,6 +463,8 @@ namespace StrmAssistant
 
         private void OnItemUpdated(object sender, ItemChangeEventArgs e)
         {
+            SearchIndexService.NotifyItemChanged(e.Item);
+
             try
             {
                 var options = GetOptions().NotificationOptions;
@@ -859,6 +880,18 @@ namespace StrmAssistant
                 MovieDbApi.Initialize();
             }
 
+            if (!suppress)
+            {
+                Logger.Info("ChineseSearch is set to {0}", options.SearchOptions.EnableChineseSearch);
+                Logger.Info("PinyinSearch is set to {0}", options.SearchOptions.PinyinSearch);
+                Logger.Info("ConversionSearch is set to {0}", options.SearchOptions.ConversionSearch);
+                Logger.Info("AliasSearch is set to {0}", options.SearchOptions.AliasSearch);
+                Logger.Info("SmartRanking is set to {0}", options.SearchOptions.SmartRanking);
+                Logger.Info("TmdbAliasSearch is set to {0}", options.SearchOptions.TmdbAliasSearch);
+            }
+
+            SearchIndexService.OnOptionsSaved();
+
             if (suppress) _currentSuppressOnOptionsSaved = false;
 
             base.OnOptionsSaved(options);
@@ -1056,6 +1089,34 @@ namespace StrmAssistant
             }
 
             options.IntroSkipOptions.UserList = userList;
+
+            var searchStatus = SearchIndexService.GetStatus();
+
+            if (!searchStatus.Enabled)
+            {
+                options.SearchOptions.IndexStatus.Caption = Resources.SearchOptions_IndexStatus_Disabled;
+                options.SearchOptions.IndexStatus.Status = ItemStatus.None;
+            }
+            else if (searchStatus.IsBuilding)
+            {
+                options.SearchOptions.IndexStatus.Caption = string.Format(
+                    Resources.SearchOptions_IndexStatus_Building, Math.Round(searchStatus.Progress));
+                options.SearchOptions.IndexStatus.Status = ItemStatus.InProgress;
+            }
+            else if (searchStatus.Ready)
+            {
+                options.SearchOptions.IndexStatus.Caption = string.Format(
+                    Resources.SearchOptions_IndexStatus_Ready, searchStatus.ItemCount,
+                    searchStatus.BuiltAtUtc?.ToLocalTime().ToString("g") ?? "-");
+                options.SearchOptions.IndexStatus.Status = ItemStatus.Succeeded;
+            }
+            else
+            {
+                options.SearchOptions.IndexStatus.Caption = Resources.SearchOptions_IndexStatus_NotReady;
+                options.SearchOptions.IndexStatus.Status = ItemStatus.None;
+            }
+
+            options.SearchOptions.IndexStatus.StatusText = string.Empty;
 
             return base.OnBeforeShowUI(options);
         }
