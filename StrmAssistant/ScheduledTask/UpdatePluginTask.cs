@@ -36,7 +36,7 @@ namespace StrmAssistant.ScheduledTask
             _logger = Plugin.Instance.Logger;
             _applicationHost = applicationHost;
             _applicationPaths = applicationPaths;
-            _httpClient = httpClient;
+            _httpClient = StrmAssistant.Common.ProxyApi.Wrap(httpClient);
             _jsonSerializer = jsonSerializer;
             _activityManager = activityManager;
             _localizationManager = localizationManager;

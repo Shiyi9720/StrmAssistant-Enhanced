@@ -618,6 +618,8 @@ namespace StrmAssistant.Common
 
                     _openSubtitlesProvider = providers?.FirstOrDefault(p =>
                         string.Equals(p.Name, OpenSubtitlesProviderName, StringComparison.OrdinalIgnoreCase));
+
+                    ProxyApi.PatchProviderHttpClients(_openSubtitlesProvider);
                 }
                 catch (Exception e)
                 {

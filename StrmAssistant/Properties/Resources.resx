@@ -522,7 +522,31 @@
     <value>Enable Proxy Server</value>
   </data>
   <data name="NetworkOptions_EnableProxyServer_Enable_Proxy_Server__Default_is_OFF_" xml:space="preserve">
-    <value>Enable proxy for server outgoing http requests. Default is OFF.</value>
+    <value>Enable proxy for the plugin's outgoing requests. Local and private network addresses always connect directly. Default is OFF.</value>
+  </data>
+  <data name="NetworkOptions_ProxyServer_Proxy_Server" xml:space="preserve">
+    <value>Proxy Server</value>
+  </data>
+  <data name="NetworkOptions_ProxyServer_Support_http_s_proxy_server__Default_is_EMPTY_" xml:space="preserve">
+    <value>Proxy server URL, for example http://127.0.0.1:7890 or http://user:password@host:port. Default is EMPTY.</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Proxy_Mode" xml:space="preserve">
+    <value>Proxy Mode</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Proxy_all_external_requests_or_only_whitelisted_domains__Default_is_Global_" xml:space="preserve">
+    <value>Global proxies all external requests. Whitelist proxies only the listed domains, and all other requests connect directly. Default is Global.</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Global_Global" xml:space="preserve">
+    <value>Global</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Whitelist_Whitelist" xml:space="preserve">
+    <value>Whitelist</value>
+  </data>
+  <data name="NetworkOptions_ProxyWhitelist_Proxy_Whitelist" xml:space="preserve">
+    <value>Proxy Whitelist</value>
+  </data>
+  <data name="NetworkOptions_ProxyWhitelist_Comma_separated_domains__Subdomains_are_included__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated domains, for example api.themoviedb.org, opensubtitles.org. Subdomains are included. Use *.example.com to match subdomains only. Default is EMPTY.</value>
   </data>
   <data name="ItemType_Season_Season" xml:space="preserve">
     <value>Season</value>

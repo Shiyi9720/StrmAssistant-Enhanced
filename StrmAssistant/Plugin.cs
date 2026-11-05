@@ -457,6 +457,22 @@ namespace StrmAssistant
 
             if (!suppress)
             {
+                Logger.Info("EnableProxyServer is set to {0}", options.NetworkOptions.EnableProxyServer);
+                if (options.NetworkOptions.EnableProxyServer)
+                {
+                    Logger.Info("ProxyServer is set to {0}", options.NetworkOptions.ProxyServer);
+                    Logger.Info("ProxyMode is set to {0}", options.NetworkOptions.ProxyMode);
+                    if (options.NetworkOptions.ProxyMode == ProxyModeOption.Whitelist)
+                    {
+                        Logger.Info("ProxyWhitelist is set to {0}", string.IsNullOrWhiteSpace(options.NetworkOptions.ProxyWhitelist)
+                            ? "EMPTY"
+                            : options.NetworkOptions.ProxyWhitelist);
+                    }
+                }
+            }
+
+            if (!suppress)
+            {
                 Logger.Info("IncludeExtra is set to {0}", options.MediaInfoExtractOptions.IncludeExtra);
                 Logger.Info("MaxConcurrentCount is set to {0}", options.GeneralOptions.MaxConcurrentCount);
                 Logger.Info("IntroDetectionMaxConcurrentCount is set to {0}",

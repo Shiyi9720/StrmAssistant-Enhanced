@@ -46,7 +46,7 @@ namespace StrmAssistant.Common
             _localizationManager = localizationManager;
             _fileSystem = fileSystem;
             _jsonSerializer = jsonSerializer;
-            _httpClient = httpClient;
+            _httpClient = ProxyApi.Wrap(httpClient);
         }
         
         public MetadataRefreshOptions GetMetadataFullRefreshOptions()

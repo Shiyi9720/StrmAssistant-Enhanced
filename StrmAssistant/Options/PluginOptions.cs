@@ -30,6 +30,9 @@ namespace StrmAssistant.Options
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
 
+        [DisplayNameL("NetworkOptions_EditorTitle_Network", typeof(Resources))]
+        public NetworkOptions NetworkOptions { get; set; } = new NetworkOptions();
+
         [DisplayNameL("PluginOptions_EditorTitle_Strm_Extract", typeof(Resources))]
         public MediaInfoExtractOptions MediaInfoExtractOptions { get; set; } = new MediaInfoExtractOptions();
         
@@ -56,6 +59,11 @@ namespace StrmAssistant.Options
 
         protected override void Validate(ValidationContext context)
         {
+            if (NetworkOptions.EnableProxyServer && !CommonUtility.IsValidProxyUrl(NetworkOptions.ProxyServer))
+            {
+                context.AddValidationError(Resources.InvalidProxyServer);
+            }
+
             if (GeneralOptions.CatchupMode &&
                 GeneralOptions.CatchupTaskScope.Contains(CatchupTask.Fingerprint.ToString()) &&
                 !IntroSkipOptions.UnlockIntroSkip)
