@@ -180,6 +180,7 @@ namespace StrmAssistant
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
+            _libraryManager.ItemUpdated += OnItemUpdated;
             _providerManager.RefreshCompleted += OnRefreshCompleted;
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
@@ -258,6 +259,18 @@ namespace StrmAssistant
         {
             try
             {
+                if (GetOptions().NotificationOptions.EnableCollectionNotification)
+                {
+                    if (e.Item is BoxSet boxSet)
+                    {
+                        NotificationApi.CollectionCreatedSendNotification(boxSet);
+                    }
+                    else if (e.Parent is BoxSet collection)
+                    {
+                        NotificationApi.CollectionItemUpdateSendNotification(collection, e.Item, true);
+                    }
+                }
+
                 var deserializeResult = false;
 
                 if (_currentNewLibraryMovieDb && e.Item is CollectionFolder newLibrary)
@@ -333,10 +346,73 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
+            try
+            {
+                if (GetOptions().NotificationOptions.EnableCollectionNotification)
+                {
+                    if (e.Item is BoxSet boxSet)
+                    {
+                        NotificationApi.CollectionDeletedSendNotification(boxSet);
+                    }
+                    else if (e.Parent is BoxSet collection)
+                    {
+                        NotificationApi.CollectionItemUpdateSendNotification(collection, e.Item, false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex.Message);
+                Logger.Debug(ex.StackTrace);
+            }
+
             if (!_currentMediaInfoRestoreMode && e.Item is Video)
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
+            }
+        }
+
+        private void OnItemUpdated(object sender, ItemChangeEventArgs e)
+        {
+            try
+            {
+                var options = GetOptions().NotificationOptions;
+                var updateReason = e.UpdateReason;
+
+                var metadataUpdated =
+                    (updateReason & (ItemUpdateType.MetadataImport | ItemUpdateType.MetadataDownload |
+                                     ItemUpdateType.MetadataEdit)) != 0;
+
+                if (e.Item is BoxSet boxSet)
+                {
+                    if (options.EnableCollectionNotification && metadataUpdated)
+                    {
+                        NotificationApi.CollectionUpdatedSendNotification(boxSet);
+                    }
+
+                    return;
+                }
+
+                if (!options.EnableMetadataNotification && !options.EnableImageNotification) return;
+
+                if (!(e.Item is Video || e.Item is Audio || e.Item is Series || e.Item is Season ||
+                      e.Item is MusicAlbum)) return;
+
+                if (options.EnableMetadataNotification && metadataUpdated)
+                {
+                    NotificationApi.MetadataUpdateSendNotification(e.Item);
+                }
+
+                if (options.EnableImageNotification && (updateReason & ItemUpdateType.ImageUpdate) != 0)
+                {
+                    NotificationApi.ImageUpdateSendNotification(e.Item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex.Message);
+                Logger.Debug(ex.StackTrace);
             }
         }
 
@@ -519,6 +595,16 @@ namespace StrmAssistant
                                 ?.Name) ?? Enumerable.Empty<string>());
                 Logger.Info("MediaInfoExtract - LibraryScope is set to {0}",
                     string.IsNullOrEmpty(libraryScope) ? "ALL" : libraryScope);
+            }
+
+            if (!suppress)
+            {
+                Logger.Info("EnableCollectionNotification is set to {0}",
+                    options.NotificationOptions.EnableCollectionNotification);
+                Logger.Info("EnableMetadataNotification is set to {0}",
+                    options.NotificationOptions.EnableMetadataNotification);
+                Logger.Info("EnableImageNotification is set to {0}",
+                    options.NotificationOptions.EnableImageNotification);
             }
             if (_currentMaxConcurrentCount != options.GeneralOptions.MaxConcurrentCount)
             {

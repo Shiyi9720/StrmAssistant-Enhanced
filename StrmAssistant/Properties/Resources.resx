@@ -824,6 +824,57 @@
   <data name="Notification_DeepDelete_EventDescription" xml:space="preserve">
     <value>Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}</value>
   </data>
+  <data name="NotificationOptions_EditorTitle_Notification" xml:space="preserve">
+    <value>Notification</value>
+  </data>
+  <data name="NotificationOptions_EnableCollectionNotification_Collection_Changes" xml:space="preserve">
+    <value>Collection Changes</value>
+  </data>
+  <data name="NotificationOptions_EnableCollectionNotification_Send_a_notification_when_a_collection_is_created_deleted_or_its_entries_change__Default_is_OFF_" xml:space="preserve">
+    <value>Send a notification when a collection is created, deleted, or its entries change. Default is OFF.</value>
+  </data>
+  <data name="NotificationOptions_EnableMetadataNotification_Metadata_Updates" xml:space="preserve">
+    <value>Metadata Updates</value>
+  </data>
+  <data name="NotificationOptions_EnableMetadataNotification_Send_a_notification_when_an_item_s_metadata_is_updated__Default_is_OFF_" xml:space="preserve">
+    <value>Send a notification when an item's metadata is updated. Default is OFF.</value>
+  </data>
+  <data name="NotificationOptions_EnableImageNotification_Image_Updates" xml:space="preserve">
+    <value>Image Updates</value>
+  </data>
+  <data name="NotificationOptions_EnableImageNotification_Send_a_notification_when_an_item_s_image_is_updated__Default_is_OFF_" xml:space="preserve">
+    <value>Send a notification when an item's image is updated. Default is OFF.</value>
+  </data>
+  <data name="Notification_CollectionUpdate_EventName" xml:space="preserve">
+    <value>Collection Updated</value>
+  </data>
+  <data name="Notification_MetadataUpdate_EventName" xml:space="preserve">
+    <value>Metadata Updated</value>
+  </data>
+  <data name="Notification_ImageUpdate_EventName" xml:space="preserve">
+    <value>Image Updated</value>
+  </data>
+  <data name="Notification_CollectionCreated_Description" xml:space="preserve">
+    <value>Collection {0} was created\n\n{1}</value>
+  </data>
+  <data name="Notification_CollectionDeleted_Description" xml:space="preserve">
+    <value>Collection {0} was deleted\n\n{1}</value>
+  </data>
+  <data name="Notification_CollectionUpdated_Description" xml:space="preserve">
+    <value>Collection {0} was updated\n\n{1}</value>
+  </data>
+  <data name="Notification_CollectionItemAdded_Description" xml:space="preserve">
+    <value>{0} was added to collection {1}</value>
+  </data>
+  <data name="Notification_CollectionItemRemoved_Description" xml:space="preserve">
+    <value>{0} was removed from collection {1}</value>
+  </data>
+  <data name="Notification_MetadataUpdate_Description" xml:space="preserve">
+    <value>{0} - metadata updated\n\n{1}</value>
+  </data>
+  <data name="Notification_ImageUpdate_Description" xml:space="preserve">
+    <value>{0} - image updated\n\n{1}</value>
+  </data>
   <data name="DeletePersonTask_Description_Deletes_all_persons" xml:space="preserve">
     <value>Deletes all persons</value>
   </data>

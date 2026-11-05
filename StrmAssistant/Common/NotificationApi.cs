@@ -1,5 +1,6 @@
 using Emby.Notifications;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Notifications;
@@ -69,6 +70,97 @@ namespace StrmAssistant.Common
                     string.Format(
                         Resources.Notification_DeepDelete_EventDescription.Replace("\\n", Environment.NewLine),
                         item.Name, item.Path, mountPathList)
+            };
+
+            _notificationManager.SendNotification(request);
+        }
+
+        public void CollectionCreatedSendNotification(BoxSet collection)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            SendCollectionNotification(collection,
+                string.Format(Resources.Notification_CollectionCreated_Description.Replace("\\n",
+                    Environment.NewLine), collection.Name, collection.Path));
+        }
+
+        public void CollectionDeletedSendNotification(BoxSet collection)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            SendCollectionNotification(collection,
+                string.Format(Resources.Notification_CollectionDeleted_Description.Replace("\\n",
+                    Environment.NewLine), collection.Name, collection.Path));
+        }
+
+        public void CollectionUpdatedSendNotification(BoxSet collection)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            SendCollectionNotification(collection,
+                string.Format(Resources.Notification_CollectionUpdated_Description.Replace("\\n",
+                    Environment.NewLine), collection.Name, collection.Path));
+        }
+
+        public void CollectionItemUpdateSendNotification(BaseItem collection, BaseItem item, bool added)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            SendCollectionNotification(collection,
+                string.Format(
+                    (added
+                        ? Resources.Notification_CollectionItemAdded_Description
+                        : Resources.Notification_CollectionItemRemoved_Description).Replace("\\n",
+                        Environment.NewLine), item.Name, collection.Name));
+        }
+
+        private void SendCollectionNotification(BaseItem collection, string description)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            var request = new NotificationRequest
+            {
+                Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
+                        Resources.Notification_CollectionUpdate_EventName,
+                EventId = "collection.update",
+                Item = collection,
+                Description = description
+            };
+
+            _notificationManager.SendNotification(request);
+        }
+
+        public void MetadataUpdateSendNotification(BaseItem item)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            var request = new NotificationRequest
+            {
+                Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
+                        Resources.Notification_MetadataUpdate_EventName,
+                EventId = "metadata.update",
+                Item = item,
+                Description = string.Format(
+                    Resources.Notification_MetadataUpdate_Description.Replace("\\n", Environment.NewLine),
+                    item.Name, item.Path)
+            };
+
+            _notificationManager.SendNotification(request);
+        }
+
+        public void ImageUpdateSendNotification(BaseItem item)
+        {
+            Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            var request = new NotificationRequest
+            {
+                Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
+                        Resources.Notification_ImageUpdate_EventName,
+                EventId = "image.update",
+                Item = item,
+                Description = string.Format(
+                    Resources.Notification_ImageUpdate_Description.Replace("\\n", Environment.NewLine),
+                    item.Name, item.Path)
             };
 
             _notificationManager.SendNotification(request);

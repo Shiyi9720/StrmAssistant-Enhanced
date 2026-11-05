@@ -45,6 +45,9 @@ namespace StrmAssistant.Options
         [DisplayNameL("ExperienceEnhanceOptions_EditorTitle_Experience_Enhance", typeof(Resources))]
         public ExperienceEnhanceOptions ExperienceEnhanceOptions { get; set; } = new ExperienceEnhanceOptions();
 
+        [DisplayNameL("NotificationOptions_EditorTitle_Notification", typeof(Resources))]
+        public NotificationOptions NotificationOptions { get; set; } = new NotificationOptions();
+
         [DisplayNameL("AboutOptions_EditorTitle_About", typeof(Resources))]
         public AboutOptions AboutOptions { get; set; } = new AboutOptions();
 

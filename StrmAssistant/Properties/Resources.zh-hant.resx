@@ -737,6 +737,57 @@
   <data name="Notification_DeepDelete_EventDescription" xml:space="preserve">
     <value>Item Name:\n{0}\n\nItem Path:\n{1}\n\nMount Paths:\n{2}</value>
   </data>
+  <data name="NotificationOptions_EditorTitle_Notification" xml:space="preserve">
+    <value>通知</value>
+  </data>
+  <data name="NotificationOptions_EnableCollectionNotification_Collection_Changes" xml:space="preserve">
+    <value>合集變更通知</value>
+  </data>
+  <data name="NotificationOptions_EnableCollectionNotification_Send_a_notification_when_a_collection_is_created_deleted_or_its_entries_change__Default_is_OFF_" xml:space="preserve">
+    <value>當合集被建立、刪除或其條目發生變化時傳送通知。預設為關閉。</value>
+  </data>
+  <data name="NotificationOptions_EnableMetadataNotification_Metadata_Updates" xml:space="preserve">
+    <value>中繼資料更新通知</value>
+  </data>
+  <data name="NotificationOptions_EnableMetadataNotification_Send_a_notification_when_an_item_s_metadata_is_updated__Default_is_OFF_" xml:space="preserve">
+    <value>當條目的中繼資料被更新時傳送通知。預設為關閉。</value>
+  </data>
+  <data name="NotificationOptions_EnableImageNotification_Image_Updates" xml:space="preserve">
+    <value>圖片更新通知</value>
+  </data>
+  <data name="NotificationOptions_EnableImageNotification_Send_a_notification_when_an_item_s_image_is_updated__Default_is_OFF_" xml:space="preserve">
+    <value>當條目的圖片被更新時傳送通知。預設為關閉。</value>
+  </data>
+  <data name="Notification_CollectionUpdate_EventName" xml:space="preserve">
+    <value>合集有更新</value>
+  </data>
+  <data name="Notification_MetadataUpdate_EventName" xml:space="preserve">
+    <value>中繼資料已更新</value>
+  </data>
+  <data name="Notification_ImageUpdate_EventName" xml:space="preserve">
+    <value>圖片已更新</value>
+  </data>
+  <data name="Notification_CollectionCreated_Description" xml:space="preserve">
+    <value>合集 {0} 已建立\n\n{1}</value>
+  </data>
+  <data name="Notification_CollectionDeleted_Description" xml:space="preserve">
+    <value>合集 {0} 已刪除\n\n{1}</value>
+  </data>
+  <data name="Notification_CollectionUpdated_Description" xml:space="preserve">
+    <value>合集 {0} 有更新\n\n{1}</value>
+  </data>
+  <data name="Notification_CollectionItemAdded_Description" xml:space="preserve">
+    <value>{0} 已加入合集 {1}</value>
+  </data>
+  <data name="Notification_CollectionItemRemoved_Description" xml:space="preserve">
+    <value>{0} 已從合集 {1} 移除</value>
+  </data>
+  <data name="Notification_MetadataUpdate_Description" xml:space="preserve">
+    <value>{0} 的中繼資料已更新\n\n{1}</value>
+  </data>
+  <data name="Notification_ImageUpdate_Description" xml:space="preserve">
+    <value>{0} 的圖片已更新\n\n{1}</value>
+  </data>
   <data name="DeletePersonTask_Description_Deletes_all_persons" xml:space="preserve">
     <value>清除所有人員數據</value>
   </data>
