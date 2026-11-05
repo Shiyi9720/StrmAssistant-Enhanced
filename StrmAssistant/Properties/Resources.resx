@@ -470,6 +470,9 @@
   <data name="ScanExternalSubtitleTask_Description_Scans_external_subtitles_for_videos" xml:space="preserve">
     <value>Scans external subtitles for videos</value>
   </data>
+  <data name="DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles" xml:space="preserve">
+    <value>Downloads missing subtitles from OpenSubtitles, preferring exact matches and retrying on rate limits</value>
+  </data>
   <data name="UpdatePluginTask_Name_Update_Plugin" xml:space="preserve">
     <value>Update Plugin</value>
   </data>

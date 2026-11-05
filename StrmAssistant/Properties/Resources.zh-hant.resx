@@ -383,6 +383,9 @@
   <data name="ScanExternalSubtitleTask_Description_Scans_external_subtitles_for_videos" xml:space="preserve">
     <value>單獨掃描影片的外掛字幕更新至媒體訊息</value>
   </data>
+  <data name="DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles" xml:space="preserve">
+    <value>從 OpenSubtitles 下載缺失的字幕，優先精確匹配，遇到限流自動降速重試</value>
+  </data>
   <data name="UpdatePluginTask_Name_Update_Plugin" xml:space="preserve">
     <value>更新本插件</value>
   </data>
