@@ -256,7 +256,22 @@ namespace StrmAssistant.Web.Service
             var comparison = SearchIndexService.CompareTier(a.Tier, a.LanguageRank, a.KindPriority,
                 b.Tier, b.LanguageRank, b.KindPriority);
 
-            return comparison != 0 ? comparison : a.Id.CompareTo(b.Id);
+            if (comparison != 0) return comparison;
+
+            if (!smartRanking) return a.Id.CompareTo(b.Id);
+
+            var rating = (b.Rating ?? 0).CompareTo(a.Rating ?? 0);
+
+            if (rating != 0) return rating;
+
+            var year = (b.Year ?? 0).CompareTo(a.Year ?? 0);
+
+            if (year != 0) return year;
+
+            var name = string.Compare(a.Name ?? string.Empty, b.Name ?? string.Empty,
+                StringComparison.OrdinalIgnoreCase);
+
+            return name != 0 ? name : a.Id.CompareTo(b.Id);
         }
 
         private static int GetLanguageRank(bool queryHasChinese, string name, bool smartRanking)
