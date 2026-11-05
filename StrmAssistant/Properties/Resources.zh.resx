@@ -1133,4 +1133,37 @@
   <data name="RebuildSearchIndexTask_Description_Rebuilds_the_Chinese_search_index_used_for_pinyin__simplified_traditional_and_alias_matching" xml:space="preserve">
     <value>重建用于拼音、繁简和别名匹配的中文搜索索引。</value>
   </data>
+  <data name="IntroDbOptions_EditorTitle_IntroDb" xml:space="preserve">
+    <value>IntroDb 片头片尾</value>
+  </data>
+  <data name="IntroDbOptions_EnableIntroDb_Enable_IntroDb" xml:space="preserve">
+    <value>启用 IntroDb</value>
+  </data>
+  <data name="IntroDbOptions_EnableIntroDb_Fetch_intro_and_credits_markers_from_the_public_IntroDb_database_during_intro_detection__Default_is_OFF_" xml:space="preserve">
+    <value>在片头检测时从公开的 IntroDb 数据库获取片头与片尾标记。默认关闭。</value>
+  </data>
+  <data name="IntroDbOptions_WriteIntroMarkers_Write_Intro_Markers" xml:space="preserve">
+    <value>写入片头标记</value>
+  </data>
+  <data name="IntroDbOptions_WriteIntroMarkers_Write_intro_start_and_end_markers_when_IntroDb_has_them__Default_is_True_" xml:space="preserve">
+    <value>当 IntroDb 有数据时写入片头开始与结束标记。默认开启。</value>
+  </data>
+  <data name="IntroDbOptions_WriteCreditsMarkers_Write_Credits_Markers" xml:space="preserve">
+    <value>写入片尾标记</value>
+  </data>
+  <data name="IntroDbOptions_WriteCreditsMarkers_Write_credits_start_markers_from_the_IntroDb_outro_segment__Default_is_True_" xml:space="preserve">
+    <value>根据 IntroDb 的 outro 段落写入片尾开始标记。默认开启。</value>
+  </data>
+  <data name="IntroDbOptions_MinimumConfidencePercent_Minimum_Confidence" xml:space="preserve">
+    <value>最低置信度</value>
+  </data>
+  <data name="IntroDbOptions_MinimumConfidencePercent_Ignore_IntroDb_segments_below_this_confidence_percentage__0_accepts_everything__Default_is_50_" xml:space="preserve">
+    <value>忽略置信度低于此百分比的 IntroDb 段落；0 表示接受全部。默认 50。</value>
+  </data>
+  <data name="IntroDbOptions_CacheExpiryDays_Cache_Expiry_Days" xml:space="preserve">
+    <value>缓存有效期（天）</value>
+  </data>
+  <data name="IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_" xml:space="preserve">
+    <value>查询结果在重新请求 IntroDb 之前的复用天数。默认 30。</value>
+  </data>
 </root>

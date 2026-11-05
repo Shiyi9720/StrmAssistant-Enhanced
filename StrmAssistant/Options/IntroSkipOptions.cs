@@ -174,6 +174,9 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public int MinOpeningPlotDurationSeconds { get; set; } = 60;
 
+        [DisplayNameL("IntroDbOptions_EditorTitle_IntroDb", typeof(Resources))]
+        public IntroDbOptions IntroDbOptions { get; set; } = new IntroDbOptions();
+
         [Browsable(false)]
         public IEnumerable<EditorSelectOption> LibraryList { get; set; }
 
