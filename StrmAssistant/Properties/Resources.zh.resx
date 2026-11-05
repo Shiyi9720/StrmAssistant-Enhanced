@@ -467,6 +467,12 @@
   <data name="DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles" xml:space="preserve">
     <value>从 OpenSubtitles 下载缺失的字幕，优先精确匹配，遇到限流自动降速重试</value>
   </data>
+  <data name="MetadataEnhanceOptions_DistinguishChinesePosters_Distinguish_Simplified_and_Traditional_Chinese_Images" xml:space="preserve">
+    <value>简繁海报/徽标区分</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DistinguishChinesePosters_Request_only_the_matching_Chinese_image_set_for_each_item__zh_CN_content_gets_zh_CN_posters_and_logos_while_zh_TW_and_zh_HK_content_gets_zh_TW_and_zh_HK_images__The_item_preferred_image_language_or_library_metadata_language_decides__Default_is_OFF_" xml:space="preserve">
+    <value>按条目语言只请求对应的中文图片集：简体内容使用 zh-CN 海报与徽标，繁体内容使用 zh-TW 与 zh-HK 图片。条目语言依据条目的首选图片语言或库元数据语言判定。默认关闭。</value>
+  </data>
   <data name="MetadataEnhanceOptions_PreferTraditionalChinese_Prefer_Traditional_Chinese" xml:space="preserve">
     <value>优先繁体中文</value>
   </data>

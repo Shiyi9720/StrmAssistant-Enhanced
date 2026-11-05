@@ -2838,5 +2838,21 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("InvalidLocalMovieDbApiKey", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Distinguish Simplified and Traditional Chinese Images.
+        /// </summary>
+        public static string MetadataEnhanceOptions_DistinguishChinesePosters_Distinguish_Simplified_and_Traditional_Chinese_Images {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_DistinguishChinesePosters_Distinguish_Simplified_and_Traditional_Chinese_Images", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Request only the matching Chinese image set for each item. zh-CN content gets zh-CN posters and logos, while zh-TW and zh-HK content gets zh-TW and zh-HK images. The item preferred image language or library metadata language decides. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_DistinguishChinesePosters_Request_only_the_matching_Chinese_image_set_for_each_item__zh_CN_content_gets_zh_CN_posters_and_logos_while_zh_TW_and_zh_HK_content_gets_zh_TW_and_zh_HK_images__The_item_preferred_image_language_or_library_metadata_language_decides__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_DistinguishChinesePosters_Request_only_the_matching_Chinese_image_set_for_each_item__zh_CN_content_gets_zh_CN_posters_and_logos_while_zh_TW_and_zh_HK_content_gets_zh_TW_and_zh_HK_images__The_item_preferred_image_language_or_library_metadata_language_decides__Default_is_OFF_", resourceCulture);
+            }
+        }
 }
 }
