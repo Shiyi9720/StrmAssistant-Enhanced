@@ -470,6 +470,12 @@
   <data name="ScanExternalSubtitleTask_Description_Scans_external_subtitles_for_videos" xml:space="preserve">
     <value>Scans external subtitles for videos</value>
   </data>
+  <data name="MetadataEnhanceOptions_NewLibraryMovieDb_Prefer_TMDB_For_New_Library" xml:space="preserve">
+    <value>Prefer TMDB for New Library</value>
+  </data>
+  <data name="MetadataEnhanceOptions_NewLibraryMovieDb_Automatically_prefer_TheMovieDb_over_TheTVDB_as_the_metadata_and_image_fetcher_for_newly_created_libraries__Default_is_OFF_" xml:space="preserve">
+    <value>Automatically prefer TheMovieDb over TheTVDB as the metadata and image fetcher for newly created libraries. Default is OFF.</value>
+  </data>
   <data name="DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles" xml:space="preserve">
     <value>Downloads missing subtitles from OpenSubtitles, preferring exact matches and retrying on rate limits</value>
   </data>

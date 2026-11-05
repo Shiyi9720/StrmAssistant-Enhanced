@@ -383,6 +383,12 @@
   <data name="ScanExternalSubtitleTask_Description_Scans_external_subtitles_for_videos" xml:space="preserve">
     <value>单独扫描视频的外挂字幕更新至媒体信息</value>
   </data>
+  <data name="MetadataEnhanceOptions_NewLibraryMovieDb_Prefer_TMDB_For_New_Library" xml:space="preserve">
+    <value>新建媒体库优先 TMDB</value>
+  </data>
+  <data name="MetadataEnhanceOptions_NewLibraryMovieDb_Automatically_prefer_TheMovieDb_over_TheTVDB_as_the_metadata_and_image_fetcher_for_newly_created_libraries__Default_is_OFF_" xml:space="preserve">
+    <value>新建媒体库时自动优先使用 TheMovieDb 而非 TheTVDB 作为元数据和图像刮削器，默认关闭。</value>
+  </data>
   <data name="DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles" xml:space="preserve">
     <value>从 OpenSubtitles 下载缺失的字幕，优先精确匹配，遇到限流自动降速重试</value>
   </data>

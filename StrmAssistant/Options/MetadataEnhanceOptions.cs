@@ -19,7 +19,11 @@ namespace StrmAssistant.Options
     {
         [DisplayNameL("PluginOptions_MetadataEnhanceOptions_Metadata_Enhance", typeof(Resources))]
         public override string EditorTitle => Resources.PluginOptions_MetadataEnhanceOptions_Metadata_Enhance;
-        
+
+        [DisplayNameL("MetadataEnhanceOptions_NewLibraryMovieDb_Prefer_TMDB_For_New_Library", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_NewLibraryMovieDb_Automatically_prefer_TheMovieDb_over_TheTVDB_as_the_metadata_and_image_fetcher_for_newly_created_libraries__Default_is_OFF_", typeof(Resources))]
+        public bool NewLibraryMovieDb { get; set; } = false;
+
         [Browsable(false)]
         [Required]
         public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
