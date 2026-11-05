@@ -6,6 +6,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
+using StrmAssistant.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,10 +26,6 @@ namespace StrmAssistant.Common
         private const string MovieDbImageHost = "image.tmdb.org";
         private const string DefaultMovieDbApiRoot = "https://api.themoviedb.org";
         private const string DefaultMovieDbImageRoot = "https://image.tmdb.org";
-
-        // Emby uses zh-Hant as its Traditional Chinese code, which is not a TMDB request language.
-        // TMDB exposes zh-TW for Traditional Chinese and zh-CN for Simplified Chinese.
-        private const string PreferredTraditionalChineseLanguage = "zh-TW";
 
         private static readonly Regex LanguageParamRegex =
             new Regex(@"([?&]language=)([^&]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -284,6 +281,32 @@ namespace StrmAssistant.Common
             public bool RequestedSimplifiedChinese { get; set; }
         }
 
+        /// <summary>
+        /// TMDB only knows zh-CN, zh-TW and zh-HK. Script subtags used by Emby (zh-Hans,
+        /// zh-Hant) are mapped onto the closest TMDB language so the request is understood.
+        /// </summary>
+        private static string NormalizeChineseLanguage(string language)
+        {
+            if (string.IsNullOrEmpty(language)) return language;
+
+            var code = language.Trim().Replace('_', '-');
+
+            if (code.IndexOf("hant", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                string.Equals(code, "zhtw", StringComparison.OrdinalIgnoreCase))
+            {
+                return "zh-TW";
+            }
+
+            if (code.IndexOf("hans", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                string.Equals(code, "zh", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(code, "zho", StringComparison.OrdinalIgnoreCase))
+            {
+                return "zh-CN";
+            }
+
+            return language.Trim();
+        }
+
         private static string SetImageLanguageParam(string url, string chineseImageLanguages)
         {
             if (ImageLanguageParamRegex.IsMatch(url))
@@ -415,15 +438,29 @@ namespace StrmAssistant.Common
                 var options = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions;
                 var language = GetQueryParam(uri, "language");
                 var effectiveLanguage = language;
+                var order = options.GetEffectiveChineseMetadataOrder();
 
-                // Kept for compatibility with the old toggle. The configurable order in
-                // ChineseMetadataOrder takes the same path and is handled below.
-                if (options.PreferTraditionalChinese && LanguageUtility.IsChineseLanguageCode(language) &&
-                    !LanguageUtility.IsTraditionalChineseLanguageCode(language))
+                if (LanguageUtility.IsChineseLanguageCode(language))
                 {
-                    rewrittenUrl = LanguageParamRegex.Replace(rewrittenUrl,
-                        match => match.Groups[1].Value + PreferredTraditionalChineseLanguage);
-                    effectiveLanguage = PreferredTraditionalChineseLanguage;
+                    var targetLanguage =
+                        order == ChineseMetadataOrderOption.TraditionalFirst
+                            ? LanguageUtility.IsTraditionalChineseLanguageCode(language)
+                                ? NormalizeChineseLanguage(language)
+                                : "zh-TW"
+                            : order == ChineseMetadataOrderOption.SimplifiedFirst
+                                ? LanguageUtility.IsSimplifiedChineseLanguageCode(language)
+                                    ? NormalizeChineseLanguage(language)
+                                    : "zh-CN"
+                                : NormalizeChineseLanguage(language);
+
+                    if (!string.IsNullOrEmpty(targetLanguage) &&
+                        !string.Equals(targetLanguage, language, StringComparison.OrdinalIgnoreCase))
+                    {
+                        rewrittenUrl = LanguageParamRegex.Replace(rewrittenUrl,
+                            match => match.Groups[1].Value + targetLanguage);
+                    }
+
+                    effectiveLanguage = targetLanguage ?? language;
                 }
 
                 if (options.DistinguishChinesePosters)
@@ -438,14 +475,22 @@ namespace StrmAssistant.Common
                     if (!string.IsNullOrEmpty(chineseImageLanguages))
                     {
                         rewrittenUrl = SetImageLanguageParam(rewrittenUrl, chineseImageLanguages);
-                        result.RequestedSimplifiedChinese =
-                            LanguageUtility.IsSimplifiedChineseLanguageCode(imageLanguage);
                     }
                 }
-                else if (options.PreferTraditionalChinese && ImageLanguageParamRegex.IsMatch(rewrittenUrl))
+                else if (order != ChineseMetadataOrderOption.LibraryDefault &&
+                         LanguageUtility.IsChineseLanguageCode(effectiveLanguage) &&
+                         ImageLanguageParamRegex.IsMatch(rewrittenUrl))
                 {
-                    rewrittenUrl = SetImageLanguageParam(rewrittenUrl, PreferredTraditionalChineseLanguage);
+                    var chineseImageLanguages = LanguageUtility.GetChineseImageLanguages(effectiveLanguage);
+
+                    if (!string.IsNullOrEmpty(chineseImageLanguages))
+                    {
+                        rewrittenUrl = SetImageLanguageParam(rewrittenUrl, chineseImageLanguages);
+                    }
                 }
+
+                result.RequestedSimplifiedChinese =
+                    LanguageUtility.IsSimplifiedChineseLanguageCode(effectiveLanguage);
 
                 if (!string.IsNullOrEmpty(source?.ApiRoot))
                 {
@@ -545,6 +590,7 @@ namespace StrmAssistant.Common
         private sealed class PreparedRequest
         {
             public string ResponseImageBaseUrl { get; set; }
+            public bool ConvertSimplifiedToTraditional { get; set; }
         }
 
         private static PreparedRequest Prepare(HttpRequestOptions options)
@@ -560,13 +606,34 @@ namespace StrmAssistant.Common
             return new PreparedRequest
             {
                 ResponseImageBaseUrl =
-                    rewrite.IsConfigurationRequest ? GetEffectiveImageBaseUrl(GetEffectiveSource()) : null
+                    rewrite.IsConfigurationRequest ? GetEffectiveImageBaseUrl(GetEffectiveSource()) : null,
+                ConvertSimplifiedToTraditional =
+                    rewrite.RequestedSimplifiedChinese &&
+                    Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional
             };
+        }
+
+        private static bool IsJsonResponse(HttpResponseInfo response)
+        {
+            if (response.Content is null) return false;
+
+            var contentType = response.ContentType;
+
+            return string.IsNullOrEmpty(contentType) ||
+                   contentType.IndexOf("json", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   contentType.IndexOf("text", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static async Task<HttpResponseInfo> PostProcessAsync(PreparedRequest prepared, HttpResponseInfo response)
         {
-            if (prepared?.ResponseImageBaseUrl is null || response?.Content is null) return response;
+            if (prepared is null || response?.Content is null) return response;
+
+            var rewriteImageBaseUrl = !string.IsNullOrEmpty(prepared.ResponseImageBaseUrl);
+            var convertToTraditional = prepared.ConvertSimplifiedToTraditional;
+
+            if (!rewriteImageBaseUrl && !convertToTraditional) return response;
+
+            if (convertToTraditional && !IsJsonResponse(response)) return response;
 
             try
             {
@@ -577,20 +644,28 @@ namespace StrmAssistant.Common
                     content = await reader.ReadToEndAsync().ConfigureAwait(false);
                 }
 
-                content = content
-                    .Replace("https://image.tmdb.org/t/p/", prepared.ResponseImageBaseUrl)
-                    .Replace("http://image.tmdb.org/t/p/", prepared.ResponseImageBaseUrl)
-                    .Replace("https://image.tmdb.org/t/p", prepared.ResponseImageBaseUrl.TrimEnd('/'))
-                    .Replace("http://image.tmdb.org/t/p", prepared.ResponseImageBaseUrl.TrimEnd('/'));
+                if (rewriteImageBaseUrl)
+                {
+                    content = content
+                        .Replace("https://image.tmdb.org/t/p/", prepared.ResponseImageBaseUrl)
+                        .Replace("http://image.tmdb.org/t/p/", prepared.ResponseImageBaseUrl)
+                        .Replace("https://image.tmdb.org/t/p", prepared.ResponseImageBaseUrl.TrimEnd('/'))
+                        .Replace("http://image.tmdb.org/t/p", prepared.ResponseImageBaseUrl.TrimEnd('/'));
+
+                    Plugin.Instance.Logger.Debug("MovieDb configuration image base url is rewritten to {0}",
+                        prepared.ResponseImageBaseUrl);
+                }
+
+                if (convertToTraditional)
+                {
+                    content = LanguageUtility.ConvertSimplifiedToTraditional(content);
+                }
 
                 var bytes = Encoding.UTF8.GetBytes(content);
 
                 response.Content.Dispose();
                 response.Content = new MemoryStream(bytes);
                 response.ContentLength = bytes.Length;
-
-                Plugin.Instance.Logger.Debug("MovieDb configuration image base url is rewritten to {0}",
-                    prepared.ResponseImageBaseUrl);
             }
             catch (Exception e)
             {

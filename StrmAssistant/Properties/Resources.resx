@@ -920,6 +920,27 @@
   <data name="OKButtonCaption" xml:space="preserve">
     <value>Accept</value>
   </data>
+  <data name="MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_Metadata_Language_Order" xml:space="preserve">
+    <value>Chinese Metadata Language Order</value>
+  </data>
+  <data name="ChineseMetadataOrderOption_LibraryDefault_Library_Default" xml:space="preserve">
+    <value>Library Default</value>
+  </data>
+  <data name="ChineseMetadataOrderOption_TraditionalFirst_Traditional_Chinese_First__zh_TW_" xml:space="preserve">
+    <value>Traditional Chinese First (zh-TW)</value>
+  </data>
+  <data name="ChineseMetadataOrderOption_SimplifiedFirst_Simplified_Chinese_First__zh_CN_" xml:space="preserve">
+    <value>Simplified Chinese First (zh-CN)</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_metadata_and_images_are_requested_in_this_language__Library_Default_keeps_the_library_language__Traditional_First_requests_zh_TW_and_prefers_zh_TW_or_zh_HK_images__Simplified_First_requests_zh_CN_and_prefers_zh_CN_images__Default_is_Library_Default_" xml:space="preserve">
+    <value>Chinese metadata and images are requested in this language. Library Default keeps the library language; Traditional First requests zh-TW and prefers zh-TW or zh-HK images; Simplified First requests zh-CN and prefers zh-CN images. Default is Library Default.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_Simplified_Chinese_to_Traditional" xml:space="preserve">
+    <value>Convert Simplified Chinese to Traditional</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_simplified_Chinese_metadata_fetched_from_TMDB_to_traditional_Chinese__Default_is_OFF_" xml:space="preserve">
+    <value>Convert simplified Chinese metadata fetched from TMDB to traditional Chinese. Default is OFF.</value>
+  </data>
   <data name="MetadataEnhanceOptions_EpisodeRefreshScope_Episode_Metadata_Refresh_Scope" xml:space="preserve">
     <value>Episode Refresh Scope</value>
   </data>

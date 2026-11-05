@@ -2854,5 +2854,61 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("MetadataEnhanceOptions_DistinguishChinesePosters_Request_only_the_matching_Chinese_image_set_for_each_item__zh_CN_content_gets_zh_CN_posters_and_logos_while_zh_TW_and_zh_HK_content_gets_zh_TW_and_zh_HK_images__The_item_preferred_image_language_or_library_metadata_language_decides__Default_is_OFF_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Library Default.
+        /// </summary>
+        public static string ChineseMetadataOrderOption_LibraryDefault_Library_Default {
+            get {
+                return ResourceManager.GetString("ChineseMetadataOrderOption_LibraryDefault_Library_Default", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Traditional Chinese First (zh-TW).
+        /// </summary>
+        public static string ChineseMetadataOrderOption_TraditionalFirst_Traditional_Chinese_First__zh_TW_ {
+            get {
+                return ResourceManager.GetString("ChineseMetadataOrderOption_TraditionalFirst_Traditional_Chinese_First__zh_TW_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Simplified Chinese First (zh-CN).
+        /// </summary>
+        public static string ChineseMetadataOrderOption_SimplifiedFirst_Simplified_Chinese_First__zh_CN_ {
+            get {
+                return ResourceManager.GetString("ChineseMetadataOrderOption_SimplifiedFirst_Simplified_Chinese_First__zh_CN_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Chinese Metadata Language Order.
+        /// </summary>
+        public static string MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_Metadata_Language_Order {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_Metadata_Language_Order", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Chinese metadata and images are requested in this language. Library Default keeps the library language; Traditional First requests zh-TW and prefers zh-TW or zh-HK images; Simplified First requests zh-CN and prefers zh-CN images. Default is Library Default..
+        /// </summary>
+        public static string MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_metadata_and_images_are_requested_in_this_language__Library_Default_keeps_the_library_language__Traditional_First_requests_zh_TW_and_prefers_zh_TW_or_zh_HK_images__Simplified_First_requests_zh_CN_and_prefers_zh_CN_images__Default_is_Library_Default_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_metadata_and_images_are_requested_in_this_language__Library_Default_keeps_the_library_language__Traditional_First_requests_zh_TW_and_prefers_zh_TW_or_zh_HK_images__Simplified_First_requests_zh_CN_and_prefers_zh_CN_images__Default_is_Library_Default_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Convert Simplified Chinese to Traditional.
+        /// </summary>
+        public static string MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_Simplified_Chinese_to_Traditional {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_Simplified_Chinese_to_Traditional", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Convert simplified Chinese metadata fetched from TMDB to traditional Chinese. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_simplified_Chinese_metadata_fetched_from_TMDB_to_traditional_Chinese__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_simplified_Chinese_metadata_fetched_from_TMDB_to_traditional_Chinese__Default_is_OFF_", resourceCulture);
+            }
+        }
 }
 }

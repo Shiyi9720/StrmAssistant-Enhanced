@@ -15,6 +15,16 @@ namespace StrmAssistant.Options
         NoAdult
     }
 
+    public enum ChineseMetadataOrderOption
+    {
+        [DescriptionL("ChineseMetadataOrderOption_LibraryDefault_Library_Default", typeof(Resources))]
+        LibraryDefault,
+        [DescriptionL("ChineseMetadataOrderOption_TraditionalFirst_Traditional_Chinese_First__zh_TW_", typeof(Resources))]
+        TraditionalFirst,
+        [DescriptionL("ChineseMetadataOrderOption_SimplifiedFirst_Simplified_Chinese_First__zh_CN_", typeof(Resources))]
+        SimplifiedFirst
+    }
+
     public class MetadataEnhanceOptions : EditableOptionsBase
     {
         [DisplayNameL("PluginOptions_MetadataEnhanceOptions_Metadata_Enhance", typeof(Resources))]
@@ -24,9 +34,27 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_NewLibraryMovieDb_Automatically_prefer_TheMovieDb_over_TheTVDB_as_the_metadata_and_image_fetcher_for_newly_created_libraries__Default_is_OFF_", typeof(Resources))]
         public bool NewLibraryMovieDb { get; set; } = false;
 
+        // Superseded by ChineseMetadataOrder. Kept so existing configurations keep their
+        // behaviour after upgrading.
+        [Browsable(false)]
         [DisplayNameL("MetadataEnhanceOptions_PreferTraditionalChinese_Prefer_Traditional_Chinese", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant__zh_TW__then_zh_CN__Default_is_OFF_", typeof(Resources))]
         public bool PreferTraditionalChinese { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_Metadata_Language_Order", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_metadata_and_images_are_requested_in_this_language__Library_Default_keeps_the_library_language__Traditional_First_requests_zh_TW_and_prefers_zh_TW_or_zh_HK_images__Simplified_First_requests_zh_CN_and_prefers_zh_CN_images__Default_is_Library_Default_", typeof(Resources))]
+        public ChineseMetadataOrderOption ChineseMetadataOrder { get; set; } = ChineseMetadataOrderOption.LibraryDefault;
+
+        [DisplayNameL("MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_Simplified_Chinese_to_Traditional", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_simplified_Chinese_metadata_fetched_from_TMDB_to_traditional_Chinese__Default_is_OFF_", typeof(Resources))]
+        public bool ConvertSimplifiedToTraditional { get; set; } = false;
+
+        public ChineseMetadataOrderOption GetEffectiveChineseMetadataOrder()
+        {
+            return PreferTraditionalChinese
+                ? ChineseMetadataOrderOption.TraditionalFirst
+                : ChineseMetadataOrder;
+        }
 
         [DisplayNameL("MetadataEnhanceOptions_DistinguishChinesePosters_Distinguish_Simplified_and_Traditional_Chinese_Images", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_DistinguishChinesePosters_Request_only_the_matching_Chinese_image_set_for_each_item__zh_CN_content_gets_zh_CN_posters_and_logos_while_zh_TW_and_zh_HK_content_gets_zh_TW_and_zh_HK_images__The_item_preferred_image_language_or_library_metadata_language_decides__Default_is_OFF_", typeof(Resources))]

@@ -108,6 +108,13 @@ namespace StrmAssistant.Common
             return ChineseConverter.Convert(input, ChineseConversionDirection.TraditionalToSimplified);
         }
 
+        public static string ConvertSimplifiedToTraditional(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+
+            return ChineseConverter.Convert(input, ChineseConversionDirection.SimplifiedToTraditional);
+        }
+
         public static string GetLanguageByTitle(string input)
         {
             if (string.IsNullOrEmpty(input)) return null;

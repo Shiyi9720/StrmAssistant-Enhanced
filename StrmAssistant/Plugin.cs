@@ -97,6 +97,8 @@ namespace StrmAssistant
         private bool _currentEnableAltMovieDbUrl;
         private bool _currentEnableLocalMovieDb;
         private bool _currentDistinguishChinesePosters;
+        private ChineseMetadataOrderOption _currentChineseMetadataOrder;
+        private bool _currentConvertSimplifiedToTraditional;
 
         private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
         {
@@ -189,6 +191,9 @@ namespace StrmAssistant
             _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
             _currentEnableLocalMovieDb = GetOptions().MetadataEnhanceOptions.EnableLocalMovieDb;
             _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
+            _currentChineseMetadataOrder = GetOptions().MetadataEnhanceOptions.ChineseMetadataOrder;
+            _currentConvertSimplifiedToTraditional =
+                GetOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional;
             InitializeOptionCache();
 
             if (GetOptions().AboutOptions.DebugMode)
@@ -228,7 +233,9 @@ namespace StrmAssistant
             if (_currentCatchupMode) QueueManager.Initialize();
             if (_currentEnableIntroSkip || _currentAutoMarkPreviousEpisodesPlayed) PlaySessionMonitor.Initialize();
             if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl || _currentEnableLocalMovieDb ||
-                _currentDistinguishChinesePosters)
+                _currentDistinguishChinesePosters ||
+                _currentChineseMetadataOrder != ChineseMetadataOrderOption.LibraryDefault ||
+                _currentConvertSimplifiedToTraditional)
                 MovieDbApi.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
@@ -801,6 +808,10 @@ namespace StrmAssistant
             if (!suppress)
             {
                 Logger.Info("NewLibraryMovieDb is set to {0}", options.MetadataEnhanceOptions.NewLibraryMovieDb);
+                Logger.Info("ChineseMetadataOrder is set to {0}",
+                    options.MetadataEnhanceOptions.ChineseMetadataOrder);
+                Logger.Info("ConvertSimplifiedToTraditional is set to {0}",
+                    options.MetadataEnhanceOptions.ConvertSimplifiedToTraditional);
                 Logger.Info("PreferTraditionalChinese is set to {0}",
                     options.MetadataEnhanceOptions.PreferTraditionalChinese);
                 Logger.Info("DistinguishChinesePosters is set to {0}",
@@ -831,12 +842,18 @@ namespace StrmAssistant
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
                 _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||
                 _currentEnableLocalMovieDb != options.MetadataEnhanceOptions.EnableLocalMovieDb ||
-                _currentDistinguishChinesePosters != options.MetadataEnhanceOptions.DistinguishChinesePosters)
+                _currentDistinguishChinesePosters != options.MetadataEnhanceOptions.DistinguishChinesePosters ||
+                _currentChineseMetadataOrder != options.MetadataEnhanceOptions.ChineseMetadataOrder ||
+                _currentConvertSimplifiedToTraditional !=
+                options.MetadataEnhanceOptions.ConvertSimplifiedToTraditional)
             {
                 _currentPreferTraditionalChinese = options.MetadataEnhanceOptions.PreferTraditionalChinese;
                 _currentEnableAltMovieDbUrl = options.MetadataEnhanceOptions.EnableAltMovieDbUrl;
                 _currentEnableLocalMovieDb = options.MetadataEnhanceOptions.EnableLocalMovieDb;
                 _currentDistinguishChinesePosters = options.MetadataEnhanceOptions.DistinguishChinesePosters;
+                _currentChineseMetadataOrder = options.MetadataEnhanceOptions.ChineseMetadataOrder;
+                _currentConvertSimplifiedToTraditional =
+                    options.MetadataEnhanceOptions.ConvertSimplifiedToTraditional;
 
                 MovieDbApi.Initialize();
             }

@@ -833,6 +833,27 @@
   <data name="OKButtonCaption" xml:space="preserve">
     <value>接受</value>
   </data>
+  <data name="MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_Metadata_Language_Order" xml:space="preserve">
+    <value>中文元数据语言顺序</value>
+  </data>
+  <data name="ChineseMetadataOrderOption_LibraryDefault_Library_Default" xml:space="preserve">
+    <value>跟随媒体库</value>
+  </data>
+  <data name="ChineseMetadataOrderOption_TraditionalFirst_Traditional_Chinese_First__zh_TW_" xml:space="preserve">
+    <value>繁体优先（zh-TW）</value>
+  </data>
+  <data name="ChineseMetadataOrderOption_SimplifiedFirst_Simplified_Chinese_First__zh_CN_" xml:space="preserve">
+    <value>简体优先（zh-CN）</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ChineseMetadataOrder_Chinese_metadata_and_images_are_requested_in_this_language__Library_Default_keeps_the_library_language__Traditional_First_requests_zh_TW_and_prefers_zh_TW_or_zh_HK_images__Simplified_First_requests_zh_CN_and_prefers_zh_CN_images__Default_is_Library_Default_" xml:space="preserve">
+    <value>中文元数据和图片按此语言请求。跟随媒体库会保持媒体库语言；繁体优先请求 zh-TW 并优先使用 zh-TW 或 zh-HK 图片；简体优先请求 zh-CN 并优先使用 zh-CN 图片。默认为跟随媒体库。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_Simplified_Chinese_to_Traditional" xml:space="preserve">
+    <value>简体中文转繁体</value>
+  </data>
+  <data name="MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_simplified_Chinese_metadata_fetched_from_TMDB_to_traditional_Chinese__Default_is_OFF_" xml:space="preserve">
+    <value>将 TMDB 抓取到的简体中文元数据转换为繁体中文。默认关闭。</value>
+  </data>
   <data name="MetadataEnhanceOptions_EpisodeRefreshScope_Episode_Metadata_Refresh_Scope" xml:space="preserve">
     <value>剧集刷新范围</value>
   </data>
