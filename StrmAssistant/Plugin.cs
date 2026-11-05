@@ -87,6 +87,7 @@ namespace StrmAssistant
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
         private bool _currentMergeMultiVersion;
+        private bool _currentNewLibraryMovieDb;
 
         private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
         {
@@ -132,6 +133,7 @@ namespace StrmAssistant
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
+            _currentNewLibraryMovieDb = GetOptions().MetadataEnhanceOptions.NewLibraryMovieDb;
             InitializeOptionCache();
 
             if (GetOptions().AboutOptions.DebugMode)
@@ -242,6 +244,11 @@ namespace StrmAssistant
             try
             {
                 var deserializeResult = false;
+
+                if (_currentNewLibraryMovieDb && e.Item is CollectionFolder newLibrary)
+                {
+                    LibraryApi.ApplyNewLibraryMovieDbPreference(newLibrary);
+                }
 
                 if (_currentPersistMediaInfo && e.Item is Video)
                 {
@@ -581,6 +588,12 @@ namespace StrmAssistant
                     options.GeneralOptions.MaxMultiVersionMergeCount);
             }
             _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
+
+            if (!suppress)
+            {
+                Logger.Info("NewLibraryMovieDb is set to {0}", options.MetadataEnhanceOptions.NewLibraryMovieDb);
+            }
+            _currentNewLibraryMovieDb = options.MetadataEnhanceOptions.NewLibraryMovieDb;
 
             if (suppress) _currentSuppressOnOptionsSaved = false;
 

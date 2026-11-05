@@ -878,6 +878,92 @@ namespace StrmAssistant.Common
             return altMovies;
         }
 
+        private const string MovieDbFetcherName = "TheMovieDb";
+
+        public void ApplyNewLibraryMovieDbPreference(CollectionFolder library)
+        {
+            var internalId = library.InternalId;
+
+            if (internalId == 0) return;
+
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Library options are persisted right after the ItemAdded event is raised.
+                    await Task.Delay(500).ConfigureAwait(false);
+
+                    var options = CollectionFolder.GetLibraryOptions(internalId, null, CancellationToken.None);
+
+                    if (options.TypeOptions.Length == 0)
+                    {
+                        options.TypeOptions =
+                            _providerManager.GetDefaultLibraryOptions(options.ContentType).TypeOptions;
+                    }
+
+                    var availableTypeOptions = _providerManager.GetLibraryOptionsInfo(options.ContentType).TypeOptions;
+                    var changed = false;
+
+                    foreach (var typeOptions in options.TypeOptions)
+                    {
+                        var available = availableTypeOptions.FirstOrDefault(t =>
+                            string.Equals(t.Type, typeOptions.Type, StringComparison.OrdinalIgnoreCase));
+
+                        if (available is null) continue;
+
+                        var metadataFetchers = typeOptions.MetadataFetchers;
+                        var metadataFetcherOrder = typeOptions.MetadataFetcherOrder;
+                        var imageFetchers = typeOptions.ImageFetchers;
+                        var imageFetcherOrder = typeOptions.ImageFetcherOrder;
+
+                        // TheMovieDb takes priority, while other fetchers such as TheTVDB stay enabled as fallback.
+                        changed |= PromoteMovieDbFetcher(available.MetadataFetchers, ref metadataFetchers,
+                            ref metadataFetcherOrder);
+                        changed |= PromoteMovieDbFetcher(available.ImageFetchers, ref imageFetchers,
+                            ref imageFetcherOrder);
+
+                        typeOptions.MetadataFetchers = metadataFetchers;
+                        typeOptions.MetadataFetcherOrder = metadataFetcherOrder;
+                        typeOptions.ImageFetchers = imageFetchers;
+                        typeOptions.ImageFetcherOrder = imageFetcherOrder;
+                    }
+
+                    if (changed)
+                    {
+                        CollectionFolder.SaveLibraryOptions(internalId, options);
+                        _logger.Info("New library {0} prefers TheMovieDb for metadata and images", library.Name);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.ErrorException("ApplyNewLibraryMovieDbPreference", e);
+                }
+            });
+        }
+
+        private static bool PromoteMovieDbFetcher(LibraryOptionInfo[] supportedFetchers, ref string[] enabledFetchers,
+            ref string[] fetcherOrder)
+        {
+            if (supportedFetchers is null || !supportedFetchers.Any(f =>
+                    string.Equals(f.Name, MovieDbFetcherName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            var newEnabledFetchers = new[] { MovieDbFetcherName }.Concat((enabledFetchers ?? Array.Empty<string>())
+                .Where(f => !string.Equals(f, MovieDbFetcherName, StringComparison.OrdinalIgnoreCase))).ToArray();
+            var newFetcherOrder = new[] { MovieDbFetcherName }.Concat((fetcherOrder ?? Array.Empty<string>())
+                .Where(f => !string.Equals(f, MovieDbFetcherName, StringComparison.OrdinalIgnoreCase))).ToArray();
+
+            var changed = !newEnabledFetchers.SequenceEqual(enabledFetchers ?? Array.Empty<string>()) ||
+                          !newFetcherOrder.SequenceEqual(fetcherOrder ?? Array.Empty<string>());
+
+            enabledFetchers = newEnabledFetchers;
+            fetcherOrder = newFetcherOrder;
+
+            return changed;
+        }
+
         public void EnsureLibraryEnabledAutomaticSeriesGrouping()
         {
             var libraries = _libraryManager.GetVirtualFolders()
