@@ -36,6 +36,8 @@ namespace StrmAssistant.Common
 
         private readonly bool _fallbackApproach;
         private readonly MethodInfo _getStaticMediaSources;
+        private readonly bool _getStaticMediaSourcesWithCancellationToken;
+        private Dictionary<string, bool> _alwaysIgnoreFiles;
 
         internal class MediaSourceWithChapters
         {
@@ -57,32 +59,41 @@ namespace StrmAssistant.Common
             _itemRepository = itemRepository;
             _jsonSerializer = jsonSerializer;
 
-            if (Plugin.Instance.ApplicationHost.ApplicationVersion >= new Version("4.9.0.25"))
+            try
             {
-                try
+                // Prefer the overload with CancellationToken, fall back to the one without it.
+                _getStaticMediaSources = mediaSourceManager.GetType()
+                                              .GetMethod("GetStaticMediaSources",
+                                                  new[]
+                                                  {
+                                                      typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool),
+                                                      typeof(bool), typeof(BaseItem[]), typeof(LibraryOptions),
+                                                      typeof(DeviceProfile), typeof(User), typeof(CancellationToken)
+                                                  }) ??
+                                          mediaSourceManager.GetType()
+                                              .GetMethod("GetStaticMediaSources",
+                                                  new[]
+                                                  {
+                                                      typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool),
+                                                      typeof(BaseItem[]), typeof(LibraryOptions),
+                                                      typeof(DeviceProfile), typeof(User)
+                                                  });
+                _getStaticMediaSourcesWithCancellationToken =
+                    _getStaticMediaSources?.GetParameters().Length == 10;
+                _fallbackApproach = _getStaticMediaSources != null;
+            }
+            catch (Exception e)
+            {
+                if (Plugin.Instance.DebugMode)
                 {
-                    _getStaticMediaSources = mediaSourceManager.GetType()
-                        .GetMethod("GetStaticMediaSources",
-                            new[]
-                            {
-                                typeof(BaseItem), typeof(bool), typeof(bool), typeof(bool), typeof(BaseItem[]),
-                                typeof(LibraryOptions), typeof(DeviceProfile), typeof(User)
-                            });
-                    _fallbackApproach = _getStaticMediaSources != null;
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
                 }
-                catch (Exception e)
-                {
-                    if (Plugin.Instance.DebugMode)
-                    {
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
-                    }
-                }
+            }
 
-                if (_getStaticMediaSources is null)
-                {
-                    _logger.Warn($"{nameof(MediaInfoApi)} Init Failed");
-                }
+            if (_getStaticMediaSources is null)
+            {
+                _logger.Warn($"{nameof(MediaInfoApi)} Init Failed");
             }
 
             try
@@ -90,13 +101,23 @@ namespace StrmAssistant.Common
                 var embyServerImplementationsAssembly = Assembly.Load("Emby.Server.Implementations");
                 var libraryMonitorImpl =
                     embyServerImplementationsAssembly.GetType("Emby.Server.Implementations.IO.LibraryMonitor");
-                var alwaysIgnoreExtensions = libraryMonitorImpl.GetField("_alwaysIgnoreExtensions",
+                var alwaysIgnoreExtensions = libraryMonitorImpl?.GetField("_alwaysIgnoreExtensions",
                     BindingFlags.Instance | BindingFlags.NonPublic);
-                var currentArray = (string[])alwaysIgnoreExtensions.GetValue(libraryMonitor);
-                var newArray = new string[currentArray.Length + 1];
-                Array.Copy(currentArray, newArray, currentArray.Length);
-                newArray[newArray.Length - 1] = ".json";
-                alwaysIgnoreExtensions.SetValue(libraryMonitor, newArray);
+
+                if (alwaysIgnoreExtensions?.GetValue(libraryMonitor) is string[] currentArray)
+                {
+                    var newArray = new string[currentArray.Length + 1];
+                    Array.Copy(currentArray, newArray, currentArray.Length);
+                    newArray[newArray.Length - 1] = ".json";
+                    alwaysIgnoreExtensions.SetValue(libraryMonitor, newArray);
+                }
+                else
+                {
+                    // Emby 4.10 replaced the ignored extension list with an exact file name dictionary.
+                    _alwaysIgnoreFiles = libraryMonitorImpl?
+                        .GetField("AlwaysIgnoreFiles", BindingFlags.Static | BindingFlags.NonPublic)?
+                        .GetValue(null) as Dictionary<string, bool>;
+                }
             }
             catch (Exception e)
             {
@@ -113,15 +134,25 @@ namespace StrmAssistant.Common
         private List<MediaSourceInfo> GetStaticMediaSourcesByApi(BaseItem item, bool enableAlternateMediaSources,
             LibraryOptions libraryOptions)
         {
-            return _mediaSourceManager.GetStaticMediaSources(item, enableAlternateMediaSources, false, false, null,
-                libraryOptions, null, null);
+            return _mediaSourceManager.GetStaticMediaSources(item, enableAlternateMediaSources, false, false, false,
+                null, libraryOptions, null, null, CancellationToken.None);
         }
 
         private List<MediaSourceInfo> GetStaticMediaSourcesByRef(BaseItem item, bool enableAlternateMediaSources,
             LibraryOptions libraryOptions)
         {
-            return (List<MediaSourceInfo>)_getStaticMediaSources.Invoke(_mediaSourceManager,
-                new object[] { item, enableAlternateMediaSources, false, false, null, libraryOptions, null, null });
+            var arguments = _getStaticMediaSourcesWithCancellationToken
+                ? new object[]
+                {
+                    item, enableAlternateMediaSources, false, false, false, null, libraryOptions, null, null,
+                    CancellationToken.None
+                }
+                : new object[]
+                {
+                    item, enableAlternateMediaSources, false, false, null, libraryOptions, null, null
+                };
+
+            return (List<MediaSourceInfo>)_getStaticMediaSources.Invoke(_mediaSourceManager, arguments);
         }
 
         public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enableAlternateMediaSources)
@@ -163,6 +194,24 @@ namespace StrmAssistant.Common
                 : Path.Combine(item.ContainingFolderPath!, item.FileNameWithoutExtension + MediaInfoFileExtension);
 
             return mediaInfoJsonPath;
+        }
+
+        private void IgnoreMediaInfoJsonFile(string mediaInfoJsonPath)
+        {
+            if (_alwaysIgnoreFiles is null || string.IsNullOrEmpty(mediaInfoJsonPath)) return;
+
+            try
+            {
+                _alwaysIgnoreFiles[Path.GetFileName(mediaInfoJsonPath)] = true;
+            }
+            catch (Exception e)
+            {
+                if (Plugin.Instance.DebugMode)
+                {
+                    _logger.Debug(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
+            }
         }
 
         private async Task<bool> SerializeMediaInfo(BaseItem item, IDirectoryService directoryService, bool overwrite,
@@ -226,6 +275,8 @@ namespace StrmAssistant.Common
                     {
                         Directory.CreateDirectory(parentDirectory);
                     }
+
+                    IgnoreMediaInfoJsonFile(mediaInfoJsonPath);
 
                     _jsonSerializer.SerializeToFile(mediaSourcesWithChapters, mediaInfoJsonPath);
 
@@ -369,6 +420,7 @@ namespace StrmAssistant.Common
                 try
                 {
                     _logger.Info($"MediaInfoPersist - Attempting to delete ({source}): {mediaInfoJsonPath}");
+                    IgnoreMediaInfoJsonFile(mediaInfoJsonPath);
                     _fileSystem.DeleteFile(mediaInfoJsonPath);
 
                     var jsonRoot = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoJsonRootFolder;

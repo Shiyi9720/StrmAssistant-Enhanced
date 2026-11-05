@@ -361,6 +361,7 @@ namespace StrmAssistant.ScheduledTask
 
                 var total = rootIdGroups.Count;
                 var current = 0;
+                var maxMergeCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxMultiVersionMergeCount;
 
                 foreach (var group in rootIdGroups)
                 {
@@ -372,15 +373,25 @@ namespace StrmAssistant.ScheduledTask
                         .OfType<BaseItem>()
                         .ToArray();
 
-                    _libraryManager.MergeItems(movies);
-
-                    foreach (var item in movies)
+                    if (movies.Length > maxMergeCount)
                     {
-                        _logger.Info($"MergeMultiVersion - Movie merged: {item.Name} - {item.Path}");
+                        _logger.Info(
+                            $"MergeMultiVersion - Skipped group with {movies.Length} items (limit {maxMergeCount})");
+                    }
+                    else
+                    {
+                        _libraryManager.MergeItems(movies);
+
+                        foreach (var item in movies)
+                        {
+                            _logger.Info($"MergeMultiVersion - Movie merged: {item.Name} - {item.Path}");
+                        }
+
+                        _logger.Info(
+                            $"MergeMultiVersion - Merged group {current + 1} of {total} with {movies.Length} items");
                     }
 
                     current++;
-                    _logger.Info($"MergeMultiVersion - Merged group {current} of {total} with {movies.Length} items");
 
                     var progress = (double)current / total * 100;
                     groupProgress?.Report(progress);

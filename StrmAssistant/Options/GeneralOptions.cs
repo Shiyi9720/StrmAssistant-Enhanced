@@ -54,5 +54,10 @@ namespace StrmAssistant.Options
         [DescriptionL("GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_", typeof(Resources))]
         [Required, MinValue(1), MaxValue(20)]
         public int Tier2MaxConcurrentCount { get; set; } = 1;
+
+        [DisplayNameL("GeneralOptions_MaxMultiVersionMergeCount_Max_Multi_Version_Merge_Count", typeof(Resources))]
+        [DescriptionL("GeneralOptions_MaxMultiVersionMergeCount_Max_number_of_versions_to_merge_in_the_same_folder__It_must_be_between_2_and_64__Default_is_8_", typeof(Resources))]
+        [Required, MinValue(2), MaxValue(64)]
+        public int MaxMultiVersionMergeCount { get; set; } = 8;
     }
 }

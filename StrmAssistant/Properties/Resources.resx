@@ -356,6 +356,18 @@
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Intro_detection_enabled_library_scope__Blank_includes_all_" xml:space="preserve">
     <value>Library scope to extract fingerprint. Blank includes all libraries with intro detection enabled. Favorites is single selection only</value>
   </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Library_Intro_Detection_Fingerprint_Length" xml:space="preserve">
+    <value>Library Intro Detection Fingerprint Length</value>
+  </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_intro_detection_fingerprint_length_per_library__Unchecked_uses_the_global_setting_" xml:space="preserve">
+    <value>Override intro detection fingerprint length per library. Unchecked uses the global setting.</value>
+  </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override" xml:space="preserve">
+    <value>Override</value>
+  </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override_the_global_intro_detection_fingerprint_length_for_this_library_" xml:space="preserve">
+    <value>Override the global intro detection fingerprint length for this library.</value>
+  </data>
   <data name="MetadataEnhanceOptions_EnableAltMovieDbUrl" xml:space="preserve">
     <value>Use Alternative MovieDb Config</value>
   </data>
@@ -550,6 +562,12 @@
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
     <value>Shared by refreshing persons, episodes, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1.</value>
+  </data>
+  <data name="GeneralOptions_MaxMultiVersionMergeCount_Max_Multi_Version_Merge_Count" xml:space="preserve">
+    <value>Max Multi Version Merge Count</value>
+  </data>
+  <data name="GeneralOptions_MaxMultiVersionMergeCount_Max_number_of_versions_to_merge_in_the_same_folder__It_must_be_between_2_and_64__Default_is_8_" xml:space="preserve">
+    <value>Max number of versions to merge in the same folder. It must be between 2 and 64. Default is 8.</value>
   </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>Applicable to single thread mode. It must be between 0 and 60. Default is 0.</value>
