@@ -194,6 +194,12 @@
   <data name="GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_" xml:space="preserve">
     <value>While library scan, auto merge movies and series to multi versions, bypass naming convention. Default is OFF.</value>
   </data>
+  <data name="GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort" xml:space="preserve">
+    <value>Multi-version Smart Sort</value>
+  </data>
+  <data name="GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_" xml:space="preserve">
+    <value>Sort multiple versions on the detail page by quality: resolution, then codec, then file size. Default is ON.</value>
+  </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>Search</value>
   </data>
