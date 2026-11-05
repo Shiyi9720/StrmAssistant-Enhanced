@@ -105,6 +105,45 @@ namespace StrmAssistant
             CollectionType.BoxSets.ToString()
         };
 
+        internal static string _satelliteRoot;
+
+        static Plugin()
+        {
+            // 卫星程序集（zh/zh-hant）跟随插件放在 <plugins>/<culture>/ 子目录。
+            // Emby 用 Assembly.Load(bytes) 加载插件主程序集（无位置），卫星查找只能靠
+            // AppDomain.AssemblyResolve 兜底（Resource.Embedder 的做法）。
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            {
+                try
+                {
+                    Plugin.Instance?.Logger.Info("[AssemblyResolve] {0} ui={1}", args.Name,
+                        CultureInfo.CurrentUICulture?.Name);
+                    var an = new AssemblyName(args.Name);
+                    if (!an.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase) ||
+                        !an.Name.StartsWith("StrmAssistantLite", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return null;
+                    }
+
+                    var culture = an.CultureName;
+                    if (string.IsNullOrEmpty(culture) || string.IsNullOrEmpty(_satelliteRoot))
+                    {
+                        return null;
+                    }
+
+                    var file = Path.Combine(_satelliteRoot, culture, an.Name + ".dll");
+                    var loaded = File.Exists(file) ? Assembly.Load(File.ReadAllBytes(file)) : null;
+                    System.Diagnostics.Debug.WriteLine($"[Satellite] {an.CultureName} -> {file} loaded={loaded != null}");
+                    Plugin.Instance?.Logger.Info("[Satellite] {0} -> {1} loaded={2}", an.CultureName, file, loaded != null);
+                    return loaded;
+                }
+                catch
+                {
+                    return null;
+                }
+            };
+        }
+
         public Plugin(IApplicationHost applicationHost, IApplicationPaths applicationPaths, ILogManager logManager,
             IFileSystem fileSystem, ILibraryManager libraryManager, ISessionManager sessionManager,
             IItemRepository itemRepository, INotificationManager notificationManager, ILibraryMonitor libraryMonitor,
@@ -188,6 +227,7 @@ namespace StrmAssistant
             _providerManager.RefreshCompleted += OnRefreshCompleted;
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
+            _satelliteRoot = applicationPaths.PluginsPath;
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
             CollectionFolder.LibraryOptionsUpdated += OnLibraryOptionsUpdated;
