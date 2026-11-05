@@ -19,7 +19,8 @@ namespace StrmAssistant.Web.Helper
                 .Replace("\\", "\\\\").Replace("'", "\\'");
 
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
-                   "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n";
+                   "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
+                   GetDashboardTasksScript() + "\n";
         }
 
         private static string GetStyleScript()
@@ -591,6 +592,181 @@ namespace StrmAssistant.Web.Helper
     startObserving();
 })();
 ".Replace("@@FORMAT@@", format);
+        }
+
+        /// <summary>
+        /// Floating panel on the dashboard that lists running plugin tasks with their progress and
+        /// offers a button to rebuild what search returns (queues the built-in library scan).
+        /// </summary>
+        private static string GetDashboardTasksScript()
+        {
+            return @"
+(function () {
+    'use strict';
+
+    var labels = {
+        title: '@@TITLE@@',
+        none: '@@NONE@@',
+        rebuild: '@@REBUILD@@',
+        queued: '@@QUEUED@@',
+        failed: '@@FAILED@@'
+    };
+    var panel = null;
+    var list = null;
+    var timer = null;
+    var apiClient = null;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function isDashboard() {
+        return (location.hash || '').toLowerCase().indexOf('#/dashboard') === 0;
+    }
+
+    function ensurePanel() {
+        if (panel) return panel;
+
+        panel = document.createElement('div');
+        panel.id = 'strmAssistantTasksPanel';
+        panel.style.cssText = 'position:fixed;right:1.5em;bottom:1.5em;z-index:1000;width:20em;' +
+            'max-width:calc(100% - 3em);background:rgba(16,16,16,.92);color:#fff;border-radius:.5em;' +
+            'padding:.75em 1em;font-size:.85em;box-shadow:0 4px 16px rgba(0,0,0,.5)';
+
+        var header = document.createElement('div');
+        header.textContent = labels.title;
+        header.style.cssText = 'font-weight:600;margin-bottom:.5em';
+
+        list = document.createElement('div');
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = labels.rebuild;
+        button.style.cssText = 'margin-top:.6em;width:100%;padding:.4em;border:0;border-radius:.3em;' +
+            'cursor:pointer;background:#52b54b;color:#fff';
+
+        button.addEventListener('click', function () {
+            button.disabled = true;
+
+            withApiClient(function (client) {
+                client.ajax({
+                    type: 'POST',
+                    url: client.getUrl('StrmAssistant/Search/Rebuild'),
+                    dataType: 'json'
+                }).then(function (result) {
+                    button.textContent = result && result.Queued ? labels.queued : labels.failed;
+                }, function () {
+                    button.textContent = labels.failed;
+                }).then(function () {
+                    setTimeout(function () {
+                        button.textContent = labels.rebuild;
+                        button.disabled = false;
+                    }, 4000);
+                });
+            });
+        });
+
+        panel.appendChild(header);
+        panel.appendChild(list);
+        panel.appendChild(button);
+        document.body.appendChild(panel);
+
+        return panel;
+    }
+
+    function render(tasks) {
+        ensurePanel();
+        list.innerHTML = '';
+
+        var active = (tasks || []).filter(function (task) { return task.IsRunning; });
+
+        if (!active.length) {
+            var empty = document.createElement('div');
+            empty.textContent = labels.none;
+            empty.style.opacity = '.7';
+            list.appendChild(empty);
+            return;
+        }
+
+        active.forEach(function (task) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;justify-content:space-between;gap:.5em;padding:.15em 0';
+
+            var name = document.createElement('span');
+            name.textContent = task.Name;
+
+            var value = document.createElement('span');
+            value.style.opacity = '.8';
+            value.textContent = task.Progress === null || task.Progress === undefined
+                ? task.State
+                : Math.round(task.Progress) + '%';
+
+            row.appendChild(name);
+            row.appendChild(value);
+            list.appendChild(row);
+        });
+    }
+
+    function refresh() {
+        if (!isDashboard()) {
+            if (panel) panel.style.display = 'none';
+            return;
+        }
+
+        ensurePanel().style.display = '';
+
+        withApiClient(function (client) {
+            client.getJSON(client.getUrl('StrmAssistant/Tasks')).then(function (result) {
+                render(result && result.Tasks);
+            }, function () {
+                render([]);
+            });
+        });
+    }
+
+    function start() {
+        if (timer) return;
+        timer = setInterval(refresh, 5000);
+        refresh();
+    }
+
+    window.addEventListener('hashchange', refresh);
+    document.addEventListener('DOMContentLoaded', start);
+
+    if (document.readyState !== 'loading') start();
+})();
+"
+                .Replace("@@TITLE@@", JsString("DashboardTasks_Title_Active_Tasks", "Active Tasks"))
+                .Replace("@@NONE@@", JsString("DashboardTasks_NoActiveTasks_No_active_tasks",
+                    "No active tasks"))
+                .Replace("@@REBUILD@@", JsString("DashboardTasks_RebuildSearchIndex_Rebuild_Search_Index",
+                    "Rebuild Search Index"))
+                .Replace("@@QUEUED@@", JsString("DashboardTasks_RebuildQueued_Search_index_rebuild_queued",
+                    "Search index rebuild queued"))
+                .Replace("@@FAILED@@", JsString("DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild",
+                    "Failed to queue search index rebuild"));
+        }
+
+        private static string JsString(string resourceName, string fallback)
+        {
+            var value = Resources.ResourceManager.GetString(resourceName);
+
+            return (string.IsNullOrEmpty(value) ? fallback : value)
+                .Replace("\\", "\\\\").Replace("'", "\\'");
         }
     }
 }
