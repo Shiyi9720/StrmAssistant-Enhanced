@@ -537,6 +537,15 @@ namespace StrmAssistant.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Total Episodes {0} / In Library {1}.
+        /// </summary>
+        public static string EpisodeStats_Total_In_Library {
+            get {
+                return ResourceManager.GetString("EpisodeStats_Total_In_Library", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Shared by refreshing persons, episodes, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1..
         /// </summary>
         public static string GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_ {

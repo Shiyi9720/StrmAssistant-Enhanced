@@ -200,6 +200,9 @@
   <data name="GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_" xml:space="preserve">
     <value>Sort multiple versions on the detail page by quality: resolution, then codec, then file size. Default is ON.</value>
   </data>
+  <data name="EpisodeStats_Total_In_Library" xml:space="preserve">
+    <value>Total Episodes {0} / In Library {1}</value>
+  </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>Search</value>
   </data>
