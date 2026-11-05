@@ -27,6 +27,18 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", typeof(Resources))]
         public string CustomFfmpegArguments { get; set; } = string.Empty;
 
+        [DisplayNameL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
+        public string SubtitleBlacklistLanguages { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_SubtitleBlacklistTitles_Subtitle_Blacklist_Titles", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistTitles_Comma_separated_title_keywords_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
+        public string SubtitleBlacklistTitles { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_SubtitleBlacklistCodecs_Subtitle_Blacklist_Codecs", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
+        public string SubtitleBlacklistCodecs { get; set; } = string.Empty;
+
         [DisplayNameL("PluginOptions_EnableImageCapture_Enable_Image_Capture", typeof(Resources))]
         [DescriptionL("PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_", typeof(Resources))]
         [Browsable(false)]
