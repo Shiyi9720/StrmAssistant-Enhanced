@@ -3345,5 +3345,104 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("RebuildSearchIndexTask_Description_Rebuilds_the_Chinese_search_index_used_for_pinyin__simplified_traditional_and_alias_matching", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDb.
+        /// </summary>
+        public static string IntroDbOptions_EditorTitle_IntroDb {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_EditorTitle_IntroDb", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Enable IntroDb.
+        /// </summary>
+        public static string IntroDbOptions_EnableIntroDb_Enable_IntroDb {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_EnableIntroDb_Enable_IntroDb", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fetch intro and credits markers from the public IntroDb database during intro detection. Default is OFF..
+        /// </summary>
+        public static string IntroDbOptions_EnableIntroDb_Fetch_intro_and_credits_markers_from_the_public_IntroDb_database_during_intro_detection__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_EnableIntroDb_Fetch_intro_and_credits_markers_from_the_public_IntroDb_database_during_intro_detection__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Write Intro Markers.
+        /// </summary>
+        public static string IntroDbOptions_WriteIntroMarkers_Write_Intro_Markers {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_WriteIntroMarkers_Write_Intro_Markers", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Write intro start and end markers when IntroDb has them. Default is ON..
+        /// </summary>
+        public static string IntroDbOptions_WriteIntroMarkers_Write_intro_start_and_end_markers_when_IntroDb_has_them__Default_is_True_ {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_WriteIntroMarkers_Write_intro_start_and_end_markers_when_IntroDb_has_them__Default_is_True_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Write Credits Markers.
+        /// </summary>
+        public static string IntroDbOptions_WriteCreditsMarkers_Write_Credits_Markers {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_WriteCreditsMarkers_Write_Credits_Markers", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Write credits start markers from the IntroDb outro segment. Default is ON..
+        /// </summary>
+        public static string IntroDbOptions_WriteCreditsMarkers_Write_credits_start_markers_from_the_IntroDb_outro_segment__Default_is_True_ {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_WriteCreditsMarkers_Write_credits_start_markers_from_the_IntroDb_outro_segment__Default_is_True_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum Confidence.
+        /// </summary>
+        public static string IntroDbOptions_MinimumConfidencePercent_Minimum_Confidence {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_MinimumConfidencePercent_Minimum_Confidence", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Ignore IntroDb segments below this confidence percentage; 0 accepts everything. Default is 50..
+        /// </summary>
+        public static string IntroDbOptions_MinimumConfidencePercent_Ignore_IntroDb_segments_below_this_confidence_percentage__0_accepts_everything__Default_is_50_ {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_MinimumConfidencePercent_Ignore_IntroDb_segments_below_this_confidence_percentage__0_accepts_everything__Default_is_50_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Cache Expiry Days.
+        /// </summary>
+        public static string IntroDbOptions_CacheExpiryDays_Cache_Expiry_Days {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_CacheExpiryDays_Cache_Expiry_Days", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to How long lookup results are reused before querying IntroDb again. Default is 30..
+        /// </summary>
+        public static string IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_ {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_", resourceCulture);
+            }
+        }
 }
 }

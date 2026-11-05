@@ -67,6 +67,7 @@ namespace StrmAssistant
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
         public static VersionPlaybackApi VersionPlaybackApi { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
+        public static IntroDbApi IntroDbApi { get; private set; }
         public static SearchIndexService SearchIndexService { get; private set; }
 
         private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
@@ -243,6 +244,7 @@ namespace StrmAssistant
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
+            IntroDbApi = new IntroDbApi(libraryManager, itemRepository, jsonSerializer, httpClient);
             FingerprintLibraryApi = new FingerprintLibraryApi(libraryManager, jsonSerializer);
             SearchIndexService = new SearchIndexService(libraryManager, jsonSerializer, httpClient);
             ShortcutMenuHelper.Initialize(configurationManager);

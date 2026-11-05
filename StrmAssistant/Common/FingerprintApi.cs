@@ -37,7 +37,7 @@ namespace StrmAssistant.Common
         private readonly MethodInfo _updateSequencesForSeason;
         private readonly FieldInfo _timeoutMs;
 
-        private static readonly object MarkerWriteLock = new object();
+        private static readonly object MarkerWriteLock = ChapterApi.MarkerWriteLock;
 
         public static List<string> LibraryPathsInScope;
 
@@ -425,6 +425,14 @@ namespace StrmAssistant.Common
                 HasAudioStream = true
             };
             var allEpisodes = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToArray();
+
+            // Known IntroDb timestamps are written first, so the expensive fingerprint detection
+            // below only runs for the episodes that are still missing markers.
+            if (Plugin.IntroDbApi != null)
+            {
+                await Plugin.IntroDbApi.ApplyToSeasonAsync(season, allEpisodes, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             episodeQuery.WithoutChapterMarkers = new[] { MarkerType.IntroStart };
             var episodesWithoutMarkers = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToList();

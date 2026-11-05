@@ -22,7 +22,11 @@ namespace StrmAssistant.Common
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
 
-        private const string MarkerSuffix = "#SA";
+        internal const string MarkerSuffix = "#SA";
+
+        // Shared by every code path that writes chapter markers, so that fingerprint detection
+        // and IntroDb lookups never write the same season at the same time.
+        internal static readonly object MarkerWriteLock = new object();
 
         public ChapterApi(ILibraryManager libraryManager, IItemRepository itemRepository)
         {
