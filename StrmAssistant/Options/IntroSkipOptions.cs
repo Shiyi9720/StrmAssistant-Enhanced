@@ -217,6 +217,11 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public string IntroSkipPreferences { get; set; } = string.Empty;
 
+        [DisplayNameL("IntroSkipOptions_FingerprintExcludeKeywords_Fingerprint_Exclude_Keywords", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_FingerprintExcludeKeywords_Comma_separated_keywords_or_wildcards__Programs_or_seasons_matching_the_keywords_or_tagged_fingerprint_exclude_are_skipped__Default_is_EMPTY_", typeof(Resources))]
+        [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
+        public string FingerprintExcludeKeywords { get; set; } = string.Empty;
+
         [DisplayNameL("IntroSkipOptions_FingerprintLibraryFilePath_Fingerprint_Library_File", typeof(Resources))]
         [DescriptionL("IntroSkipOptions_FingerprintLibraryFilePath_JSON_file_used_by_the_export_and_import_tasks__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_", typeof(Resources))]
         public string FingerprintLibraryFilePath { get; set; } = string.Empty;

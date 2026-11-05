@@ -38,7 +38,8 @@ namespace StrmAssistant.Common
         public VideoThumbnailApi(ILibraryManager libraryManager, IFileSystem fileSystem,
             IImageExtractionManager imageExtractionManager, IItemRepository itemRepository,
             IMediaMountManager mediaMountManager, IServerApplicationPaths applicationPaths,
-            ILibraryMonitor libraryMonitor, IFfmpegManager ffmpegManager, IImageProcessor imageProcessor)
+            ILibraryMonitor libraryMonitor, IFfmpegManager ffmpegManager, IImageProcessor imageProcessor,
+            IServerApplicationHost serverApplicationHost)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
@@ -60,8 +61,10 @@ namespace StrmAssistant.Common
                     }, null);
                 _thumbnailGenerator = thumbnailGeneratorConstructor?.Invoke(new object[]
                 {
-                    fileSystem, _logger, imageExtractionManager, itemRepository, mediaMountManager,
-                    applicationPaths, libraryMonitor, FfmpegApi.WrapFfmpegManager(ffmpegManager)
+                    fileSystem, _logger,
+                    ImageExtractionTimeout.Wrap(imageExtractionManager, ffmpegManager, serverApplicationHost),
+                    itemRepository, mediaMountManager, applicationPaths, libraryMonitor,
+                    FfmpegApi.WrapFfmpegManager(ffmpegManager)
                 });
                 _refreshThumbnailImages = thumbnailGenerator.GetMethod("RefreshThumbnailImages",
                     BindingFlags.Public | BindingFlags.Instance);
@@ -85,6 +88,12 @@ namespace StrmAssistant.Common
             IDirectoryService directoryService, List<ChapterInfo> chapters, bool extractImages, bool saveChapters,
             CancellationToken cancellationToken)
         {
+            if (extractImages && VideoThumbnailBlacklist.FromOptions().IsExcluded(item))
+            {
+                _logger.Info("VideoThumbnailBlacklist - Skipped extraction: " + item.Name + " - " + item.Path);
+                return false;
+            }
+
             var mediaSource = AppVer >= Ver4936
                 ? item.GetMediaSources(false, false, libraryOptions).FirstOrDefault()
                 : null;
@@ -276,7 +285,15 @@ namespace StrmAssistant.Common
             var combined = favoritesWithExtra.Concat(items).Concat(extras).GroupBy(i => i.InternalId)
                 .Select(g => g.First()).Where(i => isModSupported || !i.IsShortcut).OfType<Video>().ToList();
 
-            return combined;
+            var blacklist = VideoThumbnailBlacklist.FromOptions();
+            var filtered = combined.Where(i => !blacklist.IsExcluded(i)).ToList();
+
+            if (filtered.Count != combined.Count)
+            {
+                _logger.Info($"VideoThumbnailBlacklist - Number of items excluded: {combined.Count - filtered.Count}");
+            }
+
+            return filtered;
         }
     }
 }

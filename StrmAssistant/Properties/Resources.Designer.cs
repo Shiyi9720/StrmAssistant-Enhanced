@@ -681,7 +681,25 @@ namespace StrmAssistant.Properties {
                         "utes", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Fingerprint Exclude Keywords.
+        /// </summary>
+        public static string IntroSkipOptions_FingerprintExcludeKeywords_Fingerprint_Exclude_Keywords {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_FingerprintExcludeKeywords_Fingerprint_Exclude_Keywords", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Comma separated keywords or wildcards, for example sample, *trailer*. Episodes whose series, season or themselves match the keywords or are tagged fingerprint-exclude are skipped for fingerprint extraction. Default is EMPTY..
+        /// </summary>
+        public static string IntroSkipOptions_FingerprintExcludeKeywords_Comma_separated_keywords_or_wildcards__Programs_or_seasons_matching_the_keywords_or_tagged_fingerprint_exclude_are_skipped__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_FingerprintExcludeKeywords_Comma_separated_keywords_or_wildcards__Programs_or_seasons_matching_the_keywords_or_tagged_fingerprint_exclude_are_skipped__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Customize intro detection fingerprint length. It must be between 2 and 20. Default is 10..
         /// </summary>
@@ -1112,7 +1130,79 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("MediaInfoExtractOptions_ImageCaptureOffset_Image_Capture_Offset", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Media Info Exclude Keywords.
+        /// </summary>
+        public static string MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Comma separated keywords or wildcards, for example sample, *trailer*. Items matching the keywords or tagged mediainfo-exclude are skipped when media info is processed. Default is EMPTY..
+        /// </summary>
+        public static string MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Video Thumbnail Exclude Keywords.
+        /// </summary>
+        public static string MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Video_Thumbnail_Exclude_Keywords {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Video_Thumbnail_Exclude_Keywords", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Comma separated keywords or wildcards, for example sample, *trailer*. Items matching the keywords or tagged videothumbnail-exclude are skipped for chapter image and BIF extraction. Default is EMPTY..
+        /// </summary>
+        public static string MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_videothumbnail_exclude_are_skipped__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_videothumbnail_exclude_are_skipped__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Video Thumbnail Exclude Media Containers.
+        /// </summary>
+        public static string MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Video_Thumbnail_Exclude_Media_Containers {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Video_Thumbnail_Exclude_Media_Containers", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Comma separated media containers to skip for chapter image and BIF extraction, for example MpegTs, Ts, M2Ts, Iso. Default is EMPTY..
+        /// </summary>
+        public static string MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Comma_separated_media_containers_to_skip_for_chapter_image_and_BIF_extraction__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Comma_separated_media_containers_to_skip_for_chapter_image_and_BIF_extraction__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Image Extraction Timeout Multiplier.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Image_Extraction_Timeout_Multiplier {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Image_Extraction_Timeout_Multiplier", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Multiplier applied to the default timeout of chapter image and BIF extraction. It must be between 1.0 and 10.0. Default is 2.0..
+        /// </summary>
+        public static string MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Multiplier_applied_to_the_default_timeout_of_chapter_image_and_BIF_extraction__Default_is_2_0_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Multiplier_applied_to_the_default_timeout_of_chapter_image_and_BIF_extraction__Default_is_2_0_", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Image capture offset as a percentage of runtime. It must be between 10 and 90. Default is 10..
         /// </summary>

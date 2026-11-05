@@ -56,6 +56,30 @@
   <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
     <value>以逗號分隔的字幕編碼或萬用字元，例如 subrip, ass, hdmv_pgs_subtitle。處理媒體資訊時，符合的字幕流將被移除。預設為空。</value>
   </data>
+  <data name="MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords" xml:space="preserve">
+    <value>媒體資訊黑名單（關鍵字）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗號分隔的關鍵字或萬用字元，例如 sample, *trailer*。處理媒體資訊時，符合關鍵字或帶有 mediainfo-exclude 標籤的項目將被略過。預設為空。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Video_Thumbnail_Exclude_Keywords" xml:space="preserve">
+    <value>截圖/BIF 黑名單（關鍵字）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_videothumbnail_exclude_are_skipped__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗號分隔的關鍵字或萬用字元，例如 sample, *trailer*。擷取章節圖和 BIF 時，符合關鍵字或帶有 videothumbnail-exclude 標籤的項目將被略過。預設為空。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Video_Thumbnail_Exclude_Media_Containers" xml:space="preserve">
+    <value>截圖/BIF 黑名單（容器）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Comma_separated_media_containers_to_skip_for_chapter_image_and_BIF_extraction__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗號分隔的媒體容器，擷取章節圖和 BIF 時將略過，例如 MpegTs, Ts, M2Ts, Iso。預設為空。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Image_Extraction_Timeout_Multiplier" xml:space="preserve">
+    <value>圖像擷取逾時倍率</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Multiplier_applied_to_the_default_timeout_of_chapter_image_and_BIF_extraction__Default_is_2_0_" xml:space="preserve">
+    <value>章節圖和 BIF 擷取預設逾時的倍率，必須介於 1.0 到 10.0 之間。預設為 2.0。</value>
+  </data>
   <data name="MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality" xml:space="preserve">
     <value>截圖品質</value>
   </data>
@@ -319,6 +343,12 @@
   </data>
   <data name="IntroSkipOptions_IntroDetectionFingerprintMinutes_Intro_Detection_Fingerprint_Minutes" xml:space="preserve">
     <value>片頭聲紋探測時長 (分鐘)</value>
+  </data>
+  <data name="IntroSkipOptions_FingerprintExcludeKeywords_Fingerprint_Exclude_Keywords" xml:space="preserve">
+    <value>聲紋黑名單（關鍵字）</value>
+  </data>
+  <data name="IntroSkipOptions_FingerprintExcludeKeywords_Comma_separated_keywords_or_wildcards__Programs_or_seasons_matching_the_keywords_or_tagged_fingerprint_exclude_are_skipped__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗號分隔的關鍵字或萬用字元，例如 sample, *trailer*。擷取聲紋時，其劇集、季或自身符合關鍵字或帶有 fingerprint-exclude 標籤的劇集將被略過。預設為空。</value>
   </data>
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Library_Scope" xml:space="preserve">
     <value>媒體庫範圍</value>
