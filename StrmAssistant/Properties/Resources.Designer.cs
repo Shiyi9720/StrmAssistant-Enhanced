@@ -2710,5 +2710,21 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Reverse_Season_and_Episode_Order.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Reverse_Season_and_Episode_Order {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Reverse_Season_and_Episode_Order", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Show seasons and episodes in descending order in the web client. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_", resourceCulture);
+            }
+        }
 }
 }

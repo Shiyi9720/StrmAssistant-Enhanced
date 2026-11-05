@@ -995,4 +995,10 @@
   <data name="ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_" xml:space="preserve">
     <value>Mark previous episodes in the same season with playback progress as played when the current episode finishes. Default is OFF.</value>
   </data>
+  <data name="ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Reverse_Season_and_Episode_Order" xml:space="preserve">
+    <value>Reverse Season and Episode Order</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_" xml:space="preserve">
+    <value>Show seasons and episodes in descending order in the web client. Default is OFF.</value>
+  </data>
 </root>
