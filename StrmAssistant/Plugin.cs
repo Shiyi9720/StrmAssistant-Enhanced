@@ -62,6 +62,7 @@ namespace StrmAssistant
         public static PlaySessionMonitor PlaySessionMonitor { get; private set; }
         public static MetadataApi MetadataApi { get; private set; }
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
+        public static VersionPlaybackApi VersionPlaybackApi { get; private set; }
 
         private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
 
@@ -156,6 +157,8 @@ namespace StrmAssistant
                 jsonSerializer, httpClient);
             VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
                 mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager);
+            VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
+            VersionPlaybackApi.Initialize();
             ShortcutMenuHelper.Initialize(configurationManager);
 
             if (_currentCatchupMode) QueueManager.Initialize();
