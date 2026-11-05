@@ -122,12 +122,12 @@ namespace StrmAssistant.Common
                 _itemRepository.SaveChapters(episode.InternalId, chapters);
             }
 
-            _logger.Info("Intro marker updated by " + session.UserName + " for " +
+            _logger?.Info("Intro marker updated by " + session.UserName + " for " +
                          item.FindSeriesName() + " - " + item.FindSeasonName() + " - " + item.Season.Path);
             var introStartTime = new TimeSpan(introStartPositionTicks).ToString(@"hh\:mm\:ss\.fff");
-            _logger.Info("Intro start time: " + introStartTime);
+            _logger?.Info("Intro start time: " + introStartTime);
             var introEndTime = new TimeSpan(introEndPositionTicks).ToString(@"hh\:mm\:ss\.fff");
-            _logger.Info("Intro end time: " + introEndTime);
+            _logger?.Info("Intro end time: " + introEndTime);
             _ = Plugin.NotificationApi.IntroUpdateSendNotification(item, session, introStartTime, introEndTime);
         }
 
@@ -159,10 +159,10 @@ namespace StrmAssistant.Common
                 }
             }
 
-            _logger.Info("Credits marker updated by " + session.UserName + " for " +
+            _logger?.Info("Credits marker updated by " + session.UserName + " for " +
                          item.FindSeriesName() + " - " + item.FindSeasonName() + " - " + item.Season.Path);
             var creditsDuration = new TimeSpan(creditsDurationTicks).ToString(@"hh\:mm\:ss\.fff");
-            _logger.Info("Credits duration: " + new TimeSpan(creditsDurationTicks).ToString(@"hh\:mm\:ss\.fff"));
+            _logger?.Info("Credits duration: " + new TimeSpan(creditsDurationTicks).ToString(@"hh\:mm\:ss\.fff"));
             _ = Plugin.NotificationApi.CreditsUpdateSendNotification(item, session, creditsDuration);
         }
 
@@ -269,7 +269,7 @@ namespace StrmAssistant.Common
                 RemoveIntroCreditsMarkers(episode);
             }
 
-            _logger.Info("Intro and Credits markers are cleared by " + session.UserName + " since " + item.Name +
+            _logger?.Info("Intro and Credits markers are cleared by " + session.UserName + " since " + item.Name +
                          " in " + item.FindSeriesName() + " - " + item.FindSeasonName() + " - " + item.Season.Path);
         }
 
@@ -303,7 +303,7 @@ namespace StrmAssistant.Common
                                 (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
                     .ToList();
 
-                _logger.Info("IntroSkipClear - LibraryScope: " +
+                _logger?.Info("IntroSkipClear - LibraryScope: " +
                              (validLibraryIds.Any() ? string.Join(", ", libraries.Select(l => l.Name)) : "ALL"));
 
                 itemsIntroSkipQuery.PathStartsWithAny = PlaySessionMonitor.LibraryPathsInScope.ToArray();
@@ -323,7 +323,7 @@ namespace StrmAssistant.Common
 
                         results.AddRange(_libraryManager.GetItemList(itemsIntroSkipQuery));
 
-                        _logger.Info(
+                        _logger?.Info(
                             $"IntroSkipClear - {series.Name} ({series.InternalId}) - {series.ContainingFolderPath}");
                     }
                     else if (item is Season season)
@@ -333,7 +333,7 @@ namespace StrmAssistant.Common
 
                         results.AddRange(_libraryManager.GetItemList(itemsIntroSkipQuery));
 
-                        _logger.Info(
+                        _logger?.Info(
                             $"IntroSkipClear - {season.SeriesName} - {season.Name} ({season.InternalId}) - {season.ContainingFolderPath}");
                     }
                 }
@@ -365,7 +365,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            _logger.Info("IntroSkipClear - Number of items: " + items.Count);
+            _logger?.Info("IntroSkipClear - Number of items: " + items.Count);
 
             return items;
         }
@@ -511,7 +511,7 @@ namespace StrmAssistant.Common
                             chapters.Add(introEnd);
                             chapters.Sort((c1, c2) => c1.StartPositionTicks.CompareTo(c2.StartPositionTicks));
                             _itemRepository.SaveChapters(episode.InternalId, chapters);
-                            _logger.Info("Intro marker updated for " + episode.Path);
+                            _logger?.Info("Intro marker updated for " + episode.Path);
                         }
                     }
                 }
@@ -544,7 +544,7 @@ namespace StrmAssistant.Common
                                         chapters.Add(creditsStart);
                                         chapters.Sort((c1, c2) => c1.StartPositionTicks.CompareTo(c2.StartPositionTicks));
                                         _itemRepository.SaveChapters(episode.InternalId, chapters);
-                                        _logger.Info("Credits marker updated for " + episode.Path);
+                                        _logger?.Info("Credits marker updated for " + episode.Path);
                                     }
                                 }
                             }

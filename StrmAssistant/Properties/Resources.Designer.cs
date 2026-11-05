@@ -3000,5 +3000,165 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("MetadataEnhanceOptions_ConvertSimplifiedToTraditional_Convert_simplified_Chinese_metadata_fetched_from_TMDB_to_traditional_Chinese__Default_is_OFF_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Chinese Search.
+        /// </summary>
+        public static string SearchOptions_EditorTitle_Chinese_Search {
+            get {
+                return ResourceManager.GetString("SearchOptions_EditorTitle_Chinese_Search", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Enable Chinese Search.
+        /// </summary>
+        public static string SearchOptions_EnableChineseSearch_Enable_Chinese_Search {
+            get {
+                return ResourceManager.GetString("SearchOptions_EnableChineseSearch_Enable_Chinese_Search", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Adds pinyin, simplified/traditional and alias matching to web client search. When the index is not ready the original Emby search is used. Default is ON..
+        /// </summary>
+        public static string SearchOptions_EnableChineseSearch_Adds_pinyin__simplified_traditional_and_alias_matching_to_web_client_search__When_the_index_is_not_ready_the_original_Emby_search_is_used__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_EnableChineseSearch_Adds_pinyin__simplified_traditional_and_alias_matching_to_web_client_search__When_the_index_is_not_ready_the_original_Emby_search_is_used__Default_is_ON_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Pinyin Search.
+        /// </summary>
+        public static string SearchOptions_PinyinSearch_Pinyin_Search {
+            get {
+                return ResourceManager.GetString("SearchOptions_PinyinSearch_Pinyin_Search", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Match full pinyin and initials, for example zhongwen and zw both find Chinese titles. Default is ON..
+        /// </summary>
+        public static string SearchOptions_PinyinSearch_Match_full_pinyin_and_initials__for_example_zhongwen_and_zw_both_find_Chinese_titles__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_PinyinSearch_Match_full_pinyin_and_initials__for_example_zhongwen_and_zw_both_find_Chinese_titles__Default_is_ON_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Simplified/Traditional Cross Search.
+        /// </summary>
+        public static string SearchOptions_ConversionSearch_Simplified_Traditional_Cross_Search {
+            get {
+                return ResourceManager.GetString("SearchOptions_ConversionSearch_Simplified_Traditional_Cross_Search", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to A simplified Chinese query also finds traditional titles and vice versa. Default is ON..
+        /// </summary>
+        public static string SearchOptions_ConversionSearch_A_simplified_Chinese_query_also_finds_traditional_titles_and_vice_versa__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_ConversionSearch_A_simplified_Chinese_query_also_finds_traditional_titles_and_vice_versa__Default_is_ON_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Alias and Original Title Search.
+        /// </summary>
+        public static string SearchOptions_AliasSearch_Alias_and_Original_Title_Search {
+            get {
+                return ResourceManager.GetString("SearchOptions_AliasSearch_Alias_and_Original_Title_Search", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Match original titles, sort titles, alternate titles and title plus year combinations. Default is ON..
+        /// </summary>
+        public static string SearchOptions_AliasSearch_Match_original_titles__sort_titles__alternate_titles_and_title_plus_year_combinations__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_AliasSearch_Match_original_titles__sort_titles__alternate_titles_and_title_plus_year_combinations__Default_is_ON_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Ranked Results.
+        /// </summary>
+        public static string SearchOptions_SmartRanking_Ranked_Results {
+            get {
+                return ResourceManager.GetString("SearchOptions_SmartRanking_Ranked_Results", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Order results by exact, prefix, contains then fuzzy match, with Chinese matches, rating and year as tie breakers. Default is ON..
+        /// </summary>
+        public static string SearchOptions_SmartRanking_Order_results_by_exact__prefix__contains_then_fuzzy_match__with_Chinese_matches__rating_and_year_as_tie_breakers__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_SmartRanking_Order_results_by_exact__prefix__contains_then_fuzzy_match__with_Chinese_matches__rating_and_year_as_tie_breakers__Default_is_ON_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to TMDB Alternative Titles.
+        /// </summary>
+        public static string SearchOptions_TmdbAliasSearch_TMDB_Alternative_Titles {
+            get {
+                return ResourceManager.GetString("SearchOptions_TmdbAliasSearch_TMDB_Alternative_Titles", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Fetch alternative titles from TMDB during index rebuilds. Requests are rate limited and cached in the index. Default is OFF..
+        /// </summary>
+        public static string SearchOptions_TmdbAliasSearch_Fetch_alternative_titles_from_TMDB_during_index_rebuilds__Requests_are_rate_limited_and_cached_in_the_index__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_TmdbAliasSearch_Fetch_alternative_titles_from_TMDB_during_index_rebuilds__Requests_are_rate_limited_and_cached_in_the_index__Default_is_OFF_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Search Index Status.
+        /// </summary>
+        public static string SearchOptions_IndexStatus_Search_Index_Status {
+            get {
+                return ResourceManager.GetString("SearchOptions_IndexStatus_Search_Index_Status", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Index ready: {0} items. Last built: {1}..
+        /// </summary>
+        public static string SearchOptions_IndexStatus_Ready {
+            get {
+                return ResourceManager.GetString("SearchOptions_IndexStatus_Ready", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Building index: {0}%..
+        /// </summary>
+        public static string SearchOptions_IndexStatus_Building {
+            get {
+                return ResourceManager.GetString("SearchOptions_IndexStatus_Building", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to The index is being prepared in the background. Emby&apos;s original search is used until it is ready..
+        /// </summary>
+        public static string SearchOptions_IndexStatus_NotReady {
+            get {
+                return ResourceManager.GetString("SearchOptions_IndexStatus_NotReady", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Chinese search is disabled..
+        /// </summary>
+        public static string SearchOptions_IndexStatus_Disabled {
+            get {
+                return ResourceManager.GetString("SearchOptions_IndexStatus_Disabled", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Rebuild Search Index.
+        /// </summary>
+        public static string RebuildSearchIndexTask_Name_Rebuild_Search_Index {
+            get {
+                return ResourceManager.GetString("RebuildSearchIndexTask_Name_Rebuild_Search_Index", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Rebuilds the Chinese search index used for pinyin, simplified/traditional and alias matching..
+        /// </summary>
+        public static string RebuildSearchIndexTask_Description_Rebuilds_the_Chinese_search_index_used_for_pinyin__simplified_traditional_and_alias_matching {
+            get {
+                return ResourceManager.GetString("RebuildSearchIndexTask_Description_Rebuilds_the_Chinese_search_index_used_for_pinyin__simplified_traditional_and_alias_matching", resourceCulture);
+            }
+        }
 }
 }

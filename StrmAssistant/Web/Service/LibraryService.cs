@@ -71,7 +71,7 @@ namespace StrmAssistant.Web.Service
                     {
                         if (!path.IsDirectory)
                         {
-                            _logger.Info("DeleteVersion - Attempting to delete file: " + path.FullName);
+                            _logger?.Info("DeleteVersion - Attempting to delete file: " + path.FullName);
                             _fileSystem.DeleteFile(path.FullName, true);
                         }
                     }
@@ -80,9 +80,9 @@ namespace StrmAssistant.Web.Service
                         if (e is IOException || e is UnauthorizedAccessException)
                         {
                             proceedToDelete = false;
-                            _logger.Error("DeleteVersion - Failed to delete file: " + path.FullName);
-                            _logger.Error(e.Message);
-                            _logger.Debug(e.StackTrace);
+                            _logger?.Error("DeleteVersion - Failed to delete file: " + path.FullName);
+                            _logger?.Error(e.Message);
+                            _logger?.Debug(e.StackTrace);
                         }
                     }
                 }

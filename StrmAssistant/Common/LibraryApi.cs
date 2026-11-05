@@ -254,7 +254,7 @@ namespace StrmAssistant.Common
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id)).ToList();
             var librariesWithImageCapture = GetLibrariesWithImageCapture(libraries);
 
-            _logger.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
+            _logger?.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
                 ? "ALL"
                 : string.Join(", ",
                     libraryIds.Contains("-1")
@@ -262,7 +262,7 @@ namespace StrmAssistant.Common
                         : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
-            _logger.Info("Include Extra: " + includeExtra);
+            _logger?.Info("Include Extra: " + includeExtra);
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
             var favoritesWithExtra = Array.Empty<BaseItem>();
@@ -373,7 +373,7 @@ namespace StrmAssistant.Common
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id))
                 .ToList();
 
-            _logger.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
+            _logger?.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
                 ? "ALL"
                 : string.Join(", ",
                     libraryIds.Contains("-1")
@@ -381,7 +381,7 @@ namespace StrmAssistant.Common
                         : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
-            _logger.Info("Include Extra: " + includeExtra);
+            _logger?.Info("Include Extra: " + includeExtra);
 
             var favoritesWithExtra = new List<BaseItem>();
             if (libraryIds.Contains("-1"))
@@ -506,11 +506,11 @@ namespace StrmAssistant.Common
                 }
                 else if (item is Video)
                 {
-                    _logger.Debug("MediaInfoExtract - Item dropped: " + item.Name + " - " + item.Path); // video without audio
+                    _logger?.Debug("MediaInfoExtract - Item dropped: " + item.Name + " - " + item.Path); // video without audio
                 }
             }
 
-            _logger.Info("MediaInfoExtract - Number of items: " + results.Count);
+            _logger?.Info("MediaInfoExtract - Number of items: " + results.Count);
 
             return results;
         }
@@ -889,7 +889,7 @@ namespace StrmAssistant.Common
 
             if (!libraries.Any()) return new List<Movie>();
 
-            _logger.Info("MergeMovie - Libraries: " + string.Join(", ", libraries.Select(l => l.Name)));
+            _logger?.Info("MergeMovie - Libraries: " + string.Join(", ", libraries.Select(l => l.Name)));
 
             var libraryIds = libraries.Select(l => l.InternalId).ToArray();
 
@@ -960,12 +960,12 @@ namespace StrmAssistant.Common
                     if (changed)
                     {
                         CollectionFolder.SaveLibraryOptions(internalId, options);
-                        _logger.Info("New library {0} prefers TheMovieDb for metadata and images", library.Name);
+                        _logger?.Info("New library {0} prefers TheMovieDb for metadata and images", library.Name);
                     }
                 }
                 catch (Exception e)
                 {
-                    _logger.ErrorException("ApplyNewLibraryMovieDbPreference", e);
+                    _logger?.ErrorException("ApplyNewLibraryMovieDbPreference", e);
                 }
             });
         }
@@ -1103,11 +1103,11 @@ namespace StrmAssistant.Common
         public List<Episode> FetchEpisodeRefreshTaskItems()
         {
             var lookBackDays = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshLookbackDays;
-            _logger.Info("EpisodeRefresh - Lookback days: " + lookBackDays);
+            _logger?.Info("EpisodeRefresh - Lookback days: " + lookBackDays);
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
             var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
-            _logger.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
+            _logger?.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
             var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
                 .Cast<EpisodeRefreshOption>()
                 .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
@@ -1123,7 +1123,7 @@ namespace StrmAssistant.Common
                 .OrderByDescending(GetPremiereDateOrDefault)
                 .ToList();
 
-            _logger.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
+            _logger?.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
 
             return itemsToRefresh;
         }
@@ -1131,11 +1131,11 @@ namespace StrmAssistant.Common
         public List<Episode> FetchEpisodeRefreshQueueItems(List<Episode> items)
         {
             const int lookBackDays = 90;
-            _logger.Info("EpisodeRefresh - Lookback days: " + lookBackDays);
+            _logger?.Info("EpisodeRefresh - Lookback days: " + lookBackDays);
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
             var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
-            _logger.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
+            _logger?.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
             var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
                 .Cast<EpisodeRefreshOption>()
                 .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
@@ -1162,7 +1162,7 @@ namespace StrmAssistant.Common
                 itemsToRefresh.AddRange(episodes);
             }
 
-            _logger.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
+            _logger?.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
 
             return itemsToRefresh;
         }

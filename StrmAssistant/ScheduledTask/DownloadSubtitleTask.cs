@@ -14,17 +14,12 @@ namespace StrmAssistant.ScheduledTask
 {
     public class DownloadSubtitleTask : IScheduledTask
     {
-        private readonly ILogger _logger;
-
-        public DownloadSubtitleTask()
-        {
-            _logger = Plugin.Instance.Logger;
-        }
+        private ILogger _logger => Plugin.Instance?.Logger;
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("SubtitleDownload - Scheduled Task Execute");
-            _logger.Info("Tier2 Max Concurrent Count: " +
+            _logger?.Info("SubtitleDownload - Scheduled Task Execute");
+            _logger?.Info("Tier2 Max Concurrent Count: " +
                          Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount);
 
             await Task.Yield();
@@ -32,7 +27,7 @@ namespace StrmAssistant.ScheduledTask
 
             var items = Plugin.LibraryApi.FetchPostExtractTaskItems(false)
                 .Where(i => i is Movie || i is Episode).ToList();
-            _logger.Info("SubtitleDownload - Number of items: " + items.Count);
+            _logger?.Info("SubtitleDownload - Number of items: " + items.Count);
 
             double total = items.Count;
             var index = 0;
@@ -54,7 +49,7 @@ namespace StrmAssistant.ScheduledTask
                 if (cancellationToken.IsCancellationRequested)
                 {
                     QueueManager.Tier2Semaphore.Release();
-                    _logger.Info("SubtitleDownload - Scheduled Task Cancelled");
+                    _logger?.Info("SubtitleDownload - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -66,7 +61,7 @@ namespace StrmAssistant.ScheduledTask
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            _logger.Info("SubtitleDownload - Scheduled Task Cancelled");
+                            _logger?.Info("SubtitleDownload - Scheduled Task Cancelled");
                             return;
                         }
 
@@ -75,13 +70,13 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.Info("SubtitleDownload - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger?.Info("SubtitleDownload - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
                     }
                     catch (Exception e)
                     {
-                        _logger.Error("SubtitleDownload - Item failed: " + taskItem.Name + " - " + taskItem.Path);
-                        _logger.Error(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Error("SubtitleDownload - Item failed: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger?.Error(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                     finally
                     {
@@ -90,7 +85,7 @@ namespace StrmAssistant.ScheduledTask
                         var currentCount = Interlocked.Increment(ref current);
                         progress.Report(currentCount / total * 100);
 
-                        _logger.Info("SubtitleDownload - Progress " + currentCount + "/" + total + " - Task " +
+                        _logger?.Info("SubtitleDownload - Progress " + currentCount + "/" + total + " - Task " +
                                      taskIndex + ": " + taskItem.Path);
                     }
                 }, cancellationToken);
@@ -100,7 +95,7 @@ namespace StrmAssistant.ScheduledTask
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             progress.Report(100.0);
-            _logger.Info("SubtitleDownload - Scheduled Task Complete");
+            _logger?.Info("SubtitleDownload - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",

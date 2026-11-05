@@ -10,11 +10,11 @@ namespace StrmAssistant.ScheduledTask
 {
     public class ExportIntroFingerprintTask : IScheduledTask, IConfigurableScheduledTask
     {
-        private readonly ILogger _logger = Plugin.Instance.Logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
 
         public Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("IntroFingerprintExport - Scheduled Task Execute");
+            _logger?.Info("IntroFingerprintExport - Scheduled Task Execute");
 
             try
             {
@@ -22,17 +22,17 @@ namespace StrmAssistant.ScheduledTask
             }
             catch (OperationCanceledException)
             {
-                _logger.Info("IntroFingerprintExport - Scheduled Task Cancelled");
+                _logger?.Info("IntroFingerprintExport - Scheduled Task Cancelled");
                 return Task.CompletedTask;
             }
             catch (Exception e)
             {
-                _logger.Info("IntroFingerprintExport - Failed: " + e.Message);
-                _logger.Debug(e.StackTrace);
+                _logger?.Info("IntroFingerprintExport - Failed: " + e.Message);
+                _logger?.Debug(e.StackTrace);
             }
 
             progress.Report(100.0);
-            _logger.Info("IntroFingerprintExport - Scheduled Task Complete");
+            _logger?.Info("IntroFingerprintExport - Scheduled Task Complete");
 
             return Task.CompletedTask;
         }

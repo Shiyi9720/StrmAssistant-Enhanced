@@ -89,15 +89,15 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
 
             if (_audioFingerprintManager is null || _createTitleFingerprint is null ||
                 _getAllFingerprintFilesForSeason is null || _updateSequencesForSeason is null || _timeoutMs is null)
             {
-                _logger.Warn($"{nameof(FingerprintApi)} Init Failed");
+                _logger?.Warn($"{nameof(FingerprintApi)} Init Failed");
             }
         }
 
@@ -245,7 +245,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            _logger.Info("IntroFingerprintExtract - Number of items: " + results.Count);
+            _logger?.Info("IntroFingerprintExtract - Number of items: " + results.Count);
 
             return results;
         }
@@ -302,7 +302,7 @@ namespace StrmAssistant.Common
                 .ToList();
             var librariesSelected = librariesWithMarkerDetection.Where(f => libraryIds.Contains(f.Id)).ToList();
 
-            _logger.Info("IntroFingerprintExtract - LibraryScope: " + (!librariesWithMarkerDetection.Any()
+            _logger?.Info("IntroFingerprintExtract - LibraryScope: " + (!librariesWithMarkerDetection.Any()
                 ? "NONE"
                 : string.Join(", ",
                     (libraryIds.Contains("-1")
@@ -310,7 +310,7 @@ namespace StrmAssistant.Common
                         : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
 
             var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
-            _logger.Info("Intro Detection Fingerprint Length (Minutes): " +
+            _logger?.Info("Intro Detection Fingerprint Length (Minutes): " +
                          introSkipOptions.IntroDetectionFingerprintMinutes);
 
             var effectiveLibraryMinutes = librariesSelected
@@ -318,7 +318,7 @@ namespace StrmAssistant.Common
 
             if (effectiveLibraryMinutes.Distinct().Skip(1).Any())
             {
-                _logger.Info("Intro Detection Fingerprint Length Per Library: " + string.Join(", ",
+                _logger?.Info("Intro Detection Fingerprint Length Per Library: " + string.Join(", ",
                     librariesSelected.Select(l =>
                         l.Name + "=" + introSkipOptions.GetIntroDetectionFingerprintMinutes(l.ItemId))));
             }

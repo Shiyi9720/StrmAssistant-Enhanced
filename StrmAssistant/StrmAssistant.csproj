@@ -33,6 +33,7 @@
   <ItemGroup>
     <PackageReference Include="CHTCHSConv" Version="1.0.0">
     </PackageReference>
+    <PackageReference Include="ToolGood.Words.Pinyin" Version="3.1.0" />
     <PackageReference Include="ILRepack" Version="2.0.42">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -65,7 +66,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <!--
-    Optional ILRepack step: merges ChineseConverter.dll into the plugin assembly.
+    Optional ILRepack step: merges ChineseConverter.dll and ToolGood.Words.Pinyin.dll into the
+    plugin assembly.
     It only runs when an output path is supplied, so that building on a developer
     machine (including macOS) does not depend on a Windows-only %AppData% path.
 
@@ -73,7 +75,7 @@
       dotnet build -c Release -p:EmbyPluginPath=/path/to/emby/programdata/plugins
   -->
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(EmbyPluginPath)' != ''">
-    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
-    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="dotnet &quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="dotnet &quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
   </Target>
 </Project>

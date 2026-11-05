@@ -17,20 +17,19 @@ namespace StrmAssistant.ScheduledTask
 {
     public class ExtractIntroFingerprintTask : IScheduledTask
     {
-        private readonly ILogger _logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
         private readonly IFileSystem _fileSystem;
         private readonly ITaskManager _taskManager;
 
         public ExtractIntroFingerprintTask(IFileSystem fileSystem, ITaskManager taskManager)
         {
-            _logger = Plugin.Instance.Logger;
             _fileSystem = fileSystem;
             _taskManager = taskManager;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("IntroFingerprintExtract - Scheduled Task Execute");
+            _logger?.Info("IntroFingerprintExtract - Scheduled Task Execute");
             
             var unlockIntroSkip = Plugin.Instance.GetPluginOptions().IntroSkipOptions.UnlockIntroSkip;
             if (!unlockIntroSkip)
@@ -39,21 +38,21 @@ namespace StrmAssistant.ScheduledTask
                 _ = Plugin.NotificationApi.SendMessageToAdmins(
                     $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.IntroDetectionEnhancedNotEnabled}",
                     10000);
-                _logger.Warn("Built-in Intro Detection Enhanced is not enabled.");
-                _logger.Warn("IntroFingerprintExtract - Scheduled Task Aborted");
+                _logger?.Warn("Built-in Intro Detection Enhanced is not enabled.");
+                _logger?.Warn("IntroFingerprintExtract - Scheduled Task Aborted");
                 return;
             }
 
             var introDetectionMaxConcurrentCount =
                 Plugin.Instance.GetPluginOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
-            _logger.Info("Intro Detection Max Concurrent Count: " + introDetectionMaxConcurrentCount);
+            _logger?.Info("Intro Detection Max Concurrent Count: " + introDetectionMaxConcurrentCount);
             var cooldownSeconds = introDetectionMaxConcurrentCount == 1
                 ? Plugin.Instance.GetPluginOptions().GeneralOptions.CooldownDurationSeconds
                 : (int?)null;
-            if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
+            if (cooldownSeconds.HasValue) _logger?.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
-            _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            _logger?.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
             var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
@@ -66,8 +65,8 @@ namespace StrmAssistant.ScheduledTask
             double totalSeasons = groupedBySeason.Count;
             double totalEpisodes = episodes.Count;
 
-            _logger.Info($"IntroFingerprintExtract - Number of seasons: {totalSeasons}");
-            _logger.Info($"IntroFingerprintExtract - Number of episodes: {totalEpisodes}");
+            _logger?.Info($"IntroFingerprintExtract - Number of seasons: {totalSeasons}");
+            _logger?.Info($"IntroFingerprintExtract - Number of episodes: {totalEpisodes}");
 
             if (totalEpisodes > 0) IsRunning = true;
 
@@ -87,7 +86,7 @@ namespace StrmAssistant.ScheduledTask
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                    _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -110,7 +109,7 @@ namespace StrmAssistant.ScheduledTask
                     if (cancellationToken.IsCancellationRequested)
                     {
                         QueueManager.FingerprintSemaphore.Release();
-                        _logger.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                        _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
                         return;
                     }
 
@@ -124,7 +123,7 @@ namespace StrmAssistant.ScheduledTask
                         {
                             if (cancellationToken.IsCancellationRequested)
                             {
-                                _logger.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                                _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
                                 return;
                             }
 
@@ -140,7 +139,7 @@ namespace StrmAssistant.ScheduledTask
                                 {
                                     if (!mediaInfoRestoreMode)
                                     {
-                                        _logger.Info(
+                                        _logger?.Info(
                                             $"IntroFingerprintExtract - Episode skipped or non-existent: {taskEpisode.Name} - {taskEpisode.Path}");
                                     }
                                     
@@ -171,15 +170,15 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (OperationCanceledException)
                         {
-                            _logger.Info(
+                            _logger?.Info(
                                 $"IntroFingerprintExtract - Episode cancelled: {taskEpisode.Name} - {taskEpisode.Path}");
                         }
                         catch (Exception e)
                         {
-                            _logger.Error(
+                            _logger?.Error(
                                 $"IntroFingerprintExtract - Episode failed: {taskEpisode.Name} - {taskEpisode.Path}");
-                            _logger.Error(e.Message);
-                            _logger.Debug(e.StackTrace);
+                            _logger?.Error(e.Message);
+                            _logger?.Debug(e.StackTrace);
                         }
                         finally
                         {
@@ -208,7 +207,7 @@ namespace StrmAssistant.ScheduledTask
 
                             if (!mediaInfoRestoreMode)
                             {
-                                _logger.Info(
+                                _logger?.Info(
                                     $"IntroFingerprintExtract - Episode Progress {currentCount}/{totalEpisodes} - Task {taskEpisodeIndex}: {taskEpisode.Path}");
                             }
                         }
@@ -218,7 +217,7 @@ namespace StrmAssistant.ScheduledTask
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                    _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -243,7 +242,7 @@ namespace StrmAssistant.ScheduledTask
                     {
                         if (!mediaInfoRestoreMode)
                         {
-                            _logger.Info(
+                            _logger?.Info(
                                 $"IntroFingerprintExtract - Season Skipped: {taskSeason.Name} - {taskSeason.Path}");
                         }
 
@@ -263,7 +262,7 @@ namespace StrmAssistant.ScheduledTask
                     if (cancellationToken.IsCancellationRequested)
                     {
                         QueueManager.Tier2Semaphore.Release();
-                        _logger.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                        _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
                         return;
                     }
 
@@ -275,15 +274,15 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
+                        _logger?.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                      taskSeason.Path);
                     }
                     catch (Exception e)
                     {
-                        _logger.Error("IntroFingerprintExtract - Season failed: " + taskSeason.Name + " - " +
+                        _logger?.Error("IntroFingerprintExtract - Season failed: " + taskSeason.Name + " - " +
                                       taskSeason.Path);
-                        _logger.Error(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Error(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                     finally
                     {
@@ -294,7 +293,7 @@ namespace StrmAssistant.ScheduledTask
 
                         if (!mediaInfoRestoreMode)
                         {
-                            _logger.Info(
+                            _logger?.Info(
                                 $"IntroFingerprintExtract - Season Progress {currentCount}/{totalSeasons} - Task {taskSeasonIndex}: {taskSeason.Path}");
                         }
                     }
@@ -307,9 +306,9 @@ namespace StrmAssistant.ScheduledTask
             if (episodes.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
-            _logger.Info($"IntroFingerprintExtract - Number of seasons skipped: {seasonSkipCount}");
-            _logger.Info($"IntroFingerprintExtract - Number of episodes skipped: {episodeSkipCount}");
-            _logger.Info("IntroFingerprintExtract - Scheduled Task Complete");
+            _logger?.Info($"IntroFingerprintExtract - Number of seasons skipped: {seasonSkipCount}");
+            _logger?.Info($"IntroFingerprintExtract - Number of episodes skipped: {episodeSkipCount}");
+            _logger?.Info("IntroFingerprintExtract - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",

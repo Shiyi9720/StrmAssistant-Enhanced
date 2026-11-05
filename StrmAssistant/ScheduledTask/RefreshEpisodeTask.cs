@@ -11,15 +11,15 @@ namespace StrmAssistant.ScheduledTask
 {
     public class RefreshEpisodeTask : IScheduledTask, IConfigurableScheduledTask
     {
-        private readonly ILogger _logger = Plugin.Instance.Logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
 
         private static readonly Random Random = new Random();
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("RefreshPerson - Scheduled Task Execute");
+            _logger?.Info("RefreshPerson - Scheduled Task Execute");
             var tier2MaxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount;
-            _logger.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
+            _logger?.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
 
             await Task.Yield();
             progress.Report(0);
@@ -48,7 +48,7 @@ namespace StrmAssistant.ScheduledTask
                 if (cancellationToken.IsCancellationRequested)
                 {
                     QueueManager.Tier2Semaphore.Release();
-                    _logger.Info("EpisodeRefresh - Scheduled Task Cancelled");
+                    _logger?.Info("EpisodeRefresh - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -66,7 +66,7 @@ namespace StrmAssistant.ScheduledTask
 
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            _logger.Info("EpisodeRefresh - Scheduled Task Cancelled");
+                            _logger?.Info("EpisodeRefresh - Scheduled Task Cancelled");
                             return;
                         }
 
@@ -75,13 +75,13 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.Info("EpisodeRefresh - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger?.Info("EpisodeRefresh - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
                     }
                     catch (Exception e)
                     {
-                        _logger.Info("EpisodeRefresh - Item failed: " + taskItem.Name + " - " + taskItem.Path);
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Info("EpisodeRefresh - Item failed: " + taskItem.Name + " - " + taskItem.Path);
+                        _logger?.Debug(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                     finally
                     {
@@ -89,7 +89,7 @@ namespace StrmAssistant.ScheduledTask
 
                         var currentCount = Interlocked.Increment(ref current);
                         progress.Report(currentCount / total * 100);
-                        _logger.Info("EpisodeRefresh - Progress " + currentCount + "/" + total + " - " +
+                        _logger?.Info("EpisodeRefresh - Progress " + currentCount + "/" + total + " - " +
                                      "Task " + taskIndex + ": " + taskItem.Path);
                     }
                 }, cancellationToken);
@@ -101,7 +101,7 @@ namespace StrmAssistant.ScheduledTask
             IsRunning = false;
 
             progress.Report(100.0);
-            _logger.Info("EpisodeRefresh - Scheduled Task Complete");
+            _logger?.Info("EpisodeRefresh - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",
