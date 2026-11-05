@@ -23,6 +23,7 @@ namespace StrmAssistant.Common
     {
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
+        private readonly IFfmpegManager _ffmpegManager;
 
         private readonly object _thumbnailGenerator;
         private readonly MethodInfo _refreshThumbnailImages;
@@ -37,6 +38,7 @@ namespace StrmAssistant.Common
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
+            _ffmpegManager = ffmpegManager;
 
             try
             {
@@ -53,7 +55,7 @@ namespace StrmAssistant.Common
                 _thumbnailGenerator = thumbnailGeneratorConstructor?.Invoke(new object[]
                 {
                     fileSystem, _logger, imageExtractionManager, itemRepository, mediaMountManager,
-                    applicationPaths, libraryMonitor, ffmpegManager
+                    applicationPaths, libraryMonitor, FfmpegApi.WrapFfmpegManager(ffmpegManager)
                 });
                 _refreshThumbnailImages = thumbnailGenerator.GetMethod("RefreshThumbnailImages",
                     BindingFlags.Public | BindingFlags.Instance);
