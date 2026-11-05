@@ -23,6 +23,7 @@ namespace StrmAssistant.Common
         private static readonly Random Random = new Random();
         private static int _currentMasterMaxConcurrentCount;
         private static int _currentTier2MaxConcurrentCount;
+        private static int _currentFingerprintMaxConcurrentCount;
 
         public static CancellationTokenSource MediaInfoTokenSource;
         public static CancellationTokenSource IntroSkipTokenSource;
@@ -30,6 +31,7 @@ namespace StrmAssistant.Common
         public static CancellationTokenSource EpisodeRefreshTokenSource;
         public static SemaphoreSlim MasterSemaphore;
         public static SemaphoreSlim Tier2Semaphore;
+        public static SemaphoreSlim FingerprintSemaphore;
         public static ConcurrentQueue<BaseItem> MediaInfoExtractItemQueue = new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<Episode> IntroSkipItemQueue = new ConcurrentQueue<Episode>();
         public static ConcurrentQueue<BaseItem> FingerprintItemQueue = new ConcurrentQueue<BaseItem>();
@@ -46,9 +48,12 @@ namespace StrmAssistant.Common
             Logger = Plugin.Instance.Logger;
             _currentMasterMaxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
             _currentTier2MaxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount;
+            _currentFingerprintMaxConcurrentCount =
+                Plugin.Instance.GetPluginOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
 
             MasterSemaphore = new SemaphoreSlim(_currentMasterMaxConcurrentCount);
             Tier2Semaphore = new SemaphoreSlim(_currentTier2MaxConcurrentCount);
+            FingerprintSemaphore = new SemaphoreSlim(_currentFingerprintMaxConcurrentCount);
         }
 
         public static void Initialize()
@@ -149,6 +154,19 @@ namespace StrmAssistant.Common
                 var oldTier2Semaphore = Tier2Semaphore;
                 Tier2Semaphore = newTier2Semaphore;
                 oldTier2Semaphore.Dispose();
+            }
+        }
+
+        public static void UpdateFingerprintSemaphore(int maxConcurrentCount)
+        {
+            if (_currentFingerprintMaxConcurrentCount != maxConcurrentCount)
+            {
+                _currentFingerprintMaxConcurrentCount = maxConcurrentCount;
+
+                var newFingerprintSemaphore = new SemaphoreSlim(maxConcurrentCount);
+                var oldFingerprintSemaphore = FingerprintSemaphore;
+                FingerprintSemaphore = newFingerprintSemaphore;
+                oldFingerprintSemaphore.Dispose();
             }
         }
 
@@ -372,6 +390,8 @@ namespace StrmAssistant.Common
                 if (!FingerprintItemQueue.IsEmpty)
                 {
                     var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
+                    var fingerprintMaxConcurrentCount =
+                        Plugin.Instance.GetPluginOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
                     var currentQueueCount = FingerprintItemQueue.Count;
                     
                     dequeueItems.Clear();
@@ -409,8 +429,8 @@ namespace StrmAssistant.Common
 
                     if (episodes.Count > 0)
                     {
-                        Logger.Info("Master Max Concurrent Count: " + maxConcurrentCount);
-                        var cooldownSeconds = maxConcurrentCount == 1
+                        Logger.Info("Intro Detection Max Concurrent Count: " + fingerprintMaxConcurrentCount);
+                        var cooldownSeconds = fingerprintMaxConcurrentCount == 1
                             ? Plugin.Instance.GetPluginOptions().GeneralOptions.CooldownDurationSeconds
                             : (int?)null;
                         if (cooldownSeconds.HasValue)
@@ -442,7 +462,7 @@ namespace StrmAssistant.Common
 
                                 try
                                 {
-                                    await MasterSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                                    await FingerprintSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                                 }
                                 catch
                                 {
@@ -451,7 +471,7 @@ namespace StrmAssistant.Common
 
                                 if (cancellationToken.IsCancellationRequested)
                                 {
-                                    MasterSemaphore.Release();
+                                    FingerprintSemaphore.Release();
                                     break;
                                 }
 
@@ -525,7 +545,7 @@ namespace StrmAssistant.Common
                                             }
                                         }
 
-                                        MasterSemaphore.Release();
+                                        FingerprintSemaphore.Release();
                                     }
                                 }, cancellationToken);
                                 episodeTasks.Add(task);
