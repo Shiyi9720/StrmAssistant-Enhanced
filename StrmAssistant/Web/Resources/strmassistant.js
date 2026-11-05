@@ -1,4 +1,4 @@
-﻿define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm', 'dialog'], function (connectionManager, globalize, loading, toast, confirm, dialog) {
+﻿define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm', 'dialog', 'actionsheet'], function (connectionManager, globalize, loading, toast, confirm, dialog, actionsheet) {
 
     return {
         copy: function (libraryId) {
@@ -163,6 +163,81 @@
                 url: `${lockApi}?${queryString}`,
                 data: {},
                 contentType: "application/json"
+            });
+        },
+
+        remove_person: function (itemId) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u5220\u9664\u6F14\u5458' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u522A\u9664\u6F14\u54E1' : 'Remove Actor');
+            const noActors = locale === 'zh-cn' ? '\u672A\u627E\u5230\u6F14\u5458' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u627E\u4E0D\u5230\u6F14\u54E1' : 'No actors found');
+            const confirmText = locale === 'zh-cn' ? '\u786E\u5B9A\u8981\u79FB\u9664\u6F14\u5458 {0} \u5417\uFF1F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u78BA\u5B9A\u8981\u79FB\u9664\u6F14\u54E1 {0} \u55CE\uFF1F' :
+                    'Remove actor "{0}" from this item?');
+            const successText = locale === 'zh-cn' ? '\u6F14\u5458\u79FB\u9664\u6210\u529F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u6F14\u54E1\u79FB\u9664\u6210\u529F' : 'Remove Actor Success');
+            const failureText = locale === 'zh-cn' ? '\u6F14\u5458\u79FB\u9664\u5931\u8D25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u6F14\u54E1\u79FB\u9664\u5931\u6557' : 'Remove Actor Failed');
+
+            let apiClient = connectionManager.currentApiClient();
+
+            loading.show();
+
+            apiClient.getItem(apiClient.getCurrentUserId(), itemId).then(function (item) {
+                loading.hide();
+
+                const actors = (item.People || []).filter(function (person) {
+                    return person.Type === 'Actor' || person.PersonType === 'Actor';
+                });
+
+                if (!actors.length) {
+                    toast(noActors);
+                    return;
+                }
+
+                return actionsheet.show({
+                    title: title,
+                    items: actors.map(function (person, index) {
+                        return {
+                            id: String(index),
+                            name: person.Name,
+                            secondaryText: person.Role || ''
+                        };
+                    })
+                }).then(function (selected) {
+                    const actor = actors[parseInt(selected, 10)];
+                    if (!actor) return;
+
+                    return confirm({
+                        text: confirmText.replace('{0}', actor.Name),
+                        title: title,
+                        confirmText: globalize.translate('Remove'),
+                        primary: 'cancel'
+                    }).then(function () {
+                        loading.show();
+
+                        const params = new URLSearchParams({
+                            PersonName: actor.Name,
+                            PersonRole: actor.Role || ''
+                        });
+
+                        return apiClient.ajax({
+                            type: 'POST',
+                            url: apiClient.getUrl(`Items/${itemId}/RemovePerson?${params.toString()}`),
+                            data: {},
+                            contentType: 'application/json'
+                        }).then(function () {
+                            toast(successText);
+                        }, function () {
+                            toast(failureText);
+                        }).finally(function () {
+                            loading.hide();
+                        });
+                    }, function () { });
+                }, function () { });
+            }, function () {
+                loading.hide();
             });
         },
 
