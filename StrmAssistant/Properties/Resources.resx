@@ -956,4 +956,22 @@
   <data name="IsoExtractTask_Description_Extract_the_main_video_from_ISO_images_so_it_can_be_played_as_an_additional_media_source" xml:space="preserve">
     <value>Extract the main video from ISO images so it can be played as an additional media source.</value>
   </data>
+  <data name="IntroSkipOptions_FingerprintLibraryFilePath_Fingerprint_Library_File" xml:space="preserve">
+    <value>Fingerprint Library File</value>
+  </data>
+  <data name="IntroSkipOptions_FingerprintLibraryFilePath_JSON_file_used_by_the_export_and_import_tasks__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_" xml:space="preserve">
+    <value>JSON file used by the fingerprint export and import tasks. Blank uses the plugin data folder. Default is EMPTY.</value>
+  </data>
+  <data name="ExportIntroFingerprintTask_Name_Export_Intro_Fingerprints" xml:space="preserve">
+    <value>Export Intro Fingerprints</value>
+  </data>
+  <data name="ExportIntroFingerprintTask_Description_Export_intro_detection_fingerprints_to_a_JSON_file" xml:space="preserve">
+    <value>Export intro detection fingerprints to a JSON file.</value>
+  </data>
+  <data name="ImportIntroFingerprintTask_Name_Import_Intro_Fingerprints" xml:space="preserve">
+    <value>Import Intro Fingerprints</value>
+  </data>
+  <data name="ImportIntroFingerprintTask_Description_Import_intro_detection_fingerprints_from_a_JSON_file" xml:space="preserve">
+    <value>Import intro detection fingerprints from a JSON file.</value>
+  </data>
 </root>
