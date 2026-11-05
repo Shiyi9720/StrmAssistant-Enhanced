@@ -92,6 +92,22 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(PersistMediaInfoMode), ValueCondition.IsNotEqual, PersistMediaInfoOption.None)]
         public string MediaInfoJsonRootFolder { get; set; } = string.Empty;
 
+        [DisplayNameL("MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_EnableIsoExtraction_Extract_the_main_video_from_ISO_images_and_register_it_as_an_additional_media_source__Default_is_OFF_", typeof(Resources))]
+        public bool EnableIsoExtraction { get; set; } = false;
+
+        [DisplayNameL("MediaInfoExtractOptions_IsoExtractionCacheFolder_ISO_Cache_Folder", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_IsoExtractionCacheFolder_Folder_used_to_cache_videos_extracted_from_ISO_images__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_", typeof(Resources))]
+        [EditFolderPicker]
+        [VisibleCondition(nameof(EnableIsoExtraction), SimpleCondition.IsTrue)]
+        public string IsoExtractionCacheFolder { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_", typeof(Resources))]
+        [Required, MinValue(10), MaxValue(600)]
+        [VisibleCondition(nameof(EnableIsoExtraction), SimpleCondition.IsTrue)]
+        public int IsoExtractionWaitSeconds { get; set; } = 60;
+
         [Browsable(false)]
         public IEnumerable<EditorSelectOption> LibraryList { get; set; }
 

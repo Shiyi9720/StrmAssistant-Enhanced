@@ -932,4 +932,28 @@
   <data name="MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_" xml:space="preserve">
     <value>Minimum interval between Douban requests. Douban rate limits aggressively, so do not set it too low. It must be between 2 and 30. Default is 3.</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction" xml:space="preserve">
+    <value>Enable ISO Extraction</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableIsoExtraction_Extract_the_main_video_from_ISO_images_and_register_it_as_an_additional_media_source__Default_is_OFF_" xml:space="preserve">
+    <value>Extract the main video from ISO images and register it as an additional media source. Default is OFF.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionCacheFolder_ISO_Cache_Folder" xml:space="preserve">
+    <value>ISO Cache Folder</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionCacheFolder_Folder_used_to_cache_videos_extracted_from_ISO_images__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_" xml:space="preserve">
+    <value>Folder used to cache videos extracted from ISO images. Blank uses the plugin data folder. Default is EMPTY.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds" xml:space="preserve">
+    <value>ISO Extraction Wait Seconds</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_" xml:space="preserve">
+    <value>How long a playback request waits for the first extraction before it continues in the background. It must be between 10 and 600. Default is 60.</value>
+  </data>
+  <data name="IsoExtractTask_Name_Extract_ISO_Video" xml:space="preserve">
+    <value>Extract ISO Video</value>
+  </data>
+  <data name="IsoExtractTask_Description_Extract_the_main_video_from_ISO_images_so_it_can_be_played_as_an_additional_media_source" xml:space="preserve">
+    <value>Extract the main video from ISO images so it can be played as an additional media source.</value>
+  </data>
 </root>
