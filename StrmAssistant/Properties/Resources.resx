@@ -920,4 +920,16 @@
   <data name="ExclusiveControl_NoNfoSaverOptimization_No_Nfo_Saver_Optimization" xml:space="preserve">
     <value>No Nfo Saver Optimization</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement" xml:space="preserve">
+    <value>Enable Douban Supplement</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_" xml:space="preserve">
+    <value>When TMDB has no Chinese overview or poster, try to fill the missing values from Douban. Existing values are never overwritten. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_" xml:space="preserve">
+    <value>Douban Request Interval (Seconds)</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_" xml:space="preserve">
+    <value>Minimum interval between Douban requests. Douban rate limits aggressively, so do not set it too low. It must be between 2 and 30. Default is 3.</value>
+  </data>
 </root>
