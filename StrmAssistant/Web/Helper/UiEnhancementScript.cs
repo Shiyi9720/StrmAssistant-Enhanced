@@ -22,11 +22,13 @@ namespace StrmAssistant.Web.Helper
             var episodeStatsFormat = (Resources.EpisodeStats_Total_In_Library ??
                                       "Total Episodes {0} / In Library {1}")
                 .Replace("\\", "\\\\").Replace("'", "\\'");
+            var chineseSearch = options?.SearchOptions.EnableChineseSearch ?? true;
 
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
                    GetCollectionMembershipScript() + "\n" +
                    GetDashboardTasksScript() + "\n" + GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
+                   GetChineseSearchScript(chineseSearch) + "\n" +
                    GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n";
         }
 
@@ -123,6 +125,123 @@ namespace StrmAssistant.Web.Helper
         /// season detail page. The server-side order is used as the reference so that list views
         /// re-rendered by Emby are reordered again without relying on DOM index labels.
         /// </summary>
+        /// <summary>
+        /// Routes the web client's search requests to the plugin endpoint, which adds pinyin,
+        /// simplified/traditional, alias and ranked matching on top of Emby's results. When the
+        /// index is not available the original ApiClient method is called, so search always keeps
+        /// working even while the index is still being built.
+        /// </summary>
+        private static string GetChineseSearchScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    function toCsv(value) {
+        if (!value) return null;
+        if (Array.isArray(value)) return value.join(',');
+        return value;
+    }
+
+    function buildParams(query) {
+        return {
+            Q: query.SearchTerm,
+            ParentId: query.ParentId,
+            Limit: query.Limit,
+            StartIndex: query.StartIndex,
+            IncludeItemTypes: toCsv(query.IncludeItemTypes),
+            ExcludeItemTypes: toCsv(query.ExcludeItemTypes),
+            Fields: toCsv(query.Fields),
+            ImageTypeLimit: query.ImageTypeLimit,
+            EnableImages: query.EnableImages,
+            EnableUserData: query.EnableUserData
+        };
+    }
+
+    function patch(apiClient) {
+        var proto = Object.getPrototypeOf(apiClient);
+        if (!proto) return false;
+        if (proto.__strmAssistantChineseSearchPatched) return true;
+
+        if (typeof proto.getSearchResults === 'function') {
+            var original = proto.getSearchResults;
+            proto.getSearchResults = function (query, signal) {
+                var self = this;
+                var args = arguments;
+                if (!query || !query.SearchTerm) return original.apply(self, args);
+
+                var url;
+                try {
+                    url = self.getUrl('StrmAssistant/Search', buildParams(query));
+                } catch (e) {
+                    return original.apply(self, args);
+                }
+
+                return self.getJSON(url, signal).then(function (result) {
+                    if (!result || result.Available === false) return original.apply(self, args);
+
+                    var needsTypes = !(query.StartIndex || query.IncludeItemTypes ||
+                        query.IncludeSearchTypes === false);
+                    if (!needsTypes || typeof self.getItemTypes !== 'function') return result;
+
+                    return self.getItemTypes(self.getCurrentUserId(), query, signal).then(function (types) {
+                        if (types && types.Items) result.ItemTypes = types.Items;
+                        return result;
+                    }, function () {
+                        return result;
+                    });
+                }, function () {
+                    return original.apply(self, args);
+                });
+            };
+        } else if (typeof proto.getItems === 'function') {
+            var originalItems = proto.getItems;
+            proto.getItems = function (userId, options, signal) {
+                var self = this;
+                var args = arguments;
+                if (!options || !options.SearchTerm) return originalItems.apply(self, args);
+
+                var url;
+                try {
+                    url = self.getUrl('StrmAssistant/Search', buildParams(options));
+                } catch (e) {
+                    return originalItems.apply(self, args);
+                }
+
+                return self.getJSON(url, signal).then(function (result) {
+                    if (!result || result.Available === false) return originalItems.apply(self, args);
+                    return result;
+                }, function () {
+                    return originalItems.apply(self, args);
+                });
+            };
+        } else {
+            return false;
+        }
+
+        proto.__strmAssistantChineseSearchPatched = true;
+        return true;
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var apiClient = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (apiClient && patch(apiClient)) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+})();
+";
+        }
+
         private static string GetReverseOrderScript(bool enabled)
         {
             if (!enabled) return string.Empty;
