@@ -845,4 +845,28 @@
   <data name="MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_" xml:space="preserve">
     <value>豆瓣请求之间的最小间隔。豆瓣反爬限制严格，请勿设置过小。取值范围 2-30，默认 3。</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction" xml:space="preserve">
+    <value>启用 ISO 提取</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableIsoExtraction_Extract_the_main_video_from_ISO_images_and_register_it_as_an_additional_media_source__Default_is_OFF_" xml:space="preserve">
+    <value>从 ISO 镜像中提取主视频并注册为附加媒体源。默认关闭。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionCacheFolder_ISO_Cache_Folder" xml:space="preserve">
+    <value>ISO 缓存目录</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionCacheFolder_Folder_used_to_cache_videos_extracted_from_ISO_images__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_" xml:space="preserve">
+    <value>用于缓存从 ISO 镜像提取的视频的目录。留空则使用插件数据目录。默认为空。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds" xml:space="preserve">
+    <value>ISO 提取等待时间（秒）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_" xml:space="preserve">
+    <value>首次提取时播放请求等待的最长时间；超时后提取会在后台继续。取值范围 10-600，默认 60。</value>
+  </data>
+  <data name="IsoExtractTask_Name_Extract_ISO_Video" xml:space="preserve">
+    <value>提取 ISO 视频</value>
+  </data>
+  <data name="IsoExtractTask_Description_Extract_the_main_video_from_ISO_images_so_it_can_be_played_as_an_additional_media_source" xml:space="preserve">
+    <value>从 ISO 镜像中提取主视频，使其可作为附加媒体源播放。</value>
+  </data>
 </root>
