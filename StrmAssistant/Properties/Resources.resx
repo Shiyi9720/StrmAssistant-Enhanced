@@ -140,6 +140,24 @@
   <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
     <value>Comma separated subtitle codecs or wildcards, for example subrip, ass, hdmv_pgs_subtitle. Matching subtitle streams are removed when media info is processed. Default is EMPTY.</value>
   </data>
+  <data name="MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality" xml:space="preserve">
+    <value>Screenshot Quality</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotQuality_JPEG_quality_for_generated_chapter_images__0_keeps_the_original__Default_is_0_" xml:space="preserve">
+    <value>JPEG quality (0-100) applied to generated chapter images after extraction. 0 keeps the original encoding quality. Default is 0.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_Width" xml:space="preserve">
+    <value>Maximum Width</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_width_of_generated_chapter_images__0_is_unlimited__Default_is_0_" xml:space="preserve">
+    <value>Maximum width in pixels of generated chapter images. Aspect ratio is preserved. 0 is unlimited. Default is 0.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_Height" xml:space="preserve">
+    <value>Maximum Height</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_height_of_generated_chapter_images__0_is_unlimited__Default_is_0_" xml:space="preserve">
+    <value>Maximum height in pixels of generated chapter images. Aspect ratio is preserved. 0 is unlimited. Default is 0.</value>
+  </data>
   <data name="PluginOptions_StrmOnly_Strm_Only" xml:space="preserve">
     <value>Strm Only</value>
   </data>
