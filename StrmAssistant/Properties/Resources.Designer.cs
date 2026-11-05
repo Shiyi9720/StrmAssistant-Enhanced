@@ -2726,5 +2726,45 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Episode Display Style.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EpisodeDisplayStyle_Episode_Display_Style {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EpisodeDisplayStyle_Episode_Display_Style", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Force a consistent episode title style in the web client.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_EpisodeDisplayStyle_Force_a_consistent_episode_title_style_in_the_web_client__Default_is_Default_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_EpisodeDisplayStyle_Force_a_consistent_episode_title_style_in_the_web_client__Default_is_Default_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        public static string EpisodeDisplayStyleOption_Default_Default {
+            get {
+                return ResourceManager.GetString("EpisodeDisplayStyleOption_Default_Default", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Season and Episode Number (SxxExx).
+        /// </summary>
+        public static string EpisodeDisplayStyleOption_SeasonEpisodeNumber_SxxExx {
+            get {
+                return ResourceManager.GetString("EpisodeDisplayStyleOption_SeasonEpisodeNumber_SxxExx", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Episode Name.
+        /// </summary>
+        public static string EpisodeDisplayStyleOption_EpisodeName_Episode_Name {
+            get {
+                return ResourceManager.GetString("EpisodeDisplayStyleOption_EpisodeName_Episode_Name", resourceCulture);
+            }
+        }
 }
 }

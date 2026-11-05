@@ -914,4 +914,19 @@
   <data name="ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_" xml:space="preserve">
     <value>在网页客户端中以倒序显示季和剧集。默认关闭。</value>
   </data>
+  <data name="ExperienceEnhanceOptions_EpisodeDisplayStyle_Episode_Display_Style" xml:space="preserve">
+    <value>剧集标题显示样式</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_EpisodeDisplayStyle_Force_a_consistent_episode_title_style_in_the_web_client__Default_is_Default_" xml:space="preserve">
+    <value>在 Web 客户端中强制使用统一的剧集标题样式。“季集编号”显示为 SxxExx，“剧集名称”仅显示剧集名称，默认保持客户端原有样式。</value>
+  </data>
+  <data name="EpisodeDisplayStyleOption_Default_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="EpisodeDisplayStyleOption_SeasonEpisodeNumber_SxxExx" xml:space="preserve">
+    <value>季集编号 (SxxExx)</value>
+  </data>
+  <data name="EpisodeDisplayStyleOption_EpisodeName_Episode_Name" xml:space="preserve">
+    <value>剧集名称</value>
+  </data>
 </root>
