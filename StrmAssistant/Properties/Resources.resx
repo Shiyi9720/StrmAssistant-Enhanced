@@ -560,6 +560,12 @@
   <data name="GeneralOptions_CooldownSeconds_Cooldown_Time__Seconds___Default_is_0" xml:space="preserve">
     <value>Master Cooldown Duration (Seconds)</value>
   </data>
+  <data name="GeneralOptions_IntroDetectionMaxConcurrentCount_Intro_Detection_Max_Concurrent_Count" xml:space="preserve">
+    <value>Intro Detection Max Concurrent Episode Count</value>
+  </data>
+  <data name="GeneralOptions_IntroDetectionMaxConcurrentCount_Number_of_episodes_processed_in_parallel__It_must_be_between_1_and_8__Default_is_2_" xml:space="preserve">
+    <value>Number of episodes whose audio fingerprints are extracted and compared in parallel. It must be between 1 and 8. Default is 2.</value>
+  </data>
   <data name="InvalidShowSeasonIds" xml:space="preserve">
     <value>TV show or season ID is invalid: {0}</value>
   </data>

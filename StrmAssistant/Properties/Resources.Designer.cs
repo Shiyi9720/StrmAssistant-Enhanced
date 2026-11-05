@@ -470,7 +470,26 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("GeneralOptions_CooldownSeconds_Cooldown_Time__Seconds___Default_is_0", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Intro Detection Max Concurrent Episode Count.
+        /// </summary>
+        public static string GeneralOptions_IntroDetectionMaxConcurrentCount_Intro_Detection_Max_Concurrent_Count {
+            get {
+                return ResourceManager.GetString("GeneralOptions_IntroDetectionMaxConcurrentCount_Intro_Detection_Max_Concurrent_Count", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Number of episodes whose audio fingerprints are extracted and compared in parallel. It must be between 1 and 8. Default is 2..
+        /// </summary>
+        public static string GeneralOptions_IntroDetectionMaxConcurrentCount_Number_of_episodes_processed_in_parallel__It_must_be_between_1_and_8__Default_is_2_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_IntroDetectionMaxConcurrentCount_Number_of_episodes_processed_in_par" +
+                        "allel__It_must_be_between_1_and_8__Default_is_2_", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to General.
         /// </summary>
