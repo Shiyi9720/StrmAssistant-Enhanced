@@ -223,7 +223,8 @@ namespace StrmAssistant
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
             VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
-                mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager, imageProcessor);
+                mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager, imageProcessor,
+                serverApplicationHost);
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
@@ -346,7 +347,7 @@ namespace StrmAssistant
                     LibraryApi.ApplyNewLibraryMovieDbPreference(newLibrary);
                 }
 
-                if (_currentPersistMediaInfo && e.Item is Video)
+                if (_currentPersistMediaInfo && (e.Item is Video || e.Item is Audio))
                 {
                     deserializeResult = LibraryApi.HasMediaInfo(e.Item);
 

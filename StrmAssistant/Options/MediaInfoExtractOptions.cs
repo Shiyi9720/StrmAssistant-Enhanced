@@ -39,6 +39,23 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
         public string SubtitleBlacklistCodecs { get; set; } = string.Empty;
 
+        [DisplayNameL("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_", typeof(Resources))]
+        public string MediaInfoExcludeKeywords { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Video_Thumbnail_Exclude_Keywords", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_videothumbnail_exclude_are_skipped__Default_is_EMPTY_", typeof(Resources))]
+        public string VideoThumbnailExcludeKeywords { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Video_Thumbnail_Exclude_Media_Containers", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Comma_separated_media_containers_to_skip_for_chapter_image_and_BIF_extraction__Default_is_EMPTY_", typeof(Resources))]
+        public string VideoThumbnailExcludeMediaContainers { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Image_Extraction_Timeout_Multiplier", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Multiplier_applied_to_the_default_timeout_of_chapter_image_and_BIF_extraction__Default_is_2_0_", typeof(Resources))]
+        [Required]
+        public double ImageExtractionTimeoutMultiplier { get; set; } = 2.0;
+
         [DisplayNameL("MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_ScreenshotQuality_JPEG_quality_for_generated_chapter_images__0_keeps_the_original__Default_is_0_", typeof(Resources))]
         [Required, MinValue(0), MaxValue(100)]
