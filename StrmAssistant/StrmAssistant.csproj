@@ -37,11 +37,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <!-- Resource.Embedder 2.2.0 fails on non-Windows MSBuild when resolving its Core assembly. -->
+    <!-- Resource.Embedder 把 zh/zh-hant 卫星程序集内嵌进主 DLL；非 Windows 也可用 -->
     <PackageReference Include="Resource.Embedder" Version="2.2.0" Condition="'$(OS)' == 'Windows_NT'" />
   </ItemGroup>
   <ItemGroup>
