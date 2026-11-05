@@ -1070,4 +1070,64 @@
   <data name="EpisodeDisplayStyleOption_EpisodeName_Episode_Name" xml:space="preserve">
     <value>Episode Name</value>
   </data>
+  <data name="SearchOptions_EditorTitle_Chinese_Search" xml:space="preserve">
+    <value>Chinese Search</value>
+  </data>
+  <data name="SearchOptions_EnableChineseSearch_Enable_Chinese_Search" xml:space="preserve">
+    <value>Enable Chinese Search</value>
+  </data>
+  <data name="SearchOptions_EnableChineseSearch_Adds_pinyin__simplified_traditional_and_alias_matching_to_web_client_search__When_the_index_is_not_ready_the_original_Emby_search_is_used__Default_is_ON_" xml:space="preserve">
+    <value>Adds pinyin, simplified/traditional and alias matching to web client search. When the index is not ready the original Emby search is used. Default is ON.</value>
+  </data>
+  <data name="SearchOptions_PinyinSearch_Pinyin_Search" xml:space="preserve">
+    <value>Pinyin Search</value>
+  </data>
+  <data name="SearchOptions_PinyinSearch_Match_full_pinyin_and_initials__for_example_zhongwen_and_zw_both_find_Chinese_titles__Default_is_ON_" xml:space="preserve">
+    <value>Match full pinyin and initials, for example zhongwen and zw both find Chinese titles. Default is ON.</value>
+  </data>
+  <data name="SearchOptions_ConversionSearch_Simplified_Traditional_Cross_Search" xml:space="preserve">
+    <value>Simplified/Traditional Cross Search</value>
+  </data>
+  <data name="SearchOptions_ConversionSearch_A_simplified_Chinese_query_also_finds_traditional_titles_and_vice_versa__Default_is_ON_" xml:space="preserve">
+    <value>A simplified Chinese query also finds traditional titles and vice versa. Default is ON.</value>
+  </data>
+  <data name="SearchOptions_AliasSearch_Alias_and_Original_Title_Search" xml:space="preserve">
+    <value>Alias and Original Title Search</value>
+  </data>
+  <data name="SearchOptions_AliasSearch_Match_original_titles__sort_titles__alternate_titles_and_title_plus_year_combinations__Default_is_ON_" xml:space="preserve">
+    <value>Match original titles, sort titles, alternate titles and title plus year combinations. Default is ON.</value>
+  </data>
+  <data name="SearchOptions_SmartRanking_Ranked_Results" xml:space="preserve">
+    <value>Ranked Results</value>
+  </data>
+  <data name="SearchOptions_SmartRanking_Order_results_by_exact__prefix__contains_then_fuzzy_match__with_Chinese_matches__rating_and_year_as_tie_breakers__Default_is_ON_" xml:space="preserve">
+    <value>Order results by exact, prefix, contains then fuzzy match, with Chinese matches, rating and year as tie breakers. Default is ON.</value>
+  </data>
+  <data name="SearchOptions_TmdbAliasSearch_TMDB_Alternative_Titles" xml:space="preserve">
+    <value>TMDB Alternative Titles</value>
+  </data>
+  <data name="SearchOptions_TmdbAliasSearch_Fetch_alternative_titles_from_TMDB_during_index_rebuilds__Requests_are_rate_limited_and_cached_in_the_index__Default_is_OFF_" xml:space="preserve">
+    <value>Fetch alternative titles from TMDB during index rebuilds. Requests are rate limited and cached in the index. Default is OFF.</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Search_Index_Status" xml:space="preserve">
+    <value>Search Index Status</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Ready" xml:space="preserve">
+    <value>Index ready: {0} items. Last built: {1}.</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Building" xml:space="preserve">
+    <value>Building index: {0}%.</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_NotReady" xml:space="preserve">
+    <value>The index is being prepared in the background. Emby's original search is used until it is ready.</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Disabled" xml:space="preserve">
+    <value>Chinese search is disabled.</value>
+  </data>
+  <data name="RebuildSearchIndexTask_Name_Rebuild_Search_Index" xml:space="preserve">
+    <value>Rebuild Search Index</value>
+  </data>
+  <data name="RebuildSearchIndexTask_Description_Rebuilds_the_Chinese_search_index_used_for_pinyin__simplified_traditional_and_alias_matching" xml:space="preserve">
+    <value>Rebuilds the Chinese search index used for pinyin, simplified/traditional and alias matching.</value>
+  </data>
 </root>
