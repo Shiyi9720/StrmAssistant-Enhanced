@@ -19,6 +19,14 @@ namespace StrmAssistant.Options
         [Required]
         public bool IncludeExtra { get; set; } = false;
 
+        [DisplayNameL("MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_CustomFfprobeArguments_Extra_arguments_inserted_before_the_input_for_ffprobe_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", typeof(Resources))]
+        public string CustomFfprobeArguments { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_CustomFfmpegArguments_Custom_ffmpeg_Arguments", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", typeof(Resources))]
+        public string CustomFfmpegArguments { get; set; } = string.Empty;
+
         [DisplayNameL("PluginOptions_EnableImageCapture_Enable_Image_Capture", typeof(Resources))]
         [DescriptionL("PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_", typeof(Resources))]
         [Browsable(false)]

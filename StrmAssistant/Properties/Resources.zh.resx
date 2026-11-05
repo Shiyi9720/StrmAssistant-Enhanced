@@ -23,6 +23,18 @@
   <data name="PluginOptions_IncludeExtra_Include_media_extras_to_extract__Default_is_False_" xml:space="preserve">
     <value>提取电影或剧集的分集和附加内容的媒体信息，默认关闭。</value>
   </data>
+  <data name="MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments" xml:space="preserve">
+    <value>自定义 ffprobe 参数</value>
+  </data>
+  <data name="MediaInfoExtractOptions_CustomFfprobeArguments_Extra_arguments_inserted_before_the_input_for_ffprobe_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_" xml:space="preserve">
+    <value>附加到插件执行的 ffprobe 命令输入参数 (-i) 之前，例如 -analyzeduration 100M -probesize 100M。与 Emby 已有参数重复的选项将被忽略以避免冲突。默认为空。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_CustomFfmpegArguments_Custom_ffmpeg_Arguments" xml:space="preserve">
+    <value>自定义 ffmpeg 参数</value>
+  </data>
+  <data name="MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_" xml:space="preserve">
+    <value>附加到插件执行的 ffmpeg 命令末尾，例如 -threads 4。与 Emby 已有参数重复的选项将被忽略以避免冲突。默认为空。</value>
+  </data>
   <data name="PluginOptions_StrmOnly_Strm_Only" xml:space="preserve">
     <value>仅支持 STRM</value>
   </data>
