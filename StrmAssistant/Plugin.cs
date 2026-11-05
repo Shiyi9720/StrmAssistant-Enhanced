@@ -156,8 +156,9 @@ namespace StrmAssistant
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
                 itemRepository, jsonSerializer, libraryMonitor);
             ChapterApi = new ChapterApi(libraryManager, itemRepository);
-            FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths, ffmpegManager,
-                mediaEncoder, mediaMountManager, jsonSerializer, itemRepository, serverApplicationHost);
+            FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths,
+                FfmpegApi.WrapFfmpegManager(ffmpegManager), mediaEncoder, mediaMountManager, jsonSerializer,
+                itemRepository, serverApplicationHost);
             PlaySessionMonitor = new PlaySessionMonitor(libraryManager, userManager, sessionManager);
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
@@ -474,6 +475,14 @@ namespace StrmAssistant
             if (!suppress)
             {
                 Logger.Info("IncludeExtra is set to {0}", options.MediaInfoExtractOptions.IncludeExtra);
+                Logger.Info("CustomFfprobeArguments is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.CustomFfprobeArguments)
+                        ? "EMPTY"
+                        : options.MediaInfoExtractOptions.CustomFfprobeArguments);
+                Logger.Info("CustomFfmpegArguments is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.CustomFfmpegArguments)
+                        ? "EMPTY"
+                        : options.MediaInfoExtractOptions.CustomFfmpegArguments);
                 Logger.Info("MaxConcurrentCount is set to {0}", options.GeneralOptions.MaxConcurrentCount);
                 Logger.Info("IntroDetectionMaxConcurrentCount is set to {0}",
                     options.GeneralOptions.IntroDetectionMaxConcurrentCount);
