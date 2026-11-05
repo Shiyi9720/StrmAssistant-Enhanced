@@ -852,8 +852,7 @@ namespace StrmAssistant
             options.MediaInfoExtractOptions.LibraryList = list;
             options.IntroSkipOptions.LibraryList = listShow;
             options.IntroSkipOptions.MarkerEnabledLibraryList = listMarkerEnabled;
-            options.IntroSkipOptions.SyncLibraryIntroDetectionFingerprintOptions(libraries.Where(item =>
-                item.CollectionType == CollectionType.TvShows.ToString() || item.CollectionType is null));
+            // per-library fingerprint overrides are hidden from the UI (see IntroSkipOptions)
 
             var catchTaskList = new List<EditorSelectOption>();
             foreach (Enum item in Enum.GetValues(typeof(CatchupTask)))

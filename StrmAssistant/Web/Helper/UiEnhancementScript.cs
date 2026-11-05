@@ -387,7 +387,7 @@ namespace StrmAssistant.Web.Helper
                 client.getItems(userId, {
                     ParentId: entry.id,
                     Recursive: true,
-                    Limit: 0,
+                    Limit: 1,
                     IncludeItemTypes: entry.type
                 }).then(function (result) {
                     if (result && typeof result.TotalRecordCount === 'number') {
