@@ -22,6 +22,7 @@ namespace StrmAssistant.Web.Helper
 
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
+                   GetCollectionMembershipScript() + "\n" +
                    GetDashboardTasksScript() + "\n" + GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n";
         }
 
@@ -775,6 +776,134 @@ namespace StrmAssistant.Web.Helper
     startObserving();
 })();
 ".Replace("@@FORMAT@@", format);
+        }
+
+        /// <summary>
+        /// Fills the "included in" section of a series detail page with the collections the series
+        /// belongs to. The server endpoint also reports collections that contain one of the
+        /// series' seasons, which Emby's own query does not return, so the section's fetch
+        /// function is replaced with the combined result.
+        /// </summary>
+        private static string GetCollectionMembershipScript()
+        {
+            return @"
+(function () {
+    'use strict';
+
+    var results = {};
+    var pending = {};
+    var apiClient = null;
+    var scheduled = false;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function currentItemId() {
+        var hash = location.hash || '';
+        if (hash.indexOf('item?') === -1 && hash.indexOf('/item') === -1) return null;
+        var match = /[?&]id=([^&]+)/.exec(hash);
+        return match ? match[1] : null;
+    }
+
+    function ensure(id) {
+        var container = document.querySelector('.appearsOnListsItemsContainer');
+
+        // The section is only prepared by Emby for item types that can be added to a collection.
+        if (!container || !container.parentContainer) return;
+
+        if (container.__strmCollectionItemId === id &&
+            container.fetchData && container.fetchData.__strmAssistant) return;
+
+        var result = results[id];
+
+        if (!result) {
+            if (pending[id]) return;
+
+            pending[id] = true;
+
+            withApiClient(function (client) {
+                client.getJSON(client.getUrl('StrmAssistant/Items/' + id + '/Collections')).then(function (data) {
+                    pending[id] = false;
+                    results[id] = data && data.Items ? data : { Items: [], TotalRecordCount: 0 };
+                    apply();
+                }, function () {
+                    pending[id] = false;
+                });
+            });
+
+            return;
+        }
+
+        if (!result.Items || !result.Items.length) return;
+
+        var fetchData = function () {
+            return Promise.resolve(result);
+        };
+
+        fetchData.__strmAssistant = true;
+
+        container.fetchData = fetchData;
+        container.__strmCollectionItemId = id;
+
+        try {
+            container.refreshItems();
+        } catch (e) { }
+    }
+
+    function apply() {
+        var id = currentItemId();
+        if (!id) return;
+        ensure(id);
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            apply();
+        }, 400);
+    }
+
+    window.addEventListener('hashchange', schedule);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        withApiClient(function () {
+            schedule();
+        });
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+
+    startObserving();
+})();
+";
         }
 
         /// <summary>
