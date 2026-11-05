@@ -13,26 +13,25 @@ namespace StrmAssistant
 {
     public class PersistMediaInfoTask: IScheduledTask
     {
-        private readonly ILogger _logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
         private readonly IFileSystem _fileSystem;
 
         public PersistMediaInfoTask(IFileSystem fileSystem)
         {
-            _logger = Plugin.Instance.Logger;
             _fileSystem = fileSystem;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("MediaInfoPersist - Scheduled Task Execute");
-            _logger.Info("Tier2 Max Concurrent Count: " +
+            _logger?.Info("MediaInfoPersist - Scheduled Task Execute");
+            _logger?.Info("Tier2 Max Concurrent Count: " +
                          Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount);
 
             await Task.Yield();
             progress.Report(0);
 
             var items = Plugin.LibraryApi.FetchPostExtractTaskItems(true);
-            _logger.Info("MediaInfoPersist - Number of items: " + items.Count);
+            _logger?.Info("MediaInfoPersist - Number of items: " + items.Count);
 
             var directoryService = new DirectoryService(_logger, _fileSystem);
 
@@ -57,7 +56,7 @@ namespace StrmAssistant
                 if (cancellationToken.IsCancellationRequested)
                 {
                     QueueManager.Tier2Semaphore.Release();
-                    _logger.Info("MediaInfoPersist - Scheduled Task Cancelled");
+                    _logger?.Info("MediaInfoPersist - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -69,7 +68,7 @@ namespace StrmAssistant
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            _logger.Info("MediaInfoPersist - Scheduled Task Cancelled");
+                            _logger?.Info("MediaInfoPersist - Scheduled Task Cancelled");
                             return;
                         }
 
@@ -80,13 +79,13 @@ namespace StrmAssistant
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.Info($"MediaInfoPersist - Item cancelled: {taskItem.Name} - {taskItem.Path}");
+                        _logger?.Info($"MediaInfoPersist - Item cancelled: {taskItem.Name} - {taskItem.Path}");
                     }
                     catch (Exception e)
                     {
-                        _logger.Error($"MediaInfoPersist - Item failed: {taskItem.Name} - {taskItem.Path}");
-                        _logger.Error(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Error($"MediaInfoPersist - Item failed: {taskItem.Name} - {taskItem.Path}");
+                        _logger?.Error(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                     finally
                     {
@@ -102,8 +101,8 @@ namespace StrmAssistant
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             progress.Report(100.0);
-            _logger.Info($"MediaInfoPersist - Number of items skipped: {skip}");
-            _logger.Info("MediaInfoPersist - Scheduled Task Complete");
+            _logger?.Info($"MediaInfoPersist - Number of items skipped: {skip}");
+            _logger?.Info("MediaInfoPersist - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",

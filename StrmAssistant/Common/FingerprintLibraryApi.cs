@@ -55,7 +55,7 @@ namespace StrmAssistant.Common
             var filePath = GetLibraryFilePath();
             var episodes = FetchEpisodes();
 
-            _logger.Info("IntroFingerprintExport - Number of episodes: " + episodes.Count);
+            _logger?.Info("IntroFingerprintExport - Number of episodes: " + episodes.Count);
 
             var entries = new List<FingerprintEntry>();
             double total = episodes.Count;
@@ -81,7 +81,7 @@ namespace StrmAssistant.Common
                     }
                     catch (Exception e)
                     {
-                        _logger.Debug("IntroFingerprintExport - Failed to read " + file + ": " + e.Message);
+                        _logger?.Debug("IntroFingerprintExport - Failed to read " + file + ": " + e.Message);
                     }
                 }
 
@@ -100,7 +100,7 @@ namespace StrmAssistant.Common
                 Fingerprints = entries
             }, filePath);
 
-            _logger.Info("IntroFingerprintExport - Exported " + entries.Count + " fingerprints to " + filePath);
+            _logger?.Info("IntroFingerprintExport - Exported " + entries.Count + " fingerprints to " + filePath);
 
             return entries.Count;
         }
@@ -111,7 +111,7 @@ namespace StrmAssistant.Common
 
             if (!File.Exists(filePath))
             {
-                _logger.Info("IntroFingerprintImport - File not found: " + filePath);
+                _logger?.Info("IntroFingerprintImport - File not found: " + filePath);
                 return new Tuple<int, int>(0, 0);
             }
 
@@ -119,11 +119,11 @@ namespace StrmAssistant.Common
 
             if (library?.Fingerprints is null || library.Fingerprints.Count == 0)
             {
-                _logger.Info("IntroFingerprintImport - No fingerprints in file: " + filePath);
+                _logger?.Info("IntroFingerprintImport - No fingerprints in file: " + filePath);
                 return new Tuple<int, int>(0, 0);
             }
 
-            _logger.Info("IntroFingerprintImport - Number of fingerprints in file: " + library.Fingerprints.Count);
+            _logger?.Info("IntroFingerprintImport - Number of fingerprints in file: " + library.Fingerprints.Count);
 
             var episodes = FetchEpisodes();
             var byPath = new Dictionary<string, Episode>(StringComparer.OrdinalIgnoreCase);
@@ -173,7 +173,7 @@ namespace StrmAssistant.Common
                 if (target is null)
                 {
                     skipped++;
-                    _logger.Debug("IntroFingerprintImport - No matching episode: " + entry.Path);
+                    _logger?.Debug("IntroFingerprintImport - No matching episode: " + entry.Path);
                     continue;
                 }
 
@@ -203,16 +203,16 @@ namespace StrmAssistant.Common
                     File.WriteAllBytes(System.IO.Path.Combine(directory, name), Convert.FromBase64String(entry.Data));
 
                     imported++;
-                    _logger.Debug("IntroFingerprintImport - Imported: " + target.Path);
+                    _logger?.Debug("IntroFingerprintImport - Imported: " + target.Path);
                 }
                 catch (Exception e)
                 {
                     skipped++;
-                    _logger.Info("IntroFingerprintImport - Failed: " + target.Path + " - " + e.Message);
+                    _logger?.Info("IntroFingerprintImport - Failed: " + target.Path + " - " + e.Message);
                 }
             }
 
-            _logger.Info("IntroFingerprintImport - Imported " + imported + ", skipped " + skipped);
+            _logger?.Info("IntroFingerprintImport - Imported " + imported + ", skipped " + skipped);
 
             return new Tuple<int, int>(imported, skipped);
         }

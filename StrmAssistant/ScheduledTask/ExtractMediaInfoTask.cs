@@ -13,27 +13,27 @@ namespace StrmAssistant.ScheduledTask
 {
     public class ExtractMediaInfoTask : IScheduledTask
     {
-        private readonly ILogger _logger = Plugin.Instance.Logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("MediaInfoExtract - Scheduled Task Execute");
+            _logger?.Info("MediaInfoExtract - Scheduled Task Execute");
 
             var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
-            _logger.Info("Master Max Concurrent Count: " + maxConcurrentCount);
+            _logger?.Info("Master Max Concurrent Count: " + maxConcurrentCount);
             var cooldownSeconds = maxConcurrentCount == 1
                 ? Plugin.Instance.GetPluginOptions().GeneralOptions.CooldownDurationSeconds
                 : (int?)null;
-            if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
+            if (cooldownSeconds.HasValue) _logger?.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
-            _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            _logger?.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
-            _logger.Info("Enable Image Capture: " + enableImageCapture);
+            _logger?.Info("Enable Image Capture: " + enableImageCapture);
             var enableIntroSkip = Plugin.Instance.GetPluginOptions().IntroSkipOptions.EnableIntroSkip;
-            _logger.Info("Intro Skip Enabled: " + enableIntroSkip);
+            _logger?.Info("Intro Skip Enabled: " + enableIntroSkip);
 
             var items = Plugin.LibraryApi.FetchPreExtractTaskItems();
 
@@ -60,7 +60,7 @@ namespace StrmAssistant.ScheduledTask
                 if (cancellationToken.IsCancellationRequested)
                 {
                     QueueManager.MasterSemaphore.Release();
-                    _logger.Info("MediaInfoExtract - Scheduled Task Cancelled");
+                    _logger?.Info("MediaInfoExtract - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -74,7 +74,7 @@ namespace StrmAssistant.ScheduledTask
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            _logger.Info("MediaInfoExtract - Scheduled Task Cancelled");
+                            _logger?.Info("MediaInfoExtract - Scheduled Task Cancelled");
                             return;
                         }
 
@@ -86,7 +86,7 @@ namespace StrmAssistant.ScheduledTask
                         {
                             if (!mediaInfoRestoreMode)
                             {
-                                _logger.Info(
+                                _logger?.Info(
                                     $"MediaInfoExtract - Item skipped or non-existent: {taskItem.Name} - {taskItem.Path}");
                             }
 
@@ -103,13 +103,13 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.Info($"MediaInfoExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
+                        _logger?.Info($"MediaInfoExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
                     }
                     catch (Exception e)
                     {
-                        _logger.Error($"MediaInfoExtract - Item failed: {taskItem.Name} - {taskItem.Path}");
-                        _logger.Error(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Error($"MediaInfoExtract - Item failed: {taskItem.Name} - {taskItem.Path}");
+                        _logger?.Error(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                     finally
                     {
@@ -132,7 +132,7 @@ namespace StrmAssistant.ScheduledTask
 
                         if (!mediaInfoRestoreMode)
                         {
-                            _logger.Info(
+                            _logger?.Info(
                                 $"MediaInfoExtract - Progress {currentCount}/{total} - Task {taskIndex}: {taskItem.Path}");
                         }
                     }
@@ -144,8 +144,8 @@ namespace StrmAssistant.ScheduledTask
             if (items.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
-            _logger.Info($"MediaInfoExtract - Number of items skipped: {skip}");
-            _logger.Info("MediaInfoExtract - Scheduled Task Complete");
+            _logger?.Info($"MediaInfoExtract - Number of items skipped: {skip}");
+            _logger?.Info("MediaInfoExtract - Scheduled Task Complete");
         }
 
         public string Category =>

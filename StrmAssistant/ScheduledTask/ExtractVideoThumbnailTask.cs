@@ -16,7 +16,7 @@ namespace StrmAssistant.ScheduledTask
 {
     public class ExtractVideoThumbnailTask : IScheduledTask
     {
-        private readonly ILogger _logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
         private readonly IFileSystem _fileSystem;
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
@@ -24,7 +24,6 @@ namespace StrmAssistant.ScheduledTask
         public ExtractVideoThumbnailTask(IFileSystem fileSystem, ILibraryManager libraryManager,
             IItemRepository itemRepository)
         {
-            _logger = Plugin.Instance.Logger;
             _fileSystem = fileSystem;
             _libraryManager = libraryManager;
             _itemRepository = itemRepository;
@@ -32,22 +31,22 @@ namespace StrmAssistant.ScheduledTask
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("VideoThumbnailExtract - Scheduled Task Execute");
+            _logger?.Info("VideoThumbnailExtract - Scheduled Task Execute");
 
             var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
-            _logger.Info("Master Max Concurrent Count: " + maxConcurrentCount);
+            _logger?.Info("Master Max Concurrent Count: " + maxConcurrentCount);
             var cooldownSeconds = maxConcurrentCount == 1
                 ? Plugin.Instance.GetPluginOptions().GeneralOptions.CooldownDurationSeconds
                 : (int?)null;
-            if (cooldownSeconds.HasValue) _logger.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
+            if (cooldownSeconds.HasValue) _logger?.Info("Cooldown Duration Seconds: " + cooldownSeconds.Value);
 
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
-            _logger.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            _logger?.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
             var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var items = Plugin.VideoThumbnailApi.FetchExtractTaskItems();
-            _logger.Info($"VideoThumbnailExtract - Number of items: {items.Count}");
+            _logger?.Info($"VideoThumbnailExtract - Number of items: {items.Count}");
 
             if (items.Count > 0) IsRunning = true;
 
@@ -74,7 +73,7 @@ namespace StrmAssistant.ScheduledTask
                 if (cancellationToken.IsCancellationRequested)
                 {
                     QueueManager.MasterSemaphore.Release();
-                    _logger.Info("VideoThumbnailExtract - Scheduled Task Cancelled");
+                    _logger?.Info("VideoThumbnailExtract - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -88,7 +87,7 @@ namespace StrmAssistant.ScheduledTask
                     {
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            _logger.Info("VideoThumbnailExtract - Scheduled Task Cancelled");
+                            _logger?.Info("VideoThumbnailExtract - Scheduled Task Cancelled");
                             return;
                         }
 
@@ -119,13 +118,13 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger.Info($"VideoThumbnailExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
+                        _logger?.Info($"VideoThumbnailExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
                     }
                     catch (Exception e)
                     {
-                        _logger.Error($"VideoThumbnailExtract - Item failed: {taskItem.Name} - {taskItem.Path}");
-                        _logger.Error(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Error($"VideoThumbnailExtract - Item failed: {taskItem.Name} - {taskItem.Path}");
+                        _logger?.Error(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                     finally
                     {
@@ -148,7 +147,7 @@ namespace StrmAssistant.ScheduledTask
 
                         if (!mediaInfoRestoreMode)
                         {
-                            _logger.Info(
+                            _logger?.Info(
                                 $"VideoThumbnailExtract - Progress {currentCount}/{total} - Task {taskIndex}: {taskItem.Path}");
                         }
                     }
@@ -160,8 +159,8 @@ namespace StrmAssistant.ScheduledTask
             if (items.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
-            _logger.Info($"VideoThumbnailExtract - Number of items skipped: {skip}");
-            _logger.Info("VideoThumbnailExtract - Scheduled Task Complete");
+            _logger?.Info($"VideoThumbnailExtract - Number of items skipped: {skip}");
+            _logger?.Info("VideoThumbnailExtract - Scheduled Task Complete");
         }
 
         public string Category =>

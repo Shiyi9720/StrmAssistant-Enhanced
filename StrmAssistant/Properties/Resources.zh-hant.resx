@@ -1013,4 +1013,64 @@
   <data name="EpisodeDisplayStyleOption_EpisodeName_Episode_Name" xml:space="preserve">
     <value>劇集名稱</value>
   </data>
+  <data name="SearchOptions_EditorTitle_Chinese_Search" xml:space="preserve">
+    <value>中文搜尋</value>
+  </data>
+  <data name="SearchOptions_EnableChineseSearch_Enable_Chinese_Search" xml:space="preserve">
+    <value>啟用中文搜尋</value>
+  </data>
+  <data name="SearchOptions_EnableChineseSearch_Adds_pinyin__simplified_traditional_and_alias_matching_to_web_client_search__When_the_index_is_not_ready_the_original_Emby_search_is_used__Default_is_ON_" xml:space="preserve">
+    <value>在 Web 用戶端搜尋中加入拼音、繁簡和別名比對。索引未就緒時使用 Emby 原有搜尋。預設開啟。</value>
+  </data>
+  <data name="SearchOptions_PinyinSearch_Pinyin_Search" xml:space="preserve">
+    <value>拼音搜尋</value>
+  </data>
+  <data name="SearchOptions_PinyinSearch_Match_full_pinyin_and_initials__for_example_zhongwen_and_zw_both_find_Chinese_titles__Default_is_ON_" xml:space="preserve">
+    <value>支援全拼和首字母比對，例如 zhongwen 和 zw 都能找到中文標題。預設開啟。</value>
+  </data>
+  <data name="SearchOptions_ConversionSearch_Simplified_Traditional_Cross_Search" xml:space="preserve">
+    <value>繁簡互搜</value>
+  </data>
+  <data name="SearchOptions_ConversionSearch_A_simplified_Chinese_query_also_finds_traditional_titles_and_vice_versa__Default_is_ON_" xml:space="preserve">
+    <value>簡體中文查詢也能找到繁體標題，反之亦然。預設開啟。</value>
+  </data>
+  <data name="SearchOptions_AliasSearch_Alias_and_Original_Title_Search" xml:space="preserve">
+    <value>別名與原始標題搜尋</value>
+  </data>
+  <data name="SearchOptions_AliasSearch_Match_original_titles__sort_titles__alternate_titles_and_title_plus_year_combinations__Default_is_ON_" xml:space="preserve">
+    <value>比對原始標題、排序標題、別名以及標題加年份的組合。預設開啟。</value>
+  </data>
+  <data name="SearchOptions_SmartRanking_Ranked_Results" xml:space="preserve">
+    <value>結果排序</value>
+  </data>
+  <data name="SearchOptions_SmartRanking_Order_results_by_exact__prefix__contains_then_fuzzy_match__with_Chinese_matches__rating_and_year_as_tie_breakers__Default_is_ON_" xml:space="preserve">
+    <value>按完全比對、前綴比對、包含比對、模糊比對排序，並以中文比對、評分和年份作為次級排序。預設開啟。</value>
+  </data>
+  <data name="SearchOptions_TmdbAliasSearch_TMDB_Alternative_Titles" xml:space="preserve">
+    <value>TMDB 別名</value>
+  </data>
+  <data name="SearchOptions_TmdbAliasSearch_Fetch_alternative_titles_from_TMDB_during_index_rebuilds__Requests_are_rate_limited_and_cached_in_the_index__Default_is_OFF_" xml:space="preserve">
+    <value>重建索引時從 TMDB 取得別名。請求會受到限速並快取到索引中。預設關閉。</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Search_Index_Status" xml:space="preserve">
+    <value>搜尋索引狀態</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Ready" xml:space="preserve">
+    <value>索引已就緒：共 {0} 項，上次建置：{1}。</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Building" xml:space="preserve">
+    <value>正在建置索引：{0}%。</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_NotReady" xml:space="preserve">
+    <value>索引正在背景準備中，就緒前將使用 Emby 原有搜尋。</value>
+  </data>
+  <data name="SearchOptions_IndexStatus_Disabled" xml:space="preserve">
+    <value>中文搜尋已停用。</value>
+  </data>
+  <data name="RebuildSearchIndexTask_Name_Rebuild_Search_Index" xml:space="preserve">
+    <value>重建搜尋索引</value>
+  </data>
+  <data name="RebuildSearchIndexTask_Description_Rebuilds_the_Chinese_search_index_used_for_pinyin__simplified_traditional_and_alias_matching" xml:space="preserve">
+    <value>重建用於拼音、繁簡和別名比對的中文搜尋索引。</value>
+  </data>
 </root>
