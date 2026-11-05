@@ -2363,5 +2363,330 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("Wiki_Link", resourceCulture);
             }
         }
-    }
+    
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_FingerprintLibraryFilePath_Fingerprint_Library_File.
+        /// </summary>
+        public static string IntroSkipOptions_FingerprintLibraryFilePath_Fingerprint_Library_File {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_FingerprintLibraryFilePath_Fingerprint_Library_File", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_FingerprintLibraryFilePath_JSON_file_used_by_the_export_and_import_tasks__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_.
+        /// </summary>
+        public static string IntroSkipOptions_FingerprintLibraryFilePath_JSON_file_used_by_the_export_and_import_tasks__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_FingerprintLibraryFilePath_JSON_file_used_by_the_export_and_import_tasks__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfmpegArguments_Custom_ffmpeg_Arguments.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfmpegArguments_Custom_ffmpeg_Arguments {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfmpegArguments_Custom_ffmpeg_Arguments", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfprobeArguments_Extra_arguments_inserted_before_the_input_for_ffprobe_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfprobeArguments_Extra_arguments_inserted_before_the_input_for_ffprobe_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfprobeArguments_Extra_arguments_inserted_before_the_input_for_ffprobe_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableIsoExtraction_Extract_the_main_video_from_ISO_images_and_register_it_as_an_additional_media_source__Default_is_OFF_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableIsoExtraction_Extract_the_main_video_from_ISO_images_and_register_it_as_an_additional_media_source__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableIsoExtraction_Extract_the_main_video_from_ISO_images_and_register_it_as_an_additional_media_source__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_IsoExtractionCacheFolder_Folder_used_to_cache_videos_extracted_from_ISO_images__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_IsoExtractionCacheFolder_Folder_used_to_cache_videos_extracted_from_ISO_images__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_IsoExtractionCacheFolder_Folder_used_to_cache_videos_extracted_from_ISO_images__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_IsoExtractionCacheFolder_ISO_Cache_Folder.
+        /// </summary>
+        public static string MediaInfoExtractOptions_IsoExtractionCacheFolder_ISO_Cache_Folder {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_IsoExtractionCacheFolder_ISO_Cache_Folder", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds.
+        /// </summary>
+        public static string MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_Height.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_Height {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_Height", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_height_of_generated_chapter_images__0_is_unlimited__Default_is_0_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_height_of_generated_chapter_images__0_is_unlimited__Default_is_0_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_height_of_generated_chapter_images__0_is_unlimited__Default_is_0_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_Width.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_Width {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_Width", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_width_of_generated_chapter_images__0_is_unlimited__Default_is_0_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_width_of_generated_chapter_images__0_is_unlimited__Default_is_0_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_width_of_generated_chapter_images__0_is_unlimited__Default_is_0_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ScreenshotQuality_JPEG_quality_for_generated_chapter_images__0_keeps_the_original__Default_is_0_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ScreenshotQuality_JPEG_quality_for_generated_chapter_images__0_keeps_the_original__Default_is_0_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ScreenshotQuality_JPEG_quality_for_generated_chapter_images__0_keeps_the_original__Default_is_0_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_SubtitleBlacklistCodecs_Subtitle_Blacklist_Codecs.
+        /// </summary>
+        public static string MediaInfoExtractOptions_SubtitleBlacklistCodecs_Subtitle_Blacklist_Codecs {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_SubtitleBlacklistCodecs_Subtitle_Blacklist_Codecs", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages.
+        /// </summary>
+        public static string MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_SubtitleBlacklistTitles_Comma_separated_title_keywords_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_SubtitleBlacklistTitles_Comma_separated_title_keywords_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_SubtitleBlacklistTitles_Comma_separated_title_keywords_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_SubtitleBlacklistTitles_Subtitle_Blacklist_Titles.
+        /// </summary>
+        public static string MediaInfoExtractOptions_SubtitleBlacklistTitles_Subtitle_Blacklist_Titles {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_SubtitleBlacklistTitles_Subtitle_Blacklist_Titles", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyMode_Global_Global.
+        /// </summary>
+        public static string NetworkOptions_ProxyMode_Global_Global {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyMode_Global_Global", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyMode_Proxy_Mode.
+        /// </summary>
+        public static string NetworkOptions_ProxyMode_Proxy_Mode {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyMode_Proxy_Mode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyMode_Proxy_all_external_requests_or_only_whitelisted_domains__Default_is_Global_.
+        /// </summary>
+        public static string NetworkOptions_ProxyMode_Proxy_all_external_requests_or_only_whitelisted_domains__Default_is_Global_ {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyMode_Proxy_all_external_requests_or_only_whitelisted_domains__Default_is_Global_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyMode_Whitelist_Whitelist.
+        /// </summary>
+        public static string NetworkOptions_ProxyMode_Whitelist_Whitelist {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyMode_Whitelist_Whitelist", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyServer_Proxy_Server.
+        /// </summary>
+        public static string NetworkOptions_ProxyServer_Proxy_Server {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyServer_Proxy_Server", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyServer_Support_http_s_proxy_server__Default_is_EMPTY_.
+        /// </summary>
+        public static string NetworkOptions_ProxyServer_Support_http_s_proxy_server__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyServer_Support_http_s_proxy_server__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyWhitelist_Comma_separated_domains__Subdomains_are_included__Default_is_EMPTY_.
+        /// </summary>
+        public static string NetworkOptions_ProxyWhitelist_Comma_separated_domains__Subdomains_are_included__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyWhitelist_Comma_separated_domains__Subdomains_are_included__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_ProxyWhitelist_Proxy_Whitelist.
+        /// </summary>
+        public static string NetworkOptions_ProxyWhitelist_Proxy_Whitelist {
+            get {
+                return ResourceManager.GetString("NetworkOptions_ProxyWhitelist_Proxy_Whitelist", resourceCulture);
+            }
+        }
+
+}
 }
