@@ -1,10 +1,12 @@
 using MediaBrowser.Controller;
+using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Configuration;
+using MediaBrowser.Model.Drawing;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
@@ -24,6 +26,8 @@ namespace StrmAssistant.Common
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly IFfmpegManager _ffmpegManager;
+        private readonly IFileSystem _fileSystem;
+        private readonly IImageProcessor _imageProcessor;
 
         private readonly object _thumbnailGenerator;
         private readonly MethodInfo _refreshThumbnailImages;
@@ -34,11 +38,13 @@ namespace StrmAssistant.Common
         public VideoThumbnailApi(ILibraryManager libraryManager, IFileSystem fileSystem,
             IImageExtractionManager imageExtractionManager, IItemRepository itemRepository,
             IMediaMountManager mediaMountManager, IServerApplicationPaths applicationPaths,
-            ILibraryMonitor libraryMonitor, IFfmpegManager ffmpegManager)
+            ILibraryMonitor libraryMonitor, IFfmpegManager ffmpegManager, IImageProcessor imageProcessor)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _ffmpegManager = ffmpegManager;
+            _fileSystem = fileSystem;
+            _imageProcessor = imageProcessor;
 
             try
             {
@@ -75,7 +81,7 @@ namespace StrmAssistant.Common
             }
         }
 
-        public Task<bool> RefreshThumbnailImages(Video item, LibraryOptions libraryOptions,
+        public async Task<bool> RefreshThumbnailImages(Video item, LibraryOptions libraryOptions,
             IDirectoryService directoryService, List<ChapterInfo> chapters, bool extractImages, bool saveChapters,
             CancellationToken cancellationToken)
         {
@@ -95,7 +101,101 @@ namespace StrmAssistant.Common
                     cancellationToken
                 };
 
-            return (Task<bool>)_refreshThumbnailImages.Invoke(_thumbnailGenerator, parameters);
+            var result = await ((Task<bool>)_refreshThumbnailImages.Invoke(_thumbnailGenerator, parameters))
+                .ConfigureAwait(false);
+
+            if (result)
+            {
+                await PostProcessChapterImages(item, cancellationToken).ConfigureAwait(false);
+            }
+
+            return result;
+        }
+
+        private async Task PostProcessChapterImages(Video item, CancellationToken cancellationToken)
+        {
+            var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
+            var quality = options.ScreenshotQuality;
+            var maxWidth = options.ScreenshotMaxWidth;
+            var maxHeight = options.ScreenshotMaxHeight;
+
+            if (quality <= 0 && maxWidth <= 0 && maxHeight <= 0) return;
+
+            if (_imageProcessor is null)
+            {
+                _logger.Warn("ScreenshotPostProcess - Image processor is unavailable");
+                return;
+            }
+
+            var chapterImages = item.GetImages(ImageType.Chapter).ToList();
+
+            if (!chapterImages.Any()) return;
+
+            _logger.Info($"ScreenshotPostProcess - Processing {chapterImages.Count} image(s): {item.Name} - {item.Path}");
+
+            var index = 0;
+
+            foreach (var image in chapterImages)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var imagePath = image.Path;
+
+                if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+                {
+                    index++;
+                    continue;
+                }
+
+                var tempPath = imagePath + ".tmp";
+
+                try
+                {
+                    using (var output = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        var processingOptions = new ImageProcessingOptions
+                        {
+                            ItemId = item.InternalId,
+                            Item = item,
+                            Image = image,
+                            ImageIndex = index,
+                            Quality = quality,
+                            MaxWidth = maxWidth,
+                            MaxHeight = maxHeight,
+                            SupportedOutputFormats = new[] { ImageFormat.Jpg }
+                        };
+
+                        await _imageProcessor.ProcessImage(processingOptions, output, cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+
+                    File.Copy(tempPath, imagePath, true);
+                    image.Reset(_fileSystem.GetFileSystemInfo(imagePath));
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    _logger.Error($"ScreenshotPostProcess - Failed: {imagePath}");
+                    _logger.Error(e.Message);
+                    _logger.Debug(e.StackTrace);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(tempPath)) File.Delete(tempPath);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+
+                index++;
+            }
         }
 
         public List<Video> FetchExtractTaskItems()
