@@ -309,6 +309,7 @@ namespace StrmAssistant.Common
 
                 currentStreams.AddRange(externalSubtitleStreams);
                 _itemRepository.SaveMediaStreams(item.InternalId, currentStreams, CancellationToken.None);
+                Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(item, "External Subtitle Update");
 
                 if (persistMediaInfo && Plugin.LibraryApi.IsLibraryInScope(item))
                 {

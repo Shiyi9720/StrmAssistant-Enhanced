@@ -188,6 +188,11 @@ namespace StrmAssistant
 
         private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
         {
+            if (e.Argument.Item is Video)
+            {
+                MediaInfoApi.RemoveBlacklistedSubtitleStreams(e.Argument.Item, "Refresh Completed");
+            }
+
             if (_libraryManager.IsScanRunning) return;
 
             if (_currentMergeMultiVersion && e.Argument.Item.IsTopParent)
@@ -483,6 +488,18 @@ namespace StrmAssistant
                     string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.CustomFfmpegArguments)
                         ? "EMPTY"
                         : options.MediaInfoExtractOptions.CustomFfmpegArguments);
+                Logger.Info("SubtitleBlacklistLanguages is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.SubtitleBlacklistLanguages)
+                        ? "EMPTY"
+                        : options.MediaInfoExtractOptions.SubtitleBlacklistLanguages);
+                Logger.Info("SubtitleBlacklistTitles is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.SubtitleBlacklistTitles)
+                        ? "EMPTY"
+                        : options.MediaInfoExtractOptions.SubtitleBlacklistTitles);
+                Logger.Info("SubtitleBlacklistCodecs is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.SubtitleBlacklistCodecs)
+                        ? "EMPTY"
+                        : options.MediaInfoExtractOptions.SubtitleBlacklistCodecs);
                 Logger.Info("MaxConcurrentCount is set to {0}", options.GeneralOptions.MaxConcurrentCount);
                 Logger.Info("IntroDetectionMaxConcurrentCount is set to {0}",
                     options.GeneralOptions.IntroDetectionMaxConcurrentCount);
