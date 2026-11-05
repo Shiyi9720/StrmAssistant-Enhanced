@@ -113,6 +113,9 @@
   <data name="GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_" xml:space="preserve">
     <value>详情页多版本按画质优先展示：分辨率、编码、文件大小。默认开启。</value>
   </data>
+  <data name="EpisodeStats_Total_In_Library" xml:space="preserve">
+    <value>总集数 {0} / 已入库 {1}</value>
+  </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>搜索</value>
   </data>
