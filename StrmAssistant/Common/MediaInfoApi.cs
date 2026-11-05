@@ -158,10 +158,76 @@ namespace StrmAssistant.Common
         public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enableAlternateMediaSources)
         {
             var options = _libraryManager.GetLibraryOptions(item);
-
-            return !_fallbackApproach
+            var mediaSources = !_fallbackApproach
                 ? GetStaticMediaSourcesByApi(item, enableAlternateMediaSources, options)
                 : GetStaticMediaSourcesByRef(item, enableAlternateMediaSources, options);
+
+            if (SubtitleBlacklist.IsConfigured && mediaSources != null)
+            {
+                foreach (var mediaSource in mediaSources)
+                {
+                    RemoveBlacklistedSubtitleStreams(mediaSource, "GetStaticMediaSources");
+                }
+            }
+
+            return mediaSources;
+        }
+
+        public int RemoveBlacklistedSubtitleStreams(BaseItem item, string source)
+        {
+            if (!SubtitleBlacklist.IsConfigured || item is null) return 0;
+
+            var mediaStreams = item.GetMediaStreams();
+
+            if (mediaStreams is null || mediaStreams.Count == 0) return 0;
+
+            var blacklist = SubtitleBlacklist.FromOptions();
+            var removed = mediaStreams.Where(blacklist.IsBlacklisted).ToList();
+
+            if (removed.Count == 0) return 0;
+
+            var remaining = mediaStreams.Where(stream => !removed.Contains(stream)).ToList();
+
+            _itemRepository.SaveMediaStreams(item.InternalId, remaining, CancellationToken.None);
+            item.MediaStreams = remaining;
+
+            foreach (var stream in removed)
+            {
+                LogRemovedSubtitleStream(stream, source);
+            }
+
+            return removed.Count;
+        }
+
+        private int RemoveBlacklistedSubtitleStreams(MediaSourceInfo mediaSource, string source)
+        {
+            if (!SubtitleBlacklist.IsConfigured || mediaSource?.MediaStreams is null) return 0;
+
+            var blacklist = SubtitleBlacklist.FromOptions();
+            var removed = new List<MediaStream>();
+
+            mediaSource.MediaStreams.RemoveAll(stream =>
+            {
+                if (!blacklist.IsBlacklisted(stream)) return false;
+
+                removed.Add(stream);
+
+                return true;
+            });
+
+            foreach (var stream in removed)
+            {
+                LogRemovedSubtitleStream(stream, source);
+            }
+
+            return removed.Count;
+        }
+
+        private void LogRemovedSubtitleStream(MediaStream stream, string source)
+        {
+            _logger.Info("SubtitleBlacklist - Removed subtitle stream (" + source + "): language=" +
+                         (stream.Language ?? "EMPTY") + ", title=" + (stream.Title ?? "EMPTY") + ", codec=" +
+                         (stream.Codec ?? "EMPTY") + ", external=" + stream.IsExternal);
         }
 
         public MetadataRefreshOptions GetMediaInfoRefreshOptions()
@@ -335,6 +401,8 @@ namespace StrmAssistant.Common
                     if (mediaSourceWithChapters?.MediaSourceInfo?.RunTimeTicks.HasValue is true &&
                         (ignoreFileChange || !Plugin.LibraryApi.HasFileChanged(item, directoryService)))
                     {
+                        RemoveBlacklistedSubtitleStreams(mediaSourceWithChapters.MediaSourceInfo, "Deserialize");
+
                         foreach (var subtitle in mediaSourceWithChapters.MediaSourceInfo.MediaStreams.Where(m =>
                                      m.IsExternal && m.Type == MediaStreamType.Subtitle &&
                                      m.Protocol == MediaProtocol.File))

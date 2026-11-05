@@ -38,6 +38,24 @@
   <data name="MediaInfoExtractOptions_CustomFfmpegArguments_Extra_arguments_appended_to_ffmpeg_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_" xml:space="preserve">
     <value>附加到外掛執行的 ffmpeg 命令末尾，例如 -threads 4。與 Emby 既有參數重複的選項將被忽略以避免衝突。預設為空。</value>
   </data>
+  <data name="MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages" xml:space="preserve">
+    <value>字幕流黑名單（語言）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗號分隔的字幕語言或萬用字元，例如 eng, chi, zh-*。處理媒體資訊時，符合的內嵌或外掛字幕流將被移除。預設為空。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_SubtitleBlacklistTitles_Subtitle_Blacklist_Titles" xml:space="preserve">
+    <value>字幕流黑名單（標題）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_SubtitleBlacklistTitles_Comma_separated_title_keywords_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗號分隔的字幕標題關鍵字或萬用字元，例如 SDH, signs, *commentary*。處理媒體資訊時，符合的字幕流將被移除。預設為空。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Subtitle_Blacklist_Codecs" xml:space="preserve">
+    <value>字幕流黑名單（編碼）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗號分隔的字幕編碼或萬用字元，例如 subrip, ass, hdmv_pgs_subtitle。處理媒體資訊時，符合的字幕流將被移除。預設為空。</value>
+  </data>
   <data name="PluginOptions_LibraryScope_Library_Scope" xml:space="preserve">
     <value>媒體庫範圍</value>
   </data>

@@ -711,6 +711,8 @@ namespace StrmAssistant.Common
                 .RefreshSingleItem(taskItem, refreshOptions, collectionFolders, dummyLibraryOptions, cancellationToken)
                 .ConfigureAwait(false);
 
+            Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(taskItem, source);
+
             if (persistMediaInfo)
             {
                 await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
