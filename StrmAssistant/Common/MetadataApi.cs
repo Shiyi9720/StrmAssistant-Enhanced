@@ -236,7 +236,7 @@ namespace StrmAssistant.Common
 
             if (num > 0L)
             {
-                _logger.Debug("Throttling Tmdb by {0} ms", num);
+                _logger?.Debug("Throttling Tmdb by {0} ms", num);
                 await Task.Delay(Convert.ToInt32(num)).ConfigureAwait(false);
             }
 
@@ -256,7 +256,7 @@ namespace StrmAssistant.Common
                 using var response = await _httpClient.SendAsync(options, "GET").ConfigureAwait(false);
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
-                    _logger.Debug("Failed to get MovieDb response - " + response.StatusCode);
+                    _logger?.Debug("Failed to get MovieDb response - " + response.StatusCode);
                     return null;
                 }
 
@@ -271,7 +271,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug("Failed to get MovieDb response - " + e.Message);
+                _logger?.Debug("Failed to get MovieDb response - " + e.Message);
                 return null;
             }
         }

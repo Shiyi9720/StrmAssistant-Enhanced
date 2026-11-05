@@ -70,14 +70,14 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
 
             if (_thumbnailGenerator is null || _refreshThumbnailImages is null)
             {
-                _logger.Warn($"{nameof(VideoThumbnailApi)} Init Failed");
+                _logger?.Warn($"{nameof(VideoThumbnailApi)} Init Failed");
             }
         }
 
@@ -123,7 +123,7 @@ namespace StrmAssistant.Common
 
             if (_imageProcessor is null)
             {
-                _logger.Warn("ScreenshotPostProcess - Image processor is unavailable");
+                _logger?.Warn("ScreenshotPostProcess - Image processor is unavailable");
                 return;
             }
 
@@ -131,7 +131,7 @@ namespace StrmAssistant.Common
 
             if (!chapterImages.Any()) return;
 
-            _logger.Info($"ScreenshotPostProcess - Processing {chapterImages.Count} image(s): {item.Name} - {item.Path}");
+            _logger?.Info($"ScreenshotPostProcess - Processing {chapterImages.Count} image(s): {item.Name} - {item.Path}");
 
             var index = 0;
 
@@ -178,9 +178,9 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Error($"ScreenshotPostProcess - Failed: {imagePath}");
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Error($"ScreenshotPostProcess - Failed: {imagePath}");
+                    _logger?.Error(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
                 finally
                 {
@@ -208,7 +208,7 @@ namespace StrmAssistant.Common
                 .ToList();
             var librariesSelected = librariesWithVideoThumbnail.Where(f => libraryIds.Contains(f.Id)).ToList();
 
-            _logger.Info("VideoThumbnailExtract - LibraryScope: " + (!librariesWithVideoThumbnail.Any()
+            _logger?.Info("VideoThumbnailExtract - LibraryScope: " + (!librariesWithVideoThumbnail.Any()
                 ? "NONE"
                 : string.Join(", ",
                     (libraryIds.Contains("-1")
@@ -216,7 +216,7 @@ namespace StrmAssistant.Common
                         : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
 
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
-            _logger.Info("Include Extra: " + includeExtra);
+            _logger?.Info("Include Extra: " + includeExtra);
 
             var librariesWithVideoThumbnailPaths = librariesWithVideoThumbnail.SelectMany(l => l.Locations)
                 .Select(ls =>

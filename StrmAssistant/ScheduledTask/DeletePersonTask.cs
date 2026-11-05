@@ -24,19 +24,19 @@ namespace StrmAssistant.ScheduledTask
 
         public Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("DeletePerson - Scheduled Task Execute");
+            _logger?.Info("DeletePerson - Scheduled Task Execute");
 
             var personItems = _libraryManager.GetItemList(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { "Person" }
             });
 
-            _logger.Info("DeletePerson - Number of Persons: " + personItems.Length);
+            _logger?.Info("DeletePerson - Number of Persons: " + personItems.Length);
 
             _libraryManager.DeleteItems(personItems.Select(i => i.InternalId).ToArray());
 
             progress.Report(100.0);
-            _logger.Info("DeletePerson - Scheduled Task Complete");
+            _logger?.Info("DeletePerson - Scheduled Task Complete");
             return Task.CompletedTask;
         }
 

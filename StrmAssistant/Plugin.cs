@@ -125,22 +125,32 @@ namespace StrmAssistant
                     Plugin.Instance?.Logger.Info("[AssemblyResolve] {0} ui={1}", args.Name,
                         CultureInfo.CurrentUICulture?.Name);
                     var an = new AssemblyName(args.Name);
-                    if (!an.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase) ||
-                        !an.Name.StartsWith("StrmAssistantLite", StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(_satelliteRoot))
                     {
                         return null;
                     }
 
-                    var culture = an.CultureName;
-                    if (string.IsNullOrEmpty(culture) || string.IsNullOrEmpty(_satelliteRoot))
+                    string file;
+                    if (an.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
                     {
-                        return null;
+                        var culture = an.CultureName;
+                        if (string.IsNullOrEmpty(culture))
+                        {
+                            return null;
+                        }
+
+                        file = Path.Combine(_satelliteRoot, culture, an.Name + ".dll");
+                    }
+                    else
+                    {
+                        // 插件目录里的依赖（如 ToolGood.Words.Pinyin / ChineseConverter）：
+                        // 插件主程序集是按字节加载的，默认探测不会看插件目录，这里按简单名兜底
+                        file = Path.Combine(_satelliteRoot, an.Name + ".dll");
                     }
 
-                    var file = Path.Combine(_satelliteRoot, culture, an.Name + ".dll");
                     var loaded = File.Exists(file) ? Assembly.Load(File.ReadAllBytes(file)) : null;
                     System.Diagnostics.Debug.WriteLine($"[Satellite] {an.CultureName} -> {file} loaded={loaded != null}");
-                    Plugin.Instance?.Logger.Info("[Satellite] {0} -> {1} loaded={2}", an.CultureName, file, loaded != null);
+                    Plugin.Instance?.Logger.Info("[LoadDependency] {0} -> {1} loaded={2}", an.FullName, file, loaded != null);
                     return loaded;
                 }
                 catch
