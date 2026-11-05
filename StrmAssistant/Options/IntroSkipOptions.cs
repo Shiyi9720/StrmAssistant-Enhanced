@@ -216,5 +216,9 @@ namespace StrmAssistant.Options
         [SelectItemsSource(nameof(IntroSkipPreferenceList))]
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public string IntroSkipPreferences { get; set; } = string.Empty;
+
+        [DisplayNameL("IntroSkipOptions_FingerprintLibraryFilePath_Fingerprint_Library_File", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_FingerprintLibraryFilePath_JSON_file_used_by_the_export_and_import_tasks__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_", typeof(Resources))]
+        public string FingerprintLibraryFilePath { get; set; } = string.Empty;
     }
 }

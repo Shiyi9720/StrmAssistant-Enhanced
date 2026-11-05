@@ -58,6 +58,7 @@ namespace StrmAssistant
         public static MediaInfoApi MediaInfoApi { get; private set; }
         public static ChapterApi ChapterApi { get; private set; }
         public static FingerprintApi FingerprintApi { get; private set; }
+        public static FingerprintLibraryApi FingerprintLibraryApi { get; private set; }
         public static NotificationApi NotificationApi { get; private set; }
         public static SubtitleApi SubtitleApi { get; private set; }
         public static MovieDbApi MovieDbApi { get; private set; }
@@ -174,6 +175,7 @@ namespace StrmAssistant
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
+            FingerprintLibraryApi = new FingerprintLibraryApi(libraryManager, jsonSerializer);
             ShortcutMenuHelper.Initialize(configurationManager);
 
             if (_currentCatchupMode) QueueManager.Initialize();
