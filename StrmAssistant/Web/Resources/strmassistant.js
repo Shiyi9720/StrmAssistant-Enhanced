@@ -109,6 +109,34 @@
             });
         },
 
+        traverseMany: function (itemIds) {
+            loading.show();
+
+            let apiClient = connectionManager.currentApiClient();
+            let queryParams = {
+                Recursive: true,
+                ImageRefreshMode: 'Default',
+                MetadataRefreshMode: 'Default',
+                ReplaceAllImages: false,
+                ReplaceAllMetadata: false
+            };
+            let queryString = new URLSearchParams(queryParams).toString();
+
+            return Promise.all(itemIds.map(itemId => {
+                let scanApi = apiClient.getUrl(`Items/${itemId}/Refresh`);
+                return apiClient.ajax({
+                    type: "POST",
+                    url: `${scanApi}?${queryString}`,
+                    data: {},
+                    contentType: "application/json"
+                });
+            })).finally(() => {
+                loading.hide();
+                const confirmMessage = globalize.translate('ScanningLibraryFilesDots');
+                toast(confirmMessage);
+            });
+        },
+
         delver: function (itemId, itemName, itemType) {
             if (itemType === 'Movie') {
                 confirm({

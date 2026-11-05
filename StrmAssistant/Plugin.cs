@@ -81,6 +81,9 @@ namespace StrmAssistant
         private readonly IProviderManager _providerManager;
         private readonly IFileSystem _fileSystem;
         private readonly ITaskManager _taskManager;
+        private readonly IFfmpegManager _ffmpegManager;
+
+        internal IFfmpegManager FfmpegManager => _ffmpegManager;
 
         private bool _currentSuppressOnOptionsSaved;
         private int _currentMaxConcurrentCount;
@@ -184,6 +187,7 @@ namespace StrmAssistant
             _providerManager = providerManager;
             _fileSystem = fileSystem;
             _taskManager = taskManager;
+            _ffmpegManager = ffmpegManager;
 
             _currentMaxConcurrentCount = GetOptions().GeneralOptions.MaxConcurrentCount;
             _currentIntroDetectionMaxConcurrentCount = GetOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
@@ -227,7 +231,7 @@ namespace StrmAssistant
                 itemRepository, serverApplicationHost);
             PlaySessionMonitor = new PlaySessionMonitor(libraryManager, userManager, userDataManager,
                 sessionManager);
-            NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager);
+            NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager, libraryManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
             MovieDbApi = new MovieDbApi(libraryManager);
@@ -305,6 +309,7 @@ namespace StrmAssistant
         private void OnUserCreated(object sender, GenericEventArgs<User> e)
         {
             LibraryApi.FetchUsers();
+            System.Threading.Tasks.Task.Run(() => NotificationApi.ClearUserNotificationSettings(e.Argument));
         }
 
         private void OnUserDeleted(object sender, GenericEventArgs<User> e)
@@ -422,6 +427,11 @@ namespace StrmAssistant
                 {
                     NotificationApi.FavoritesUpdateSendNotification(e.Item);
                 }
+
+                if (e.Item is Episode)
+                {
+                    NotificationApi.SeriesItemChangedSendNotification(e.Item, true);
+                }
             }
             catch (Exception ex)
             {
@@ -446,6 +456,11 @@ namespace StrmAssistant
                     {
                         NotificationApi.CollectionItemUpdateSendNotification(collection, e.Item, false);
                     }
+                }
+
+                if (e.Item is Episode)
+                {
+                    NotificationApi.SeriesItemChangedSendNotification(e.Item, false);
                 }
             }
             catch (Exception ex)
@@ -668,6 +683,20 @@ namespace StrmAssistant
                     string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.SubtitleBlacklistCodecs)
                         ? "EMPTY"
                         : options.MediaInfoExtractOptions.SubtitleBlacklistCodecs);
+                Logger.Info("CustomFfmpegPath is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.CustomFfmpegPath)
+                        ? "EMPTY"
+                        : options.MediaInfoExtractOptions.CustomFfmpegPath);
+                if (!string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.CustomFfmpegPath))
+                {
+                    System.Threading.Tasks.Task.Run(() =>
+                        FfmpegApi.CheckCustomFfmpeg(_ffmpegManager, true));
+                }
+                Logger.Info("CropUltraWideScreenshots is set to {0}",
+                    options.MediaInfoExtractOptions.CropUltraWideScreenshots);
+                Logger.Info("CropPortraitScreenshots is set to {0}",
+                    options.MediaInfoExtractOptions.CropPortraitScreenshots);
+                Logger.Info("DetectHdrVivid is set to {0}", options.MediaInfoExtractOptions.DetectHdrVivid);
                 Logger.Info("ScreenshotQuality is set to {0}", options.MediaInfoExtractOptions.ScreenshotQuality);
                 Logger.Info("ScreenshotMaxWidth is set to {0}", options.MediaInfoExtractOptions.ScreenshotMaxWidth);
                 Logger.Info("ScreenshotMaxHeight is set to {0}", options.MediaInfoExtractOptions.ScreenshotMaxHeight);
@@ -824,6 +853,15 @@ namespace StrmAssistant
                     options.GeneralOptions.MaxMultiVersionMergeCount);
                 Logger.Info("AutoMarkPreviousEpisodesPlayed is set to {0}",
                     options.ExperienceEnhanceOptions.AutoMarkPreviousEpisodesPlayed);
+                Logger.Info("EnhanceNotification is set to {0}",
+                    options.ExperienceEnhanceOptions.EnhanceNotification);
+                Logger.Info("NaturalSort is set to {0}", options.ExperienceEnhanceOptions.NaturalSort);
+                Logger.Info("EnforceLibraryOrder is set to {0}",
+                    options.ExperienceEnhanceOptions.EnforceLibraryOrder);
+                Logger.Info("LogNewestFirst is set to {0}",
+                    options.ExperienceEnhanceOptions.LogNewestFirst);
+                Logger.Info("MultiSelectActions is set to {0}",
+                    options.ExperienceEnhanceOptions.MultiSelectActions);
             }
             _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
 

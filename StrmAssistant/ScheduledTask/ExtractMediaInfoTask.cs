@@ -1,3 +1,4 @@
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
@@ -92,6 +93,12 @@ namespace StrmAssistant.ScheduledTask
 
                             Interlocked.Increment(ref skip);
                             return;
+                        }
+
+                        if (taskItem is Video video)
+                        {
+                            await Plugin.MediaInfoApi.DetectHdrVividAsync(video, cancellationToken)
+                                .ConfigureAwait(false);
                         }
 
                         if (enableIntroSkip && taskItem is Episode episode &&

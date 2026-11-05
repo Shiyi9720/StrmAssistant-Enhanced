@@ -140,6 +140,60 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Notification_SeasonEpisode_Format.
+        /// </summary>
+        public static string Notification_SeasonEpisode_Format {
+            get {
+                return ResourceManager.GetString("Notification_SeasonEpisode_Format", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Notification_Season_Format.
+        /// </summary>
+        public static string Notification_Season_Format {
+            get {
+                return ResourceManager.GetString("Notification_Season_Format", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Notification_SeriesItemAdded_Description.
+        /// </summary>
+        public static string Notification_SeriesItemAdded_Description {
+            get {
+                return ResourceManager.GetString("Notification_SeriesItemAdded_Description", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Notification_SeriesItemAdded_EventName.
+        /// </summary>
+        public static string Notification_SeriesItemAdded_EventName {
+            get {
+                return ResourceManager.GetString("Notification_SeriesItemAdded_EventName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Notification_SeriesItemRemoved_Description.
+        /// </summary>
+        public static string Notification_SeriesItemRemoved_Description {
+            get {
+                return ResourceManager.GetString("Notification_SeriesItemRemoved_Description", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Notification_SeriesItemRemoved_EventName.
+        /// </summary>
+        public static string Notification_SeriesItemRemoved_EventName {
+            get {
+                return ResourceManager.GetString("Notification_SeriesItemRemoved_EventName", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Deletes all persons.
         /// </summary>
         public static string DeletePersonTask_Description_Deletes_all_persons {
@@ -357,7 +411,66 @@ namespace StrmAssistant.Properties {
                         "ication__Default_is_OFF_", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Natural Sort.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_NaturalSort_Natural_Sort {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_NaturalSort_Natural_Sort", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sort titles with a locale-aware natural collation so numbers are compared by value and Chinese titles keep their reading order. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_NaturalSort_Sort_titles_with_a_locale_aware_natural_collation_so_numbers_are_compared_by_value_and_Chinese_titles_keep_their_reading_order__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_NaturalSort_Sort_titles_with_a_locale_aware_natural_coll" +
+                        "ation_so_numbers_are_compared_by_value_and_Chinese_titles_keep_their_reading_or" +
+                        "der__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Logs Newest First.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_LogNewestFirst_Logs_Newest_First {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_LogNewestFirst_Logs_Newest_First", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show log entries from newest to oldest in the web client log viewer. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_LogNewestFirst_Show_log_entries_from_newest_to_oldest_in_the_web_client_log_viewer__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_LogNewestFirst_Show_log_entries_from_newest_to_oldest_in_" +
+                        "the_web_client_log_viewer__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Multi-Select Actions.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_MultiSelectActions_Multi_Select_Actions {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_MultiSelectActions_Multi_Select_Actions", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Enable multi-select actions on season pages (delete, download and convert) and allow selecting multiple libraries to scan library files. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_MultiSelectActions_Enable_multi_select_actions_on_season_pages__delete__download_and_convert__and_allow_selecting_multiple_libraries_to_scan_library_files__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_MultiSelectActions_Enable_multi_select_actions_on_season" +
+                        "_pages__delete__download_and_convert__and_allow_selecting_multiple_librarie" +
+                        "s_to_scan_library_files__Default_is_OFF_", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Movie Merge Preference.
         /// </summary>
@@ -2560,11 +2673,83 @@ namespace StrmAssistant.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_DetectHdrVivid_Detect_HDR_Vivid.
+        /// </summary>
+        public static string MediaInfoExtractOptions_DetectHdrVivid_Detect_HDR_Vivid {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_DetectHdrVivid_Detect_HDR_Vivid", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_DetectHdrVivid_Probes_the_first_video_frame_for_CUVA_2094_10_metadata_and_tags_matching_videos_as_HDR_Vivid__Default_is_False_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_DetectHdrVivid_Probes_the_first_video_frame_for_CUVA_2094_10_metadata_and_tags_matching_videos_as_HDR_Vivid__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_DetectHdrVivid_Probes_the_first_video_frame_for_CUVA_2094_10_metadata_and_tags_matching_videos_as_HDR_Vivid__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds.
         /// </summary>
         public static string MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds {
             get {
                 return ResourceManager.GetString("MediaInfoExtractOptions_IsoExtractionWaitSeconds_ISO_Extraction_Wait_Seconds", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CropPortraitScreenshots_Crop_vertical_screenshots_to_a_2_3_aspect_ratio__Default_is_False_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CropPortraitScreenshots_Crop_vertical_screenshots_to_a_2_3_aspect_ratio__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CropPortraitScreenshots_Crop_vertical_screenshots_to_a_2_3_aspect_ratio__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_Ultra_Wide_Screenshots.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_Ultra_Wide_Screenshots {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_Ultra_Wide_Screenshots", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_screenshots_wider_than_16_9_to_16_9_by_trimming_the_sides__Default_is_False_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_screenshots_wider_than_16_9_to_16_9_by_trimming_the_sides__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_screenshots_wider_than_16_9_to_16_9_by_trimming_the_sides__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfmpegPath_Custom_ffmpeg_Path.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfmpegPath_Custom_ffmpeg_Path {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfmpegPath_Custom_ffmpeg_Path", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfmpegPath_Path_to_a_custom_ffmpeg_build_with_vulkan_and_libplacebo_used_for_Dolby_Vision_Profile_5_screenshots__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfmpegPath_Path_to_a_custom_ffmpeg_build_with_vulkan_and_libplacebo_used_for_Dolby_Vision_Profile_5_screenshots__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfmpegPath_Path_to_a_custom_ffmpeg_build_with_vulkan_and_libplacebo_used_for_Dolby_Vision_Profile_5_screenshots__Default_is_EMPTY_", resourceCulture);
             }
         }
 

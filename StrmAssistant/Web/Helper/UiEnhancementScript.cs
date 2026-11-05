@@ -23,13 +23,21 @@ namespace StrmAssistant.Web.Helper
                                       "Total Episodes {0} / In Library {1}")
                 .Replace("\\", "\\\\").Replace("'", "\\'");
             var chineseSearch = options?.SearchOptions.EnableChineseSearch ?? true;
+            var naturalSort = options?.ExperienceEnhanceOptions.NaturalSort ?? false;
+            var enforceLibraryOrder = options?.ExperienceEnhanceOptions.EnforceLibraryOrder ?? false;
+            var logNewestFirst = options?.ExperienceEnhanceOptions.LogNewestFirst ?? false;
+            var multiSelectActions = options?.ExperienceEnhanceOptions.MultiSelectActions ?? false;
 
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
                    GetCollectionMembershipScript() + "\n" +
                    GetDashboardTasksScript() + "\n" + GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
                    GetChineseSearchScript(chineseSearch) + "\n" +
-                   GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n";
+                   GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n" +
+                   GetMultiSelectActionsScript(multiSelectActions) + "\n" +
+                   GetNaturalSortScript(naturalSort) + "\n" +
+                   GetEnforceLibraryOrderScript(enforceLibraryOrder) + "\n" +
+                   GetLogNewestFirstScript(logNewestFirst) + "\n";
         }
 
         private static string GetStyleScript()
@@ -1260,6 +1268,277 @@ namespace StrmAssistant.Web.Helper
                     "Search index rebuild queued"))
                 .Replace("@@FAILED@@", JsString("DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild",
                     "Failed to queue search index rebuild"));
+        }
+
+        /// <summary>
+        /// Enables multi-select on the season page episode list (delete, download and convert are
+        /// provided by the built-in item commands once selection is active) and on the library
+        /// setup page so several libraries can be selected and scanned together.
+        /// </summary>
+        private static string GetMultiSelectActionsScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    function isLibrarySetup() {
+        return (location.hash || '').toLowerCase().indexOf('librarysetup') !== -1;
+    }
+
+    function isSeasonTrackList(options) {
+        var container = options && options.itemsContainer;
+        if (!container || !container.classList) return false;
+        if (!container.classList.contains('trackList')) return false;
+        return options.showIndexNumber === false && options.imageSize === 'large';
+    }
+
+    function patch(renderer) {
+        if (!renderer || typeof renderer.getItemsHtml !== 'function') return false;
+        if (renderer.__strmAssistantMultiSelectPatched) return true;
+
+        var original = renderer.getItemsHtml;
+
+        renderer.getItemsHtml = function (items, options) {
+            try {
+                if (options && (isSeasonTrackList(options) || isLibrarySetup())) {
+                    options.multiSelect = true;
+                }
+            } catch (e) { }
+
+            return original.apply(this, arguments);
+        };
+
+        renderer.__strmAssistantMultiSelectPatched = true;
+        return true;
+    }
+
+    function start() {
+        try {
+            require(['modules/listview/listview.js']).then(function (modules) {
+                var renderer = modules && modules[0] && (modules[0].default || modules[0]);
+                patch(renderer);
+            }, function () { });
+            require(['modules/cardbuilder/cardbuilder.js']).then(function (modules) {
+                var renderer = modules && modules[0] && (modules[0].default || modules[0]);
+                patch(renderer);
+            }, function () { });
+        } catch (e) { }
+    }
+
+    start();
+    setTimeout(start, 3000);
+})();
+";
+        }
+
+        /// <summary>
+        /// Re-sorts title based result pages with a locale aware natural collation so numbers are
+        /// compared by value and Chinese titles keep their reading order, e.g. 白蛇：缘起 before
+        /// 白蛇2：青蛇劫起.
+        /// </summary>
+        private static string GetNaturalSortScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    var collator = null;
+    try {
+        collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    } catch (e) {
+        collator = null;
+    }
+
+    function compare(a, b) {
+        var left = (a && (a.SortName || a.Name)) || '';
+        var right = (b && (b.SortName || b.Name)) || '';
+        if (collator) return collator.compare(left, right);
+        return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function isTitleSort(query) {
+        if (!query || !query.SortBy) return false;
+        // Never touch search results: their order comes from the ranked search index.
+        if (query.SearchTerm) return false;
+        var fields = String(query.SortBy).split(',');
+        return fields.length === 1 && fields[0].toLowerCase() === 'sortname';
+    }
+
+    function patch(client) {
+        var proto = Object.getPrototypeOf(client);
+        if (!proto) return false;
+        if (proto.__strmAssistantNaturalSortPatched) return true;
+
+        var original = proto.getItems;
+        if (typeof original !== 'function') return false;
+
+        proto.getItems = function (userId, options, signal) {
+            var self = this;
+            var args = arguments;
+
+            return original.apply(self, args).then(function (result) {
+                if (result && Array.isArray(result.Items) && isTitleSort(options)) {
+                    var descending = options.SortOrder === 'Descending';
+                    result.Items.sort(function (a, b) {
+                        var value = compare(a, b);
+                        return descending ? -value : value;
+                    });
+                }
+                return result;
+            });
+        };
+
+        proto.__strmAssistantNaturalSortPatched = true;
+        return true;
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var apiClient = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (apiClient && patch(apiClient)) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+})();
+";
+        }
+
+        /// <summary>
+        /// Re-orders the user library views to match the order configured by the first admin.
+        /// The order is read from LibraryApi.AdminOrderedViews when the script is generated.
+        /// </summary>
+        private static string GetEnforceLibraryOrderScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            var orderedViews = StrmAssistant.Common.LibraryApi.AdminOrderedViews;
+            if (orderedViews == null || orderedViews.Length == 0) return string.Empty;
+
+            var orderedIds = string.Join("','", System.Array.ConvertAll(orderedViews,
+                id => (id ?? string.Empty).Replace("'", string.Empty)));
+
+            return @"
+(function () {
+    'use strict';
+
+    var order = ['@@ORDER@@'];
+    if (!order.length) return;
+
+    function rank(item) {
+        var id = item && item.Id;
+        var index = id ? order.indexOf(id) : -1;
+        return index === -1 ? order.length : index;
+    }
+
+    function patch(client) {
+        var proto = Object.getPrototypeOf(client);
+        if (!proto) return false;
+        if (proto.__strmAssistantLibraryOrderPatched) return true;
+
+        var original = proto.getUserViews;
+        if (typeof original !== 'function') return false;
+
+        proto.getUserViews = function (options, userId, signal) {
+            var self = this;
+            var args = arguments;
+
+            return original.apply(self, args).then(function (result) {
+                if (result && Array.isArray(result.Items) && result.Items.length > 1) {
+                    result.Items = result.Items.slice().sort(function (a, b) {
+                        return rank(a) - rank(b);
+                    });
+                }
+                return result;
+            });
+        };
+
+        proto.__strmAssistantLibraryOrderPatched = true;
+        return true;
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var apiClient = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (apiClient && patch(apiClient)) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+})();
+".Replace("@@ORDER@@", orderedIds);
+        }
+
+        /// <summary>
+        /// Reverses the log line page returned by the server so the log viewer shows the most
+        /// recent entries first.
+        /// </summary>
+        private static string GetLogNewestFirstScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    function patch(client) {
+        var proto = Object.getPrototypeOf(client);
+        if (!proto) return false;
+        if (proto.__strmAssistantLogOrderPatched) return true;
+
+        var original = proto.getLogLines;
+        if (typeof original !== 'function') return false;
+
+        proto.getLogLines = function (options, signal) {
+            var self = this;
+            var args = arguments;
+
+            return original.apply(self, args).then(function (result) {
+                if (Array.isArray(result)) return result.slice().reverse();
+
+                if (result && Array.isArray(result.Items)) {
+                    result.Items = result.Items.slice().reverse();
+                } else if (result && Array.isArray(result.LogLines)) {
+                    result.LogLines = result.LogLines.slice().reverse();
+                }
+
+                return result;
+            });
+        };
+
+        proto.__strmAssistantLogOrderPatched = true;
+        return true;
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var apiClient = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (apiClient && patch(apiClient)) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+})();
+";
         }
 
         private static string JsString(string resourceName, string fallback)
