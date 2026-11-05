@@ -1,5 +1,10 @@
 using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using System;
 using System.Collections.Generic;
@@ -34,15 +39,21 @@ namespace StrmAssistant.Common
         private static readonly Regex ApiKeyParamRegex =
             new Regex(@"([?&]api_key=)([^&]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex TmdbApiTargetRegex =
+            new Regex(@"^/3/(movie|tv|collection|person)/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly ILogger _logger;
 
+        private static ILibraryManager _libraryManager;
         private static string _originalImageBaseUrl;
         private static string _appliedImageBaseUrl;
         private static string _defaultApiKey;
+        private static LruCache _itemLanguageCache = new LruCache(200);
 
-        public MovieDbApi()
+        public MovieDbApi(ILibraryManager libraryManager)
         {
             _logger = Plugin.Instance.Logger;
+            _libraryManager = libraryManager;
         }
 
         public void Initialize()
@@ -69,6 +80,7 @@ namespace StrmAssistant.Common
                     _logger.Info("MovieDb provider is patched: {0}", provider.GetType().Name);
                 }
 
+                _itemLanguageCache = new LruCache(200);
                 ApplyAlternativeImageBaseUrl();
             }
             catch (Exception e)
@@ -269,6 +281,113 @@ namespace StrmAssistant.Common
             public string Url { get; set; }
             public bool IsTmdbApiRequest { get; set; }
             public bool IsConfigurationRequest { get; set; }
+            public bool RequestedSimplifiedChinese { get; set; }
+        }
+
+        private static string SetImageLanguageParam(string url, string chineseImageLanguages)
+        {
+            if (ImageLanguageParamRegex.IsMatch(url))
+            {
+                return ImageLanguageParamRegex.Replace(url, match =>
+                    match.Groups[1].Value + MergeImageLanguages(match.Groups[2].Value, chineseImageLanguages));
+            }
+
+            return url + (url.IndexOf('?') >= 0 ? "&" : "?") + "include_image_language=" +
+                   chineseImageLanguages + ",null";
+        }
+
+        private static string MergeImageLanguages(string existing, string chineseImageLanguages)
+        {
+            var parts = (existing ?? string.Empty).Split(',')
+                .Select(part => part.Trim())
+                .Where(part => !string.IsNullOrEmpty(part))
+                .ToList();
+
+            var hasNull = parts.Any(part => string.Equals(part, "null", StringComparison.OrdinalIgnoreCase));
+            var nonChinese = parts.Where(part =>
+                !string.Equals(part, "null", StringComparison.OrdinalIgnoreCase) &&
+                !LanguageUtility.IsChineseLanguageCode(part));
+
+            var merged = new List<string>();
+
+            merged.AddRange(chineseImageLanguages.Split(',').Select(part => part.Trim())
+                .Where(part => !string.IsNullOrEmpty(part)));
+            merged.AddRange(nonChinese);
+            merged.Add("null");
+
+            return string.Join(",", merged
+                .GroupBy(part => part, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First()));
+        }
+
+        private static string ResolveItemLanguage(Uri uri)
+        {
+            if (_libraryManager is null) return null;
+
+            var match = TmdbApiTargetRegex.Match(uri.AbsolutePath);
+
+            if (!match.Success) return null;
+
+            var kind = match.Groups[1].Value.ToLowerInvariant();
+            var tmdbId = match.Groups[2].Value;
+            var cacheKey = kind + ":" + tmdbId;
+
+            if (_itemLanguageCache.TryGetFromCache<string>(cacheKey, out var cached) &&
+                !string.IsNullOrEmpty(cached))
+            {
+                return cached;
+            }
+
+            string itemType;
+
+            switch (kind)
+            {
+                case "movie":
+                    itemType = nameof(Movie);
+                    break;
+                case "tv":
+                    itemType = nameof(Series);
+                    break;
+                case "collection":
+                    itemType = nameof(BoxSet);
+                    break;
+                case "person":
+                    itemType = nameof(Person);
+                    break;
+                default:
+                    return null;
+            }
+
+            try
+            {
+                var item = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    Recursive = true,
+                    Limit = 1,
+                    IncludeItemTypes = new[] { itemType },
+                    AnyProviderIdEquals = new[]
+                    {
+                        new KeyValuePair<string, string>("Tmdb", tmdbId)
+                    }
+                }).FirstOrDefault();
+
+                if (item is null) return null;
+
+                var libraryOptions = _libraryManager.GetLibraryOptions(item);
+                var language = item.GetPreferredImageLanguage(libraryOptions);
+
+                if (!string.IsNullOrEmpty(language))
+                {
+                    _itemLanguageCache.AddOrUpdateCache(cacheKey, language);
+                }
+
+                return language;
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance.Logger.Debug("MovieDbApi ResolveItemLanguage - " + e.Message);
+                return null;
+            }
         }
 
         private static UrlRewriteResult RewriteUrl(string url)
@@ -292,6 +411,41 @@ namespace StrmAssistant.Common
                 result.IsTmdbApiRequest = true;
                 result.IsConfigurationRequest = string.Equals(uri.AbsolutePath.TrimEnd('/'), "/3/configuration",
                     StringComparison.OrdinalIgnoreCase);
+
+                var options = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions;
+                var language = GetQueryParam(uri, "language");
+                var effectiveLanguage = language;
+
+                // Kept for compatibility with the old toggle. The configurable order in
+                // ChineseMetadataOrder takes the same path and is handled below.
+                if (options.PreferTraditionalChinese && LanguageUtility.IsChineseLanguageCode(language) &&
+                    !LanguageUtility.IsTraditionalChineseLanguageCode(language))
+                {
+                    rewrittenUrl = LanguageParamRegex.Replace(rewrittenUrl,
+                        match => match.Groups[1].Value + PreferredTraditionalChineseLanguage);
+                    effectiveLanguage = PreferredTraditionalChineseLanguage;
+                }
+
+                if (options.DistinguishChinesePosters)
+                {
+                    var imageLanguage = LanguageUtility.IsChineseLanguageCode(effectiveLanguage)
+                        ? effectiveLanguage
+                        : string.IsNullOrEmpty(effectiveLanguage)
+                            ? ResolveItemLanguage(uri)
+                            : null;
+                    var chineseImageLanguages = LanguageUtility.GetChineseImageLanguages(imageLanguage);
+
+                    if (!string.IsNullOrEmpty(chineseImageLanguages))
+                    {
+                        rewrittenUrl = SetImageLanguageParam(rewrittenUrl, chineseImageLanguages);
+                        result.RequestedSimplifiedChinese =
+                            LanguageUtility.IsSimplifiedChineseLanguageCode(imageLanguage);
+                    }
+                }
+                else if (options.PreferTraditionalChinese && ImageLanguageParamRegex.IsMatch(rewrittenUrl))
+                {
+                    rewrittenUrl = SetImageLanguageParam(rewrittenUrl, PreferredTraditionalChineseLanguage);
+                }
 
                 if (!string.IsNullOrEmpty(source?.ApiRoot))
                 {

@@ -1,4 +1,5 @@
 using Microsoft.International.Converters.TraditionalChineseToSimplifiedConverter;
+using System;
 using System.Text.RegularExpressions;
 
 namespace StrmAssistant.Common
@@ -22,6 +23,63 @@ namespace StrmAssistant.Common
         public static readonly string[] TvdbFallbackLanguages = { "zho", "zhtw", "yue", "jpn" };
 
         public static bool IsEnglish(string input) => !string.IsNullOrEmpty(input) && EnglishRegex.IsMatch(input);
+
+        public static bool IsChineseLanguageCode(string language)
+        {
+            if (string.IsNullOrEmpty(language)) return false;
+
+            var code = language.Trim().Replace('_', '-');
+
+            return code.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(code, "zho", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(code, "zhtw", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(code, "yue", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool IsTraditionalChineseLanguageCode(string language)
+        {
+            if (!IsChineseLanguageCode(language)) return false;
+
+            var code = language.Trim().Replace('_', '-');
+
+            return code.IndexOf("hant", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   code.EndsWith("-tw", StringComparison.OrdinalIgnoreCase) ||
+                   code.EndsWith("-hk", StringComparison.OrdinalIgnoreCase) ||
+                   code.EndsWith("-mo", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(code, "zhtw", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(code, "zh-hk", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool IsSimplifiedChineseLanguageCode(string language)
+        {
+            if (!IsChineseLanguageCode(language) || IsTraditionalChineseLanguageCode(language)) return false;
+
+            var code = language.Trim().Replace('_', '-');
+
+            return code.IndexOf("hans", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   code.EndsWith("-cn", StringComparison.OrdinalIgnoreCase) ||
+                   code.EndsWith("-sg", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(code, "zh", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(code, "zho", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Image languages requested from TMDB for the given Chinese variant. Traditional
+        /// Chinese content accepts both zh-TW and zh-HK posters/logos; simplified content
+        /// only accepts zh-CN so the two sets stay apart.
+        /// </summary>
+        public static string GetChineseImageLanguages(string language)
+        {
+            if (IsTraditionalChineseLanguageCode(language)) return "zh-TW,zh-HK";
+            if (IsSimplifiedChineseLanguageCode(language)) return "zh-CN";
+
+            return null;
+        }
+
+        public static string GetPreferredChineseMetadataLanguage(bool preferTraditional)
+        {
+            return preferTraditional ? "zh-TW" : "zh-CN";
+        }
 
         public static bool IsChinese(string input) => !string.IsNullOrEmpty(input) && ChineseRegex.IsMatch(input) &&
                                                       !JapaneseRegex.IsMatch(input.Replace("\u30FB", string.Empty));

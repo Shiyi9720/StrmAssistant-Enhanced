@@ -28,6 +28,10 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant__zh_TW__then_zh_CN__Default_is_OFF_", typeof(Resources))]
         public bool PreferTraditionalChinese { get; set; } = false;
 
+        [DisplayNameL("MetadataEnhanceOptions_DistinguishChinesePosters_Distinguish_Simplified_and_Traditional_Chinese_Images", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_DistinguishChinesePosters_Request_only_the_matching_Chinese_image_set_for_each_item__zh_CN_content_gets_zh_CN_posters_and_logos_while_zh_TW_and_zh_HK_content_gets_zh_TW_and_zh_HK_images__The_item_preferred_image_language_or_library_metadata_language_decides__Default_is_OFF_", typeof(Resources))]
+        public bool DistinguishChinesePosters { get; set; } = false;
+
         [DisplayNameL("MetadataEnhanceOptions_EnableLocalMovieDb_Local_MovieDb_Source", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_EnableLocalMovieDb_Route_all_TMDB_api_metadata_search_and_image_requests_through_one_local_mirror_or_reverse_proxy__It_takes_precedence_over_the_alternative_MovieDb_options_below__Default_is_OFF_", typeof(Resources))]
         public bool EnableLocalMovieDb { get; set; } = false;
