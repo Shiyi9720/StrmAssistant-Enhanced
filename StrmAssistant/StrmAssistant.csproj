@@ -6,7 +6,21 @@
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>$(MSBuildProjectName)Lite</AssemblyName>
+    <!-- 用运行中 Emby 自带的程序集编译时，应指向其 /system 目录（默认 lib/emby）；
+         没有该目录则回退到 NuGet SDK 包。程序集版本必须与服务器完全一致，否则 Emby 拒绝加载。 -->
+    <EmbyServerDir Condition="'$(EmbyServerDir)' == ''">$(MSBuildProjectDirectory)/../lib/emby</EmbyServerDir>
   </PropertyGroup>
+  <ItemGroup Condition="Exists('$(EmbyServerDir)/MediaBrowser.Model.dll')">
+    <Reference Include="$(EmbyServerDir)/MediaBrowser.Model.dll" Private="false" />
+    <Reference Include="$(EmbyServerDir)/MediaBrowser.Controller.dll" Private="false" />
+    <Reference Include="$(EmbyServerDir)/MediaBrowser.Common.dll" Private="false" />
+    <Reference Include="$(EmbyServerDir)/Emby.Naming.dll" Private="false" />
+    <Reference Include="$(EmbyServerDir)/Emby.Media.Model.dll" Private="false" />
+    <Reference Include="$(EmbyServerDir)/Emby.Web.GenericEdit.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup Condition="!Exists('$(EmbyServerDir)/MediaBrowser.Model.dll')">
+    <!-- NuGet SDK 包版本串无法被 NuGet 解析为合法 SemVer，故不再回退；请把服务端 DLL 放进 lib/emby。 -->
+  </ItemGroup>
   <ItemGroup>
     <None Remove="Web\Resources\shortcuts.js" />
     <None Remove="Web\Resources\strmassistant.js" />
@@ -23,7 +37,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="mediabrowser.server.core" Version="4.11.0.5-beta6" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

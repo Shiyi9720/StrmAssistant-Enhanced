@@ -9,3 +9,6 @@ x64/
 build/
 [Bb]in/
 [Oo]bj/
+
+# Emby 服务端 DLL（专有组件，不入库）
+lib/emby/*.dll
