@@ -12,7 +12,30 @@ namespace StrmAssistant.Web.Helper
 
             var multiVersionSort = options?.GeneralOptions.MultiVersionSort ?? true;
 
-            return "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() + "\n";
+            return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
+                   "\n" + GetLibraryBadgeScript() + "\n";
+        }
+
+        private static string GetStyleScript()
+        {
+            return @"
+(function () {
+    'use strict';
+
+    if (document.getElementById('strmAssistantStyles')) return;
+
+    var style = document.createElement('style');
+    style.id = 'strmAssistantStyles';
+    style.textContent =
+        '.strmAssistantCountBadge{position:absolute;top:.35em;right:.35em;z-index:4;' +
+        'background:rgba(0,0,0,.72);color:#fff;border-radius:.9em;padding:.1em .5em;' +
+        'font-size:.75em;line-height:1.5;font-weight:600;pointer-events:none;' +
+        'box-shadow:0 1px 3px rgba(0,0,0,.4)}' +
+        '.strmAssistantEpisodeStats{display:inline-block;margin:.35em 0;padding:.25em .6em;' +
+        'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}';
+    (document.head || document.documentElement).appendChild(style);
+})();
+";
         }
 
         private static string GetScript(bool multiVersionSort)
@@ -239,6 +262,176 @@ namespace StrmAssistant.Web.Helper
         } catch (e) { }
         if (playbackAttempts > 60) clearInterval(playbackTimer);
     }, 3000);
+})();
+";
+        }
+
+        /// <summary>
+        /// Item count badges on the home screen media library cards. Counts are fetched per library
+        /// view and matched to the rendered cards by the view item id.
+        /// </summary>
+        private static string GetLibraryBadgeScript()
+        {
+            return @"
+(function () {
+    'use strict';
+
+    var badgeClass = 'strmAssistantCountBadge';
+
+    var typeMap = {
+        movies: 'Movie',
+        tvshows: 'Series',
+        music: 'MusicAlbum',
+        musicvideos: 'MusicVideo',
+        homevideos: 'Video',
+        books: 'Book',
+        boxsets: 'BoxSet',
+        photos: 'Photo'
+    };
+
+    var counts = {};
+    var apiClient = null;
+    var loading = false;
+    var loaded = false;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function countForCard(card) {
+        var id = card.getAttribute('data-id');
+        if (id && Object.prototype.hasOwnProperty.call(counts, id)) return counts[id];
+
+        var link = card.querySelector('a[href]');
+        var href = link ? link.getAttribute('href') || '' : '';
+        if (href) {
+            for (var key in counts) {
+                if (Object.prototype.hasOwnProperty.call(counts, key) && href.indexOf(key) !== -1) {
+                    return counts[key];
+                }
+            }
+        }
+        return null;
+    }
+
+    function applyBadge(card) {
+        if (!card || card.querySelector('.' + badgeClass)) return;
+
+        var count = countForCard(card);
+        if (count === null) return;
+
+        try {
+            if (getComputedStyle(card).position === 'static') card.style.position = 'relative';
+        } catch (e) { }
+
+        var badge = document.createElement('span');
+        badge.className = badgeClass;
+        badge.textContent = count.toLocaleString();
+        card.appendChild(badge);
+    }
+
+    function applyAll() {
+        var cards = document.querySelectorAll('.card');
+        for (var i = 0; i < cards.length; i++) {
+            applyBadge(cards[i]);
+        }
+    }
+
+    function fetchCounts(client) {
+        if (loaded || loading) return;
+
+        loading = true;
+
+        var userId = client.getCurrentUserId();
+
+        client.getJSON(client.getUrl('Users/' + userId + '/Views')).then(function (views) {
+            var items = (views && views.Items) || [];
+            var pending = [];
+
+            for (var i = 0; i < items.length; i++) {
+                var view = items[i];
+                var type = view && typeMap[String(view.CollectionType || '').toLowerCase()];
+                if (type && view.Id) pending.push({ id: view.Id, type: type });
+            }
+
+            if (!pending.length) {
+                loading = false;
+                loaded = true;
+                return;
+            }
+
+            var remaining = pending.length;
+
+            pending.forEach(function (entry) {
+                client.getItems(userId, {
+                    ParentId: entry.id,
+                    Recursive: true,
+                    Limit: 0,
+                    IncludeItemTypes: entry.type
+                }).then(function (result) {
+                    if (result && typeof result.TotalRecordCount === 'number') {
+                        counts[entry.id] = result.TotalRecordCount;
+                    }
+                }, function () { }).then(function () {
+                    remaining--;
+                    if (remaining <= 0) {
+                        loading = false;
+                        loaded = true;
+                        applyAll();
+                    }
+                });
+            });
+        }, function () {
+            loading = false;
+        });
+    }
+
+    var scheduled = false;
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            applyAll();
+        }, 400);
+    }
+
+    var badgeAttempts = 0;
+    var badgeTimer = setInterval(function () {
+        badgeAttempts++;
+        if (loaded || badgeAttempts > 60) {
+            clearInterval(badgeTimer);
+            return;
+        }
+        withApiClient(fetchCounts);
+    }, 3000);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    startObserving();
 })();
 ";
         }
