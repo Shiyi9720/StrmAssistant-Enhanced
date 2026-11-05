@@ -8,7 +8,7 @@ namespace StrmAssistant.Web.Service
 {
     public class TaskService : BaseApiService
     {
-        private const string RefreshLibraryKey = "RefreshLibrary";
+        private const string RebuildSearchIndexKey = "RebuildSearchIndexTask";
 
         private readonly ITaskManager _taskManager;
 
@@ -50,13 +50,22 @@ namespace StrmAssistant.Web.Service
                 return new RebuildSearchIndexResponse();
             }
 
+            if (!Plugin.Instance.GetPluginOptions().SearchOptions.EnableChineseSearch)
+            {
+                Plugin.Instance.Logger.Info("SearchIndexRebuild - Chinese search is disabled");
+                return new RebuildSearchIndexResponse();
+            }
+
             var worker = _taskManager.ScheduledTasks
-                .FirstOrDefault(i => i.ScheduledTask != null && i.ScheduledTask.Key == RefreshLibraryKey);
+                .FirstOrDefault(i => i.ScheduledTask != null && i.ScheduledTask.Key == RebuildSearchIndexKey);
 
             if (worker is null)
             {
-                Plugin.Instance.Logger.Info("SearchIndexRebuild - RefreshLibrary task not found");
-                return new RebuildSearchIndexResponse();
+                Plugin.Instance.Logger.Info("SearchIndexRebuild - Task not found, building directly");
+                _ = System.Threading.Tasks.Task.Run(() =>
+                    Plugin.SearchIndexService.BuildAsync(null, System.Threading.CancellationToken.None));
+
+                return new RebuildSearchIndexResponse { Queued = true, TaskName = "Rebuild Search Index" };
             }
 
             try
