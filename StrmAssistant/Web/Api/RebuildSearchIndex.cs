@@ -4,9 +4,8 @@ using MediaBrowser.Model.Services;
 namespace StrmAssistant.Web.Api
 {
     /// <summary>
-    /// Emby 4.10 has no standalone search index task. Search results are served from the item
-    /// database, so this queues the built-in "Scan media library" task (RefreshLibrary), which
-    /// re-indexes the library and refreshes what search returns.
+    /// Queues the plugin's Chinese search index rebuild task. The dashboard task panel calls this
+    /// endpoint; the index is rebuilt from the item database in the background.
     /// </summary>
     [Route("/StrmAssistant/Search/Rebuild", "POST")]
     [Authenticated]
