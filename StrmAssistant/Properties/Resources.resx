@@ -428,6 +428,33 @@
   <data name="MetadataEnhanceOptions_EnableAltMovieDbUrl" xml:space="preserve">
     <value>Use Alternative MovieDb Config</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableAltMovieDbUrl_Legacy_alternative_MovieDb_source__kept_for_compatibility__Use_the_local_MovieDb_source_above_to_configure_api_and_image_addresses_together_" xml:space="preserve">
+    <value>Legacy alternative MovieDb source kept for compatibility. Use the local MovieDb source above to configure API and image addresses together.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableLocalMovieDb_Local_MovieDb_Source" xml:space="preserve">
+    <value>Local MovieDb Source</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableLocalMovieDb_Route_all_TMDB_api_metadata_search_and_image_requests_through_one_local_mirror_or_reverse_proxy__It_takes_precedence_over_the_alternative_MovieDb_options_below__Default_is_OFF_" xml:space="preserve">
+    <value>Route all TMDB API metadata, search and image requests through one local mirror or reverse proxy. It takes precedence over the alternative MovieDb options below. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbUrl_Local_MovieDb_Url" xml:space="preserve">
+    <value>Local MovieDb Url</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbUrl_Base_address_of_the_local_TMDB_mirror__for_example_http___192_168_1_10_8080__Both_api_and_image_requests_are_rewritten_to_this_address__Default_is_EMPTY_" xml:space="preserve">
+    <value>Base address of the local TMDB mirror, for example http://192.168.1.10:8080. Both API and image requests are rewritten to this address. Default is EMPTY.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbApiKey_Local_MovieDb_Api_Key" xml:space="preserve">
+    <value>Local MovieDb Api Key</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbApiKey_Optional_api_key_sent_to_the_local_mirror__Blank_uses_the_alternative_or_system_default_key_" xml:space="preserve">
+    <value>Optional api key sent to the local mirror. Blank uses the alternative or system default key.</value>
+  </data>
+  <data name="InvalidLocalMovieDbUrl" xml:space="preserve">
+    <value>Local MovieDb Url is invalid</value>
+  </data>
+  <data name="InvalidLocalMovieDbApiKey" xml:space="preserve">
+    <value>Local MovieDb Api Key is invalid</value>
+  </data>
   <data name="MetadataEnhanceOptions_EnhanceMovieDbPerson_Enhance_MovieDb_Person" xml:space="preserve">
     <value>Enhance MovieDb Person</value>
   </data>

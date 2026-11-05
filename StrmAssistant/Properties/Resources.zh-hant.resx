@@ -341,6 +341,33 @@
   <data name="MetadataEnhanceOptions_EnableAltMovieDbUrl" xml:space="preserve">
     <value>使用替代 TMDB 配置</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableAltMovieDbUrl_Legacy_alternative_MovieDb_source__kept_for_compatibility__Use_the_local_MovieDb_source_above_to_configure_api_and_image_addresses_together_" xml:space="preserve">
+    <value>舊版替代 TMDB 源（保留以相容）。請使用上方的本地 TMDB 源同時設定 API 與圖片位址。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableLocalMovieDb_Local_MovieDb_Source" xml:space="preserve">
+    <value>本地 TMDB 源</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableLocalMovieDb_Route_all_TMDB_api_metadata_search_and_image_requests_through_one_local_mirror_or_reverse_proxy__It_takes_precedence_over_the_alternative_MovieDb_options_below__Default_is_OFF_" xml:space="preserve">
+    <value>所有 TMDB 中繼資料、搜尋與圖片請求統一走該本地鏡像/反向代理。優先於下方的替代 TMDB 選項。預設關閉。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbUrl_Local_MovieDb_Url" xml:space="preserve">
+    <value>本地 TMDB 位址</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbUrl_Base_address_of_the_local_TMDB_mirror__for_example_http___192_168_1_10_8080__Both_api_and_image_requests_are_rewritten_to_this_address__Default_is_EMPTY_" xml:space="preserve">
+    <value>本地 TMDB 鏡像的基礎位址，例如 http://192.168.1.10:8080。API 與圖片請求都會改寫到此位址。預設為空。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbApiKey_Local_MovieDb_Api_Key" xml:space="preserve">
+    <value>本地 TMDB API 金鑰</value>
+  </data>
+  <data name="MetadataEnhanceOptions_LocalMovieDbApiKey_Optional_api_key_sent_to_the_local_mirror__Blank_uses_the_alternative_or_system_default_key_" xml:space="preserve">
+    <value>傳送給本地鏡像的 API 金鑰（選填）。留空使用替代或系統預設金鑰。</value>
+  </data>
+  <data name="InvalidLocalMovieDbUrl" xml:space="preserve">
+    <value>本地 TMDB 位址無效</value>
+  </data>
+  <data name="InvalidLocalMovieDbApiKey" xml:space="preserve">
+    <value>本地 TMDB API 金鑰無效</value>
+  </data>
   <data name="MetadataEnhanceOptions_EnhanceMovieDbPerson_Enhance_MovieDb_Person" xml:space="preserve">
     <value>演職人員增強 TMDB</value>
   </data>

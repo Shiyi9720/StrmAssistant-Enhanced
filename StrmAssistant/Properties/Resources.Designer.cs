@@ -2766,5 +2766,77 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("EpisodeDisplayStyleOption_EpisodeName_Episode_Name", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Local MovieDb Source.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableLocalMovieDb_Local_MovieDb_Source {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableLocalMovieDb_Local_MovieDb_Source", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Route all TMDB API metadata, search and image requests through one local mirror or reverse proxy. It takes precedence over the alternative MovieDb options below. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableLocalMovieDb_Route_all_TMDB_api_metadata_search_and_image_requests_through_one_local_mirror_or_reverse_proxy__It_takes_precedence_over_the_alternative_MovieDb_options_below__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableLocalMovieDb_Route_all_TMDB_api_metadata_search_and_image_requests_through_one_local_mirror_or_reverse_proxy__It_takes_precedence_over_the_alternative_MovieDb_options_below__Default_is_OFF_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Local MovieDb Url.
+        /// </summary>
+        public static string MetadataEnhanceOptions_LocalMovieDbUrl_Local_MovieDb_Url {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_LocalMovieDbUrl_Local_MovieDb_Url", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Base address of the local TMDB mirror, for example http://192.168.1.10:8080. Both API and image requests are rewritten to this address. Default is EMPTY..
+        /// </summary>
+        public static string MetadataEnhanceOptions_LocalMovieDbUrl_Base_address_of_the_local_TMDB_mirror__for_example_http___192_168_1_10_8080__Both_api_and_image_requests_are_rewritten_to_this_address__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_LocalMovieDbUrl_Base_address_of_the_local_TMDB_mirror__for_example_http___192_168_1_10_8080__Both_api_and_image_requests_are_rewritten_to_this_address__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Local MovieDb Api Key.
+        /// </summary>
+        public static string MetadataEnhanceOptions_LocalMovieDbApiKey_Local_MovieDb_Api_Key {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_LocalMovieDbApiKey_Local_MovieDb_Api_Key", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Optional api key sent to the local mirror. Blank uses the alternative or system default key..
+        /// </summary>
+        public static string MetadataEnhanceOptions_LocalMovieDbApiKey_Optional_api_key_sent_to_the_local_mirror__Blank_uses_the_alternative_or_system_default_key_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_LocalMovieDbApiKey_Optional_api_key_sent_to_the_local_mirror__Blank_uses_the_alternative_or_system_default_key_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Legacy alternative MovieDb source kept for compatibility. Use the local MovieDb source above to configure API and image addresses together..
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableAltMovieDbUrl_Legacy_alternative_MovieDb_source__kept_for_compatibility__Use_the_local_MovieDb_source_above_to_configure_api_and_image_addresses_together_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableAltMovieDbUrl_Legacy_alternative_MovieDb_source__kept_for_compatibility__Use_the_local_MovieDb_source_above_to_configure_api_and_image_addresses_together_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Local MovieDb Url is invalid.
+        /// </summary>
+        public static string InvalidLocalMovieDbUrl {
+            get {
+                return ResourceManager.GetString("InvalidLocalMovieDbUrl", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Local MovieDb Api Key is invalid.
+        /// </summary>
+        public static string InvalidLocalMovieDbApiKey {
+            get {
+                return ResourceManager.GetString("InvalidLocalMovieDbApiKey", resourceCulture);
+            }
+        }
 }
 }
