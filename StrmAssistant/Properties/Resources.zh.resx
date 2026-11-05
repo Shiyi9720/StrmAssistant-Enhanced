@@ -908,4 +908,10 @@
   <data name="ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_" xml:space="preserve">
     <value>当前剧集播放完成后，将同季之前有播放进度的剧集标记为已播放。默认关闭。</value>
   </data>
+  <data name="ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Reverse_Season_and_Episode_Order" xml:space="preserve">
+    <value>倒序显示季和剧集</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_ReverseSeasonEpisodeOrder_Show_seasons_and_episodes_in_descending_order_in_the_web_client__Default_is_OFF_" xml:space="preserve">
+    <value>在网页客户端中以倒序显示季和剧集。默认关闭。</value>
+  </data>
 </root>
