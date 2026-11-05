@@ -13,6 +13,8 @@ namespace StrmAssistant.Web.Helper
             var options = Plugin.Instance?.GetPluginOptions();
 
             var multiVersionSort = options?.GeneralOptions.MultiVersionSort ?? true;
+            var reverseSeasonEpisodeOrder =
+                options?.ExperienceEnhanceOptions.ReverseSeasonEpisodeOrder ?? false;
 
             var episodeStatsFormat = (Resources.EpisodeStats_Total_In_Library ??
                                       "Total Episodes {0} / In Library {1}")
@@ -20,7 +22,7 @@ namespace StrmAssistant.Web.Helper
 
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
-                   GetDashboardTasksScript() + "\n";
+                   GetDashboardTasksScript() + "\n" + GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n";
         }
 
         private static string GetStyleScript()
@@ -41,6 +43,187 @@ namespace StrmAssistant.Web.Helper
         '.strmAssistantEpisodeStats{display:inline-block;margin:.35em 0;padding:.25em .6em;' +
         'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}';
     (document.head || document.documentElement).appendChild(style);
+})();
+";
+        }
+
+        /// <summary>
+        /// Reverses the rendered order of seasons on a series detail page and of episodes on a
+        /// season detail page. The server-side order is used as the reference so that list views
+        /// re-rendered by Emby are reordered again without relying on DOM index labels.
+        /// </summary>
+        private static string GetReverseOrderScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    var cache = {};
+    var loading = {};
+    var apiClient = null;
+    var scheduled = false;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function currentItemId() {
+        var hash = location.hash || '';
+        if (hash.indexOf('item?') === -1 && hash.indexOf('/item') === -1) return null;
+        var match = /[?&]id=([^&]+)/.exec(hash);
+        return match ? match[1] : null;
+    }
+
+    function load(id) {
+        if (cache[id] || loading[id]) return;
+
+        withApiClient(function (client) {
+            if (cache[id] || loading[id]) return;
+
+            loading[id] = true;
+
+            var userId = client.getCurrentUserId();
+
+            client.getItem(userId, id).then(function (item) {
+                if (!item || (item.Type !== 'Season' && item.Type !== 'Series')) {
+                    loading[id] = false;
+                    return;
+                }
+
+                var isSeason = item.Type === 'Season';
+
+                client.getItems(userId, {
+                    ParentId: id,
+                    Recursive: false,
+                    EnableTotalRecordCount: false,
+                    IncludeItemTypes: isSeason ? 'Episode' : 'Season',
+                    SortBy: 'IndexNumber',
+                    SortOrder: 'Ascending',
+                    Limit: 10000
+                }).then(function (result) {
+                    var rank = {};
+                    var items = (result && result.Items) || [];
+
+                    for (var i = 0; i < items.length; i++) {
+                        rank[items[i].Id] = i;
+                    }
+
+                    cache[id] = { kind: isSeason ? 'Episode' : 'Season', rank: rank };
+                    loading[id] = false;
+                    apply();
+                }, function () {
+                    loading[id] = false;
+                });
+            }, function () {
+                loading[id] = false;
+            });
+        });
+    }
+
+    function apply() {
+        var id = currentItemId();
+        if (!id) return;
+
+        var state = cache[id];
+        if (!state) {
+            load(id);
+            return;
+        }
+
+        var selector = state.kind === 'Episode' ? '.listItem[data-id]' : '.card[data-id]';
+        var nodes = document.querySelectorAll(selector);
+        var groups = [];
+
+        function groupFor(parent) {
+            for (var i = 0; i < groups.length; i++) {
+                if (groups[i].parent === parent) return groups[i];
+            }
+            var group = { parent: parent, nodes: [] };
+            groups.push(group);
+            return group;
+        }
+
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            var nodeId = node.getAttribute('data-id');
+
+            if (!nodeId || !Object.prototype.hasOwnProperty.call(state.rank, nodeId)) continue;
+
+            var parent = node.parentElement;
+            if (parent) groupFor(parent).nodes.push(node);
+        }
+
+        for (var g = 0; g < groups.length; g++) {
+            var list = groups[g].nodes;
+            if (list.length < 2) continue;
+
+            var ordered = list.slice().sort(function (a, b) {
+                return state.rank[b.getAttribute('data-id')] - state.rank[a.getAttribute('data-id')];
+            });
+
+            var changed = false;
+            for (var k = 0; k < list.length; k++) {
+                if (list[k] !== ordered[k]) {
+                    changed = true;
+                    break;
+                }
+            }
+
+            if (!changed) continue;
+
+            for (var j = 0; j < ordered.length; j++) {
+                groups[g].parent.appendChild(ordered[j]);
+            }
+        }
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            apply();
+        }, 300);
+    }
+
+    function start() {
+        if (!document.body) {
+            setTimeout(start, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        window.addEventListener('hashchange', schedule);
+        schedule();
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        withApiClient(function () {
+            clearInterval(timer);
+            schedule();
+        });
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+
+    start();
 })();
 ";
         }
