@@ -119,6 +119,18 @@ const strmAssistantCommandSource = {
                     (['zh-hk', 'zh-tw'].includes(locale) ? '\u522A\u9664\u6F14\u54E1' : 'Remove Actor');
                 result.push({ name: commandName, id: 'remove_person', icon: 'person_remove' });
             }
+            if (['Movie', 'Episode', 'MusicVideo', 'Video', 'Trailer'].includes(options.items[0].Type) &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                const clearChapterImagesName = locale === 'zh-cn' ? '\u6E05\u9664\u7AE0\u8282\u56FE' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u7AE0\u7BC0\u5716' : 'Clear Chapter Images');
+                const clearBifName = locale === 'zh-cn' ? '\u6E05\u9664 BIF \u63D0\u53D6' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664 BIF \u64F7\u53D6' : 'Clear BIF Thumbnails');
+                const clearMediaInfoName = locale === 'zh-cn' ? '\u6E05\u9664\u5A92\u4F53\u4FE1\u606F' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u5A92\u9AD4\u8CC7\u8A0A' : 'Clear Media Info');
+                result.push({ name: clearChapterImagesName, id: 'clear_chapter_images', icon: 'image' });
+                result.push({ name: clearBifName, id: 'clear_bif', icon: 'photo_library' });
+                result.push({ name: clearMediaInfoName, id: 'clear_media_info', icon: 'info' });
+            }
             return result;
         }
         if (!options.multiSelect && options.items?.length > 1 && options.items[0].Type !== 'CollectionFolder' &&
@@ -139,7 +151,10 @@ const strmAssistantCommandSource = {
             lock: 'lock',
             unlock: 'unlock',
             clear_intro: 'clear_intro',
-            remove_person: 'remove_person'
+            remove_person: 'remove_person',
+            clear_chapter_images: 'clear_chapter_images',
+            clear_bif: 'clear_bif',
+            clear_media_info: 'clear_media_info'
         };
         if (command.startsWith('delver_')) {
             const mediaSourceId = command.replace('delver_', '');

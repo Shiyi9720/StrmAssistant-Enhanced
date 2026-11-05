@@ -1,5 +1,31 @@
 ﻿define(['connectionManager', 'globalize', 'loading', 'toast', 'confirm', 'dialog', 'actionsheet'], function (connectionManager, globalize, loading, toast, confirm, dialog, actionsheet) {
 
+    function clearItemResource(itemId, itemName, endpoint, title, confirmText, successText, failureText) {
+        confirm({
+            text: confirmText.replace('{0}', itemName),
+            title: title,
+            confirmText: globalize.translate('Clear'),
+            primary: 'cancel'
+        }).then(function () {
+            loading.show();
+
+            let apiClient = connectionManager.currentApiClient();
+
+            return apiClient.ajax({
+                type: 'POST',
+                url: apiClient.getUrl(`Items/${itemId}/${endpoint}`),
+                data: {},
+                contentType: 'application/json'
+            }).then(function () {
+                toast(successText);
+            }, function () {
+                toast(failureText);
+            }).finally(function () {
+                loading.hide();
+            });
+        }, function () { });
+    }
+
     return {
         copy: function (libraryId) {
             loading.show();
@@ -239,6 +265,56 @@
             }, function () {
                 loading.hide();
             });
+        },
+
+        clear_chapter_images: function (itemId, itemName) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u6E05\u9664\u7AE0\u8282\u56FE' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u7AE0\u7BC0\u5716' : 'Clear Chapter Images');
+            const confirmText = locale === 'zh-cn' ? '\u786E\u5B9A\u8981\u6E05\u9664 {0} \u7684\u7AE0\u8282\u56FE\u5417\uFF1F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u78BA\u5B9A\u8981\u6E05\u9664 {0} \u7684\u7AE0\u7BC0\u5716\u55CE\uFF1F' :
+                    'Clear chapter images for {0}?');
+            const successText = locale === 'zh-cn' ? '\u7AE0\u8282\u56FE\u6E05\u9664\u6210\u529F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u7AE0\u7BC0\u5716\u6E05\u9664\u6210\u529F' :
+                    'Clear Chapter Images Success');
+            const failureText = locale === 'zh-cn' ? '\u64CD\u4F5C\u5931\u8D25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64CD\u4F5C\u5931\u6557' : 'Operation Failed');
+
+            return clearItemResource(itemId, itemName, 'ClearChapterImages', title, confirmText, successText,
+                failureText);
+        },
+
+        clear_bif: function (itemId, itemName) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u6E05\u9664 BIF \u63D0\u53D6' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664 BIF \u64F7\u53D6' : 'Clear BIF Thumbnails');
+            const confirmText = locale === 'zh-cn' ? '\u786E\u5B9A\u8981\u6E05\u9664 {0} \u7684 BIF \u63D0\u53D6\u5417\uFF1F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u78BA\u5B9A\u8981\u6E05\u9664 {0} \u7684 BIF \u64F7\u53D6\u55CE\uFF1F' :
+                    'Clear BIF thumbnails for {0}?');
+            const successText = locale === 'zh-cn' ? 'BIF \u63D0\u53D6\u6E05\u9664\u6210\u529F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? 'BIF \u64F7\u53D6\u6E05\u9664\u6210\u529F' :
+                    'Clear BIF Thumbnails Success');
+            const failureText = locale === 'zh-cn' ? '\u64CD\u4F5C\u5931\u8D25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64CD\u4F5C\u5931\u6557' : 'Operation Failed');
+
+            return clearItemResource(itemId, itemName, 'ClearBif', title, confirmText, successText, failureText);
+        },
+
+        clear_media_info: function (itemId, itemName) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u6E05\u9664\u5A92\u4F53\u4FE1\u606F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u5A92\u9AD4\u8CC7\u8A0A' : 'Clear Media Info');
+            const confirmText = locale === 'zh-cn' ? '\u786E\u5B9A\u8981\u6E05\u9664 {0} \u7684\u5A92\u4F53\u4FE1\u606F\u5417\uFF1F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u78BA\u5B9A\u8981\u6E05\u9664 {0} \u7684\u5A92\u9AD4\u8CC7\u8A0A\u55CE\uFF1F' :
+                    'Clear saved media info for {0}?');
+            const successText = locale === 'zh-cn' ? '\u5A92\u4F53\u4FE1\u606F\u6E05\u9664\u6210\u529F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u5A92\u9AD4\u8CC7\u8A0A\u6E05\u9664\u6210\u529F' :
+                    'Clear Media Info Success');
+            const failureText = locale === 'zh-cn' ? '\u64CD\u4F5C\u5931\u8D25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64CD\u4F5C\u5931\u6557' : 'Operation Failed');
+
+            return clearItemResource(itemId, itemName, 'ClearMediaInfo', title, confirmText, successText,
+                failureText);
         },
 
         clear_intro: function (itemId) {
