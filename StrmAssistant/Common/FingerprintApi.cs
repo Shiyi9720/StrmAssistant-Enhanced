@@ -295,9 +295,22 @@ namespace StrmAssistant.Common
                         ? new[] { Resources.Favorites }.Concat(librariesSelected.Select(l => l.Name))
                         : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
 
-            var introDetectionFingerprintMinutes =
-                Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
-            _logger.Info("Intro Detection Fingerprint Length (Minutes): " + introDetectionFingerprintMinutes);
+            var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
+            _logger.Info("Intro Detection Fingerprint Length (Minutes): " +
+                         introSkipOptions.IntroDetectionFingerprintMinutes);
+
+            var effectiveLibraryMinutes = librariesSelected
+                .Select(l => introSkipOptions.GetIntroDetectionFingerprintMinutes(l.ItemId)).ToList();
+
+            if (effectiveLibraryMinutes.Distinct().Skip(1).Any())
+            {
+                _logger.Info("Intro Detection Fingerprint Length Per Library: " + string.Join(", ",
+                    librariesSelected.Select(l =>
+                        l.Name + "=" + introSkipOptions.GetIntroDetectionFingerprintMinutes(l.ItemId))));
+            }
+
+            var minIntroDetectionFingerprintMinutes = effectiveLibraryMinutes
+                .DefaultIfEmpty(introSkipOptions.IntroDetectionFingerprintMinutes).Min();
 
             var itemsFingerprintQuery = new InternalItemsQuery
             {
@@ -305,7 +318,7 @@ namespace StrmAssistant.Common
                 Recursive = true,
                 GroupByPresentationUniqueKey = false,
                 WithoutChapterMarkers = new[] { MarkerType.IntroStart },
-                MinRunTimeTicks = TimeSpan.FromMinutes(introDetectionFingerprintMinutes).Ticks,
+                MinRunTimeTicks = TimeSpan.FromMinutes(minIntroDetectionFingerprintMinutes).Ticks,
                 HasIntroDetectionFailure = false,
                 HasAudioStream = true
             };
@@ -324,9 +337,30 @@ namespace StrmAssistant.Common
 
             var isModSupported = Plugin.Instance.IsModSupported;
             var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
-                .OfType<Episode>().ToList();
+                .OfType<Episode>()
+                .Where(i => i.RunTimeTicks >= TimeSpan
+                    .FromMinutes(GetIntroDetectionFingerprintMinutesForItem(i)).Ticks)
+                .ToList();
 
             return items;
+        }
+
+        private int GetIntroDetectionFingerprintMinutesForItem(BaseItem item)
+        {
+            var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
+
+            if (introSkipOptions.LibraryIntroDetectionFingerprintOptions?.Overrides().Any() == true)
+            {
+                var collectionFolder = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
+
+                if (collectionFolder != null)
+                {
+                    return introSkipOptions.GetIntroDetectionFingerprintMinutes(
+                        collectionFolder.InternalId.ToString());
+                }
+            }
+
+            return introSkipOptions.IntroDetectionFingerprintMinutes;
         }
 
         public void UpdateLibraryIntroDetectionFingerprintLength()
@@ -335,16 +369,17 @@ namespace StrmAssistant.Common
                 .Where(f => f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null)
                 .ToList();
             
-            var currentLength = Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
+            var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
 
             foreach (var library in libraries)
             {
                 var options = library.LibraryOptions;
+                var libraryLength = introSkipOptions.GetIntroDetectionFingerprintMinutes(library.ItemId);
 
-                if (options.IntroDetectionFingerprintLength != currentLength &&
+                if (options.IntroDetectionFingerprintLength != libraryLength &&
                     long.TryParse(library.ItemId, out var itemId))
                 {
-                    options.IntroDetectionFingerprintLength = currentLength;
+                    options.IntroDetectionFingerprintLength = libraryLength;
                     CollectionFolder.SaveLibraryOptions(itemId, options);
                 }
             }
@@ -354,8 +389,7 @@ namespace StrmAssistant.Common
         public async Task UpdateIntroMarkerForSeason(Season season, CancellationToken cancellationToken,
             IProgress<double>? progress = null)
         {
-            var introDetectionFingerprintMinutes =
-                Plugin.Instance.GetPluginOptions().IntroSkipOptions.IntroDetectionFingerprintMinutes;
+            var introDetectionFingerprintMinutes = GetIntroDetectionFingerprintMinutesForItem(season);
 
             var libraryOptions = _libraryManager.GetLibraryOptions(season);
             var directoryService = new DirectoryService(_logger, _fileSystem);

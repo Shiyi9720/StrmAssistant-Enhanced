@@ -269,6 +269,18 @@
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Intro_detection_enabled_library_scope__Blank_includes_all_" xml:space="preserve">
     <value>提取声纹的媒体库范围，留空包含所有启用原生片头探测的媒体库，最爱只可单选。</value>
   </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Library_Intro_Detection_Fingerprint_Length" xml:space="preserve">
+    <value>媒体库片头声纹探测时长</value>
+  </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_intro_detection_fingerprint_length_per_library__Unchecked_uses_the_global_setting_" xml:space="preserve">
+    <value>按媒体库自定义片头声纹探测时长，未勾选则使用全局设置。</value>
+  </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override" xml:space="preserve">
+    <value>自定义</value>
+  </data>
+  <data name="IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override_the_global_intro_detection_fingerprint_length_for_this_library_" xml:space="preserve">
+    <value>自定义该媒体库的片头声纹探测时长，覆盖全局设置。</value>
+  </data>
   <data name="MetadataEnhanceOptions_EnableAltMovieDbUrl" xml:space="preserve">
     <value>使用替代 TMDB 配置</value>
   </data>
@@ -463,6 +475,12 @@
   </data>
   <data name="GeneralOptions_Tier2MaxConcurrentCount_Refresh_metadata__subtitle__local_tasks__Default_is_1_" xml:space="preserve">
     <value>刷新演员，剧集，扫外挂字幕，处理本地任务等共享，必须在 1 至 20 之间，默认为 1。</value>
+  </data>
+  <data name="GeneralOptions_MaxMultiVersionMergeCount_Max_Multi_Version_Merge_Count" xml:space="preserve">
+    <value>同文件夹最大合并版本数</value>
+  </data>
+  <data name="GeneralOptions_MaxMultiVersionMergeCount_Max_number_of_versions_to_merge_in_the_same_folder__It_must_be_between_2_and_64__Default_is_8_" xml:space="preserve">
+    <value>同文件夹内可合并的版本数量上限，必须在 2 至 64 之间，默认为 8。</value>
   </data>
   <data name="GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_" xml:space="preserve">
     <value>单线程模式有效，必须在 0 至 60 之间，默认为 0。</value>

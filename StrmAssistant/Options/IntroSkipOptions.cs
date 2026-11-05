@@ -1,13 +1,85 @@
 using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Common;
 using MediaBrowser.Model.Attributes;
+using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.GenericEdit;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 
 namespace StrmAssistant.Options
 {
+    public class LibraryIntroDetectionFingerprintOptionCollection :
+        List<LibraryIntroDetectionFingerprintOption>, IEditableObjectCollection
+    {
+        IEnumerator<MediaBrowser.Model.GenericEdit.IEditableObject>
+            IEnumerable<MediaBrowser.Model.GenericEdit.IEditableObject>.GetEnumerator()
+        {
+            return this.Cast<MediaBrowser.Model.GenericEdit.IEditableObject>().GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public LibraryIntroDetectionFingerprintOption FindByLibraryId(string libraryId)
+        {
+            foreach (var option in this)
+            {
+                if (option.LibraryId == libraryId)
+                {
+                    return option;
+                }
+            }
+
+            return null;
+        }
+
+        public LibraryIntroDetectionFingerprintOption FindOverride(string libraryId)
+        {
+            var option = FindByLibraryId(libraryId);
+
+            return option != null && option.Override ? option : null;
+        }
+
+        public IEnumerable<LibraryIntroDetectionFingerprintOption> Overrides()
+        {
+            foreach (var option in this)
+            {
+                if (option.Override)
+                {
+                    yield return option;
+                }
+            }
+        }
+    }
+
+    public class LibraryIntroDetectionFingerprintOption : EditableObjectBase
+    {
+        [Browsable(false)]
+        public string LibraryId { get; set; }
+
+        [Browsable(false)]
+        public string LibraryName { get; set; }
+
+        public override string EditorTitle => LibraryName;
+
+        [DisplayNameL("IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override_the_global_intro_detection_fingerprint_length_for_this_library_", typeof(Resources))]
+        public bool Override { get; set; }
+
+        [DisplayNameL("IntroSkipOptions_IntroDetectionFingerprintMinutes_Intro_Detection_Fingerprint_Minutes", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_IntroDetectionFingerprintMinutes_It_must_be_between_2_and_20__Default_is_10_", typeof(Resources))]
+        [MinValue(2), MaxValue(20)]
+        [VisibleCondition(nameof(Override), SimpleCondition.IsTrue)]
+        public int IntroDetectionFingerprintMinutes { get; set; } = 10;
+    }
+
     public class IntroSkipOptions : EditableOptionsBase
     {
         [DisplayNameL("PluginOptions_IntroSkipOptions_Intro_Credits_Detection", typeof(Resources))]
@@ -24,6 +96,46 @@ namespace StrmAssistant.Options
         [Required]
         [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
         public int IntroDetectionFingerprintMinutes { get; set; } = 10;
+
+        [DisplayNameL("IntroSkipOptions_LibraryIntroDetectionFingerprint_Library_Intro_Detection_Fingerprint_Length", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_intro_detection_fingerprint_length_per_library__Unchecked_uses_the_global_setting_", typeof(Resources))]
+        [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
+        public LibraryIntroDetectionFingerprintOptionCollection LibraryIntroDetectionFingerprintOptions { get; set; } =
+            new LibraryIntroDetectionFingerprintOptionCollection();
+
+        public int GetIntroDetectionFingerprintMinutes(string libraryId)
+        {
+            var overrideOption = string.IsNullOrEmpty(libraryId)
+                ? null
+                : LibraryIntroDetectionFingerprintOptions?.FindOverride(libraryId);
+
+            var minutes = overrideOption?.IntroDetectionFingerprintMinutes ?? IntroDetectionFingerprintMinutes;
+
+            return Math.Max(2, Math.Min(20, minutes));
+        }
+
+        public void SyncLibraryIntroDetectionFingerprintOptions(IEnumerable<VirtualFolderInfo> libraries)
+        {
+            var currentOptions = LibraryIntroDetectionFingerprintOptions ??
+                                 new LibraryIntroDetectionFingerprintOptionCollection();
+            var syncedOptions = new LibraryIntroDetectionFingerprintOptionCollection();
+
+            foreach (var library in libraries)
+            {
+                var existingOption = currentOptions.FindByLibraryId(library.ItemId);
+
+                syncedOptions.Add(new LibraryIntroDetectionFingerprintOption
+                {
+                    LibraryId = library.ItemId,
+                    LibraryName = library.Name,
+                    Override = existingOption?.Override ?? false,
+                    IntroDetectionFingerprintMinutes = existingOption?.IntroDetectionFingerprintMinutes ??
+                                                       IntroDetectionFingerprintMinutes
+                });
+            }
+
+            LibraryIntroDetectionFingerprintOptions = syncedOptions;
+        }
 
         [Browsable(false)]
         public IEnumerable<EditorSelectOption> MarkerEnabledLibraryList { get; set; }
