@@ -228,6 +228,7 @@ namespace StrmAssistant
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
             _satelliteRoot = applicationPaths.PluginsPath;
+            Properties.Resources.ResetCachedResources();
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
             CollectionFolder.LibraryOptionsUpdated += OnLibraryOptionsUpdated;
