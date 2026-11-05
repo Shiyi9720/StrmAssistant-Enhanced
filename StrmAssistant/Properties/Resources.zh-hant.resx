@@ -833,4 +833,16 @@
   <data name="ExclusiveControl_NoNfoSaverOptimization_No_Nfo_Saver_Optimization" xml:space="preserve">
     <value>無NFO保存優化</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement" xml:space="preserve">
+    <value>啟用豆瓣補充</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_" xml:space="preserve">
+    <value>當 TMDB 缺少中文簡介或海報時，嘗試從豆瓣補充缺失內容；不會覆寫已有值。預設關閉。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_" xml:space="preserve">
+    <value>豆瓣請求間隔（秒）</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_" xml:space="preserve">
+    <value>豆瓣請求之間的最小間隔。豆瓣反爬限制嚴格，請勿設定過小。取值範圍 2-30，預設 3。</value>
+  </data>
 </root>

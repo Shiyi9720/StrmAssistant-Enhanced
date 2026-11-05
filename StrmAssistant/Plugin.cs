@@ -65,6 +65,7 @@ namespace StrmAssistant
         public static MetadataApi MetadataApi { get; private set; }
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
         public static VersionPlaybackApi VersionPlaybackApi { get; private set; }
+        public static DoubanApi DoubanApi { get; private set; }
 
         private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
 
@@ -172,6 +173,7 @@ namespace StrmAssistant
                 mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager, imageProcessor);
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
+            DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
             ShortcutMenuHelper.Initialize(configurationManager);
 
             if (_currentCatchupMode) QueueManager.Initialize();
@@ -197,6 +199,12 @@ namespace StrmAssistant
             }
 
             if (_libraryManager.IsScanRunning) return;
+
+            if (GetOptions().MetadataEnhanceOptions.EnableDoubanSupplement &&
+                (e.Argument.Item is Movie || e.Argument.Item is Series))
+            {
+                _ = DoubanApi.SupplementAsync(e.Argument.Item, System.Threading.CancellationToken.None);
+            }
 
             if (_currentMergeMultiVersion && e.Argument.Item.IsTopParent)
             {
@@ -738,6 +746,10 @@ namespace StrmAssistant
             _currentNewLibraryMovieDb = options.MetadataEnhanceOptions.NewLibraryMovieDb;
             if (!suppress)
             {
+                Logger.Info("EnableDoubanSupplement is set to {0}",
+                    options.MetadataEnhanceOptions.EnableDoubanSupplement);
+                Logger.Info("DoubanRequestIntervalSeconds is set to {0}",
+                    options.MetadataEnhanceOptions.DoubanRequestIntervalSeconds);
                 Logger.Info("EnableAltMovieDbUrl is set to {0}", options.MetadataEnhanceOptions.EnableAltMovieDbUrl);
                 Logger.Info("AltMovieDbApiUrl is set to {0}",
                     string.IsNullOrWhiteSpace(options.MetadataEnhanceOptions.AltMovieDbApiUrl)

@@ -46,6 +46,16 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableAltMovieDbUrl), SimpleCondition.IsTrue)]
         public string AltMovieDbApiKey { get; set; } = string.Empty;
 
+        [DisplayNameL("MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", typeof(Resources))]
+        public bool EnableDoubanSupplement { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Minimum_interval_between_Douban_requests__Douban_rate_limits_aggressively__It_must_be_between_2_and_30__Default_is_3_", typeof(Resources))]
+        [Required, MinValue(2), MaxValue(30)]
+        [VisibleCondition(nameof(EnableDoubanSupplement), SimpleCondition.IsTrue)]
+        public int DoubanRequestIntervalSeconds { get; set; } = 3;
+
         [Browsable(false)]
         [Required]
         public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
