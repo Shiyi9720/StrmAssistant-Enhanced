@@ -107,6 +107,12 @@
   <data name="GeneralOptions_MergeMultiVersion_Auto_merge_multiple_versions_if_in_the_same_folder_" xml:space="preserve">
     <value>掃庫時自動合併電影和電視節目為多版本，不需符合官方嚴格的命名規範，預設為關閉。</value>
   </data>
+  <data name="GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort" xml:space="preserve">
+    <value>多版本智慧排序</value>
+  </data>
+  <data name="GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_" xml:space="preserve">
+    <value>詳情頁多版本按畫質優先展示：解析度、編碼、檔案大小。預設為開啟。</value>
+  </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>搜尋</value>
   </data>

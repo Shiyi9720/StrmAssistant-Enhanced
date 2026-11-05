@@ -499,12 +499,20 @@ namespace StrmAssistant.Properties {
             }
         }
 
-        /// <summary>
         ///   Looks up a localized string similar to Max Multi Version Merge Count.
         /// </summary>
         public static string GeneralOptions_MaxMultiVersionMergeCount_Max_Multi_Version_Merge_Count {
             get {
                 return ResourceManager.GetString("GeneralOptions_MaxMultiVersionMergeCount_Max_Multi_Version_Merge_Count", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Multi-version Smart Sort.
+        /// </summary>
+        public static string GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort", resourceCulture);
             }
         }
 
@@ -515,6 +523,16 @@ namespace StrmAssistant.Properties {
             get {
                 return ResourceManager.GetString("GeneralOptions_MaxMultiVersionMergeCount_Max_number_of_versions_to_merge_in_the_s" +
                         "ame_folder__It_must_be_between_2_and_64__Default_is_8_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Sort multiple versions on the detail page by quality: resolution, then codec, then file size. Default is ON..
+        /// </summary>
+        public static string GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__siz" +
+                        "e___Default_is_ON_", resourceCulture);
             }
         }
 

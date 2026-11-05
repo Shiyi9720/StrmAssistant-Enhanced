@@ -26,7 +26,7 @@ namespace StrmAssistant.Web.Service
 
         public object Get(GetShortcutMenu request)
         {
-            return _resultFactory.GetResult(ShortcutMenuHelper.ModifiedShortcutsString.AsSpan(),
+            return _resultFactory.GetResult(ShortcutMenuHelper.GetShortcutsScript().AsSpan(),
                 "application/x-javascript");
         }
     }

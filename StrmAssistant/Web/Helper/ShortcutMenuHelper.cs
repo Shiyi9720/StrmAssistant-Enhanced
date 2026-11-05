@@ -12,6 +12,19 @@ namespace StrmAssistant.Web.Helper
 
         public static MemoryStream StrmAssistantJs { get; private set; }
 
+        private static string _shortcutsJs;
+        private static string _injectShortcutCommand;
+
+        /// <summary>
+        /// Builds the shortcuts script with the current option values. Called for each request
+        /// so that toggling UI related options does not require a server restart.
+        /// </summary>
+        public static string GetShortcutsScript()
+        {
+            return (_shortcutsJs ?? string.Empty) + (_injectShortcutCommand ?? string.Empty) +
+                   UiEnhancementScript.Get();
+        }
+
         public static void Initialize(IServerConfigurationManager configurationManager)
         {
             try
@@ -163,7 +176,9 @@ setTimeout(() => {
 
             var dataExplorer2Assembly = AppDomain.CurrentDomain.GetAssemblies()
                 .FirstOrDefault(a => a.GetName().Name == "Emby.DataExplorer2");
-            ModifiedShortcutsString = shortcutsJs + injectShortcutCommand;
+            _shortcutsJs = shortcutsJs;
+            _injectShortcutCommand = injectShortcutCommand;
+            ModifiedShortcutsString = GetShortcutsScript();
 
             if (dataExplorer2Assembly != null)
             {

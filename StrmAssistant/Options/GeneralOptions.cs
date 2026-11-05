@@ -59,5 +59,9 @@ namespace StrmAssistant.Options
         [DescriptionL("GeneralOptions_MaxMultiVersionMergeCount_Max_number_of_versions_to_merge_in_the_same_folder__It_must_be_between_2_and_64__Default_is_8_", typeof(Resources))]
         [Required, MinValue(2), MaxValue(64)]
         public int MaxMultiVersionMergeCount { get; set; } = 8;
+
+        [DisplayNameL("GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort", typeof(Resources))]
+        [DescriptionL("GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_", typeof(Resources))]
+        public bool MultiVersionSort { get; set; } = true;
     }
 }
