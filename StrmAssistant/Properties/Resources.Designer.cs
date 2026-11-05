@@ -150,7 +150,17 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("Disclaimer", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Downloads missing subtitles from OpenSubtitles, preferring exact matches and retrying on rate limits.
+        /// </summary>
+        public static string DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles {
+            get {
+                return ResourceManager.GetString("DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSub" +
+                        "titles", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Click to view the disclaimer. Do not send logs to the official team before uninstalling the plugin. Please remember this!.
         /// </summary>
