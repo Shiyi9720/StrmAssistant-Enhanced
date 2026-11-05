@@ -95,6 +95,7 @@ namespace StrmAssistant
         private bool _currentNewLibraryMovieDb;
         private bool _currentPreferTraditionalChinese;
         private bool _currentEnableAltMovieDbUrl;
+        private bool _currentEnableLocalMovieDb;
 
         private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
         {
@@ -185,6 +186,7 @@ namespace StrmAssistant
             _currentNewLibraryMovieDb = GetOptions().MetadataEnhanceOptions.NewLibraryMovieDb;
             _currentPreferTraditionalChinese = GetOptions().MetadataEnhanceOptions.PreferTraditionalChinese;
             _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
+            _currentEnableLocalMovieDb = GetOptions().MetadataEnhanceOptions.EnableLocalMovieDb;
             InitializeOptionCache();
 
             if (GetOptions().AboutOptions.DebugMode)
@@ -223,7 +225,8 @@ namespace StrmAssistant
 
             if (_currentCatchupMode) QueueManager.Initialize();
             if (_currentEnableIntroSkip || _currentAutoMarkPreviousEpisodesPlayed) PlaySessionMonitor.Initialize();
-            if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl) MovieDbApi.Initialize();
+            if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl || _currentEnableLocalMovieDb)
+                MovieDbApi.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
@@ -805,6 +808,11 @@ namespace StrmAssistant
                     options.MetadataEnhanceOptions.EnableDoubanSupplement);
                 Logger.Info("DoubanRequestIntervalSeconds is set to {0}",
                     options.MetadataEnhanceOptions.DoubanRequestIntervalSeconds);
+                Logger.Info("EnableLocalMovieDb is set to {0}", options.MetadataEnhanceOptions.EnableLocalMovieDb);
+                Logger.Info("LocalMovieDbUrl is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MetadataEnhanceOptions.LocalMovieDbUrl)
+                        ? "EMPTY"
+                        : options.MetadataEnhanceOptions.LocalMovieDbUrl);
                 Logger.Info("EnableAltMovieDbUrl is set to {0}", options.MetadataEnhanceOptions.EnableAltMovieDbUrl);
                 Logger.Info("AltMovieDbApiUrl is set to {0}",
                     string.IsNullOrWhiteSpace(options.MetadataEnhanceOptions.AltMovieDbApiUrl)
@@ -816,10 +824,12 @@ namespace StrmAssistant
                         : options.MetadataEnhanceOptions.AltMovieDbImageUrl);
             }
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
-                _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl)
+                _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||
+                _currentEnableLocalMovieDb != options.MetadataEnhanceOptions.EnableLocalMovieDb)
             {
                 _currentPreferTraditionalChinese = options.MetadataEnhanceOptions.PreferTraditionalChinese;
                 _currentEnableAltMovieDbUrl = options.MetadataEnhanceOptions.EnableAltMovieDbUrl;
+                _currentEnableLocalMovieDb = options.MetadataEnhanceOptions.EnableLocalMovieDb;
 
                 MovieDbApi.Initialize();
             }
