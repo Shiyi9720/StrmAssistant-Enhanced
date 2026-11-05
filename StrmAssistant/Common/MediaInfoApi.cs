@@ -45,6 +45,9 @@ namespace StrmAssistant.Common
             public List<ChapterInfo> Chapters { get; set; } = new List<ChapterInfo>();
             public bool? ZeroFingerprintConfidence { get; set; }
             public string EmbeddedImage { get; set; }
+            public string Album { get; set; }
+            public string[] AlbumArtists { get; set; }
+            public string[] Artists { get; set; }
         }
 
         public MediaInfoApi(ILibraryManager libraryManager, IFileSystem fileSystem, IProviderManager providerManager,
@@ -322,8 +325,12 @@ namespace StrmAssistant.Common
                                 !string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId));
                         }
 
-                        if (item is Audio)
+                        if (item is Audio audio)
                         {
+                            jsonItem.Album = audio.Album;
+                            jsonItem.AlbumArtists = audio.AlbumArtists;
+                            jsonItem.Artists = audio.Artists;
+
                             var primaryImageInfo = item.GetImageInfo(ImageType.Primary, 0);
                             if (primaryImageInfo != null && _fileSystem.FileExists(primaryImageInfo.Path))
                             {
@@ -366,6 +373,12 @@ namespace StrmAssistant.Common
         {
             var workItem = _libraryManager.GetItemById(itemId);
 
+            if (MediaInfoBlacklist.FromOptions().IsExcluded(workItem))
+            {
+                _logger.Info("MediaInfoBlacklist - Serialization Skipped (" + source + "): " + workItem?.Name);
+                return false;
+            }
+
             if (!Plugin.LibraryApi.HasMediaInfo(workItem))
             {
                 _logger.Info("MediaInfoPersist - Serialization Skipped - No MediaInfo (" + source + ")");
@@ -383,6 +396,12 @@ namespace StrmAssistant.Common
             bool ignoreFileChange)
         {
             var workItem = _libraryManager.GetItemById(item.InternalId);
+
+            if (MediaInfoBlacklist.FromOptions().IsExcluded(workItem))
+            {
+                _logger.Info("MediaInfoBlacklist - Deserialization Skipped (" + source + "): " + workItem?.Name);
+                return false;
+            }
 
             if (Plugin.LibraryApi.HasMediaInfo(workItem)) return true;
 
@@ -414,18 +433,45 @@ namespace StrmAssistant.Common
                         _itemRepository.SaveMediaStreams(item.InternalId,
                             mediaSourceWithChapters.MediaSourceInfo.MediaStreams, CancellationToken.None);
 
-                        if (workItem is Audio && !string.IsNullOrEmpty(mediaSourceWithChapters.EmbeddedImage))
+                        if (workItem is Audio audio)
                         {
-                            var imageBytes = Convert.FromBase64String(mediaSourceWithChapters.EmbeddedImage);
-                            var tempPath = Path.Combine(Plugin.Instance.ApplicationPaths.TempDirectory,
-                                Guid.NewGuid() + ".jpg");
-                            await _fileSystem.WriteAllBytesAsync(tempPath, imageBytes, CancellationToken.None)
-                                .ConfigureAwait(false);
+                            if (!string.IsNullOrWhiteSpace(mediaSourceWithChapters.Album))
+                            {
+                                audio.Album = mediaSourceWithChapters.Album;
+                            }
 
-                            var libraryOptions = _libraryManager.GetLibraryOptions(workItem);
-                            await _providerManager.SaveImage(workItem, libraryOptions, tempPath, ImageType.Primary,
-                                    null, Array.Empty<long>(), directoryService, false, CancellationToken.None)
-                                .ConfigureAwait(false);
+                            if (mediaSourceWithChapters.AlbumArtists?.Length > 0)
+                            {
+                                audio.AlbumArtists = mediaSourceWithChapters.AlbumArtists;
+                            }
+
+                            if (mediaSourceWithChapters.Artists?.Length > 0)
+                            {
+                                audio.Artists = mediaSourceWithChapters.Artists;
+                            }
+
+                            if (!string.IsNullOrEmpty(mediaSourceWithChapters.EmbeddedImage))
+                            {
+                                var imageBytes = Convert.FromBase64String(mediaSourceWithChapters.EmbeddedImage);
+                                var tempPath = Path.Combine(Plugin.Instance.ApplicationPaths.TempDirectory,
+                                    Guid.NewGuid() + ".jpg");
+                                await _fileSystem.WriteAllBytesAsync(tempPath, imageBytes, CancellationToken.None)
+                                    .ConfigureAwait(false);
+
+                                var libraryOptions = _libraryManager.GetLibraryOptions(workItem);
+                                await _providerManager.SaveImage(workItem, libraryOptions, tempPath, ImageType.Primary,
+                                        null, Array.Empty<long>(), directoryService, false, CancellationToken.None)
+                                    .ConfigureAwait(false);
+
+                                try
+                                {
+                                    _fileSystem.DeleteFile(tempPath);
+                                }
+                                catch
+                                {
+                                    // ignored
+                                }
+                            }
                         }
 
                         workItem.Size = mediaSourceWithChapters.MediaSourceInfo.Size.GetValueOrDefault();

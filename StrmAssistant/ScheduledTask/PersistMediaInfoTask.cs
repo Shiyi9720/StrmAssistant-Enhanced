@@ -31,7 +31,7 @@ namespace StrmAssistant
             await Task.Yield();
             progress.Report(0);
 
-            var items = Plugin.LibraryApi.FetchPostExtractTaskItems(false);
+            var items = Plugin.LibraryApi.FetchPostExtractTaskItems(true);
             _logger.Info("MediaInfoPersist - Number of items: " + items.Count);
 
             var directoryService = new DirectoryService(_logger, _fileSystem);

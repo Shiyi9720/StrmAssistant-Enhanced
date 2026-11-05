@@ -104,6 +104,12 @@ namespace StrmAssistant.Common
         public Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, IDirectoryService directoryService,
             CancellationToken cancellationToken)
         {
+            if (FingerprintBlacklist.FromOptions().IsExcluded(item))
+            {
+                _logger.Info("FingerprintBlacklist - Skipped: " + item.Name + " - " + item.Path);
+                return Task.FromResult<Tuple<string, bool>>(null);
+            }
+
             var libraryOptions = _libraryManager.GetLibraryOptions(item);
 
             return (Task<Tuple<string, bool>>)_createTitleFingerprint.Invoke(_audioFingerprintManager,
@@ -213,6 +219,9 @@ namespace StrmAssistant.Common
             resultItems = resultItems.Where(i => isModSupported || !i.IsShortcut).GroupBy(i => i.InternalId)
                 .Select(g => g.First()).ToList();
 
+            var blacklist = FingerprintBlacklist.FromOptions();
+            resultItems = resultItems.Where(i => !blacklist.IsExcluded(i)).ToList();
+
             var unprocessedItems = FilterUnprocessed(resultItems);
 
             return unprocessedItems;
@@ -273,10 +282,13 @@ namespace StrmAssistant.Common
             }
 
             var isModSupported = Plugin.Instance.IsModSupported;
-            var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
-                .OfType<Episode>().ToList();
+            var blacklist = FingerprintBlacklist.FromOptions();
 
-            return items;
+            return _libraryManager.GetItemList(itemsFingerprintQuery)
+                .Where(i => isModSupported || !i.IsShortcut)
+                .OfType<Episode>()
+                .Where(i => !blacklist.IsExcluded(i))
+                .ToList();
         }
 
         public List<Episode> FetchIntroFingerprintTaskItems()
@@ -338,8 +350,10 @@ namespace StrmAssistant.Common
             }
 
             var isModSupported = Plugin.Instance.IsModSupported;
+            var blacklist = FingerprintBlacklist.FromOptions();
             var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
                 .OfType<Episode>()
+                .Where(i => !blacklist.IsExcluded(i))
                 .Where(i => i.RunTimeTicks >= TimeSpan
                     .FromMinutes(GetIntroDetectionFingerprintMinutesForItem(i)).Ticks)
                 .ToList();
@@ -391,6 +405,12 @@ namespace StrmAssistant.Common
         public async Task UpdateIntroMarkerForSeason(Season season, CancellationToken cancellationToken,
             IProgress<double>? progress = null)
         {
+            if (FingerprintBlacklist.FromOptions().IsExcluded(season))
+            {
+                _logger.Info("FingerprintBlacklist - Skipped marker update: " + season.Name + " - " + season.Path);
+                return;
+            }
+
             var introDetectionFingerprintMinutes = GetIntroDetectionFingerprintMinutesForItem(season);
 
             var libraryOptions = _libraryManager.GetLibraryOptions(season);

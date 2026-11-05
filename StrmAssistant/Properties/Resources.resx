@@ -140,6 +140,30 @@
   <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
     <value>Comma separated subtitle codecs or wildcards, for example subrip, ass, hdmv_pgs_subtitle. Matching subtitle streams are removed when media info is processed. Default is EMPTY.</value>
   </data>
+  <data name="MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords" xml:space="preserve">
+    <value>Media Info Exclude Keywords</value>
+  </data>
+  <data name="MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated keywords or wildcards, for example sample, *trailer*. Items matching the keywords or tagged mediainfo-exclude are skipped when media info is processed. Default is EMPTY.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Video_Thumbnail_Exclude_Keywords" xml:space="preserve">
+    <value>Video Thumbnail Exclude Keywords</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_videothumbnail_exclude_are_skipped__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated keywords or wildcards, for example sample, *trailer*. Items matching the keywords or tagged videothumbnail-exclude are skipped for chapter image and BIF extraction. Default is EMPTY.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Video_Thumbnail_Exclude_Media_Containers" xml:space="preserve">
+    <value>Video Thumbnail Exclude Media Containers</value>
+  </data>
+  <data name="MediaInfoExtractOptions_VideoThumbnailExcludeMediaContainers_Comma_separated_media_containers_to_skip_for_chapter_image_and_BIF_extraction__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated media containers to skip for chapter image and BIF extraction, for example MpegTs, Ts, M2Ts, Iso. Default is EMPTY.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Image_Extraction_Timeout_Multiplier" xml:space="preserve">
+    <value>Image Extraction Timeout Multiplier</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ImageExtractionTimeoutMultiplier_Multiplier_applied_to_the_default_timeout_of_chapter_image_and_BIF_extraction__Default_is_2_0_" xml:space="preserve">
+    <value>Multiplier applied to the default timeout of chapter image and BIF extraction. It must be between 1.0 and 10.0. Default is 2.0.</value>
+  </data>
   <data name="MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality" xml:space="preserve">
     <value>Screenshot Quality</value>
   </data>
@@ -406,6 +430,12 @@
   </data>
   <data name="IntroSkipOptions_IntroDetectionFingerprintMinutes_Intro_Detection_Fingerprint_Minutes" xml:space="preserve">
     <value>Intro Detection Fingerprint Length (Minute)</value>
+  </data>
+  <data name="IntroSkipOptions_FingerprintExcludeKeywords_Fingerprint_Exclude_Keywords" xml:space="preserve">
+    <value>Fingerprint Exclude Keywords</value>
+  </data>
+  <data name="IntroSkipOptions_FingerprintExcludeKeywords_Comma_separated_keywords_or_wildcards__Programs_or_seasons_matching_the_keywords_or_tagged_fingerprint_exclude_are_skipped__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated keywords or wildcards, for example sample, *trailer*. Episodes whose series, season or themselves match the keywords or are tagged fingerprint-exclude are skipped for fingerprint extraction. Default is EMPTY.</value>
   </data>
   <data name="IntroSkipOptions_MarkerEnabledLibraryScope_Library_Scope" xml:space="preserve">
     <value>Library Scope</value>

@@ -31,6 +31,25 @@ namespace StrmAssistant.Common
             _itemRepository = itemRepository;
         }
 
+        /// <summary>
+        /// Scales Emby's built-in chapter image and BIF extraction timeout by the
+        /// user configured <see cref="Options.MediaInfoExtractOptions.ImageExtractionTimeoutMultiplier"/>.
+        /// </summary>
+        public static int ApplyImageExtractionTimeoutMultiplier(int defaultTimeoutMs)
+        {
+            if (defaultTimeoutMs <= 0) return defaultTimeoutMs;
+
+            var multiplier = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions
+                .ImageExtractionTimeoutMultiplier;
+
+            if (double.IsNaN(multiplier) || double.IsInfinity(multiplier)) multiplier = 1.0;
+            multiplier = Math.Max(1.0, Math.Min(10.0, multiplier));
+
+            var scaled = defaultTimeoutMs * multiplier;
+
+            return scaled >= int.MaxValue ? int.MaxValue : (int)Math.Round(scaled);
+        }
+
         public bool HasIntro(BaseItem item)
         {
             return _itemRepository.GetChapters(item.InternalId, new[] { MarkerType.IntroStart }, CancellationToken.None)

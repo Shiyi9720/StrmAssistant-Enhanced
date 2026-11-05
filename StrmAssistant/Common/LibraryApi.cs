@@ -235,6 +235,9 @@ namespace StrmAssistant.Common
             resultItems = resultItems.Where(i => i.ExtraType is null).GroupBy(i => i.InternalId).Select(g => g.First())
                 .ToList();
 
+            var blacklist = MediaInfoBlacklist.FromOptions();
+            resultItems = resultItems.Where(i => !blacklist.IsExcluded(i)).ToList();
+
             var unprocessedItems = FilterUnprocessed(resultItems
                 .Concat(includeExtra ? resultItems.SelectMany(f => f.GetExtras(IncludeExtraTypes)) : Enumerable.Empty<BaseItem>())
                 .ToList());
@@ -347,7 +350,15 @@ namespace StrmAssistant.Common
 
             var combined = favoritesWithExtra.Concat(items).Concat(extras).GroupBy(i => i.InternalId)
                 .Select(g => g.First()).ToList();
-            var filtered = FilterUnprocessed(combined);
+            var blacklist = MediaInfoBlacklist.FromOptions();
+            var allowed = combined.Where(i => !blacklist.IsExcluded(i)).ToList();
+
+            if (allowed.Count != combined.Count)
+            {
+                _logger.Info($"MediaInfoBlacklist - Number of items excluded: {combined.Count - allowed.Count}");
+            }
+
+            var filtered = FilterUnprocessed(allowed);
             var results = OrderByDescending(filtered);
 
             return results;
@@ -423,7 +434,15 @@ namespace StrmAssistant.Common
                 .GroupBy(i => i.InternalId)
                 .Select(g => g.First())
                 .ToList();
-            var results = OrderByDescending(combined);
+            var blacklist = MediaInfoBlacklist.FromOptions();
+            var allowed = combined.Where(i => !blacklist.IsExcluded(i)).ToList();
+
+            if (allowed.Count != combined.Count)
+            {
+                _logger.Info($"MediaInfoBlacklist - Number of items excluded: {combined.Count - allowed.Count}");
+            }
+
+            var results = OrderByDescending(allowed);
 
             return results;
         }
@@ -538,7 +557,7 @@ namespace StrmAssistant.Common
                         }))
                 .ToList();
 
-            var videos = itemsMultiVersions.OfType<Video>().Cast<BaseItem>().ToList();
+            var videosAndAudios = itemsMultiVersions.Where(i => i is Video || i is Audio).Cast<BaseItem>().ToList();
 
             var seriesIds = itemsMultiVersions.OfType<Series>().Select(s => s.InternalId)
                 .Union(itemsMultiVersions.OfType<Episode>().Select(e => e.SeriesId)).ToArray();
@@ -576,15 +595,15 @@ namespace StrmAssistant.Common
                 }
             }
 
-            var combined = videos.Concat(episodes).GroupBy(i => i.InternalId).Select(g => g.First()).ToList();
+            var combined = videosAndAudios.Concat(episodes).GroupBy(i => i.InternalId).Select(g => g.First()).ToList();
 
             return filterNeeded ? FilterByFavorites(combined) : combined;
         }
 
         private List<BaseItem> FilterByFavorites(List<BaseItem> items)
         {
-            var videos = AllUsers.Select(e => e.Key)
-                .SelectMany(u => items.OfType<Video>().Where(i => i.IsFavoriteOrLiked(u)));
+            var videosAndAudios = AllUsers.Select(e => e.Key)
+                .SelectMany(u => items.Where(i => i is Video || i is Audio).Where(i => i.IsFavoriteOrLiked(u)));
 
             var episodes = AllUsers.Select(e => e.Key)
                 .SelectMany(u => items.OfType<Episode>()
@@ -592,7 +611,7 @@ namespace StrmAssistant.Common
                     .Where(g => g.Any(i => i.IsFavoriteOrLiked(u)) || g.First().Series.IsFavoriteOrLiked(u))
                     .SelectMany(g => g));
 
-            var results = videos.Cast<BaseItem>()
+            var results = videosAndAudios
                 .Concat(episodes)
                 .GroupBy(i => i.InternalId)
                 .Select(g => g.First())
@@ -645,8 +664,15 @@ namespace StrmAssistant.Common
 
         public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source, CancellationToken cancellationToken)
         {
+            if (MediaInfoBlacklist.FromOptions().IsExcluded(taskItem))
+            {
+                _logger.Info("MediaInfoBlacklist - Skipped: " + taskItem.Name + " - " + taskItem.Path);
+                return null;
+            }
+
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
-            var persistMediaInfo = taskItem is Video && persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
+            var persistMediaInfo = (taskItem is Video || taskItem is Audio) &&
+                                   persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var filePath = taskItem.Path;
@@ -693,7 +719,8 @@ namespace StrmAssistant.Common
 
                 if (deserializeResult)
                 {
-                    if (Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                    if (taskItem is Video &&
+                        Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
                     {
                         await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, refreshOptions, false, true)
                             .ConfigureAwait(false);
