@@ -28,6 +28,27 @@ namespace StrmAssistant.Notification
                     Name = Resources.Notification_IntroSkipUpdate_EventName,
                     CategoryId = "strm.assistant",
                     CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
+                },
+                new NotificationTypeInfo
+                {
+                    Id = "collection.update",
+                    Name = Resources.Notification_CollectionUpdate_EventName,
+                    CategoryId = "strm.assistant",
+                    CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
+                },
+                new NotificationTypeInfo
+                {
+                    Id = "metadata.update",
+                    Name = Resources.Notification_MetadataUpdate_EventName,
+                    CategoryId = "strm.assistant",
+                    CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
+                },
+                new NotificationTypeInfo
+                {
+                    Id = "image.update",
+                    Name = Resources.Notification_ImageUpdate_EventName,
+                    CategoryId = "strm.assistant",
+                    CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
                 }
             };
         }
