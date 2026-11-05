@@ -574,9 +574,36 @@ namespace StrmAssistant.Common
                 return TierPrefix;
             }
 
-            if (variant.Text.Length >= 2 && key.Key.IndexOf(variant.Text, StringComparison.Ordinal) >= 0)
+            if (variant.Text.Length >= 2 && key.Key.Length > variant.Text.Length &&
+                key.Key.IndexOf(variant.Text, StringComparison.Ordinal) > 0)
             {
-                return kind == SearchKeyKind.Initials ? -1 : TierContains;
+                if (kind != SearchKeyKind.Initials)
+                {
+                    return TierContains;
+                }
+            }
+
+            if (!variant.AllowFuzzy || variant.Text.Length < 2) return -1;
+
+            if (fuzzyChecks >= MaxFuzzyChecks) return -1;
+
+            if (kind != SearchKeyKind.Initials && variant.Text.Length >= 3 &&
+                key.Key.Length <= variant.Text.Length * 3 &&
+                SearchTextHelper.IsSubsequence(variant.Text, key.Key))
+            {
+                return TierFuzzy;
+            }
+
+            if (kind != SearchKeyKind.Initials && variant.Text.Length >= 3 && key.Key[0] == variant.Text[0])
+            {
+                fuzzyChecks++;
+
+                var maxDistance = variant.Text.Length >= 7 ? 2 : 1;
+
+                if (SearchTextHelper.IsSimilar(variant.Text, key.Key, maxDistance))
+                {
+                    return TierFuzzy;
+                }
             }
 
             return -1;
