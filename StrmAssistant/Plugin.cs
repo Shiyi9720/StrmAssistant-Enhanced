@@ -546,6 +546,14 @@ namespace StrmAssistant
                         : markerEnabledLibraryScope);
                 Logger.Info("IntroDetectionFingerprintMinutes is set to {0}",
                     options.IntroSkipOptions.IntroDetectionFingerprintMinutes);
+                var fingerprintOverrides = options.IntroSkipOptions.LibraryIntroDetectionFingerprintOptions?
+                    .Overrides().ToList();
+                Logger.Info("LibraryIntroDetectionFingerprintOverrides is set to {0}",
+                    fingerprintOverrides?.Count > 0
+                        ? string.Join(", ", fingerprintOverrides.Select(
+                            o => (string.IsNullOrEmpty(o.LibraryName) ? o.LibraryId : o.LibraryName) + "=" +
+                                 o.IntroDetectionFingerprintMinutes))
+                        : "NONE");
             }
             _currentUnlockIntroSkip = options.IntroSkipOptions.UnlockIntroSkip;
             FingerprintApi.UpdateLibraryPathsInScope();
@@ -556,6 +564,8 @@ namespace StrmAssistant
                 Logger.Info("MergeMultiVersion is set to {0}", options.ExperienceEnhanceOptions.MergeMultiVersion);
                 Logger.Info("MergeMoviesPreference is set to {0}",
                     EnumExtensions.GetDescription(options.ExperienceEnhanceOptions.MergeMoviesPreference));
+                Logger.Info("MaxMultiVersionMergeCount is set to {0}",
+                    options.GeneralOptions.MaxMultiVersionMergeCount);
             }
             _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
 
@@ -640,6 +650,8 @@ namespace StrmAssistant
             options.MediaInfoExtractOptions.LibraryList = list;
             options.IntroSkipOptions.LibraryList = listShow;
             options.IntroSkipOptions.MarkerEnabledLibraryList = listMarkerEnabled;
+            options.IntroSkipOptions.SyncLibraryIntroDetectionFingerprintOptions(libraries.Where(item =>
+                item.CollectionType == CollectionType.TvShows.ToString() || item.CollectionType is null));
 
             var catchTaskList = new List<EditorSelectOption>();
             foreach (Enum item in Enum.GetValues(typeof(CatchupTask)))

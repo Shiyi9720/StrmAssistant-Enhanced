@@ -498,7 +498,26 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("GeneralOptions_MergeMultiVersion_Merge_Multiple_Versions", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Max Multi Version Merge Count.
+        /// </summary>
+        public static string GeneralOptions_MaxMultiVersionMergeCount_Max_Multi_Version_Merge_Count {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MaxMultiVersionMergeCount_Max_Multi_Version_Merge_Count", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Max number of versions to merge in the same folder. It must be between 2 and 64. Default is 8..
+        /// </summary>
+        public static string GeneralOptions_MaxMultiVersionMergeCount_Max_number_of_versions_to_merge_in_the_same_folder__It_must_be_between_2_and_64__Default_is_8_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MaxMultiVersionMergeCount_Max_number_of_versions_to_merge_in_the_s" +
+                        "ame_folder__It_must_be_between_2_and_64__Default_is_8_", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Shared by refreshing persons, episodes, external subtitles, local processing tasks, etc. It must be between 1 to 20. Default is 1..
         /// </summary>
@@ -610,7 +629,46 @@ namespace StrmAssistant.Properties {
                         "fault_is_10_", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Library Intro Detection Fingerprint Length.
+        /// </summary>
+        public static string IntroSkipOptions_LibraryIntroDetectionFingerprint_Library_Intro_Detection_Fingerprint_Length {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_LibraryIntroDetectionFingerprint_Library_Intro_Detection_Fingerp" +
+                        "rint_Length", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Override intro detection fingerprint length per library. Unchecked uses the global setting..
+        /// </summary>
+        public static string IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_intro_detection_fingerprint_length_per_library__Unchecked_uses_the_global_setting_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_intro_detection_finger" +
+                        "print_length_per_library__Unchecked_uses_the_global_setting_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Override.
+        /// </summary>
+        public static string IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Override the global intro detection fingerprint length for this library..
+        /// </summary>
+        public static string IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override_the_global_intro_detection_fingerprint_length_for_this_library_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_LibraryIntroDetectionFingerprint_Override_Override_the_global_in" +
+                        "tro_detection_fingerprint_length_for_this_library_", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Optional Preferences.
         /// </summary>

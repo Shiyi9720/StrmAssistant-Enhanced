@@ -1,8 +1,10 @@
+using Emby.Naming.Common;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.Persistence;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.IO;
@@ -24,9 +26,12 @@ namespace StrmAssistant.Common
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
         private readonly IFileSystem _fileSystem;
+        private readonly ILocalizationManager _localizationManager;
 
         private readonly object _subtitleResolver;
         private readonly MethodInfo _getExternalSubtitleStreams;
+        private readonly MethodInfo _getResolvedMediaStreams;
+        private readonly MethodInfo _getExternalTracks;
         private readonly object _ffProbeSubtitleInfo;
         private readonly MethodInfo _updateExternalSubtitleStream;
 
@@ -40,6 +45,7 @@ namespace StrmAssistant.Common
             _libraryManager = libraryManager;
             _itemRepository = itemRepository;
             _fileSystem = fileSystem;
+            _localizationManager = localizationManager;
 
             try
             {
@@ -54,6 +60,15 @@ namespace StrmAssistant.Common
                     localizationManager, fileSystem, libraryManager
                 });
                 _getExternalSubtitleStreams = subtitleResolverType.GetMethod("GetExternalSubtitleStreams");
+
+                var resolvedMediaStreamsMethods = subtitleResolverType
+                    .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Where(m => m.Name == "GetResolvedMediaStreams" && m.GetParameters().Length == 6)
+                    .ToList();
+                _getResolvedMediaStreams =
+                    resolvedMediaStreamsMethods.FirstOrDefault(m => m.DeclaringType == subtitleResolverType) ??
+                    resolvedMediaStreamsMethods.FirstOrDefault();
+                _getExternalTracks = subtitleResolverType.GetMethod("GetExternalTracks");
 
                 var ffProbeSubtitleInfoType = embyProviders.GetType("Emby.Providers.MediaInfo.FFProbeSubtitleInfo");
                 var ffProbeSubtitleInfoConstructor = ffProbeSubtitleInfoType.GetConstructor(new[]
@@ -72,8 +87,8 @@ namespace StrmAssistant.Common
                 }
             }
 
-            if (_subtitleResolver is null || _getExternalSubtitleStreams is null ||
-                _ffProbeSubtitleInfo is null || _updateExternalSubtitleStream is null)
+            if (_subtitleResolver is null || _ffProbeSubtitleInfo is null || _updateExternalSubtitleStream is null ||
+                (_getExternalSubtitleStreams is null && _getResolvedMediaStreams is null && _getExternalTracks is null))
             {
                 _logger.Warn($"{nameof(SubtitleApi)} Init Failed");
             }
@@ -84,8 +99,122 @@ namespace StrmAssistant.Common
         {
             var namingOptions = _libraryManager.GetNamingOptions();
 
-            return (List<MediaStream>)_getExternalSubtitleStreams.Invoke(_subtitleResolver,
-                new object[] { item, startIndex, directoryService, namingOptions, clearCache });
+            if (_getExternalSubtitleStreams != null)
+            {
+                try
+                {
+                    return (List<MediaStream>)_getExternalSubtitleStreams.Invoke(_subtitleResolver,
+                        new object[] { item, startIndex, directoryService, namingOptions, clearCache });
+                }
+                catch (Exception e)
+                {
+                    if (Plugin.Instance.DebugMode)
+                    {
+                        _logger.Debug(e.Message);
+                        _logger.Debug(e.StackTrace);
+                    }
+                }
+            }
+
+            var libraryOptions = _libraryManager.GetLibraryOptions(item);
+
+            if (_getResolvedMediaStreams != null)
+            {
+                return GetExternalSubtitleStreamsByResolved(item, startIndex, directoryService, libraryOptions,
+                    namingOptions, clearCache);
+            }
+
+            if (_getExternalTracks != null)
+            {
+                return (List<MediaStream>)_getExternalTracks.Invoke(_subtitleResolver,
+                    new object[] { item, startIndex, directoryService, libraryOptions, namingOptions, clearCache });
+            }
+
+            return new List<MediaStream>();
+        }
+
+        private List<MediaStream> GetExternalSubtitleStreamsByResolved(BaseItem item, int startIndex,
+            IDirectoryService directoryService, LibraryOptions libraryOptions, NamingOptions namingOptions,
+            bool clearCache)
+        {
+            var streams = new List<MediaStream>();
+
+            if (!item.IsFileProtocol) return streams;
+
+            var containingFolderPath = item.ContainingFolderPath;
+            startIndex += AddExternalTracks(streams, containingFolderPath, item.Path, false, startIndex,
+                directoryService, libraryOptions, namingOptions, clearCache, false);
+
+            var subtitleFolderNames = namingOptions.SubtitleFolderNames;
+            if (subtitleFolderNames?.Length > 0)
+            {
+                try
+                {
+                    var fileSystemEntries = directoryService.GetFileSystemEntries(containingFolderPath);
+                    foreach (var fileSystemEntry in fileSystemEntries)
+                    {
+                        if (!fileSystemEntry.IsDirectory || !subtitleFolderNames.Contains(fileSystemEntry.Name,
+                                StringComparer.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var acceptAllTracks = !item.IsInMixedFolder && !item.ExtraType.HasValue;
+                        startIndex += AddExternalTracks(streams, fileSystemEntry.FullName, item.Path, false,
+                            startIndex, directoryService, libraryOptions, namingOptions, clearCache, acceptAllTracks);
+                    }
+                }
+                catch (IOException)
+                {
+                }
+            }
+
+            try
+            {
+                startIndex += AddExternalTracks(streams, item.GetInternalMetadataPath(), item.Path, false,
+                    startIndex, directoryService, libraryOptions, namingOptions, clearCache, false);
+            }
+            catch (IOException)
+            {
+            }
+
+            return streams;
+        }
+
+        private int AddExternalTracks(List<MediaStream> streams, string folder, string mediaPath, bool isAudio,
+            int startIndex, IDirectoryService directoryService, LibraryOptions libraryOptions,
+            NamingOptions namingOptions, bool clearCache, bool acceptAllTracks)
+        {
+            var fileSystemEntries = directoryService.GetFileSystemEntries(folder, clearCache);
+            var mediaFileNameWithoutExtension = _fileSystem.GetFileNameWithoutExtension(mediaPath);
+            mediaFileNameWithoutExtension = NormalizeFilenameForTrackComparison(mediaFileNameWithoutExtension);
+
+            var resolvedStreams = (List<MediaStream>)_getResolvedMediaStreams.Invoke(_subtitleResolver,
+                new object[]
+                {
+                    mediaFileNameWithoutExtension, isAudio, fileSystemEntries, libraryOptions, namingOptions,
+                    acceptAllTracks
+                });
+
+            if (resolvedStreams is null || resolvedStreams.Count == 0) return 0;
+
+            resolvedStreams = resolvedStreams
+                .OrderBy(i => Path.GetFileName(i.Path), _localizationManager.DisplaySortingComparer)
+                .ToList();
+
+            foreach (var stream in resolvedStreams)
+            {
+                stream.Index = startIndex++;
+            }
+
+            streams.AddRange(resolvedStreams);
+
+            return resolvedStreams.Count;
+        }
+
+        private static string NormalizeFilenameForTrackComparison(string filename)
+        {
+            return filename.Replace("_", string.Empty).Replace(" ", string.Empty);
         }
 
         private Task<bool> UpdateExternalSubtitleStream(BaseItem item,
