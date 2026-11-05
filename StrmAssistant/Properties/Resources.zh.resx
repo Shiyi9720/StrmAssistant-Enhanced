@@ -887,4 +887,19 @@
   <data name="ImportIntroFingerprintTask_Description_Import_intro_detection_fingerprints_from_a_JSON_file" xml:space="preserve">
     <value>从 JSON 文件导入片头检测指纹。</value>
   </data>
+  <data name="DashboardTasks_Title_Active_Tasks" xml:space="preserve">
+    <value>活动任务</value>
+  </data>
+  <data name="DashboardTasks_NoActiveTasks_No_active_tasks" xml:space="preserve">
+    <value>当前没有运行中的任务</value>
+  </data>
+  <data name="DashboardTasks_RebuildSearchIndex_Rebuild_Search_Index" xml:space="preserve">
+    <value>重建搜索索引</value>
+  </data>
+  <data name="DashboardTasks_RebuildQueued_Search_index_rebuild_queued" xml:space="preserve">
+    <value>已加入搜索索引重建队列</value>
+  </data>
+  <data name="DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild" xml:space="preserve">
+    <value>加入搜索索引重建队列失败</value>
+  </data>
 </root>

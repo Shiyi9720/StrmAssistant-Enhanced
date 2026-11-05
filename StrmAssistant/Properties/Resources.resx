@@ -974,4 +974,19 @@
   <data name="ImportIntroFingerprintTask_Description_Import_intro_detection_fingerprints_from_a_JSON_file" xml:space="preserve">
     <value>Import intro detection fingerprints from a JSON file.</value>
   </data>
+  <data name="DashboardTasks_Title_Active_Tasks" xml:space="preserve">
+    <value>Active Tasks</value>
+  </data>
+  <data name="DashboardTasks_NoActiveTasks_No_active_tasks" xml:space="preserve">
+    <value>No active tasks</value>
+  </data>
+  <data name="DashboardTasks_RebuildSearchIndex_Rebuild_Search_Index" xml:space="preserve">
+    <value>Rebuild Search Index</value>
+  </data>
+  <data name="DashboardTasks_RebuildQueued_Search_index_rebuild_queued" xml:space="preserve">
+    <value>Search index rebuild queued</value>
+  </data>
+  <data name="DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild" xml:space="preserve">
+    <value>Failed to queue search index rebuild</value>
+  </data>
 </root>
