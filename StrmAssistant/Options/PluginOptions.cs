@@ -4,6 +4,7 @@ using Emby.Web.GenericEdit.Elements.List;
 using Emby.Web.GenericEdit.Validation;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
+using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System;
 using System.ComponentModel;
@@ -60,6 +61,27 @@ namespace StrmAssistant.Options
                 !IntroSkipOptions.UnlockIntroSkip)
             {
                 context.AddValidationError(Resources.InvalidFingerprintCatchup);
+            }
+
+            if (MetadataEnhanceOptions.EnableAltMovieDbUrl)
+            {
+                if (!string.IsNullOrWhiteSpace(MetadataEnhanceOptions.AltMovieDbApiUrl) &&
+                    !CommonUtility.IsValidHttpUrl(MetadataEnhanceOptions.AltMovieDbApiUrl))
+                {
+                    context.AddValidationError(Resources.InvalidAltMovieDbApiUrl);
+                }
+
+                if (!string.IsNullOrWhiteSpace(MetadataEnhanceOptions.AltMovieDbImageUrl) &&
+                    !CommonUtility.IsValidHttpUrl(MetadataEnhanceOptions.AltMovieDbImageUrl))
+                {
+                    context.AddValidationError(Resources.InvalidAltMovieDbImageUrl);
+                }
+
+                if (!string.IsNullOrWhiteSpace(MetadataEnhanceOptions.AltMovieDbApiKey) &&
+                    !CommonUtility.IsValidMovieDbApiKey(MetadataEnhanceOptions.AltMovieDbApiKey))
+                {
+                    context.AddValidationError(Resources.InvalidAltMovieDbApiKey);
+                }
             }
         }
     }
