@@ -1,3 +1,5 @@
+using StrmAssistant.Properties;
+
 namespace StrmAssistant.Web.Helper
 {
     /// <summary>
@@ -12,8 +14,12 @@ namespace StrmAssistant.Web.Helper
 
             var multiVersionSort = options?.GeneralOptions.MultiVersionSort ?? true;
 
+            var episodeStatsFormat = (Resources.EpisodeStats_Total_In_Library ??
+                                      "Total Episodes {0} / In Library {1}")
+                .Replace("\\", "\\\\").Replace("'", "\\'");
+
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
-                   "\n" + GetLibraryBadgeScript() + "\n";
+                   "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n";
         }
 
         private static string GetStyleScript()
@@ -434,6 +440,157 @@ namespace StrmAssistant.Web.Helper
     startObserving();
 })();
 ";
+        }
+
+        /// <summary>
+        /// "Total episodes / in library" line on the series detail page. Emby keeps no external
+        /// episode total, so the numbers come from the episodes known to the server (including
+        /// virtual episodes created by the missing episodes feature).
+        /// </summary>
+        private static string GetEpisodeStatsScript(string format)
+        {
+            return @"
+(function () {
+    'use strict';
+
+    var statsClass = 'strmAssistantEpisodeStats';
+    var itemFormat = '@@FORMAT@@';
+    var cache = {};
+    var apiClient = null;
+    var pendingId = null;
+    var scheduled = false;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function currentItemId() {
+        var hash = location.hash || '';
+        if (hash.indexOf('item?') === -1 && hash.indexOf('/item') === -1) return null;
+        var match = /[?&]id=([^&]+)/.exec(hash);
+        return match ? match[1] : null;
+    }
+
+    function removeStats() {
+        var nodes = document.querySelectorAll('.' + statsClass);
+        for (var i = nodes.length - 1; i >= 0; i--) {
+            if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+        }
+    }
+
+    function buildText(stats) {
+        return String(itemFormat)
+            .replace('{0}', stats.Total)
+            .replace('{1}', stats.InLibrary);
+    }
+
+    function render(id) {
+        var stats = cache[id];
+        if (!stats || !stats.IsSeries || !stats.Total) {
+            removeStats();
+            return;
+        }
+
+        var text = buildText(stats);
+        var existing = document.querySelectorAll('.' + statsClass);
+
+        if (existing.length === 1 && existing[0].textContent === text && document.contains(existing[0])) return;
+
+        removeStats();
+
+        var page = document.querySelector('.itemDetailPage');
+        if (!page) return;
+
+        var element = document.createElement('div');
+        element.className = statsClass;
+        element.textContent = text;
+
+        var anchor = page.querySelector('.itemMiscInfo-primary');
+        if (anchor && anchor.parentNode) {
+            anchor.parentNode.insertBefore(element, anchor.nextSibling);
+            return;
+        }
+
+        var name = page.querySelector('.itemName');
+        if (name && name.parentNode) {
+            name.parentNode.insertBefore(element, name.nextSibling);
+            return;
+        }
+
+        var primary = page.querySelector('.detailPagePrimaryContent');
+        if (primary) {
+            primary.insertBefore(element, primary.firstChild);
+            return;
+        }
+
+        page.insertBefore(element, page.firstChild);
+    }
+
+    function refresh() {
+        var id = currentItemId();
+
+        if (!id) {
+            removeStats();
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(cache, id)) {
+            render(id);
+            return;
+        }
+
+        if (pendingId === id) return;
+        pendingId = id;
+
+        withApiClient(function (client) {
+            client.getJSON(client.getUrl('StrmAssistant/Items/' + id + '/EpisodeStats')).then(function (stats) {
+                if (pendingId === id) pendingId = null;
+                cache[id] = stats || {};
+                render(id);
+            }, function () {
+                if (pendingId === id) pendingId = null;
+            });
+        });
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            refresh();
+        }, 300);
+    }
+
+    window.addEventListener('hashchange', schedule);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    startObserving();
+})();
+".Replace("@@FORMAT@@", format);
         }
     }
 }

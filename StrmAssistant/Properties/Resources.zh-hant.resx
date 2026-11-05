@@ -113,6 +113,9 @@
   <data name="GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_" xml:space="preserve">
     <value>詳情頁多版本按畫質優先展示：解析度、編碼、檔案大小。預設為開啟。</value>
   </data>
+  <data name="EpisodeStats_Total_In_Library" xml:space="preserve">
+    <value>總集數 {0} / 已入庫 {1}</value>
+  </data>
   <data name="PluginOptions_ModOptions_Mod_Features" xml:space="preserve">
     <value>搜尋</value>
   </data>
