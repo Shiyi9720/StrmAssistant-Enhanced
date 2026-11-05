@@ -392,6 +392,12 @@
   <data name="DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles" xml:space="preserve">
     <value>从 OpenSubtitles 下载缺失的字幕，优先精确匹配，遇到限流自动降速重试</value>
   </data>
+  <data name="MetadataEnhanceOptions_PreferTraditionalChinese_Prefer_Traditional_Chinese" xml:space="preserve">
+    <value>优先繁体中文</value>
+  </data>
+  <data name="MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant__zh_TW__then_zh_CN__Default_is_OFF_" xml:space="preserve">
+    <value>请求中文元数据时优先使用 TMDB 的繁体中文，语言链为 zh-Hant、zh-TW、zh-CN。默认关闭。</value>
+  </data>
   <data name="UpdatePluginTask_Name_Update_Plugin" xml:space="preserve">
     <value>更新本插件</value>
   </data>

@@ -59,6 +59,7 @@ namespace StrmAssistant
         public static FingerprintApi FingerprintApi { get; private set; }
         public static NotificationApi NotificationApi { get; private set; }
         public static SubtitleApi SubtitleApi { get; private set; }
+        public static MovieDbApi MovieDbApi { get; private set; }
         public static PlaySessionMonitor PlaySessionMonitor { get; private set; }
         public static MetadataApi MetadataApi { get; private set; }
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
@@ -88,6 +89,7 @@ namespace StrmAssistant
         private bool _currentUnlockIntroSkip;
         private bool _currentMergeMultiVersion;
         private bool _currentNewLibraryMovieDb;
+        private bool _currentPreferTraditionalChinese;
 
         private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
         {
@@ -134,6 +136,7 @@ namespace StrmAssistant
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
             _currentNewLibraryMovieDb = GetOptions().MetadataEnhanceOptions.NewLibraryMovieDb;
+            _currentPreferTraditionalChinese = GetOptions().MetadataEnhanceOptions.PreferTraditionalChinese;
             InitializeOptionCache();
 
             if (GetOptions().AboutOptions.DebugMode)
@@ -157,6 +160,7 @@ namespace StrmAssistant
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
+            MovieDbApi = new MovieDbApi();
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
             VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
@@ -167,6 +171,7 @@ namespace StrmAssistant
 
             if (_currentCatchupMode) QueueManager.Initialize();
             if (_currentEnableIntroSkip) PlaySessionMonitor.Initialize();
+            if (_currentPreferTraditionalChinese) MovieDbApi.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
@@ -592,8 +597,16 @@ namespace StrmAssistant
             if (!suppress)
             {
                 Logger.Info("NewLibraryMovieDb is set to {0}", options.MetadataEnhanceOptions.NewLibraryMovieDb);
+                Logger.Info("PreferTraditionalChinese is set to {0}",
+                    options.MetadataEnhanceOptions.PreferTraditionalChinese);
             }
             _currentNewLibraryMovieDb = options.MetadataEnhanceOptions.NewLibraryMovieDb;
+            if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese)
+            {
+                _currentPreferTraditionalChinese = options.MetadataEnhanceOptions.PreferTraditionalChinese;
+
+                if (_currentPreferTraditionalChinese) MovieDbApi.Initialize();
+            }
 
             if (suppress) _currentSuppressOnOptionsSaved = false;
 

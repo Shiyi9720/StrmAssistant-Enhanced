@@ -1450,6 +1450,26 @@ namespace StrmAssistant.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Prefer Traditional Chinese.
+        /// </summary>
+        public static string MetadataEnhanceOptions_PreferTraditionalChinese_Prefer_Traditional_Chinese {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_PreferTraditionalChinese_Prefer_Traditional_Chinese", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Use Traditional Chinese metadata from TMDB when Chinese metadata is requested. The language chain is zh-Hant, zh-TW, then zh-CN. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant__zh_TW__then_zh_CN__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata" +
+                        "_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant" +
+                        "__zh_TW__then_zh_CN__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Customize MovieDb Fallback Language.
         /// </summary>
         public static string ModOptions_ChineseMovieDb_Chinese_MovieDb {
