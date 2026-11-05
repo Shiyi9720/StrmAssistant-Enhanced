@@ -109,9 +109,15 @@ const strmAssistantCommandSource = {
             }
             if ((options.items[0].Type === 'Series' || options.items[0].Type === 'Season') &&
                 (options.user && options.user.Policy.IsAdministrator || false)) {
-                const commandName = locale === 'zh-cn' ? '\u6E05\u9664\u7247\u5934\u6807\u8BB0' : 
+                const commandName = locale === 'zh-cn' ? '\u6E05\u9664\u7247\u5934\u6807\u8BB0' :
                     (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u7247\u982D\u6A19\u8A18' : 'Clear Intro Markers');
                 result.push({ name: commandName, id: 'clear_intro', icon: 'clear_all' });
+            }
+            if (['Movie', 'Episode', 'Series', 'Season', 'MusicVideo', 'Video', 'Trailer', 'BoxSet'].includes(options.items[0].Type) &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                const commandName = locale === 'zh-cn' ? '\u5220\u9664\u6F14\u5458' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u522A\u9664\u6F14\u54E1' : 'Remove Actor');
+                result.push({ name: commandName, id: 'remove_person', icon: 'person_remove' });
             }
             return result;
         }
@@ -132,7 +138,8 @@ const strmAssistantCommandSource = {
             traverse: 'traverse',
             lock: 'lock',
             unlock: 'unlock',
-            clear_intro: 'clear_intro'
+            clear_intro: 'clear_intro',
+            remove_person: 'remove_person'
         };
         if (command.startsWith('delver_')) {
             const mediaSourceId = command.replace('delver_', '');
