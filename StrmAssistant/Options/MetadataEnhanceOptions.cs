@@ -28,7 +28,22 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_PreferTraditionalChinese_Use_Traditional_Chinese_metadata_from_TMDB_when_Chinese_metadata_is_requested__The_language_chain_is_zh_Hant__zh_TW__then_zh_CN__Default_is_OFF_", typeof(Resources))]
         public bool PreferTraditionalChinese { get; set; } = false;
 
+        [DisplayNameL("MetadataEnhanceOptions_EnableLocalMovieDb_Local_MovieDb_Source", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableLocalMovieDb_Route_all_TMDB_api_metadata_search_and_image_requests_through_one_local_mirror_or_reverse_proxy__It_takes_precedence_over_the_alternative_MovieDb_options_below__Default_is_OFF_", typeof(Resources))]
+        public bool EnableLocalMovieDb { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_LocalMovieDbUrl_Local_MovieDb_Url", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_LocalMovieDbUrl_Base_address_of_the_local_TMDB_mirror__for_example_http___192_168_1_10_8080__Both_api_and_image_requests_are_rewritten_to_this_address__Default_is_EMPTY_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMovieDb), SimpleCondition.IsTrue)]
+        public string LocalMovieDbUrl { get; set; } = string.Empty;
+
+        [DisplayNameL("MetadataEnhanceOptions_LocalMovieDbApiKey_Local_MovieDb_Api_Key", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_LocalMovieDbApiKey_Optional_api_key_sent_to_the_local_mirror__Blank_uses_the_alternative_or_system_default_key_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMovieDb), SimpleCondition.IsTrue)]
+        public string LocalMovieDbApiKey { get; set; } = string.Empty;
+
         [DisplayNameL("MetadataEnhanceOptions_EnableAltMovieDbUrl", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableAltMovieDbUrl_Legacy_alternative_MovieDb_source__kept_for_compatibility__Use_the_local_MovieDb_source_above_to_configure_api_and_image_addresses_together_", typeof(Resources))]
         public bool EnableAltMovieDbUrl { get; set; } = false;
 
         [DisplayNameL("MetadataEnhanceOptions_AltMovieDbApiUrl_Alternative_MovieDb_Api_Url", typeof(Resources))]

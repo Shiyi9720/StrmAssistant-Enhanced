@@ -74,6 +74,20 @@ namespace StrmAssistant.Options
                 context.AddValidationError(Resources.InvalidFingerprintCatchup);
             }
 
+            if (MetadataEnhanceOptions.EnableLocalMovieDb)
+            {
+                if (!CommonUtility.IsValidHttpUrl(MetadataEnhanceOptions.LocalMovieDbUrl))
+                {
+                    context.AddValidationError(Resources.InvalidLocalMovieDbUrl);
+                }
+
+                if (!string.IsNullOrWhiteSpace(MetadataEnhanceOptions.LocalMovieDbApiKey) &&
+                    !CommonUtility.IsValidMovieDbApiKey(MetadataEnhanceOptions.LocalMovieDbApiKey))
+                {
+                    context.AddValidationError(Resources.InvalidLocalMovieDbApiKey);
+                }
+            }
+
             if (MetadataEnhanceOptions.EnableAltMovieDbUrl)
             {
                 if (!string.IsNullOrWhiteSpace(MetadataEnhanceOptions.AltMovieDbApiUrl) &&
