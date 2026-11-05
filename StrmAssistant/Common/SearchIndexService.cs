@@ -169,6 +169,7 @@ namespace StrmAssistant.Common
                 var options = GetOptions();
                 var previous = _snapshot.ToDictionary(i => i.Entry.Id);
                 var entries = new List<SearchIndexEntry>();
+                var aliasFetches = 0;
 
                 var total = GetTotalItemCount();
 
@@ -203,6 +204,14 @@ namespace StrmAssistant.Common
                         {
                             entry.Aliases = old.Entry.Aliases;
                             entry.AliasesFetched = old.Entry.AliasesFetched;
+                        }
+
+                        if (options.TmdbAliasSearch && !entry.AliasesFetched &&
+                            !string.IsNullOrEmpty(entry.TmdbId) && aliasFetches < MaxAliasFetchPerBuild)
+                        {
+                            aliasFetches++;
+                            await FetchTmdbAliasesAsync(entry, cancellationToken).ConfigureAwait(false);
+                            await Task.Delay(250, cancellationToken).ConfigureAwait(false);
                         }
 
                         entries.Add(entry);
@@ -422,9 +431,30 @@ namespace StrmAssistant.Common
                     }
                 }
 
+                if (entry.Year.HasValue)
+                {
+                    AddKey(SearchTextHelper.Compact(title) + entry.Year.Value, SearchKeyKind.Year, chinese);
+                }
             }
 
             AddTitle(entry.Name, SearchKeyKind.Name);
+
+            if (!string.IsNullOrEmpty(entry.OriginalTitle) &&
+                !string.Equals(entry.OriginalTitle, entry.Name, StringComparison.Ordinal))
+            {
+                AddTitle(entry.OriginalTitle, SearchKeyKind.OriginalTitle);
+            }
+
+            if (!string.IsNullOrEmpty(entry.SortName) &&
+                !string.Equals(entry.SortName, entry.Name, StringComparison.Ordinal))
+            {
+                AddTitle(entry.SortName, SearchKeyKind.SortName);
+            }
+
+            foreach (var alias in entry.Aliases ?? Enumerable.Empty<string>())
+            {
+                AddTitle(alias, SearchKeyKind.Alias);
+            }
 
             return new IndexedItem
             {
@@ -716,6 +746,81 @@ namespace StrmAssistant.Common
                 }
 
                 return Path.Combine(folder, "search-index.json");
+            }
+        }
+
+        private async Task FetchTmdbAliasesAsync(SearchIndexEntry entry, CancellationToken cancellationToken)
+        {
+            entry.AliasesFetched = true;
+
+            try
+            {
+                if (string.IsNullOrEmpty(entry.TmdbId)) return;
+
+                string kind;
+
+                if (string.Equals(entry.Type, nameof(Movie), StringComparison.Ordinal))
+                {
+                    kind = "movie";
+                }
+                else if (string.Equals(entry.Type, nameof(Series), StringComparison.Ordinal))
+                {
+                    kind = "tv";
+                }
+                else
+                {
+                    return;
+                }
+
+                var apiKey = MovieDbApi.GetEffectiveApiKey();
+
+                if (string.IsNullOrEmpty(apiKey)) return;
+
+                var root = MovieDbApi.GetEffectiveApiRoot().TrimEnd('/');
+                var url = root + "/3/" + kind + "/" + entry.TmdbId +
+                          "/alternative_titles?api_key=" + Uri.EscapeDataString(apiKey);
+
+                var options = new HttpRequestOptions
+                {
+                    Url = url,
+                    CancellationToken = cancellationToken,
+                    AcceptHeader = "application/json",
+                    BufferContent = true,
+                    UserAgent = Plugin.Instance.UserAgent
+                };
+
+                using var response = await _httpClient.SendAsync(options, "GET").ConfigureAwait(false);
+
+                if (response.StatusCode != HttpStatusCode.OK) return;
+
+                await using var stream = response.Content;
+
+                var result = _jsonSerializer.DeserializeFromStream<TmdbAlternativeTitles>(stream);
+
+                if (result?.Titles == null) return;
+
+                var aliases = new HashSet<string>(entry.Aliases ?? Enumerable.Empty<string>(),
+                    StringComparer.OrdinalIgnoreCase);
+
+                foreach (var title in result.Titles)
+                {
+                    if (string.IsNullOrWhiteSpace(title?.Title)) continue;
+
+                    aliases.Add(title.Title.Trim());
+
+                    if (aliases.Count >= MaxAliasCount) break;
+                }
+
+                entry.Aliases = aliases.Take(MaxAliasCount).ToList();
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                entry.AliasesFetched = false;
+                _logger.Debug("ChineseSearch - TMDB alias lookup failed: " + e.Message);
             }
         }
 
