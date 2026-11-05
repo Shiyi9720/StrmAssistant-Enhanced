@@ -989,4 +989,10 @@
   <data name="DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild" xml:space="preserve">
     <value>Failed to queue search index rebuild</value>
   </data>
+  <data name="ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Auto_Mark_Previous_Episodes_Played" xml:space="preserve">
+    <value>Auto Mark Previous Episodes Played</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_" xml:space="preserve">
+    <value>Mark previous episodes in the same season with playback progress as played when the current episode finishes. Default is OFF.</value>
+  </data>
 </root>

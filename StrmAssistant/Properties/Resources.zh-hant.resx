@@ -902,4 +902,10 @@
   <data name="DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild" xml:space="preserve">
     <value>加入搜尋索引重建佇列失敗</value>
   </data>
+  <data name="ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Auto_Mark_Previous_Episodes_Played" xml:space="preserve">
+    <value>自動標記之前集數已播放</value>
+  </data>
+  <data name="ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_" xml:space="preserve">
+    <value>目前集數播放完成後，將同季之前有播放進度的集數標記為已播放。預設關閉。</value>
+  </data>
 </root>

@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Options.Utility;
 
@@ -21,6 +22,7 @@ namespace StrmAssistant.IntroSkip
     {
         private readonly ILibraryManager _libraryManager;
         private readonly IUserManager _userManager;
+        private readonly IUserDataManager _userDataManager;
         private readonly ISessionManager _sessionManager;
         private readonly ILogger _logger;
 
@@ -40,11 +42,12 @@ namespace StrmAssistant.IntroSkip
         public static HashSet<string> ClientsInScope;
 
         public PlaySessionMonitor(ILibraryManager libraryManager, IUserManager userManager,
-            ISessionManager sessionManager)
+            IUserDataManager userDataManager, ISessionManager sessionManager)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
             _userManager = userManager;
+            _userDataManager = userDataManager;
             _sessionManager = sessionManager;
 
             UpdateLibraryPathsInScope();
@@ -105,7 +108,8 @@ namespace StrmAssistant.IntroSkip
             _sessionManager.PlaybackProgress += OnPlaybackProgress;
             _sessionManager.PlaybackStopped += OnPlaybackStopped;
 
-            if (_introSkipProcessTask == null || _introSkipProcessTask.IsCompleted)
+            if (Plugin.Instance.GetPluginOptions().IntroSkipOptions.EnableIntroSkip &&
+                (_introSkipProcessTask == null || _introSkipProcessTask.IsCompleted))
             {
                 QueueManager.IntroSkipItemQueue.Clear();
                 _introSkipProcessTask = QueueManager.IntroSkip_ProcessItemQueueAsync();
@@ -310,6 +314,8 @@ namespace StrmAssistant.IntroSkip
         {
             if (!(e.Item is Episode episode) || !e.PlaybackPositionTicks.HasValue || !episode.RunTimeTicks.HasValue) return;
 
+            AutoMarkPreviousEpisodesPlayed(episode, e);
+
             var playSessionData = GetPlaySessionData(e);
             if (playSessionData is null) return;
 
@@ -329,6 +335,71 @@ namespace StrmAssistant.IntroSkip
             _playSessionData.TryRemove(e.PlaySessionId, out _);
             _lastIntroUpdateTimes.TryRemove(episode, out _);
             _lastCreditsUpdateTimes.TryRemove(episode, out _);
+        }
+
+        private void AutoMarkPreviousEpisodesPlayed(Episode episode, PlaybackStopEventArgs e)
+        {
+            if (!Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.AutoMarkPreviousEpisodesPlayed) return;
+            if (!episode.IndexNumber.HasValue || !(episode.ParentIndexNumber > 0) || episode.Season is null) return;
+
+            var positionTicks = e.PlaybackPositionTicks.GetValueOrDefault();
+            var runTimeTicks = episode.RunTimeTicks.GetValueOrDefault();
+
+            if (runTimeTicks <= 0 || positionTicks * 10 < runTimeTicks * 9) return;
+
+            var userId = e.Session.UserInternalId;
+            var currentIndex = episode.IndexNumber.Value;
+            var seriesName = episode.SeriesName;
+            var seasonName = episode.Season.Name;
+            var episodeName = episode.Name;
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    var user = _userManager.GetUserById(userId);
+                    if (user is null) return;
+
+                    var episodes = episode.Season.GetEpisodes(new InternalItemsQuery
+                        {
+                            IncludeItemTypes = new[] { nameof(Episode) },
+                            HasPath = true,
+                            MediaTypes = new[] { MediaType.Video },
+                            OrderBy = new (string, SortOrder)[] { (ItemSortBy.IndexNumber, SortOrder.Ascending) }
+                        }).Items.OfType<Episode>()
+                        .Where(previous => previous.IndexNumber.HasValue &&
+                                           previous.IndexNumber.Value < currentIndex)
+                        .ToList();
+
+                    var marked = 0;
+
+                    foreach (var previous in episodes)
+                    {
+                        var userData = _userDataManager.GetUserData(user, previous);
+
+                        if (userData is null || userData.Played || userData.PlaybackPositionTicks <= 0) continue;
+
+                        userData.Played = true;
+                        userData.PlayCount = Math.Max(1, userData.PlayCount);
+                        userData.PlaybackPositionTicks = 0;
+                        userData.LastPlayedDate = DateTimeOffset.UtcNow;
+                        _userDataManager.SaveUserData(user, previous, userData, UserDataSaveReason.TogglePlayed,
+                            CancellationToken.None);
+                        marked++;
+                    }
+
+                    if (marked > 0)
+                    {
+                        _logger.Info(
+                            $"AutoMarkPreviousEpisodes - {seriesName} - {seasonName} - Marked {marked} previous episode(s) as played before {episodeName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("AutoMarkPreviousEpisodes - Failed: " + ex.Message);
+                    _logger.Debug(ex.StackTrace);
+                }
+            });
         }
 
         private PlaySessionData GetPlaySessionData(PlaybackProgressEventArgs e)

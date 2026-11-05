@@ -39,5 +39,9 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(MergeMultiVersion), SimpleCondition.IsTrue)]
         [Browsable(false)]
         public MergeSeriesScopeOption MergeSeriesPreference => MergeSeriesScopeOption.LibraryScope;
+
+        [DisplayNameL("ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Auto_Mark_Previous_Episodes_Played", typeof(Resources))]
+        [DescriptionL("ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_", typeof(Resources))]
+        public bool AutoMarkPreviousEpisodesPlayed { get; set; } = false;
     }
 }

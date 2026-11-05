@@ -2694,5 +2694,21 @@ namespace StrmAssistant.Properties {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Auto_Mark_Previous_Episodes_Played.
+        /// </summary>
+        public static string ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Auto_Mark_Previous_Episodes_Played {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Auto_Mark_Previous_Episodes_Played", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to Mark previous episodes in the same season with playback progress as played when the current episode finishes. Default is OFF..
+        /// </summary>
+        public static string ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("ExperienceEnhanceOptions_AutoMarkPreviousEpisodesPlayed_Mark_previous_episodes_in_the_same_season_as_played_when_the_current_episode_finishes__Default_is_OFF_", resourceCulture);
+            }
+        }
 }
 }

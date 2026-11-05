@@ -90,6 +90,7 @@ namespace StrmAssistant
         private bool _currentCatchupMode;
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
+        private bool _currentAutoMarkPreviousEpisodesPlayed;
         private bool _currentMergeMultiVersion;
         private bool _currentNewLibraryMovieDb;
         private bool _currentPreferTraditionalChinese;
@@ -178,6 +179,8 @@ namespace StrmAssistant
             _currentCatchupMode = GetOptions().GeneralOptions.CatchupMode;
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
+            _currentAutoMarkPreviousEpisodesPlayed =
+                GetOptions().ExperienceEnhanceOptions.AutoMarkPreviousEpisodesPlayed;
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
             _currentNewLibraryMovieDb = GetOptions().MetadataEnhanceOptions.NewLibraryMovieDb;
             _currentPreferTraditionalChinese = GetOptions().MetadataEnhanceOptions.PreferTraditionalChinese;
@@ -202,7 +205,8 @@ namespace StrmAssistant
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths,
                 FfmpegApi.WrapFfmpegManager(ffmpegManager), mediaEncoder, mediaMountManager, jsonSerializer,
                 itemRepository, serverApplicationHost);
-            PlaySessionMonitor = new PlaySessionMonitor(libraryManager, userManager, sessionManager);
+            PlaySessionMonitor = new PlaySessionMonitor(libraryManager, userManager, userDataManager,
+                sessionManager);
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
@@ -218,7 +222,7 @@ namespace StrmAssistant
             ShortcutMenuHelper.Initialize(configurationManager);
 
             if (_currentCatchupMode) QueueManager.Initialize();
-            if (_currentEnableIntroSkip) PlaySessionMonitor.Initialize();
+            if (_currentEnableIntroSkip || _currentAutoMarkPreviousEpisodesPlayed) PlaySessionMonitor.Initialize();
             if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl) MovieDbApi.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
@@ -700,10 +704,16 @@ namespace StrmAssistant
                 Logger.Info("MaxCreditsDurationSeconds is set to {0}", options.IntroSkipOptions.MaxCreditsDurationSeconds);
                 Logger.Info("MinOpeningPlotDurationSeconds is set to {0}", options.IntroSkipOptions.MinOpeningPlotDurationSeconds);
             }
-            if (_currentEnableIntroSkip != options.IntroSkipOptions.EnableIntroSkip)
+            var enableIntroSkip = options.IntroSkipOptions.EnableIntroSkip;
+            var autoMarkPreviousEpisodesPlayed = options.ExperienceEnhanceOptions.AutoMarkPreviousEpisodesPlayed;
+
+            if (_currentEnableIntroSkip != enableIntroSkip ||
+                _currentAutoMarkPreviousEpisodesPlayed != autoMarkPreviousEpisodesPlayed)
             {
-                _currentEnableIntroSkip = options.IntroSkipOptions.EnableIntroSkip;
-                if (options.IntroSkipOptions.EnableIntroSkip)
+                _currentEnableIntroSkip = enableIntroSkip;
+                _currentAutoMarkPreviousEpisodesPlayed = autoMarkPreviousEpisodesPlayed;
+
+                if (enableIntroSkip || autoMarkPreviousEpisodesPlayed)
                 {
                     PlaySessionMonitor.Initialize();
                 }
@@ -777,6 +787,8 @@ namespace StrmAssistant
                     EnumExtensions.GetDescription(options.ExperienceEnhanceOptions.MergeMoviesPreference));
                 Logger.Info("MaxMultiVersionMergeCount is set to {0}",
                     options.GeneralOptions.MaxMultiVersionMergeCount);
+                Logger.Info("AutoMarkPreviousEpisodesPlayed is set to {0}",
+                    options.ExperienceEnhanceOptions.AutoMarkPreviousEpisodesPlayed);
             }
             _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
 
