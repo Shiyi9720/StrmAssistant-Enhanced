@@ -97,15 +97,15 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
 
             if (_subtitleResolver is null || _ffProbeSubtitleInfo is null || _updateExternalSubtitleStream is null ||
                 (_getExternalSubtitleStreams is null && _getResolvedMediaStreams is null && _getExternalTracks is null))
             {
-                _logger.Warn($"{nameof(SubtitleApi)} Init Failed");
+                _logger?.Warn($"{nameof(SubtitleApi)} Init Failed");
             }
         }
 
@@ -125,8 +125,8 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.Instance.DebugMode)
                     {
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                 }
             }
@@ -301,10 +301,10 @@ namespace StrmAssistant.Common
                                 CancellationToken.None).ConfigureAwait(false);
 
                         if (!result)
-                            _logger.Warn("No result when probing external subtitle file: {0}", subtitleStream.Path);
+                            _logger?.Warn("No result when probing external subtitle file: {0}", subtitleStream.Path);
                     }
 
-                    _logger.Info("ExternalSubtitle - Subtitle Processed: " + subtitleStream.Path);
+                    _logger?.Info("ExternalSubtitle - Subtitle Processed: " + subtitleStream.Path);
                 }
 
                 currentStreams.AddRange(externalSubtitleStreams);
@@ -326,7 +326,7 @@ namespace StrmAssistant.Common
 
             if (subtitleManager is null || provider is null)
             {
-                _logger.Warn("SubtitleDownload - OpenSubtitles provider is not available");
+                _logger?.Warn("SubtitleDownload - OpenSubtitles provider is not available");
                 return false;
             }
 
@@ -335,7 +335,7 @@ namespace StrmAssistant.Common
             if (libraryOptions.DisabledSubtitleFetchers?.Contains(provider.Name,
                     StringComparer.OrdinalIgnoreCase) == true)
             {
-                _logger.Info("SubtitleDownload - OpenSubtitles is disabled for library: " + item.Path);
+                _logger?.Info("SubtitleDownload - OpenSubtitles is disabled for library: " + item.Path);
                 return false;
             }
 
@@ -346,7 +346,7 @@ namespace StrmAssistant.Common
             {
                 if (HasSubtitleLanguage(item, language))
                 {
-                    _logger.Debug("SubtitleDownload - Subtitle already exists: " +
+                    _logger?.Debug("SubtitleDownload - Subtitle already exists: " +
                                   language.TwoLetterISOLanguageName + " - " + item.Name);
                     continue;
                 }
@@ -356,7 +356,7 @@ namespace StrmAssistant.Common
 
                 if (match is null)
                 {
-                    _logger.Info("SubtitleDownload - No subtitle found: " + language.TwoLetterISOLanguageName +
+                    _logger?.Info("SubtitleDownload - No subtitle found: " + language.TwoLetterISOLanguageName +
                                  " - " + item.Name + " - " + item.Path);
                     continue;
                 }
@@ -372,7 +372,7 @@ namespace StrmAssistant.Common
                 if (!string.IsNullOrEmpty(savePath))
                 {
                     downloaded = true;
-                    _logger.Info("SubtitleDownload - Downloaded subtitle: " + language.TwoLetterISOLanguageName +
+                    _logger?.Info("SubtitleDownload - Downloaded subtitle: " + language.TwoLetterISOLanguageName +
                                  " - " + item.Name + " - " + savePath);
                 }
             }
@@ -546,14 +546,14 @@ namespace StrmAssistant.Common
                 {
                     var delay = TimeSpan.FromSeconds(RateLimitBaseDelaySeconds * Math.Pow(2, attempt));
 
-                    _logger.Info("SubtitleDownload - Rate limit reached during " + description +
+                    _logger?.Info("SubtitleDownload - Rate limit reached during " + description +
                                  ", retrying in " + delay.TotalSeconds + " seconds");
 
                     await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
                 catch (RateLimitExceededException)
                 {
-                    _logger.Warn("SubtitleDownload - Rate limit still reached during " + description + ", give up");
+                    _logger?.Warn("SubtitleDownload - Rate limit still reached during " + description + ", give up");
                     return default;
                 }
             }
@@ -589,8 +589,8 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.Instance.DebugMode)
                     {
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                 }
             }
@@ -626,8 +626,8 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.Instance.DebugMode)
                     {
-                        _logger.Debug(e.Message);
-                        _logger.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message);
+                        _logger?.Debug(e.StackTrace);
                     }
                 }
             }

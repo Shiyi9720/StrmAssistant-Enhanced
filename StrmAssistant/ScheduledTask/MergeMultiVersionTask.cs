@@ -51,7 +51,7 @@ namespace StrmAssistant.ScheduledTask
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("MergeMultiVersion - Scheduled Task Execute");
+            _logger?.Info("MergeMultiVersion - Scheduled Task Execute");
 
             var currentScanLibrary = CurrentScanLibrary.Value;
             CurrentScanLibrary.Value = null;
@@ -95,7 +95,7 @@ namespace StrmAssistant.ScheduledTask
                         cumulativeProgress += seriesProgressWeight;
                         progress.Report(cumulativeProgress);
 
-                        _logger.Info($"MergeMultiVersion - Series merged: {series.Name} - {series.Path}");
+                        _logger?.Info($"MergeMultiVersion - Series merged: {series.Name} - {series.Path}");
                     }
                 }
                 else
@@ -123,7 +123,7 @@ namespace StrmAssistant.ScheduledTask
                         cumulativeProgress += seriesProgressWeight;
                         progress.Report(cumulativeProgress);
 
-                        _logger.Info($"MergeMultiVersion - Series merged: {series.Name} - {series.Path}");
+                        _logger?.Info($"MergeMultiVersion - Series merged: {series.Name} - {series.Path}");
                     }
                 }
                 else
@@ -153,7 +153,7 @@ namespace StrmAssistant.ScheduledTask
             }
 
             progress.Report(100);
-            _logger.Info("MergeMultiVersion - Scheduled Task Complete");
+            _logger?.Info("MergeMultiVersion - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",
@@ -181,7 +181,7 @@ namespace StrmAssistant.ScheduledTask
         private long[] PrepareMergeSeries()
         {
             var mergeSeriesPreference = Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.MergeSeriesPreference;
-            _logger.Info("MergeMultiVersion - Merge Series Preference: " + mergeSeriesPreference);
+            _logger?.Info("MergeMultiVersion - Merge Series Preference: " + mergeSeriesPreference);
 
             if (!Plugin.Instance.IsModSupported || mergeSeriesPreference != MergeSeriesScopeOption.GlobalScope)
                 return Array.Empty<long>();
@@ -192,7 +192,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!libraries.Any()) return Array.Empty<long>();
 
-            _logger.Info("MergeMultiVersion - Series Libraries: " + string.Join(", ", libraries.Select(l => l.Name)));
+            _logger?.Info("MergeMultiVersion - Series Libraries: " + string.Join(", ", libraries.Select(l => l.Name)));
 
             var libraryGroups = libraries.Select(l => l.InternalId).ToArray();
 
@@ -268,14 +268,14 @@ namespace StrmAssistant.ScheduledTask
         private long[][] PrepareMergeMovies(CollectionFolder currentScanLibrary)
         {
             var mergeMoviesPreference = Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.MergeMoviesPreference;
-            _logger.Info("MergeMultiVersion - Merge Movies Preference: " + mergeMoviesPreference);
+            _logger?.Info("MergeMultiVersion - Merge Movies Preference: " + mergeMoviesPreference);
 
             var libraryGroups = Array.Empty<long[]>();
 
             if (mergeMoviesPreference == MergeMoviesScopeOption.LibraryScope && currentScanLibrary != null)
             {
                 libraryGroups = new[] { new[] { currentScanLibrary.InternalId } };
-                _logger.Info("MergeMultiVersion - Movies Libraries: " + currentScanLibrary.Name);
+                _logger?.Info("MergeMultiVersion - Movies Libraries: " + currentScanLibrary.Name);
             }
             else
             {
@@ -283,7 +283,7 @@ namespace StrmAssistant.ScheduledTask
 
                 if (!libraries.Any()) return libraryGroups;
 
-                _logger.Info(
+                _logger?.Info(
                     "MergeMultiVersion - Movies Libraries: " + string.Join(", ", libraries.Select(l => l.Name)));
 
                 var libraryIds = libraries.Select(l => l.InternalId).ToArray();
@@ -375,7 +375,7 @@ namespace StrmAssistant.ScheduledTask
 
                     if (movies.Length > maxMergeCount)
                     {
-                        _logger.Info(
+                        _logger?.Info(
                             $"MergeMultiVersion - Skipped group with {movies.Length} items (limit {maxMergeCount})");
                     }
                     else
@@ -384,10 +384,10 @@ namespace StrmAssistant.ScheduledTask
 
                         foreach (var item in movies)
                         {
-                            _logger.Info($"MergeMultiVersion - Movie merged: {item.Name} - {item.Path}");
+                            _logger?.Info($"MergeMultiVersion - Movie merged: {item.Name} - {item.Path}");
                         }
 
-                        _logger.Info(
+                        _logger?.Info(
                             $"MergeMultiVersion - Merged group {current + 1} of {total} with {movies.Length} items");
                     }
 

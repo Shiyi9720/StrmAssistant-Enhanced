@@ -91,7 +91,7 @@ namespace StrmAssistant.Common
                     item.Overview = detail.intro.Trim();
                     item.UpdateToRepository(ItemUpdateType.MetadataEdit);
 
-                    _logger.Info("DoubanSupplement - Overview updated: " + item.Name);
+                    _logger?.Info("DoubanSupplement - Overview updated: " + item.Name);
                 }
 
                 if (needsPoster && !string.IsNullOrWhiteSpace(detail.cover_url) &&
@@ -105,8 +105,8 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug("DoubanSupplement - Failed: " + e.Message);
-                _logger.Debug(e.StackTrace);
+                _logger?.Debug("DoubanSupplement - Failed: " + e.Message);
+                _logger?.Debug(e.StackTrace);
             }
         }
 
@@ -188,7 +188,7 @@ namespace StrmAssistant.Common
 
                 if (DateTime.UtcNow < _blockedUntilUtc)
                 {
-                    _logger.Debug("DoubanSupplement - Temporarily blocked, skipping request");
+                    _logger?.Debug("DoubanSupplement - Temporarily blocked, skipping request");
                     return null;
                 }
 
@@ -212,7 +212,7 @@ namespace StrmAssistant.Common
                 {
                     // Douban has flagged us. Back off for a while instead of retrying.
                     _blockedUntilUtc = DateTime.UtcNow.AddMinutes(10);
-                    _logger.Info("DoubanSupplement - Request blocked with " + (int)response.StatusCode +
+                    _logger?.Info("DoubanSupplement - Request blocked with " + (int)response.StatusCode +
                                  ", pausing for 10 minutes");
                     return null;
                 }
@@ -229,7 +229,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug("DoubanSupplement - Request failed: " + e.Message);
+                _logger?.Debug("DoubanSupplement - Request failed: " + e.Message);
                 return null;
             }
             finally
@@ -301,14 +301,14 @@ namespace StrmAssistant.Common
                         Array.Empty<long>(), directoryService, false, CancellationToken.None)
                     .ConfigureAwait(false);
 
-                _logger.Info("DoubanSupplement - Poster updated: " + item.Name);
+                _logger?.Info("DoubanSupplement - Poster updated: " + item.Name);
             }
             catch (OperationCanceledException)
             {
             }
             catch (Exception e)
             {
-                _logger.Debug("DoubanSupplement - Poster download failed: " + e.Message);
+                _logger?.Debug("DoubanSupplement - Poster download failed: " + e.Message);
             }
             finally
             {

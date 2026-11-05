@@ -102,7 +102,7 @@ namespace StrmAssistant.ScheduledTask
 
                 if (currentVersion.CompareTo(remoteVersion) < 0)
                 {
-                    _logger.Info("Found new plugin version: {0}", remoteVersion);
+                    _logger?.Info("Found new plugin version: {0}", remoteVersion);
 
                     var url = (apiResult?.assets ?? new List<ApiAssetInfo>())
                         .FirstOrDefault(asset => asset.name == PluginAssemblyFilename)
@@ -146,7 +146,7 @@ namespace StrmAssistant.ScheduledTask
                         }
                     }
 
-                    _logger.Info("Plugin update complete");
+                    _logger?.Info("Plugin update complete");
 
                     _activityManager.Create(new ActivityLogEntry
                     {
@@ -162,7 +162,7 @@ namespace StrmAssistant.ScheduledTask
                 {
                     _ = Plugin.NotificationApi.SendMessageToAdmins(
                         $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.No_Update_Message}", 1000);
-                    _logger.Info("No need to update");
+                    _logger?.Info("No need to update");
                 }
             }
             catch (Exception e)
@@ -178,8 +178,8 @@ namespace StrmAssistant.ScheduledTask
 
                 _ = Plugin.NotificationApi.SendMessageToAdmins(
                     $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.Update_Failed_Message}", 1000);
-                _logger.Error("Update failed: {0}", e.Message);
-                _logger.Debug(e.StackTrace);
+                _logger?.Error("Update failed: {0}", e.Message);
+                _logger?.Debug(e.StackTrace);
             }
 
             progress.Report(100);

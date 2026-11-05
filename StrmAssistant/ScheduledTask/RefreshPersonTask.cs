@@ -33,12 +33,12 @@ namespace StrmAssistant.ScheduledTask
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            _logger.Info("RefreshPerson - Scheduled Task Execute");
+            _logger?.Info("RefreshPerson - Scheduled Task Execute");
             await Task.Yield();
             progress.Report(0);
 
             var serverPreferredMetadataLanguage = Plugin.MetadataApi.GetServerPreferredMetadataLanguage();
-            _logger.Info("Server Preferred Metadata Language: " + serverPreferredMetadataLanguage);
+            _logger?.Info("Server Preferred Metadata Language: " + serverPreferredMetadataLanguage);
             var isServerPreferZh = !string.IsNullOrEmpty(serverPreferredMetadataLanguage) && string.Equals(
                 serverPreferredMetadataLanguage.Split('-')[0], "zh", StringComparison.OrdinalIgnoreCase);
 
@@ -48,13 +48,13 @@ namespace StrmAssistant.ScheduledTask
                 _ = Plugin.NotificationApi.SendMessageToAdmins(
                     $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.ServerPreferredMetadataLanguageIsNotZh}",
                     10000);
-                _logger.Warn("Server Preferred Metadata Language is not set to Chinese.");
-                _logger.Warn("RefreshPerson - Scheduled Task Aborted");
+                _logger?.Warn("Server Preferred Metadata Language is not set to Chinese.");
+                _logger?.Warn("RefreshPerson - Scheduled Task Aborted");
                 return;
             }
 
             var tier2MaxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.Tier2MaxConcurrentCount;
-            _logger.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
+            _logger?.Info("Tier2 Max Concurrent Count: " + tier2MaxConcurrentCount);
 
             var personQuery = new InternalItemsQuery
             {
@@ -68,7 +68,7 @@ namespace StrmAssistant.ScheduledTask
                 }
             };
             var personItems = _libraryManager.GetItemList(personQuery).Cast<Person>().ToList();
-            _logger.Info("RefreshPerson - Number of Persons Before: " + personItems.Count);
+            _logger?.Info("RefreshPerson - Number of Persons Before: " + personItems.Count);
 
             var dupPersonItems = personItems.Where(item => item.ProviderIds != null)
                 .SelectMany(item => item.ProviderIds
@@ -85,7 +85,7 @@ namespace StrmAssistant.ScheduledTask
             {
                 foreach (var dupItem in dupPersonItems)
                 {
-                    _logger.Info($"RefreshPerson - Duplicate Person: {dupItem.Name}");
+                    _logger?.Info($"RefreshPerson - Duplicate Person: {dupItem.Name}");
                     var relatedItems = _libraryManager.GetItemList(new InternalItemsQuery
                     {
                         PersonIds = new[] { dupItem.InternalId },
@@ -95,19 +95,19 @@ namespace StrmAssistant.ScheduledTask
                     });
                     foreach (var relatedItem in relatedItems)
                     {
-                        _logger.Info(
+                        _logger?.Info(
                             $"RefreshPerson - Deleting duplicate person {dupItem.Name} related to {relatedItem.Path}");
                     }
                 }
                 _libraryManager.DeleteItems(dupPersonItems.Select(i => i.InternalId).ToArray());
             }
-            _logger.Info("RefreshPerson - Number of Duplicate Persons Deleted: " + dupPersonItems.Count);
+            _logger?.Info("RefreshPerson - Number of Duplicate Persons Deleted: " + dupPersonItems.Count);
 
             var skipCount = personItems.Count(i => !i.HasProviderId(MetadataProviders.Tmdb));
-            _logger.Info("RefreshPerson - Number of Persons without Tmdb Id Skipped: " + skipCount);
+            _logger?.Info("RefreshPerson - Number of Persons without Tmdb Id Skipped: " + skipCount);
 
             var remainingCount = personItems.Count - dupPersonItems.Count - skipCount;
-            _logger.Info("RefreshPerson - Number of Persons After: " + remainingCount);
+            _logger?.Info("RefreshPerson - Number of Persons After: " + remainingCount);
 
             personItems.Clear();
             personItems.TrimExcess();
@@ -126,7 +126,7 @@ namespace StrmAssistant.ScheduledTask
                 .Cast<RefreshPersonOption>()
                 .Where(o => refreshPersonMode?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
                 .ToHashSet();
-            _logger.Info("Refresh Person Mode: " + (refreshPersonOptions.Any()
+            _logger?.Info("Refresh Person Mode: " + (refreshPersonOptions.Any()
                 ? string.Join(", ", refreshPersonOptions)
                 : RefreshPersonOption.Default.ToString()));
             NoAdult = refreshPersonOptions.Contains(RefreshPersonOption.NoAdult);
@@ -135,7 +135,7 @@ namespace StrmAssistant.ScheduledTask
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.Info("RefreshPerson - Scheduled Task Cancelled");
+                    _logger?.Info("RefreshPerson - Scheduled Task Cancelled");
                     return;
                 }
 
@@ -162,7 +162,7 @@ namespace StrmAssistant.ScheduledTask
                     {
                         var currentCount = Interlocked.Increment(ref current);
                         progress.Report(currentCount / total * 100);
-                        _logger.Info("RefreshPerson - Task " + currentCount + "/" + total + " Skipped - " +
+                        _logger?.Info("RefreshPerson - Task " + currentCount + "/" + total + " Skipped - " +
                                      taskItem.Name);
                         continue;
                     }
@@ -179,7 +179,7 @@ namespace StrmAssistant.ScheduledTask
                     if (cancellationToken.IsCancellationRequested)
                     {
                         QueueManager.Tier2Semaphore.Release();
-                        _logger.Info("RefreshPerson - Scheduled Task Cancelled");
+                        _logger?.Info("RefreshPerson - Scheduled Task Cancelled");
                         return;
                     }
 
@@ -196,7 +196,7 @@ namespace StrmAssistant.ScheduledTask
 
                             if (cancellationToken.IsCancellationRequested)
                             {
-                                _logger.Info("RefreshPerson - Scheduled Task Cancelled");
+                                _logger?.Info("RefreshPerson - Scheduled Task Cancelled");
                                 return;
                             }
 
@@ -234,13 +234,13 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (OperationCanceledException)
                         {
-                            _logger.Info("RefreshPerson - Item Cancelled: " + taskItem.Name);
+                            _logger?.Info("RefreshPerson - Item Cancelled: " + taskItem.Name);
                         }
                         catch (Exception e)
                         {
-                            _logger.Error("RefreshPerson - Item Failed: " + taskItem.Name);
-                            _logger.Error(e.Message);
-                            _logger.Debug(e.StackTrace);
+                            _logger?.Error("RefreshPerson - Item Failed: " + taskItem.Name);
+                            _logger?.Error(e.Message);
+                            _logger?.Debug(e.StackTrace);
                         }
                         finally
                         {
@@ -248,7 +248,7 @@ namespace StrmAssistant.ScheduledTask
 
                             var currentCount = Interlocked.Increment(ref current);
                             progress.Report(currentCount / total * 100);
-                            _logger.Info("RefreshPerson - Task " + currentCount + "/" + total + " - " + taskItem.Name);
+                            _logger?.Info("RefreshPerson - Task " + currentCount + "/" + total + " - " + taskItem.Name);
                         }
                     }, cancellationToken);
 
@@ -263,7 +263,7 @@ namespace StrmAssistant.ScheduledTask
             IsRunning = false;
 
             progress.Report(100.0);
-            _logger.Info("RefreshPerson - Scheduled Task Complete");
+            _logger?.Info("RefreshPerson - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",

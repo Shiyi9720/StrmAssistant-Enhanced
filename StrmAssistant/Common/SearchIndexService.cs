@@ -138,13 +138,13 @@ namespace StrmAssistant.Common
                     else if (_builtAtUtc.HasValue &&
                              DateTime.UtcNow - _builtAtUtc.Value > TimeSpan.FromHours(24))
                     {
-                        _logger.Info("ChineseSearch - Index is older than 24 hours, rebuilding in background");
+                        _logger?.Info("ChineseSearch - Index is older than 24 hours, rebuilding in background");
                         await BuildAsync(null, CancellationToken.None).ConfigureAwait(false);
                     }
                 }
                 catch (Exception e)
                 {
-                    _logger.Debug("ChineseSearch - Initialize failed: " + e.Message);
+                    _logger?.Debug("ChineseSearch - Initialize failed: " + e.Message);
                 }
                 finally
                 {
@@ -164,7 +164,7 @@ namespace StrmAssistant.Common
                 _progressPercent = 0;
                 _lastError = null;
 
-                _logger.Info("ChineseSearch - Index build started");
+                _logger?.Info("ChineseSearch - Index build started");
 
                 var options = GetOptions();
                 var previous = _snapshot.ToDictionary(i => i.Entry.Id);
@@ -259,17 +259,17 @@ namespace StrmAssistant.Common
 
                 _progressPercent = 100;
                 progress?.Report(_progressPercent);
-                _logger.Info("ChineseSearch - Index build complete: " + entries.Count + " items");
+                _logger?.Info("ChineseSearch - Index build complete: " + entries.Count + " items");
             }
             catch (OperationCanceledException)
             {
-                _logger.Info("ChineseSearch - Index build cancelled");
+                _logger?.Info("ChineseSearch - Index build cancelled");
             }
             catch (Exception e)
             {
                 _lastError = e.Message;
-                _logger.Info("ChineseSearch - Index build failed: " + e.Message);
-                _logger.Debug(e.StackTrace);
+                _logger?.Info("ChineseSearch - Index build failed: " + e.Message);
+                _logger?.Debug(e.StackTrace);
             }
             finally
             {
@@ -293,7 +293,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger.Debug("ChineseSearch - Count query failed: " + e.Message);
+                _logger?.Debug("ChineseSearch - Count query failed: " + e.Message);
                 return 0;
             }
         }
@@ -717,12 +717,12 @@ namespace StrmAssistant.Common
                     Interlocked.Increment(ref _version);
                 }
 
-                _logger.Info("ChineseSearch - Index loaded: " + indexed.Length + " items");
+                _logger?.Info("ChineseSearch - Index loaded: " + indexed.Length + " items");
                 return true;
             }
             catch (Exception e)
             {
-                _logger.Info("ChineseSearch - Failed to load index: " + e.Message);
+                _logger?.Info("ChineseSearch - Failed to load index: " + e.Message);
                 return false;
             }
         }
@@ -755,7 +755,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Debug("ChineseSearch - Failed to save index: " + e.Message);
+                    _logger?.Debug("ChineseSearch - Failed to save index: " + e.Message);
                 }
             }, cancellationToken).ConfigureAwait(false);
         }
@@ -847,7 +847,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 entry.AliasesFetched = false;
-                _logger.Debug("ChineseSearch - TMDB alias lookup failed: " + e.Message);
+                _logger?.Debug("ChineseSearch - TMDB alias lookup failed: " + e.Message);
             }
         }
 
@@ -927,7 +927,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Debug("ChineseSearch - Incremental index update failed: " + e.Message);
+                    _logger?.Debug("ChineseSearch - Incremental index update failed: " + e.Message);
                 }
                 finally
                 {

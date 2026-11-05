@@ -99,7 +99,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception ex)
             {
-                _logger.Debug("VersionPlayback - PlaybackStart failed: " + ex.Message);
+                _logger?.Debug("VersionPlayback - PlaybackStart failed: " + ex.Message);
             }
         }
 
@@ -111,7 +111,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception ex)
             {
-                _logger.Debug("VersionPlayback - PlaybackProgress failed: " + ex.Message);
+                _logger?.Debug("VersionPlayback - PlaybackProgress failed: " + ex.Message);
             }
         }
 
@@ -123,7 +123,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception ex)
             {
-                _logger.Debug("VersionPlayback - PlaybackStopped failed: " + ex.Message);
+                _logger?.Debug("VersionPlayback - PlaybackStopped failed: " + ex.Message);
             }
         }
 
@@ -263,7 +263,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception ex)
                 {
-                    _logger.Debug("VersionPlayback - Persist failed: " + ex.Message);
+                    _logger?.Debug("VersionPlayback - Persist failed: " + ex.Message);
                 }
             }
         }
@@ -293,7 +293,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception ex)
             {
-                _logger.Debug("VersionPlayback - Load failed: " + ex.Message);
+                _logger?.Debug("VersionPlayback - Load failed: " + ex.Message);
             }
         }
 

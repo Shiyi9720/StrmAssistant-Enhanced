@@ -86,14 +86,14 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
 
             if (_getStaticMediaSources is null)
             {
-                _logger.Warn($"{nameof(MediaInfoApi)} Init Failed");
+                _logger?.Warn($"{nameof(MediaInfoApi)} Init Failed");
             }
 
             try
@@ -123,11 +123,11 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
 
-                _logger.Warn($"{nameof(MediaInfoApi)} Init Failed");
+                _logger?.Warn($"{nameof(MediaInfoApi)} Init Failed");
             }
         }
 
@@ -225,7 +225,7 @@ namespace StrmAssistant.Common
 
         private void LogRemovedSubtitleStream(MediaStream stream, string source)
         {
-            _logger.Info("SubtitleBlacklist - Removed subtitle stream (" + source + "): language=" +
+            _logger?.Info("SubtitleBlacklist - Removed subtitle stream (" + source + "): language=" +
                          (stream.Language ?? "EMPTY") + ", title=" + (stream.Title ?? "EMPTY") + ", codec=" +
                          (stream.Codec ?? "EMPTY") + ", external=" + stream.IsExternal);
         }
@@ -274,8 +274,8 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger.Debug(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
         }
@@ -346,15 +346,15 @@ namespace StrmAssistant.Common
 
                     _jsonSerializer.SerializeToFile(mediaSourcesWithChapters, mediaInfoJsonPath);
 
-                    _logger.Info("MediaInfoPersist - Serialization Success (" + source + "): " + mediaInfoJsonPath);
+                    _logger?.Info("MediaInfoPersist - Serialization Success (" + source + "): " + mediaInfoJsonPath);
 
                     return true;
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("MediaInfoPersist - Serialization Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Error("MediaInfoPersist - Serialization Failed (" + source + "): " + mediaInfoJsonPath);
+                    _logger?.Error(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
 
@@ -368,7 +368,7 @@ namespace StrmAssistant.Common
 
             if (!Plugin.LibraryApi.HasMediaInfo(workItem))
             {
-                _logger.Info("MediaInfoPersist - Serialization Skipped - No MediaInfo (" + source + ")");
+                _logger?.Info("MediaInfoPersist - Serialization Skipped - No MediaInfo (" + source + ")");
                 return false;
             }
 
@@ -459,18 +459,18 @@ namespace StrmAssistant.Common
                             }
                         }
 
-                        _logger.Info("MediaInfoPersist - Deserialization Success (" + source + "): " + mediaInfoJsonPath);
+                        _logger?.Info("MediaInfoPersist - Deserialization Success (" + source + "): " + mediaInfoJsonPath);
 
                         return true;
                     }
 
-                    _logger.Info("MediaInfoPersist - Deserialization Skipped (" + source + "): " + mediaInfoJsonPath);
+                    _logger?.Info("MediaInfoPersist - Deserialization Skipped (" + source + "): " + mediaInfoJsonPath);
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("MediaInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Error("MediaInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
+                    _logger?.Error(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
 
@@ -487,7 +487,7 @@ namespace StrmAssistant.Common
             {
                 try
                 {
-                    _logger.Info($"MediaInfoPersist - Attempting to delete ({source}): {mediaInfoJsonPath}");
+                    _logger?.Info($"MediaInfoPersist - Attempting to delete ({source}): {mediaInfoJsonPath}");
                     IgnoreMediaInfoJsonFile(mediaInfoJsonPath);
                     _fileSystem.DeleteFile(mediaInfoJsonPath);
 
@@ -504,7 +504,7 @@ namespace StrmAssistant.Common
                                !string.Equals(currentDir, jsonRoot, StringComparison.OrdinalIgnoreCase) &&
                                CommonUtility.IsDirectoryEmpty(currentDir))
                         {
-                            _logger.Info(
+                            _logger?.Info(
                                 $"MediaInfoPersist - Attempting to delete empty folder ({source}): {currentDir}");
                             _fileSystem.DeleteDirectory(currentDir, false);
                             currentDir = Path.GetDirectoryName(currentDir);
@@ -513,8 +513,8 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Error(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
         }
@@ -538,7 +538,7 @@ namespace StrmAssistant.Common
                         _itemRepository.LogIntroDetectionFailureFailure(item.InternalId,
                             item.DateModified.ToUnixTimeSeconds());
 
-                        _logger.Info("ChapterInfoPersist - Log Zero Fingerprint Confidence (" + source + "): " + mediaInfoJsonPath);
+                        _logger?.Info("ChapterInfoPersist - Log Zero Fingerprint Confidence (" + source + "): " + mediaInfoJsonPath);
 
                         return true;
                     }
@@ -560,16 +560,16 @@ namespace StrmAssistant.Common
 
                         _itemRepository.SaveChapters(item.InternalId, chapters);
 
-                        _logger.Info("ChapterInfoPersist - Deserialization Success (" + source + "): " + mediaInfoJsonPath);
+                        _logger?.Info("ChapterInfoPersist - Deserialization Success (" + source + "): " + mediaInfoJsonPath);
 
                         return true;
                     }
                 }
                 catch (Exception e)
                 {
-                    _logger.Error("ChapterInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger.Error(e.Message);
-                    _logger.Debug(e.StackTrace);
+                    _logger?.Error("ChapterInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
+                    _logger?.Error(e.Message);
+                    _logger?.Debug(e.StackTrace);
                 }
             }
 
@@ -601,7 +601,7 @@ namespace StrmAssistant.Common
 
                     if (thumbnailResult)
                     {
-                        _logger.Info("ChapterInfoPersist - Video Thumbnail Restore Success (" + source + "): " +
+                        _logger?.Info("ChapterInfoPersist - Video Thumbnail Restore Success (" + source + "): " +
                                      localThumbnailSets[0].Path);
                     }
                 }
