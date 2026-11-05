@@ -96,6 +96,7 @@ namespace StrmAssistant
         private bool _currentPreferTraditionalChinese;
         private bool _currentEnableAltMovieDbUrl;
         private bool _currentEnableLocalMovieDb;
+        private bool _currentDistinguishChinesePosters;
 
         private static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
         {
@@ -187,6 +188,7 @@ namespace StrmAssistant
             _currentPreferTraditionalChinese = GetOptions().MetadataEnhanceOptions.PreferTraditionalChinese;
             _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
             _currentEnableLocalMovieDb = GetOptions().MetadataEnhanceOptions.EnableLocalMovieDb;
+            _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
             InitializeOptionCache();
 
             if (GetOptions().AboutOptions.DebugMode)
@@ -212,7 +214,7 @@ namespace StrmAssistant
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
-            MovieDbApi = new MovieDbApi();
+            MovieDbApi = new MovieDbApi(libraryManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
             VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
@@ -225,7 +227,8 @@ namespace StrmAssistant
 
             if (_currentCatchupMode) QueueManager.Initialize();
             if (_currentEnableIntroSkip || _currentAutoMarkPreviousEpisodesPlayed) PlaySessionMonitor.Initialize();
-            if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl || _currentEnableLocalMovieDb)
+            if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl || _currentEnableLocalMovieDb ||
+                _currentDistinguishChinesePosters)
                 MovieDbApi.Initialize();
 
             _libraryManager.ItemAdded += OnItemAdded;
@@ -800,6 +803,8 @@ namespace StrmAssistant
                 Logger.Info("NewLibraryMovieDb is set to {0}", options.MetadataEnhanceOptions.NewLibraryMovieDb);
                 Logger.Info("PreferTraditionalChinese is set to {0}",
                     options.MetadataEnhanceOptions.PreferTraditionalChinese);
+                Logger.Info("DistinguishChinesePosters is set to {0}",
+                    options.MetadataEnhanceOptions.DistinguishChinesePosters);
             }
             _currentNewLibraryMovieDb = options.MetadataEnhanceOptions.NewLibraryMovieDb;
             if (!suppress)
@@ -825,11 +830,13 @@ namespace StrmAssistant
             }
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
                 _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||
-                _currentEnableLocalMovieDb != options.MetadataEnhanceOptions.EnableLocalMovieDb)
+                _currentEnableLocalMovieDb != options.MetadataEnhanceOptions.EnableLocalMovieDb ||
+                _currentDistinguishChinesePosters != options.MetadataEnhanceOptions.DistinguishChinesePosters)
             {
                 _currentPreferTraditionalChinese = options.MetadataEnhanceOptions.PreferTraditionalChinese;
                 _currentEnableAltMovieDbUrl = options.MetadataEnhanceOptions.EnableAltMovieDbUrl;
                 _currentEnableLocalMovieDb = options.MetadataEnhanceOptions.EnableLocalMovieDb;
+                _currentDistinguishChinesePosters = options.MetadataEnhanceOptions.DistinguishChinesePosters;
 
                 MovieDbApi.Initialize();
             }
