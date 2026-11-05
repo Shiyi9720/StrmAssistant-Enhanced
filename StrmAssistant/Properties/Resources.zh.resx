@@ -435,7 +435,31 @@
     <value>启用代理服务器</value>
   </data>
   <data name="NetworkOptions_EnableProxyServer_Enable_Proxy_Server__Default_is_OFF_" xml:space="preserve">
-    <value>服务器对外 HTTP 请求使用代理，默认关闭。</value>
+    <value>插件对外请求使用代理，本地和局域网地址始终直连，默认关闭。</value>
+  </data>
+  <data name="NetworkOptions_ProxyServer_Proxy_Server" xml:space="preserve">
+    <value>代理服务器</value>
+  </data>
+  <data name="NetworkOptions_ProxyServer_Support_http_s_proxy_server__Default_is_EMPTY_" xml:space="preserve">
+    <value>代理服务器地址，例如 http://127.0.0.1:7890 或 http://用户名:密码@主机:端口。默认为空。</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Proxy_Mode" xml:space="preserve">
+    <value>代理模式</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Proxy_all_external_requests_or_only_whitelisted_domains__Default_is_Global_" xml:space="preserve">
+    <value>全局模式代理所有外部请求；白名单模式仅代理列表中的域名，其余请求直连。默认为全局。</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Global_Global" xml:space="preserve">
+    <value>全局</value>
+  </data>
+  <data name="NetworkOptions_ProxyMode_Whitelist_Whitelist" xml:space="preserve">
+    <value>白名单</value>
+  </data>
+  <data name="NetworkOptions_ProxyWhitelist_Proxy_Whitelist" xml:space="preserve">
+    <value>代理白名单</value>
+  </data>
+  <data name="NetworkOptions_ProxyWhitelist_Comma_separated_domains__Subdomains_are_included__Default_is_EMPTY_" xml:space="preserve">
+    <value>以逗号分隔的域名，例如 api.themoviedb.org, opensubtitles.org。包含子域名；使用 *.example.com 仅匹配子域名。默认为空。</value>
   </data>
   <data name="ItemType_Season_Season" xml:space="preserve">
     <value>季</value>

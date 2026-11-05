@@ -60,7 +60,7 @@ namespace StrmAssistant.Common
 
                     if (httpClient is null || httpClient is MovieDbHttpClient) continue;
 
-                    httpClientField.SetValue(provider, new MovieDbHttpClient(httpClient));
+                    httpClientField.SetValue(provider, new MovieDbHttpClient(ProxyApi.Wrap(httpClient)));
                     _logger.Info("MovieDb provider is patched: {0}", provider.GetType().Name);
                 }
 
