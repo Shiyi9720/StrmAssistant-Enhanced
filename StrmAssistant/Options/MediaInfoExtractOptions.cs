@@ -39,6 +39,21 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
         public string SubtitleBlacklistCodecs { get; set; } = string.Empty;
 
+        [DisplayNameL("MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_ScreenshotQuality_JPEG_quality_for_generated_chapter_images__0_keeps_the_original__Default_is_0_", typeof(Resources))]
+        [Required, MinValue(0), MaxValue(100)]
+        public int ScreenshotQuality { get; set; } = 0;
+
+        [DisplayNameL("MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_Width", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_width_of_generated_chapter_images__0_is_unlimited__Default_is_0_", typeof(Resources))]
+        [Required, MinValue(0)]
+        public int ScreenshotMaxWidth { get; set; } = 0;
+
+        [DisplayNameL("MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_Height", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_height_of_generated_chapter_images__0_is_unlimited__Default_is_0_", typeof(Resources))]
+        [Required, MinValue(0)]
+        public int ScreenshotMaxHeight { get; set; } = 0;
+
         [DisplayNameL("PluginOptions_EnableImageCapture_Enable_Image_Capture", typeof(Resources))]
         [DescriptionL("PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_", typeof(Resources))]
         [Browsable(false)]

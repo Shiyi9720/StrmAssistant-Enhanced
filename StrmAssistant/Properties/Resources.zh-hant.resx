@@ -56,6 +56,24 @@
   <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
     <value>以逗號分隔的字幕編碼或萬用字元，例如 subrip, ass, hdmv_pgs_subtitle。處理媒體資訊時，符合的字幕流將被移除。預設為空。</value>
   </data>
+  <data name="MediaInfoExtractOptions_ScreenshotQuality_Screenshot_Quality" xml:space="preserve">
+    <value>截圖品質</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotQuality_JPEG_quality_for_generated_chapter_images__0_keeps_the_original__Default_is_0_" xml:space="preserve">
+    <value>章節縮圖產生後重新編碼使用的 JPEG 品質（0-100）。0 表示保持原始畫質。預設為 0。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_Width" xml:space="preserve">
+    <value>截圖最大寬度</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxWidth_Maximum_width_of_generated_chapter_images__0_is_unlimited__Default_is_0_" xml:space="preserve">
+    <value>章節縮圖的最大寬度（像素），保持長寬比。0 表示不限制。預設為 0。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_Height" xml:space="preserve">
+    <value>截圖最大高度</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ScreenshotMaxHeight_Maximum_height_of_generated_chapter_images__0_is_unlimited__Default_is_0_" xml:space="preserve">
+    <value>章節縮圖的最大高度（像素），保持長寬比。0 表示不限制。預設為 0。</value>
+  </data>
   <data name="PluginOptions_LibraryScope_Library_Scope" xml:space="preserve">
     <value>媒體庫範圍</value>
   </data>

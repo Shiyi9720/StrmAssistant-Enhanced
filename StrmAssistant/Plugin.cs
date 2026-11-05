@@ -8,6 +8,7 @@ using MediaBrowser.Common.Net;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Configuration;
+using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
@@ -111,7 +112,8 @@ namespace StrmAssistant
             IFfmpegManager ffmpegManager, IMediaEncoder mediaEncoder, IJsonSerializer jsonSerializer,
             IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
             IServerConfigurationManager configurationManager, ITaskManager taskManager,
-            IImageExtractionManager imageExtractionManager, IServerApplicationPaths serverApplicationPaths) : base(applicationHost)
+            IImageExtractionManager imageExtractionManager, IServerApplicationPaths serverApplicationPaths,
+            IImageProcessor imageProcessor) : base(applicationHost)
         {
             Instance = this;
             Logger = logManager.GetLogger(Name);
@@ -167,7 +169,7 @@ namespace StrmAssistant
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
             VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
-                mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager);
+                mediaMountManager, serverApplicationPaths, libraryMonitor, ffmpegManager, imageProcessor);
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
             ShortcutMenuHelper.Initialize(configurationManager);
@@ -500,6 +502,9 @@ namespace StrmAssistant
                     string.IsNullOrWhiteSpace(options.MediaInfoExtractOptions.SubtitleBlacklistCodecs)
                         ? "EMPTY"
                         : options.MediaInfoExtractOptions.SubtitleBlacklistCodecs);
+                Logger.Info("ScreenshotQuality is set to {0}", options.MediaInfoExtractOptions.ScreenshotQuality);
+                Logger.Info("ScreenshotMaxWidth is set to {0}", options.MediaInfoExtractOptions.ScreenshotMaxWidth);
+                Logger.Info("ScreenshotMaxHeight is set to {0}", options.MediaInfoExtractOptions.ScreenshotMaxHeight);
                 Logger.Info("MaxConcurrentCount is set to {0}", options.GeneralOptions.MaxConcurrentCount);
                 Logger.Info("IntroDetectionMaxConcurrentCount is set to {0}",
                     options.GeneralOptions.IntroDetectionMaxConcurrentCount);
