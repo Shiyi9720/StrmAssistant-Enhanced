@@ -1445,4 +1445,40 @@
   <data name="AudioEffect_Label_Audio_effect" xml:space="preserve">
     <value>音效</value>
   </data>
+  <data name="DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>豆瓣快取預構建</value>
+  </data>
+  <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>啟用豆瓣快取預構建</value>
+  </data>
+  <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_" xml:space="preserve">
+    <value>在後台預取豆瓣評分，使詳情頁徽標無需等待首次豆瓣請求即可顯示；只請求尚未快取評分的條目。預設關閉。</value>
+  </data>
+  <data name="DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_" xml:space="preserve">
+    <value>執行間隔（小時）</value>
+  </data>
+  <data name="DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_" xml:space="preserve">
+    <value>預構建任務的預設觸發間隔。該間隔僅在 Emby 建立預設觸發器時生效，之後可在排程任務設定中修改。預設 24。</value>
+  </data>
+  <data name="DoubanCacheOptions_BatchSize_Batch_Size" xml:space="preserve">
+    <value>批次大小</value>
+  </data>
+  <data name="DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_" xml:space="preserve">
+    <value>每批處理多少條目後更新一次進度；批次越小，進度更新越頻繁。預設 50。</value>
+  </data>
+  <data name="DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_" xml:space="preserve">
+    <value>請求間隔（秒）</value>
+  </data>
+  <data name="DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_" xml:space="preserve">
+    <value>兩次豆瓣請求之間的最小間隔；單個條目可能需要一次搜尋和一次詳情請求。必須在 2 到 30 之間。預設 3。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>豆瓣快取預構建</value>
+  </data>
+  <data name="DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache" xml:space="preserve">
+    <value>預構建豆瓣快取</value>
+  </data>
+  <data name="DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_" xml:space="preserve">
+    <value>為尚無快取評分的電影和劇集取得豆瓣評分；請求有限速，任務可隨時取消。</value>
+  </data>
 </root>

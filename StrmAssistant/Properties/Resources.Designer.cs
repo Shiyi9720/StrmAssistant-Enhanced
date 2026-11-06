@@ -4354,5 +4354,113 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("AudioEffect_Label_Audio_effect", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild.
+        /// </summary>
+        public static string DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild.
+        /// </summary>
+        public static string DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_.
+        /// </summary>
+        public static string DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_.
+        /// </summary>
+        public static string DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_.
+        /// </summary>
+        public static string DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_BatchSize_Batch_Size.
+        /// </summary>
+        public static string DoubanCacheOptions_BatchSize_Batch_Size {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_BatchSize_Batch_Size", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_.
+        /// </summary>
+        public static string DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_.
+        /// </summary>
+        public static string DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_.
+        /// </summary>
+        public static string DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild.
+        /// </summary>
+        public static string MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache.
+        /// </summary>
+        public static string DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache {
+            get {
+                return ResourceManager.GetString("DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_.
+        /// </summary>
+        public static string DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_ {
+            get {
+                return ResourceManager.GetString("DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_", resourceCulture);
+            }
+        }
     }
 }
