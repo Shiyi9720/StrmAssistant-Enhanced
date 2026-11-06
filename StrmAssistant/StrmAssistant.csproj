@@ -89,4 +89,20 @@
     <Exec Condition="'$(OS)' == 'Windows_NT'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
     <Exec Condition="'$(OS)' != 'Windows_NT'" Command="dotnet &quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
   </Target>
+  <!--
+    依赖程序集不复制到 plugins 顶层：Emby 启动 Discovery 会把顶层的每个 *.dll 按字节加载并
+    GetTypes（ApplicationHost.DiscoverTypes），而按字节加载的程序集不会按名字绑定依赖，
+    扫描 0Harmony / MonoMod.* / Mono.Cecil 时会记录
+    "Could not load MonoMod.Utils / Mono.Cecil" 和 ReflectionTypeLoadException。
+    依赖统一放 <plugins>/<AssemblyName>.deps/，由 Plugin 的 AssemblyResolve 回调按需加载。
+  -->
+  <Target Name="DeployPluginDependencies" AfterTargets="PostBuild"
+          Condition="'$(EmbyPluginPath)' != '' AND '$(TargetFramework)' != ''">
+    <ItemGroup>
+      <PluginDependency Include="$(TargetDir)*.dll" Exclude="$(TargetPath)" />
+    </ItemGroup>
+    <Copy SourceFiles="@(PluginDependency)"
+          DestinationFolder="$(EmbyPluginPath)/$(AssemblyName).deps"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
