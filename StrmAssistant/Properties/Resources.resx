@@ -731,6 +731,12 @@
   <data name="GeneralOptions_CatchupScope_Catchup_Scope" xml:space="preserve">
     <value>Catchup Task Scope</value>
   </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_" xml:space="preserve">
+    <value>Catchup Minimum Delay (Seconds)</value>
+  </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
+    <value>Minimum seconds between two catch-up queue runs. Favorites are processed in their own queue. Default is 30.</value>
+  </data>
   <data name="IntroSkipOptions_ClientScope_Client_Scope" xml:space="preserve">
     <value>Allowed Clients</value>
   </data>

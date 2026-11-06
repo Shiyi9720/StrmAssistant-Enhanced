@@ -555,11 +555,11 @@ namespace StrmAssistant
                 if (_currentUnlockIntroSkip && _currentCatchupMode && IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
                     FingerprintApi.IsLibraryInScope(e.Item) && (e.Item is Episode || e.Item is Series))
                 {
-                    QueueManager.FingerprintItemQueue.Enqueue(e.Item);
+                    QueueManager.FavoriteFingerprintItemQueue.Enqueue(e.Item);
                 }
                 else if (_currentCatchupMode && IsCatchupTaskSelected(CatchupTask.MediaInfo))
                 {
-                    QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                    QueueManager.FavoriteMediaInfoExtractItemQueue.Enqueue(e.Item);
                 }
             }
         }

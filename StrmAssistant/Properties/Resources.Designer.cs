@@ -846,6 +846,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Catchup Minimum Delay (Seconds).
+        /// </summary>
+        public static string GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum seconds between two catch-up queue runs. Favorites are processed in their own queue. Default is 30..
+        /// </summary>
+        public static string GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_.
         /// </summary>
         public static string GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_ {

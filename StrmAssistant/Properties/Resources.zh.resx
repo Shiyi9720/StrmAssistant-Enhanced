@@ -644,6 +644,12 @@
   <data name="GeneralOptions_CatchupScope_Catchup_Scope" xml:space="preserve">
     <value>追更任务范围</value>
   </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_" xml:space="preserve">
+    <value>追更最小间隔（秒）</value>
+  </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
+    <value>两次追更队列执行之间的最小间隔秒数。最爱项目在独立队列中处理。默认 30。</value>
+  </data>
   <data name="IntroSkipOptions_ClientScope_Client_Scope" xml:space="preserve">
     <value>允许的客户端</value>
   </data>

@@ -644,6 +644,12 @@
   <data name="GeneralOptions_CatchupScope_Catchup_Scope" xml:space="preserve">
     <value>追更任務範圍</value>
   </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_" xml:space="preserve">
+    <value>追更最小間隔（秒）</value>
+  </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
+    <value>兩次追更佇列執行之間的最小間隔秒數。最愛項目在獨立佇列中處理。預設 30。</value>
+  </data>
   <data name="IntroSkipOptions_ClientScope_Client_Scope" xml:space="preserve">
     <value>允許的客戶端</value>
   </data>
