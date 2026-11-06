@@ -1351,6 +1351,7 @@
   </data>
   <data name="MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview" xml:space="preserve">
     <value>刷新缺少简介、图片或中文简介的电影元数据。</value>
+  </data>
   <data name="MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode" xml:space="preserve">
     <value>电影元数据刷新模式</value>
   </data>
@@ -1371,7 +1372,6 @@
   </data>
   <data name="RefreshMovieMetadataTask_Refresh_Movie_Metadata" xml:space="preserve">
     <value>刷新电影元数据</value>
-  </data>
   </data>
   <data name="VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites" xml:space="preserve">
     <value>跨库收藏</value>
