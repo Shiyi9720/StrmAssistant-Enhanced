@@ -769,6 +769,31 @@ namespace StrmAssistant.Common
 
             if (extractSkip) return null;
 
+            // Optional distributed extraction: worker nodes probe the resolved media path. Any
+            // failure returns false silently and the local refresh below stays the fallback.
+            var distributedExtracted = await Plugin.DistributedExtractApi
+                .TryExtractAsync(taskItem, filePath, source, cancellationToken).ConfigureAwait(false);
+
+            if (distributedExtracted)
+            {
+                if (taskItem is Video &&
+                    Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                {
+                    await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, refreshOptions, false, false)
+                        .ConfigureAwait(false);
+                }
+
+                Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(taskItem, source);
+
+                if (persistMediaInfo)
+                {
+                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
+                        .ConfigureAwait(false);
+                }
+
+                return true;
+            }
+
             taskItem.DateLastRefreshed = new DateTimeOffset();
 
             await _providerManager
