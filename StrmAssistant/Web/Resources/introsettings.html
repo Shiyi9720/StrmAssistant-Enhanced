@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@@TITLE@@</title>
+<style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        padding: 2em 1em;
+        background: #101010;
+        color: #eee;
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .page { max-width: 46em; margin: 0 auto; }
+    h1 { font-size: 1.5em; margin: 0 0 .35em; font-weight: 600; }
+    .description { margin: 0 0 1em; opacity: .78; }
+    .warning {
+        margin: 0 0 1em;
+        padding: .65em .85em;
+        border-radius: .35em;
+        background: rgba(255, 193, 7, .12);
+        border: 1px solid rgba(255, 193, 7, .45);
+        color: #ffd166;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: .5em; }
+    th, td { padding: .55em .5em; border-bottom: 1px solid rgba(255, 255, 255, .1); text-align: left; }
+    th { font-size: .85em; text-transform: uppercase; letter-spacing: .04em; opacity: .65; }
+    td.center, th.center { text-align: center; width: 7em; }
+    input[type=checkbox] { width: 1.1em; height: 1.1em; accent-color: #52b54b; }
+    input[type=number] {
+        width: 5.5em;
+        padding: .3em .45em;
+        border-radius: .3em;
+        border: 1px solid rgba(255, 255, 255, .25);
+        background: #1c1c1c;
+        color: inherit;
+        font: inherit;
+    }
+    input[type=number]:disabled { opacity: .35; }
+    .actions { display: flex; align-items: center; gap: 1em; margin-top: 1.4em; }
+    button {
+        padding: .55em 1.6em;
+        border: 0;
+        border-radius: .35em;
+        background: #52b54b;
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    button:disabled { opacity: .55; cursor: default; }
+    .status { font-size: .92em; opacity: .85; }
+    .status.error { color: #ff7b72; opacity: 1; }
+    .empty { opacity: .65; }
+</style>
+</head>
+<body>
+<div class="page">
+    <h1>@@TITLE@@</h1>
+    <p class="description">@@DESCRIPTION@@</p>
+    <p id="warning" class="warning" hidden>@@DISABLED@@</p>
+    <table id="libraries">
+        <thead>
+        <tr>
+            <th>@@COLUMN_LIBRARY@@</th>
+            <th class="center">@@COLUMN_OVERRIDE@@</th>
+            <th class="center">@@COLUMN_MINUTES@@</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <p id="empty" class="empty" hidden>@@NO_LIBRARIES@@</p>
+    <div class="actions">
+        <button id="save" type="button">@@SAVE@@</button>
+        <span id="status" class="status"></span>
+    </div>
+</div>
+<script>
+(function () {
+    'use strict';
+
+    var labels = {
+        saved: '@@SAVED@@',
+        saveFailed: '@@SAVE_FAILED@@',
+        loadFailed: '@@LOAD_FAILED@@'
+    };
+
+    var token = new URLSearchParams(window.location.search).get('api_key') || '';
+    var root = window.location.pathname.replace(/\/StrmAssistant\/IntroDetectionSettings\/?$/i, '');
+    var api = root + '/StrmAssistant/IntroDetectionSettings';
+
+    var tbody = document.querySelector('#libraries tbody');
+    var empty = document.getElementById('empty');
+    var warning = document.getElementById('warning');
+    var status = document.getElementById('status');
+    var saveButton = document.getElementById('save');
+
+    function withToken(url) {
+        if (!token) return url;
+        return url + (url.indexOf('?') === -1 ? '?' : '&') + 'api_key=' + encodeURIComponent(token);
+    }
+
+    function setStatus(text, isError) {
+        status.textContent = text || '';
+        status.className = isError ? 'status error' : 'status';
+    }
+
+    function render(data) {
+        tbody.innerHTML = '';
+        warning.hidden = !!data.IntroSkipEnabled;
+
+        var libraries = data.Libraries || [];
+        empty.hidden = libraries.length > 0;
+
+        libraries.forEach(function (library) {
+            var row = document.createElement('tr');
+
+            var nameCell = document.createElement('td');
+            nameCell.textContent = library.LibraryName || library.LibraryId;
+            row.appendChild(nameCell);
+
+            var overrideCell = document.createElement('td');
+            overrideCell.className = 'center';
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = !!library.Override;
+            checkbox.setAttribute('data-id', library.LibraryId);
+            overrideCell.appendChild(checkbox);
+            row.appendChild(overrideCell);
+
+            var minutesCell = document.createElement('td');
+            minutesCell.className = 'center';
+            var input = document.createElement('input');
+            input.type = 'number';
+            input.min = '2';
+            input.max = '20';
+            input.step = '1';
+            input.value = library.Minutes;
+            input.disabled = !library.Override;
+            minutesCell.appendChild(input);
+            row.appendChild(minutesCell);
+
+            checkbox.addEventListener('change', function () {
+                input.disabled = !checkbox.checked;
+            });
+
+            tbody.appendChild(row);
+        });
+    }
+
+    function collect() {
+        var rows = tbody.querySelectorAll('tr');
+        var result = [];
+
+        for (var i = 0; i < rows.length; i++) {
+            var checkbox = rows[i].querySelector('input[type=checkbox]');
+            var input = rows[i].querySelector('input[type=number]');
+            var minutes = parseInt(input.value, 10);
+
+            if (isNaN(minutes)) minutes = 10;
+            minutes = Math.max(2, Math.min(20, minutes));
+            input.value = minutes;
+
+            result.push({
+                LibraryId: checkbox.getAttribute('data-id'),
+                Override: checkbox.checked,
+                Minutes: minutes
+            });
+        }
+
+        return result;
+    }
+
+    function load() {
+        setStatus('');
+
+        fetch(withToken(api + '/Libraries'), { headers: { Accept: 'application/json' } })
+            .then(function (response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(render)
+            .catch(function () {
+                empty.hidden = false;
+                setStatus(labels.loadFailed, true);
+            });
+    }
+
+    function save() {
+        saveButton.disabled = true;
+        setStatus('');
+
+        fetch(withToken(api + '/Save'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ Libraries: collect() })
+        })
+            .then(function (response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(function (result) {
+                if (result && result.Success) {
+                    setStatus(labels.saved);
+                } else {
+                    setStatus(labels.saveFailed, true);
+                }
+            })
+            .catch(function () {
+                setStatus(labels.saveFailed, true);
+            })
+            .finally(function () {
+                saveButton.disabled = false;
+            });
+    }
+
+    saveButton.addEventListener('click', save);
+    load();
+})();
+</script>
+</body>
+</html>

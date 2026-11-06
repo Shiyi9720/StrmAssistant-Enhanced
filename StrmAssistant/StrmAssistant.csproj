@@ -24,11 +24,13 @@
   <ItemGroup>
     <None Remove="Web\Resources\shortcuts.js" />
     <None Remove="Web\Resources\strmassistant.js" />
+    <None Remove="Web\Resources\introsettings.html" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\thumb.png" />
     <EmbeddedResource Include="Web\Resources\shortcuts.js" />
     <EmbeddedResource Include="Web\Resources\strmassistant.js" />
+    <EmbeddedResource Include="Web\Resources\introsettings.html" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CHTCHSConv" Version="1.0.0">
