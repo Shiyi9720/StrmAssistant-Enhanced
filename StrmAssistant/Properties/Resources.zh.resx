@@ -53,6 +53,18 @@
   <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
     <value>以逗号分隔的字幕编码或通配符，例如 subrip, ass, hdmv_pgs_subtitle。处理媒体信息时，匹配的字幕流将被移除。默认为空。</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Enable_External_Audio_Scan" xml:space="preserve">
+    <value>启用外挂音轨扫描</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_" xml:space="preserve">
+    <value>扫描与 strm 或原盘视频放在同一目录的音轨文件，并作为外挂流合并。音轨扫描只补全插件自身的媒体流数据，不接管 Emby 的转码选择。默认关闭。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions" xml:space="preserve">
+    <value>外挂音轨扩展名</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ExternalAudioExtensions_Comma_separated_audio_file_extensions_to_scan__Default_is_flac_ac3_dts_dtshd_mka_aac_mp3_truehd_thd_" xml:space="preserve">
+    <value>逗号分隔的音轨文件扩展名，例如 flac, ac3, mka, truehd。默认 flac,ac3,dts,dtshd,mka,aac,mp3,truehd,thd。</value>
+  </data>
   <data name="MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords" xml:space="preserve">
     <value>媒体信息黑名单（关键字）</value>
   </data>
