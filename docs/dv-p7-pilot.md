@@ -2,7 +2,7 @@
 
 - 日期：2026-11-06
 - 批次：第二十三批（第一步 + 第二步试点）
-- 结论：**本机没有原盘 ISO；用户提供了 NAS 上三张盘的路径，但 Mac 登录钥匙串里没有 SMB 凭据，匿名/guest/当前用户挂载均被服务器拒绝。NAS 升级完成后（22:40）重试，结果相同。按任务要求停在试点这一步，未索要或猜测密码，未用合成样例冒充真盘证据，也未开始检测功能的代码实现。**
+- 结论：**真盘试点仍被 NAS 凭据挡住（升级后重试结果相同）；按 Hermes 建议，已用 FATE 公开样例完成检测逻辑与 BL 标记的实现，并通过正向/反向验证。尚未在真实零售盘上验证，EL 展示标签与 MEL/FEL 区分未做。**
 
 ## 一、目标
 
@@ -203,8 +203,98 @@ mount_smbfs: server rejected the connection: Authentication error   (exit 77)
 结论：**升级后 SMB 认证依旧要求账号密码，本机钥匙串里仍没有该凭据**。
 按红线立刻停住，没有弹密码框、没有猜测密码、没有继续重试。
 
-## 七、本批状态
+## 七、检测实现与 FATE 样例验证（2026-11-06 23:20）
 
-- 未改任何功能代码；
-- 未开始 `CustomFfprobeApi.cs` / `DvP7Api.cs` / `DiscMediaInfoApi.cs` 的实现；
-- 未在真实零售盘上验证，因此第二十二批评估里的限制仍然成立。
+真盘仍无法访问，按 Hermes 的建议先用 FATE 公开样例把检测逻辑写完；真盘试点等 NAS 挂载后补做。
+
+### 7.1 实现
+
+| 文件 | 改动 |
+| --- | --- |
+| `Common/CustomFfprobeApi.cs` | 抽出 `RunProbeJsonAsync(inputPath, outputArguments)`，返回静态 ffprobe 的原始 JSON；`ProbeAsync` 改为复用它。新增的 `-show_stream_groups` 探测走同一入口。 |
+| `Common/DvP7Api.cs`（新建） | ffprobe JSON 模型 + 检测规则：先找 `type` 含 `Dolby Vision` 且 `nb_streams == 2` 的流组，按 `0x1011` = BL、`0x1015` = EL 识别；没有流组时回退到 `dv_profile == 7 && el_present_flag == 1 && bl_present_flag == 1` 的 DOVI 配置记录。EL 的 side data 只作为附加信息，不是判定必要条件。 |
+| `Common/DiscMediaInfoApi.cs` | 在 `ApplyMediaInfoAsync` 保存流之前调用检测；只在 HEVC 原盘上运行，给 BL 设 `ExtendedVideoType = DolbyVision`、`ExtendedVideoSubType = DoviProfile76`，EL 保持原样。检测失败/静态 ffprobe 不可用时静默跳过，保留 Emby 原结果。 |
+
+本批未动 resx、未碰 `Mod/`、未改禁改文件，也不需要 Harmony。
+
+### 7.2 正向样例
+
+命令（`/tmp/ffprobe-static/ffprobe`，9.0.2-a3f9c2b）：
+
+```bash
+ffprobe -v error -print_format json -show_streams -show_stream_groups <sample>
+```
+
+**单轨 P7 MKV**：`fate-suite.ffmpeg.org/mkv/dovi-p7-hvce.mkv`（3840×2160）
+
+```json
+"stream_groups": [],
+"streams": [{
+  "index": 0, "codec_name": "hevc", "codec_type": "video",
+  "width": 3840, "height": 2160,
+  "side_data_list": [{
+    "side_data_type": "DOVI configuration record",
+    "dv_profile": 7, "dv_level": 6,
+    "rpu_present_flag": 1, "el_present_flag": 1, "bl_present_flag": 1,
+    "dv_bl_signal_compatibility_id": 6
+  }]
+}]
+```
+
+**带 DOVI descriptor 的规范 TS**：`fate-suite.ffmpeg.org/mpegts/dovi-p7.ts`
+
+```json
+"stream_groups": [{
+  "index": 0, "id": "0x1015", "nb_streams": 2,
+  "type": "Dolby Vision (Split base and enhancement layer)",
+  "streams": [
+    { "index": 0, "id": "0x1011", "codec_name": "hevc", "codec_type": "video" },
+    { "index": 1, "id": "0x1015", "codec_name": "hevc", "codec_type": "video" }
+  ]
+}]
+```
+
+EL 流上的 DOVI 记录：`dv_profile=7, dv_level=4, rpu_present_flag=1, el_present_flag=1, bl_present_flag=0, dv_bl_signal_compatibility_id=6`。
+
+**真实 UHD BD 布局**（`dovi-p7-uhdbd.ts`，第二十二批由 FATE 样例只改 PMT 派生）：
+
+```json
+"streams": [
+  { "index": 0, "id": "0x1011", "codec_name": "hevc", "codec_type": "video", "side_data_list": [] },
+  { "index": 1, "id": "0x1015", "codec_name": "hevc", "codec_type": "video", "side_data_list": [] }
+]
+```
+
+不带 `-show_stream_groups` 时没有任何 DV 信号；加上之后才出现上面的 `Dolby Vision (Split base and enhancement layer)` 流组。
+这条正是真实零售 UHD BD 的信令方式（EL 无 descriptor），也是本实现必须依赖流组的原因。
+
+用编译后的 `DvP7Api.Evaluate` 对上述 ffprobe JSON 跑检测：
+
+| 样例 | 检测结果 | Evidence | BL / EL |
+| --- | --- | --- | --- |
+| `dovi-p7-hvce.mkv` | **True** | `dovi_config_record` | index 0（单轨，无 PID） |
+| `dovi-p7.ts` | **True** | `stream_group` | 0x1011 / 0x1015 |
+| `dovi-p7-uhdbd.ts` | **True** | `stream_group` | 0x1011 / 0x1015 |
+
+### 7.3 反向样例
+
+| 样例 | ffprobe 输出 | 检测结果 |
+| --- | --- | --- |
+| `fate-suite.ffmpeg.org/mpegts/h264small.ts`（16 KB，H.264） | `"stream_groups": []`，无 side data | **False** |
+| `fate-suite.ffmpeg.org/mkv/hdr10tags-both.mkv`（17 KB，HEVC 560×320，HDR10） | `"stream_groups": []`，side data 只有 Content light level / Mastering display / Display Matrix | **False** |
+
+两个反向样例都没有 DOVI 配置记录，也没有 DV 流组，检测均返回 `IsDvP7 = False`，不误判。
+
+### 7.4 结论与限制
+
+- 检测规则在 FATE 单轨 MKV、规范 TS、UHD BD 布局三种形态上都返回 True，在 H.264 和非 DV HEVC 上返回 False。
+- **未在真实零售盘上验证**：UHD BD 布局仍是“由 FATE 样例改 PMT 派生”的文件，不是零售盘抓取；
+  寄生虫/变形金刚4/你的名字。三张 ISO 等 NAS 挂载后补做。
+- 不区分 MEL/FEL；本批只标记 BL，不做 EL 展示标签。
+
+## 八、本批状态
+
+- 已改 3 个生产文件：`CustomFfprobeApi.cs`、`DiscMediaInfoApi.cs`，新建 `DvP7Api.cs`；
+- `dotnet build -c Release`：0 错误；
+- 未在真实零售盘上验证，第二十二批评估里的真盘限制仍然成立；
+- EL 展示标签、MEL/FEL 区分未做。
