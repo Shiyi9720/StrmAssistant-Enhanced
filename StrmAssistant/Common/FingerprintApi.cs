@@ -402,6 +402,74 @@ namespace StrmAssistant.Common
         }
 
 #nullable enable
+        /// <summary>
+        /// Re-detects the intro and credits markers of one season on demand. The markers that were
+        /// written for the season before are removed first, otherwise both the IntroDb lookup and
+        /// Emby's fingerprint detection would skip every episode that already carries a marker.
+        /// After the cleanup the normal pipeline (<see cref="UpdateIntroMarkerForSeason"/>) runs
+        /// unchanged, so IntroDb timestamps are applied first and only the remaining episodes are
+        /// fingerprinted.
+        /// </summary>
+        public async Task RedetectIntroForSeason(Season season, CancellationToken cancellationToken,
+            IProgress<double>? progress = null)
+        {
+            if (FingerprintBlacklist.FromOptions().IsExcluded(season))
+            {
+                _logger.Info("FingerprintBlacklist - Skipped re-detect: " + season.Name + " - " + season.Path);
+                return;
+            }
+
+            _logger?.Info("IntroRedetect - " + season.SeriesName + " - " + season.Name + " - " + season.Path);
+
+            ClearSeasonIntroCreditsMarkers(season, cancellationToken);
+
+            await UpdateIntroMarkerForSeason(season, cancellationToken, progress).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Removes the intro/credits markers of the season that were written before: the ones from
+        /// Emby's fingerprint pipeline (they do not carry the #SA suffix) and the ones from IntroDb
+        /// or the playback based marker update (#SA). Saving the chapters also clears Emby's
+        /// intro detection failure record, so episodes that failed before are retried instead of
+        /// being skipped again.
+        /// </summary>
+        private void ClearSeasonIntroCreditsMarkers(Season season, CancellationToken cancellationToken)
+        {
+            var episodes = season.GetEpisodes(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { nameof(Episode) },
+                HasPath = true,
+                MediaTypes = new[] { MediaType.Video }
+            }).Items.OfType<Episode>().ToList();
+
+            var cleared = 0;
+
+            lock (MarkerWriteLock)
+            {
+                foreach (var episode in episodes)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var chapters = _itemRepository.GetChapters(episode);
+                    var removed = chapters.RemoveAll(c =>
+                        c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd ||
+                        c.MarkerType == MarkerType.CreditsStart);
+
+                    // Always save: Emby clears the intro detection failure record on save, which
+                    // makes episodes whose earlier detection failed eligible for a retry.
+                    _itemRepository.SaveChapters(episode.InternalId, chapters);
+
+                    if (removed > 0)
+                    {
+                        cleared++;
+                    }
+                }
+            }
+
+            _logger?.Info("IntroRedetect - Cleared markers for " + cleared + " of " + episodes.Count +
+                          " episodes in " + season.Name);
+        }
+
         public async Task UpdateIntroMarkerForSeason(Season season, CancellationToken cancellationToken,
             IProgress<double>? progress = null)
         {

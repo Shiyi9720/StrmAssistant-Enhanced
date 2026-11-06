@@ -1373,4 +1373,22 @@
   <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
     <value>Record movie favorites per library, so favoriting a movie in one library does not affect the same movie in another library. Unfavoriting only affects the current library. Applies to movies in the web client. A restart is required after changing. Default is OFF.</value>
   </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command" xml:space="preserve">
+    <value>Show Re-detect Intro Command</value>
+  </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_" xml:space="preserve">
+    <value>Show a Re-detect Intro command for a series or a season in the shortcut menu. It clears that season's existing intro and credits markers and runs intro detection again. Default is ON.</value>
+  </data>
+  <data name="IntroRedetect_CommandName_Re_detect_Intro" xml:space="preserve">
+    <value>Re-detect Intro</value>
+  </data>
+  <data name="IntroRedetect_Started_Intro_re_detection_started" xml:space="preserve">
+    <value>Intro re-detection started</value>
+  </data>
+  <data name="IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running" xml:space="preserve">
+    <value>Intro re-detection is already running</value>
+  </data>
+  <data name="IntroRedetect_Failed_Failed_to_start_intro_re_detection" xml:space="preserve">
+    <value>Failed to start intro re-detection</value>
+  </data>
 </root>
