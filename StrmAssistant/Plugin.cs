@@ -240,7 +240,8 @@ namespace StrmAssistant
                 itemRepository, jsonSerializer, libraryMonitor);
             DiscMediaInfoApi = new DiscMediaInfoApi(mediaProbeManager, libraryManager, itemRepository);
             DistributedExtractApi = new DistributedExtractApi(httpClient, jsonSerializer, mediaProbeManager,
-                libraryManager, itemRepository);
+                libraryManager, itemRepository, imageExtractionManager, FfmpegApi.WrapFfmpegManager(ffmpegManager),
+                mediaEncoder, applicationPaths, fileSystem, serverApplicationHost);
             ChapterApi = new ChapterApi(libraryManager, itemRepository);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths,
                 FfmpegApi.WrapFfmpegManager(ffmpegManager), mediaEncoder, mediaMountManager, jsonSerializer,
