@@ -270,6 +270,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedMediaInfo_Enable_Distributed_Media_Info_Extraction.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedMediaInfo_Enable_Distributed_Media_Info_Extraction {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedMediaInfo_Enable_Distributed_Media_Info_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedMediaInfo_Offload_media_info_extraction_to_worker_nodes_with_the_static_ffprobe__The_worker_only_accepts_local_media_files_inside_its_library_folders__When_no_worker_is_reachable_or_the_result_is_unusable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedMediaInfo_Offload_media_info_extraction_to_worker_nodes_with_the_static_ffprobe__The_worker_only_accepts_local_media_files_inside_its_library_folders__When_no_worker_is_reachable_or_the_result_is_unusable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedMediaInfo_Offload_media_info_extraction_to_worker_nodes_with_the_static_ffprobe__The_worker_only_accepts_local_media_files_inside_its_library_folders__When_no_worker_is_reachable_or_the_result_is_unusable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction.
         /// </summary>
         public static string DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction {
@@ -410,6 +428,24 @@ namespace StrmAssistant.Properties
         public static string DistributedExtractOptions_WorkerNodes_Worker_Nodes {
             get {
                 return ResourceManager.GetString("DistributedExtractOptions_WorkerNodes_Worker_Nodes", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_MediaInfoWorkerConcurrency_Media_Info_Worker_Concurrency.
+        /// </summary>
+        public static string DistributedExtractOptions_MediaInfoWorkerConcurrency_Media_Info_Worker_Concurrency {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_MediaInfoWorkerConcurrency_Media_Info_Worker_Concurrency", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_MediaInfoWorkerConcurrency_Maximum_number_of_media_info_extractions_sent_to_worker_nodes_at_the_same_time__It_must_be_between_1_and_4__Default_is_2_.
+        /// </summary>
+        public static string DistributedExtractOptions_MediaInfoWorkerConcurrency_Maximum_number_of_media_info_extractions_sent_to_worker_nodes_at_the_same_time__It_must_be_between_1_and_4__Default_is_2_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_MediaInfoWorkerConcurrency_Maximum_number_of_media_info_extractions_sent_to_worker_nodes_at_the_same_time__It_must_be_between_1_and_4__Default_is_2_", resourceCulture);
             }
         }
 
