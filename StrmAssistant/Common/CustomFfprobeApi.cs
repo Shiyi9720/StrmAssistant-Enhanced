@@ -390,6 +390,43 @@ namespace StrmAssistant.Common
         internal static async Task<MediaInfo> ProbeAsync(string inputPath, bool isAudio,
             MediaProtocol protocol, CancellationToken cancellationToken)
         {
+            var json = await RunProbeJsonAsync(inputPath,
+                "-show_streams -show_chapters -show_format",
+                cancellationToken).ConfigureAwait(false);
+
+            if (json is null) return null;
+
+            try
+            {
+                var probeResult = Plugin.Instance?.JsonSerializer
+                    .DeserializeFromString<ProbeResult>(json);
+
+                if (probeResult is null ||
+                    (probeResult.streams is null && probeResult.format is null))
+                {
+                    return null;
+                }
+
+                return Normalize(probeResult, isAudio, inputPath, protocol);
+            }
+            catch (Exception e)
+            {
+                Logger?.Debug("CustomFfprobe - Probe failed: " + e.Message);
+
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Runs the static ffprobe with the given output options and returns the raw JSON object.
+        /// Some signals are not part of Emby's ProbeResult, notably `-show_stream_groups`, which
+        /// is the only way a UHD Blu-ray Dolby Vision Profile 7 enhancement layer is visible.
+        /// Returns null when the static build is unavailable or the probe fails, so callers can
+        /// keep their existing behaviour.
+        /// </summary>
+        internal static async Task<string> RunProbeJsonAsync(string inputPath, string outputArguments,
+            CancellationToken cancellationToken)
+        {
             if (string.IsNullOrEmpty(inputPath)) return null;
 
             var exePath = await GetPathAsync(cancellationToken).ConfigureAwait(false);
@@ -398,8 +435,8 @@ namespace StrmAssistant.Common
 
             try
             {
-                var arguments = "-v error -print_format json -show_streams -show_chapters -show_format \"" +
-                                inputPath + "\"";
+                var arguments = "-v error -print_format json " + (outputArguments ?? string.Empty) +
+                                " \"" + inputPath + "\"";
 
                 var output = await FfmpegApi.RunAndCaptureAsync(Plugin.Instance?.FfmpegManager, exePath, arguments,
                     "CustomFfprobe", 120000, cancellationToken).ConfigureAwait(false);
@@ -409,18 +446,7 @@ namespace StrmAssistant.Common
                 var start = output.IndexOf('{');
                 var end = output.LastIndexOf('}');
 
-                if (start < 0 || end <= start) return null;
-
-                var probeResult = Plugin.Instance?.JsonSerializer
-                    .DeserializeFromString<ProbeResult>(output.Substring(start, end - start + 1));
-
-                if (probeResult is null ||
-                    (probeResult.streams is null && probeResult.format is null))
-                {
-                    return null;
-                }
-
-                return Normalize(probeResult, isAudio, inputPath, protocol);
+                return start < 0 || end <= start ? null : output.Substring(start, end - start + 1);
             }
             catch (OperationCanceledException)
             {
