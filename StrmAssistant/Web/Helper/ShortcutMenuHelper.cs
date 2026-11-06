@@ -23,7 +23,40 @@ namespace StrmAssistant.Web.Helper
         public static string GetShortcutsScript()
         {
             return (_shortcutsJs ?? string.Empty) + (_injectShortcutCommand ?? string.Empty) +
-                   GetHiddenBoxSetsStateScript() + UiEnhancementScript.Get();
+                   GetHiddenBoxSetsStateScript() + GetIntroRedetectStateScript() +
+                   UiEnhancementScript.Get();
+        }
+
+        /// <summary>
+        /// Publishes the localized texts of the "Re-detect Intro" shortcut command. Built per
+        /// request so the option and the server culture are always up to date.
+        /// </summary>
+        private static string GetIntroRedetectStateScript()
+        {
+            var enabled = Plugin.Instance?.GetPluginOptions()?.IntroSkipOptions
+                ?.ShowRedetectIntroCommand ?? true;
+
+            var builder = new StringBuilder();
+            builder.Append("\nwindow.strmAssistantIntroRedetect = {");
+            builder.Append("enabled: ").Append(enabled ? "true" : "false").Append(", ");
+            builder.Append("name: '")
+                .Append(UiEnhancementScript.JsString("IntroRedetect_CommandName_Re_detect_Intro", "Re-detect Intro"))
+                .Append("', ");
+            builder.Append("started: '")
+                .Append(UiEnhancementScript.JsString("IntroRedetect_Started_Intro_re_detection_started",
+                    "Intro re-detection started"))
+                .Append("', ");
+            builder.Append("running: '")
+                .Append(UiEnhancementScript.JsString("IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running",
+                    "Intro re-detection is already running"))
+                .Append("', ");
+            builder.Append("failed: '")
+                .Append(UiEnhancementScript.JsString("IntroRedetect_Failed_Failed_to_start_intro_re_detection",
+                    "Failed to start intro re-detection"))
+                .Append("'");
+            builder.Append("};\n");
+
+            return builder.ToString();
         }
 
         private static string GetHiddenBoxSetsStateScript()
@@ -157,6 +190,15 @@ const strmAssistantCommandSource = {
                     icon: 'refresh'
                 });
             }
+            if ((options.items[0].Type === 'Series' || options.items[0].Type === 'Season') &&
+                (options.user && options.user.Policy.IsAdministrator || false) &&
+                window.strmAssistantIntroRedetect && window.strmAssistantIntroRedetect.enabled) {
+                result.push({
+                    name: window.strmAssistantIntroRedetect.name,
+                    id: 'redetect_intro',
+                    icon: 'graphic_eq'
+                });
+            }
             if (['Movie', 'Episode', 'Series', 'Season', 'MusicVideo', 'Video', 'Trailer', 'BoxSet'].includes(options.items[0].Type) &&
                 (options.user && options.user.Policy.IsAdministrator || false)) {
                 const commandName = locale === 'zh-cn' ? '\u5220\u9664\u6F14\u5458' :
@@ -207,6 +249,7 @@ const strmAssistantCommandSource = {
             clear_intro: 'clear_intro',
             remove_person: 'remove_person',
             refresh_recursive: 'refresh_recursive',
+            redetect_intro: 'redetect_intro',
             clear_chapter_images: 'clear_chapter_images',
             clear_bif: 'clear_bif',
             clear_media_info: 'clear_media_info'

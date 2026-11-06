@@ -225,6 +225,10 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
         public string FingerprintExcludeKeywords { get; set; } = string.Empty;
 
+        [DisplayNameL("IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_", typeof(Resources))]
+        public bool ShowRedetectIntroCommand { get; set; } = true;
+
         [DisplayNameL("IntroSkipOptions_FingerprintLibraryFilePath_Fingerprint_Library_File", typeof(Resources))]
         [DescriptionL("IntroSkipOptions_FingerprintLibraryFilePath_JSON_file_used_by_the_export_and_import_tasks__Blank_uses_the_plugin_data_folder__Default_is_EMPTY_", typeof(Resources))]
         public string FingerprintLibraryFilePath { get; set; } = string.Empty;

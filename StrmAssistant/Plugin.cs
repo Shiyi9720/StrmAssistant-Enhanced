@@ -66,6 +66,7 @@ namespace StrmAssistant
         public static MetadataApi MetadataApi { get; private set; }
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
         public static VersionPlaybackApi VersionPlaybackApi { get; private set; }
+        public static VersionFavoriteApi VersionFavoriteApi { get; private set; }
         public static BoxSetHomeVisibilityStore BoxSetHomeVisibilityStore { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
         public static IntroDbApi IntroDbApi { get; private set; }
@@ -90,6 +91,7 @@ namespace StrmAssistant
         internal IFfmpegManager FfmpegManager => _ffmpegManager;
 
         private bool _currentSuppressOnOptionsSaved;
+        private bool _skipOptionsSanitizeOnce;
         private int _currentMaxConcurrentCount;
         private int _currentTier2ConcurrentCount;
         private int _currentIntroDetectionMaxConcurrentCount;
@@ -107,6 +109,7 @@ namespace StrmAssistant
         private bool _currentDistinguishChinesePosters;
         private bool _currentPreferOriginalPoster;
         private string _currentLocalDiscoveryAddress;
+        private bool _currentCrossLibraryFavoriteSeparation;
         private ChineseMetadataOrderOption _currentChineseMetadataOrder;
         private bool _currentConvertSimplifiedToTraditional;
 
@@ -214,6 +217,8 @@ namespace StrmAssistant
             _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
             _currentPreferOriginalPoster = GetOptions().MetadataEnhanceOptions.PreferOriginalPoster;
             _currentLocalDiscoveryAddress = GetOptions().NetworkOptions.LocalDiscoveryAddress;
+            _currentCrossLibraryFavoriteSeparation = GetOptions().ExperienceEnhanceOptions.VersionFavoriteOptions
+                .EnableCrossLibraryFavoriteSeparation;
             _currentChineseMetadataOrder = GetOptions().MetadataEnhanceOptions.ChineseMetadataOrder;
             _currentConvertSimplifiedToTraditional =
                 GetOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional;
@@ -235,7 +240,8 @@ namespace StrmAssistant
                 itemRepository, jsonSerializer, libraryMonitor);
             DiscMediaInfoApi = new DiscMediaInfoApi(mediaProbeManager, libraryManager, itemRepository);
             DistributedExtractApi = new DistributedExtractApi(httpClient, jsonSerializer, mediaProbeManager,
-                libraryManager, itemRepository);
+                libraryManager, itemRepository, imageExtractionManager, FfmpegApi.WrapFfmpegManager(ffmpegManager),
+                mediaEncoder, applicationPaths, fileSystem, serverApplicationHost);
             ChapterApi = new ChapterApi(libraryManager, itemRepository);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths,
                 FfmpegApi.WrapFfmpegManager(ffmpegManager), mediaEncoder, mediaMountManager, jsonSerializer,
@@ -253,6 +259,7 @@ namespace StrmAssistant
                 serverApplicationHost);
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
+            VersionFavoriteApi = new VersionFavoriteApi(jsonSerializer);
             BoxSetHomeVisibilityStore = new BoxSetHomeVisibilityStore(jsonSerializer);
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
             IntroDbApi = new IntroDbApi(libraryManager, itemRepository, jsonSerializer, httpClient);
@@ -550,11 +557,11 @@ namespace StrmAssistant
                 if (_currentUnlockIntroSkip && _currentCatchupMode && IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
                     FingerprintApi.IsLibraryInScope(e.Item) && (e.Item is Episode || e.Item is Series))
                 {
-                    QueueManager.FingerprintItemQueue.Enqueue(e.Item);
+                    QueueManager.FavoriteFingerprintItemQueue.Enqueue(e.Item);
                 }
                 else if (_currentCatchupMode && IsCatchupTaskSelected(CatchupTask.MediaInfo))
                 {
-                    QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                    QueueManager.FavoriteMediaInfoExtractItemQueue.Enqueue(e.Item);
                 }
             }
         }
@@ -594,8 +601,58 @@ namespace StrmAssistant
             SaveOptions(GetOptions());
         }
 
+        /// <summary>
+        /// Persists the per-library intro detection fingerprint overrides edited on the plugin's
+        /// own settings page. The scope sanitizing in <see cref="OnOptionsSaving"/> relies on
+        /// transient library/user lists that only exist after the generic options page has been
+        /// shown, so this targeted save skips it; the regular save pipeline (including
+        /// <see cref="FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength"/>) still runs,
+        /// which makes the new values effective without a restart.
+        /// </summary>
+        public void SaveLibraryIntroDetectionFingerprintOptions(
+            IEnumerable<LibraryIntroDetectionFingerprintOption> libraryOptions)
+        {
+            var options = GetPluginOptions();
+            var collection = new LibraryIntroDetectionFingerprintOptionCollection();
+
+            foreach (var option in libraryOptions)
+            {
+                collection.Add(new LibraryIntroDetectionFingerprintOption
+                {
+                    LibraryId = option.LibraryId,
+                    LibraryName = option.LibraryName,
+                    Override = option.Override,
+                    IntroDetectionFingerprintMinutes =
+                        Math.Max(2, Math.Min(20, option.IntroDetectionFingerprintMinutes))
+                });
+            }
+
+            options.IntroSkipOptions.LibraryIntroDetectionFingerprintOptions = collection;
+
+            _skipOptionsSanitizeOnce = true;
+            // The verbose option logging in OnOptionsSaved resolves library/user names from lists
+            // that are only populated when the generic settings page is shown, so suppress it for
+            // this targeted save as well.
+            _currentSuppressOnOptionsSaved = true;
+
+            try
+            {
+                SaveOptions(options);
+            }
+            finally
+            {
+                _skipOptionsSanitizeOnce = false;
+                _currentSuppressOnOptionsSaved = false;
+            }
+        }
+
         protected override bool OnOptionsSaving(PluginOptions options)
         {
+            if (_skipOptionsSanitizeOnce)
+            {
+                return base.OnOptionsSaving(options);
+            }
+
             if (string.IsNullOrEmpty(options.GeneralOptions.CatchupTaskScope))
             {
                 options.GeneralOptions.CatchupTaskScope = CatchupTask.MediaInfo.ToString();
@@ -690,6 +747,15 @@ namespace StrmAssistant
                 {
                     _currentLocalDiscoveryAddress = options.NetworkOptions.LocalDiscoveryAddress;
                     Logger.Info("LocalDiscoveryAddress changed. Restart Emby to apply it.");
+                }
+
+                var crossLibraryFavoriteSeparation = options.ExperienceEnhanceOptions.VersionFavoriteOptions
+                    .EnableCrossLibraryFavoriteSeparation;
+                Logger.Info("EnableCrossLibraryFavoriteSeparation is set to {0}", crossLibraryFavoriteSeparation);
+                if (_currentCrossLibraryFavoriteSeparation != crossLibraryFavoriteSeparation)
+                {
+                    _currentCrossLibraryFavoriteSeparation = crossLibraryFavoriteSeparation;
+                    Logger.Info("EnableCrossLibraryFavoriteSeparation changed. Restart Emby to apply it.");
                 }
             }
 
