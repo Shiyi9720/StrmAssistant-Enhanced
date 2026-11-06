@@ -927,6 +927,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names.
+        /// </summary>
+        public static string GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_.
+        /// </summary>
+        public static string GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort.
         /// </summary>
         public static string GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort {

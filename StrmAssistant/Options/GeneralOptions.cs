@@ -68,5 +68,9 @@ namespace StrmAssistant.Options
         [DisplayNameL("GeneralOptions_MultiVersionSort_Multi_Version_Smart_Sort", typeof(Resources))]
         [DescriptionL("GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_", typeof(Resources))]
         public bool MultiVersionSort { get; set; } = true;
+
+        [DisplayNameL("GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names", typeof(Resources))]
+        [DescriptionL("GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_", typeof(Resources))]
+        public bool MultiVersionFriendlyNames { get; set; } = true;
     }
 }
