@@ -36,19 +36,16 @@
     <PackageReference Include="CHTCHSConv" Version="1.0.0">
     </PackageReference>
     <PackageReference Include="ToolGood.Words.Pinyin" Version="3.1.0" />
-    <PackageReference Include="ILRepack" Version="2.0.42">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <!--
-      Lib.Harmony only ships a reference assembly for netstandard2.0, so NuGet does not copy a
-      runtime assembly for a netstandard2.1 project. Compile against the reference assembly and
-      copy the net8.0 implementation (Emby 4.10 runs on .NET 8) next to the plugin; ILRepack
-      then merges it into the plugin assembly.
+      HarmonyX, not Lib.Harmony: Lib.Harmony 2.3.6 ships a single 0Harmony.dll with the MonoMod
+      types embedded. When Emby (or another plugin) also loads MonoMod.Utils, the two type
+      identities collide ("CecilILGenerator violates the constraint on ILGeneratorProxy[TTarget]").
+      HarmonyX keeps 0Harmony.dll, MonoMod.Core.dll and MonoMod.Utils.dll as separate assemblies,
+      so every consumer binds to one shared type identity.
+      Do NOT ILRepack 0Harmony/MonoMod into the plugin assembly: merging them back would recreate
+      exactly the duplicate-type problem. All dependency DLLs are deployed next to the plugin.
     -->
-    <PackageReference Include="Lib.Harmony" Version="2.3.6" GeneratePathProperty="true" />
-    <None Include="$(PkgLib_Harmony)/lib/net8.0/0Harmony.dll" Link="0Harmony.dll"
-          CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="HarmonyX" Version="2.16.1" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -77,16 +74,44 @@
     </EmbeddedResource>
   </ItemGroup>
   <!--
-    Optional ILRepack step: merges 0Harmony.dll, ChineseConverter.dll and ToolGood.Words.Pinyin.dll
-    into the plugin assembly.
-    It only runs when an output path is supplied, so that building on a developer
-    machine (including macOS) does not depend on a Windows-only %AppData% path.
+    Optional deployment step. It copies the plugin assembly and every dependency DLL next to it.
+    Emby loads the plugin main assembly with Assembly.Load(bytes), so the default probing path
+    never looks inside the plugin directory; Plugin's AssemblyResolve hook resolves each
+    dependency by simple name from this directory. Therefore the Harmony/MonoMod closure must be
+    deployed as separate files:
+      0Harmony.dll, MonoMod.Core.dll, MonoMod.Utils.dll, MonoMod.RuntimeDetour.dll,
+      MonoMod.Backports.dll, MonoMod.ILHelpers.dll, MonoMod.Iced.dll,
+      Mono.Cecil*.dll, ChineseConverter.dll, ToolGood.Words.Pinyin.dll and the remaining
+      System.* dependency DLLs produced by the NuGet restore.
+    It only runs when an output path is supplied, so a developer build (including macOS) does not
+    depend on a Windows-only %AppData% path.
 
     Example:
       dotnet build -c Release -p:EmbyPluginPath=/path/to/emby/programdata/plugins
   -->
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(EmbyPluginPath)' != ''">
-    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
-    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="dotnet &quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+  <!--
+    Fail the build if the HarmonyX closure that must be deployed as separate files is missing.
+    0Harmony must never absorb MonoMod again (that recreates the duplicate type identity).
+  -->
+  <Target Name="VerifyModDependencies" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
+    <Error Condition="!Exists('$(TargetDir)0Harmony.dll')"
+           Text="0Harmony.dll is missing from the build output; HarmonyX did not restore correctly." />
+    <Error Condition="!Exists('$(TargetDir)MonoMod.Core.dll')"
+           Text="MonoMod.Core.dll is missing from the build output; it must be deployed next to the plugin." />
+    <Error Condition="!Exists('$(TargetDir)MonoMod.Utils.dll')"
+           Text="MonoMod.Utils.dll is missing from the build output; it must be deployed next to the plugin." />
+    <Error Condition="!Exists('$(TargetDir)MonoMod.RuntimeDetour.dll')"
+           Text="MonoMod.RuntimeDetour.dll is missing from the build output; it must be deployed next to the plugin." />
+  </Target>
+
+  <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(EmbyPluginPath)' != '' AND '$(TargetFramework)' != ''">
+    <ItemGroup>
+      <DeployAssemblies Include="$(TargetDir)*.dll" />
+      <DeployZh Include="$(TargetDir)zh/**/*" />
+      <DeployZhHant Include="$(TargetDir)zh-hant/**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DeployAssemblies)" DestinationFolder="$(EmbyPluginPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(DeployZh)" DestinationFolder="$(EmbyPluginPath)/zh/%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(DeployZhHant)" DestinationFolder="$(EmbyPluginPath)/zh-hant/%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
 </Project>
