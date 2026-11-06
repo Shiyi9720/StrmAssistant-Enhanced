@@ -21,6 +21,8 @@ namespace StrmAssistant.Common
     public static class IsoApi
     {
         private const int SectorSize = 2048;
+        private const int MaxIfoCount = 32;
+        private const int MaxIfoSize = 4 * 1024 * 1024;
 
         private static ILogger Logger => Plugin.Instance.Logger;
 
@@ -54,6 +56,31 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 Logger.Debug("IsoExtract - Playlist read failed: " + e.Message);
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Reads the raw bytes of every DVD IFO file (VIDEO_TS/VTS_xx_0.IFO) in the image.
+        /// Used to pull the chapter table out of a DVD ISO. Returns an empty dictionary when the
+        /// image has no VIDEO_TS structure or cannot be parsed.
+        /// </summary>
+        public static Dictionary<string, byte[]> ReadDvdIfos(string isoPath)
+        {
+            var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
+            if (string.IsNullOrEmpty(isoPath) || !File.Exists(isoPath)) return result;
+
+            try
+            {
+                using var reader = new IsoImageReader(isoPath);
+
+                return reader.ReadDvdIfos();
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("IsoExtract - DVD IFO read failed: " + e.Message);
 
                 return result;
             }
@@ -449,6 +476,103 @@ namespace StrmAssistant.Common
                 }
 
                 return result;
+            }
+
+            public Dictionary<string, byte[]> ReadDvdIfos()
+            {
+                var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
+                try
+                {
+                    var context = ReadUdfContext();
+
+                    if (context != null)
+                    {
+                        var videoTs = FindUdfDirectory(context, context.RootFileEntry, "VIDEO_TS");
+
+                        if (videoTs != null)
+                        {
+                            var directoryData = ReadFileEntryData(context, videoTs);
+
+                            foreach (var entry in ListUdfEntries(context, directoryData)
+                                         .Select(e => e.Value)
+                                         .Where(e => !e.IsDirectory && IsIfoName(e.Name))
+                                         .Take(MaxIfoCount))
+                            {
+                                if (entry.Size <= 0 || entry.Size > MaxIfoSize) continue;
+
+                                result[entry.Name] = ReadFileEntryData(context, entry);
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.Debug("IsoExtract - DVD IFO UDF parse failed: " + e.Message);
+                }
+
+                if (result.Count > 0) return result;
+
+                try
+                {
+                    ReadIso9660DvdIfos(result);
+                }
+                catch (Exception e)
+                {
+                    Logger.Debug("IsoExtract - DVD IFO ISO9660 parse failed: " + e.Message);
+                }
+
+                return result;
+            }
+
+            private void ReadIso9660DvdIfos(Dictionary<string, byte[]> result)
+            {
+                var pvd = ReadSectors(16, 1);
+
+                if (Encoding.ASCII.GetString(pvd, 1, 5) != "CD001") return;
+
+                var rootExtent = Le32(pvd, 158);
+                var rootSize = Le32(pvd, 166);
+
+                var videoTs = FindIso9660Directory(rootExtent, rootSize, "VIDEO_TS");
+
+                if (videoTs is null) return;
+
+                foreach (var record in ReadIso9660Records(videoTs.Extent, videoTs.Size)
+                             .Where(r => !r.IsDirectory && IsIfoName(r.Name))
+                             .Take(MaxIfoCount))
+                {
+                    if (record.Size <= 0 || record.Size > MaxIfoSize) continue;
+
+                    var data = ReadBytes(record.Extent * SectorSize, record.Size);
+
+                    if (data != null) result[record.Name] = data;
+                }
+            }
+
+            private byte[] ReadBytes(long offset, long length)
+            {
+                if (offset < 0 || length <= 0 || offset + length > _stream.Length) return null;
+
+                var buffer = new byte[length];
+
+                _stream.Position = offset;
+                var read = 0;
+
+                while (read < buffer.Length)
+                {
+                    var count = _stream.Read(buffer, read, buffer.Length - read);
+                    if (count <= 0) break;
+                    read += count;
+                }
+
+                return buffer;
+            }
+
+            private static bool IsIfoName(string name)
+            {
+                return !string.IsNullOrEmpty(name) &&
+                       name.EndsWith(".ifo", StringComparison.OrdinalIgnoreCase);
             }
 
             private UdfContext ReadUdfContext()
