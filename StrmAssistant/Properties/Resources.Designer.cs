@@ -2862,6 +2862,69 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to PinyinSortNameTask_Description_Convert_Chinese_titles_of_movies_series_seasons_and_episodes_to_pinyin_initials_and_write_them_to_the_sort_title.
+        /// </summary>
+        public static string PinyinSortNameTask_Description_Convert_Chinese_titles_of_movies_series_seasons_and_episodes_to_pinyin_initials_and_write_them_to_the_sort_title {
+            get {
+                return ResourceManager.GetString("PinyinSortNameTask_Description_Convert_Chinese_titles_of_movies_series_seasons_and_episodes_to_pinyin_initials_and_write_them_to_the_sort_title", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PinyinSortNameTask_Name_Generate_Pinyin_Sort_Titles.
+        /// </summary>
+        public static string PinyinSortNameTask_Name_Generate_Pinyin_Sort_Titles {
+            get {
+                return ResourceManager.GetString("PinyinSortNameTask_Name_Generate_Pinyin_Sort_Titles", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PinyinSortOptions_EditorTitle_Pinyin_Sort_Title.
+        /// </summary>
+        public static string PinyinSortOptions_EditorTitle_Pinyin_Sort_Title {
+            get {
+                return ResourceManager.GetString("PinyinSortOptions_EditorTitle_Pinyin_Sort_Title", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PinyinSortOptions_EnablePinyinSortName_Enable_Pinyin_Sort_Title.
+        /// </summary>
+        public static string PinyinSortOptions_EnablePinyinSortName_Enable_Pinyin_Sort_Title {
+            get {
+                return ResourceManager.GetString("PinyinSortOptions_EnablePinyinSortName_Enable_Pinyin_Sort_Title", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PinyinSortOptions_EnablePinyinSortName_Write_pinyin_initials_of_Chinese_titles_to_the_sort_title_Only_untouched_sort_titles_are_rewritten_Default_is_OFF.
+        /// </summary>
+        public static string PinyinSortOptions_EnablePinyinSortName_Write_pinyin_initials_of_Chinese_titles_to_the_sort_title_Only_untouched_sort_titles_are_rewritten_Default_is_OFF {
+            get {
+                return ResourceManager.GetString("PinyinSortOptions_EnablePinyinSortName_Write_pinyin_initials_of_Chinese_titles_to_the_sort_title_Only_untouched_sort_titles_are_rewritten_Default_is_OFF", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PinyinSortOptions_LibraryScope_Library_Scope.
+        /// </summary>
+        public static string PinyinSortOptions_LibraryScope_Library_Scope {
+            get {
+                return ResourceManager.GetString("PinyinSortOptions_LibraryScope_Library_Scope", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to PinyinSortOptions_LibraryScope_Library_scope_to_generate_pinyin_sort_titles_for_Blank_includes_all.
+        /// </summary>
+        public static string PinyinSortOptions_LibraryScope_Library_scope_to_generate_pinyin_sort_titles_for_Blank_includes_all {
+            get {
+                return ResourceManager.GetString("PinyinSortOptions_LibraryScope_Library_scope_to_generate_pinyin_sort_titles_for_Blank_includes_all", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ModOptions_ProxyServer_Enable_http_proxy_server__Blank_is_OFF_.
         /// </summary>
         public static string ModOptions_ProxyServer_Enable_http_proxy_server__Blank_is_OFF_ {
