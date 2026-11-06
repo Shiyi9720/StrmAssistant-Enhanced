@@ -60,7 +60,18 @@ namespace StrmAssistant.Web.Helper
         'box-shadow:0 1px 3px rgba(0,0,0,.4)}' +
         '.strmAssistantEpisodeStats{display:inline-block;margin:.35em 0;padding:.25em .6em;' +
         'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}' +
-        '.strmAssistantHiddenBoxSet{display:none!important}';
+        '.strmAssistantHiddenBoxSet{display:none!important}' +
+        '.strmAssistantDoubanSection{padding-top:.5em}' +
+        '.strmAssistantDoubanMore{margin-left:auto;background:none;border:0;color:inherit;cursor:pointer;' +
+        'font-size:.9em;opacity:.75}' +
+        '.strmAssistantDoubanItems{display:flex;gap:1em;overflow-x:auto;padding:.5em 0 1em;scrollbar-width:thin}' +
+        '.strmAssistantDoubanCard{flex:0 0 10em;width:10em;text-decoration:none;color:inherit}' +
+        '.strmAssistantDoubanPoster{position:relative;width:10em;height:15em;border-radius:.35em;' +
+        'overflow:hidden;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}' +
+        '.strmAssistantDoubanPoster img{width:100%;height:100%;object-fit:cover}' +
+        '.strmAssistantDoubanTitle{margin-top:.4em;font-size:.9em;line-height:1.25;overflow:hidden;' +
+        'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}' +
+        '.strmAssistantDoubanMeta{margin-top:.15em;font-size:.8em;opacity:.7}';
     (document.head || document.documentElement).appendChild(style);
 })();
 ";
@@ -137,6 +148,247 @@ namespace StrmAssistant.Web.Helper
     startObserving();
 })();
 ";
+        }
+
+        /// <summary>
+        /// Adds a Douban recommendation channel to the home screen. The endpoint only returns
+        /// entries that were matched to a library item; unmatched entries link to search.
+        /// </summary>
+        private static string GetDoubanRecommendationsScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    var labels = {
+        title: '@@TITLE@@',
+        more: '@@MORE@@',
+        less: '@@LESS@@',
+        open: '@@OPEN@@',
+        search: '@@SEARCH@@'
+    };
+    var apiClient = null;
+    var items = [];
+    var loading = false;
+    var expanded = false;
+    var section = null;
+    var scheduled = false;
+    var lastAttempt = 0;
+    var lastLoad = 0;
+    var renderVersion = 0;
+    var renderedVersion = -1;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function isHome() {
+        var hash = (location.hash || '').toLowerCase();
+        return hash === '' || hash === '#/' || hash === '#/home' ||
+            hash.indexOf('#/home?') === 0 || hash.indexOf('#/home/') === 0;
+    }
+
+    function getHost() {
+        return document.querySelector('.homeSectionsContainer') ||
+            document.querySelector('.view-home .sections') ||
+            document.querySelector('.view-home .scrollFrame') ||
+            document.querySelector('.view-home');
+    }
+
+    function removeSection() {
+        if (section && section.parentNode) section.parentNode.removeChild(section);
+        section = null;
+        renderedVersion = -1;
+    }
+
+    function currentLimit() {
+        return expanded ? 40 : 18;
+    }
+
+    function load(force) {
+        if (loading) return;
+
+        var now = Date.now();
+
+        if (!force) {
+            if (items.length && now - lastLoad < 600000) {
+                render();
+                return;
+            }
+            if (now - lastAttempt < 60000) {
+                render();
+                return;
+            }
+        }
+
+        lastAttempt = now;
+        loading = true;
+
+        withApiClient(function (client) {
+            client.getJSON(client.getUrl('StrmAssistant/Douban/Recommendations?Limit=' +
+                currentLimit() + '&Kind=hot')).then(function (result) {
+                items = (result && result.Items) || [];
+                loading = false;
+                lastLoad = Date.now();
+                renderVersion++;
+                render();
+            }, function () {
+                loading = false;
+                expanded = false;
+                renderVersion++;
+                if (!items.length) removeSection();
+            });
+        });
+    }
+
+    function createCard(item) {
+        var card = document.createElement('a');
+        card.className = 'strmAssistantDoubanCard';
+        card.href = item.ItemId
+            ? '#/item?id=' + encodeURIComponent(item.ItemId)
+            : '#/search?query=' + encodeURIComponent(item.Title || '');
+        card.title = item.ItemId ? labels.open : labels.search;
+
+        var poster = document.createElement('div');
+        poster.className = 'strmAssistantDoubanPoster';
+
+        if (item.CoverUrl) {
+            var image = document.createElement('img');
+            image.src = item.CoverUrl;
+            image.alt = item.Title || '';
+            image.loading = 'lazy';
+            image.referrerPolicy = 'no-referrer';
+            poster.appendChild(image);
+        } else {
+            poster.textContent = '?';
+        }
+
+        card.appendChild(poster);
+
+        var title = document.createElement('div');
+        title.className = 'strmAssistantDoubanTitle';
+        title.textContent = item.Title || '';
+        card.appendChild(title);
+
+        var metaParts = [];
+
+        if (typeof item.Rating === 'number' && item.Rating > 0) {
+            metaParts.push('\u2605 ' + item.Rating.toFixed(1));
+        }
+        if (item.Year) metaParts.push(item.Year);
+
+        if (metaParts.length) {
+            var meta = document.createElement('div');
+            meta.className = 'strmAssistantDoubanMeta';
+            meta.textContent = metaParts.join(' \u00b7 ');
+            card.appendChild(meta);
+        }
+
+        return card;
+    }
+
+    function render() {
+        if (!isHome() || !items.length) {
+            removeSection();
+            return;
+        }
+
+        var host = getHost();
+        if (!host) return;
+
+        if (section && renderedVersion === renderVersion && document.contains(section)) return;
+
+        if (!section || !document.contains(section)) {
+            section = document.createElement('div');
+            section.className = 'verticalSection strmAssistantDoubanSection';
+            section.innerHTML = '<div class=""sectionTitleContainer flex align-items-center"">' +
+                '<h2 class=""sectionTitle""></h2>' +
+                '<button type=""button"" class=""strmAssistantDoubanMore""></button>' +
+                '</div><div class=""itemsContainer strmAssistantDoubanItems""></div>';
+            section.querySelector('.sectionTitle').textContent = labels.title;
+            section.querySelector('.strmAssistantDoubanMore').addEventListener('click', function () {
+                expanded = !expanded;
+                renderVersion++;
+                if (expanded) load(true);
+                else render();
+            });
+            host.insertBefore(section, host.firstChild);
+        }
+
+        var container = section.querySelector('.strmAssistantDoubanItems');
+        container.innerHTML = '';
+
+        var visible = expanded ? items : items.slice(0, 18);
+
+        for (var i = 0; i < visible.length; i++) {
+            container.appendChild(createCard(visible[i]));
+        }
+
+        var more = section.querySelector('.strmAssistantDoubanMore');
+        more.textContent = expanded ? labels.less : labels.more;
+        more.style.display = items.length > 18 || expanded ? '' : 'none';
+
+        renderedVersion = renderVersion;
+    }
+
+    function apply() {
+        if (!isHome()) {
+            removeSection();
+            return;
+        }
+
+        render();
+        load(false);
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            apply();
+        }, 350);
+    }
+
+    window.addEventListener('hashchange', schedule);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    startObserving();
+})();
+"
+                .Replace("@@TITLE@@", JsString("DoubanRecommendations_Title_Douban_Recommendations",
+                    "Douban Recommendations"))
+                .Replace("@@MORE@@", JsString("DoubanRecommendations_More_More", "More"))
+                .Replace("@@LESS@@", JsString("DoubanRecommendations_Less_Less", "Less"))
+                .Replace("@@OPEN@@", JsString("DoubanRecommendations_OpenInLibrary_Open_in_library",
+                    "Open in library"))
+                .Replace("@@SEARCH@@", JsString("DoubanRecommendations_SearchInLibrary_Search_in_library",
+                    "Search in library"));
         }
 
         /// <summary>

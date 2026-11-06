@@ -1259,4 +1259,25 @@
   <data name="BoxSetHomeVisibility_ShowOnHome_Show_on_Home" xml:space="preserve">
     <value>Show on Home</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel" xml:space="preserve">
+    <value>Douban Recommendation Channel</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_" xml:space="preserve">
+    <value>Show Douban hot movie recommendations on the home screen. Uses Douban's public mobile API and degrades silently. Default is OFF.</value>
+  </data>
+  <data name="DoubanRecommendations_Title_Douban_Recommendations" xml:space="preserve">
+    <value>Douban Recommendations</value>
+  </data>
+  <data name="DoubanRecommendations_More_More" xml:space="preserve">
+    <value>More</value>
+  </data>
+  <data name="DoubanRecommendations_Less_Less" xml:space="preserve">
+    <value>Less</value>
+  </data>
+  <data name="DoubanRecommendations_OpenInLibrary_Open_in_library" xml:space="preserve">
+    <value>Open in library</value>
+  </data>
+  <data name="DoubanRecommendations_SearchInLibrary_Search_in_library" xml:space="preserve">
+    <value>Search in library</value>
+  </data>
 </root>

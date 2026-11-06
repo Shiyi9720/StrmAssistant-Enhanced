@@ -1172,4 +1172,25 @@
   <data name="BoxSetHomeVisibility_ShowOnHome_Show_on_Home" xml:space="preserve">
     <value>顯示在首頁</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel" xml:space="preserve">
+    <value>豆瓣推薦頻道</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_" xml:space="preserve">
+    <value>在首頁顯示豆瓣熱門電影推薦，使用豆瓣公開行動端介面，失敗時靜默降級。預設關閉。</value>
+  </data>
+  <data name="DoubanRecommendations_Title_Douban_Recommendations" xml:space="preserve">
+    <value>豆瓣推薦</value>
+  </data>
+  <data name="DoubanRecommendations_More_More" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="DoubanRecommendations_Less_Less" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="DoubanRecommendations_OpenInLibrary_Open_in_library" xml:space="preserve">
+    <value>在媒體庫中開啟</value>
+  </data>
+  <data name="DoubanRecommendations_SearchInLibrary_Search_in_library" xml:space="preserve">
+    <value>在媒體庫中搜尋</value>
+  </data>
 </root>
