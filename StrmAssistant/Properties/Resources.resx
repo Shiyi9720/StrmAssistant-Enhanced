@@ -731,6 +731,45 @@
   <data name="GeneralOptions_CatchupScope_Catchup_Scope" xml:space="preserve">
     <value>Catchup Task Scope</value>
   </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_" xml:space="preserve">
+    <value>Catchup Minimum Delay (Seconds)</value>
+  </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
+    <value>Minimum seconds between two catch-up queue runs. Favorites are processed in their own queue. Default is 30.</value>
+  </data>
+  <data name="IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length" xml:space="preserve">
+    <value>Per-Library Intro Detection Length</value>
+  </data>
+  <data name="IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_" xml:space="preserve">
+    <value>Override the global intro detection fingerprint length for individual TV libraries. Global value: {0} minutes. Valid range: 2-20 minutes.</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Library_Library" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Override_Override" xml:space="preserve">
+    <value>Override</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Minutes_Minutes" xml:space="preserve">
+    <value>Minutes</value>
+  </data>
+  <data name="IntroDetectionSettings_Save_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_" xml:space="preserve">
+    <value>Settings saved. They apply to the next intro detection run.</value>
+  </data>
+  <data name="IntroDetectionSettings_SaveFailed_Failed_to_save_settings_" xml:space="preserve">
+    <value>Failed to save settings.</value>
+  </data>
+  <data name="IntroDetectionSettings_LoadFailed_Failed_to_load_settings_" xml:space="preserve">
+    <value>Failed to load settings.</value>
+  </data>
+  <data name="IntroDetectionSettings_NoLibraries_No_TV_libraries_found_" xml:space="preserve">
+    <value>No TV libraries found.</value>
+  </data>
+  <data name="IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_" xml:space="preserve">
+    <value>Built-in intro skip enhancement is not enabled. The saved values will apply once detection is enabled.</value>
+  </data>
   <data name="IntroSkipOptions_ClientScope_Client_Scope" xml:space="preserve">
     <value>Allowed Clients</value>
   </data>
@@ -1319,6 +1358,18 @@
   <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
     <value>Offload media info extraction to worker nodes. Enable it and use the same shared key on every node. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
   </data>
+  <data name="DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction" xml:space="preserve">
+    <value>Enable Distributed Thumbnail Extraction</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>Offload chapter image extraction to worker nodes. It applies to libraries that extract chapter images only. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction" xml:space="preserve">
+    <value>Enable Distributed Intro Fingerprint Extraction</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>Offload audio fingerprint extraction for intro detection to worker nodes. The detection and marker writes stay on this node. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
+  </data>
   <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
     <value>Worker Nodes</value>
   </data>
@@ -1384,5 +1435,32 @@
   <data name="RefreshMovieMetadataTask_Refresh_Movie_Metadata" xml:space="preserve">
     <value>Refresh Movie Metadata</value>
   </data>
+  </data>
+  <data name="VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites" xml:space="preserve">
+    <value>Cross-Library Favorites</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites" xml:space="preserve">
+    <value>Separate Cross-Library Favorites</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
+    <value>Record movie favorites per library, so favoriting a movie in one library does not affect the same movie in another library. Unfavoriting only affects the current library. Applies to movies in the web client. A restart is required after changing. Default is OFF.</value>
+  </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command" xml:space="preserve">
+    <value>Show Re-detect Intro Command</value>
+  </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_" xml:space="preserve">
+    <value>Show a Re-detect Intro command for a series or a season in the shortcut menu. It clears that season's existing intro and credits markers and runs intro detection again. Default is ON.</value>
+  </data>
+  <data name="IntroRedetect_CommandName_Re_detect_Intro" xml:space="preserve">
+    <value>Re-detect Intro</value>
+  </data>
+  <data name="IntroRedetect_Started_Intro_re_detection_started" xml:space="preserve">
+    <value>Intro re-detection started</value>
+  </data>
+  <data name="IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running" xml:space="preserve">
+    <value>Intro re-detection is already running</value>
+  </data>
+  <data name="IntroRedetect_Failed_Failed_to_start_intro_re_detection" xml:space="preserve">
+    <value>Failed to start intro re-detection</value>
   </data>
 </root>

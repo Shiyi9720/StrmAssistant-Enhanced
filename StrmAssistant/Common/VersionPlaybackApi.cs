@@ -208,7 +208,7 @@ namespace StrmAssistant.Common
             Persist(stopped);
         }
 
-        private static string GetItemKey(BaseItem item)
+        internal static string GetItemKey(BaseItem item)
         {
             if (item is Video video)
             {
@@ -218,7 +218,7 @@ namespace StrmAssistant.Common
             return GetNameKey(item) ?? item.InternalId.ToString(CultureInfo.InvariantCulture);
         }
 
-        private static string GetNameKey(BaseItem item)
+        internal static string GetNameKey(BaseItem item)
         {
             var name = NormalizeIdentity(item?.Name);
             if (string.IsNullOrEmpty(name)) return null;
@@ -227,13 +227,13 @@ namespace StrmAssistant.Common
                    (item.ProductionYear ?? 0).ToString(CultureInfo.InvariantCulture);
         }
 
-        private static bool MatchesKey(string left, string right)
+        internal static bool MatchesKey(string left, string right)
         {
             return !string.IsNullOrEmpty(left) && !string.IsNullOrEmpty(right) &&
                    string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static List<MediaSourceInfo> GetCurrentMediaSources(BaseItem item)
+        internal static List<MediaSourceInfo> GetCurrentMediaSources(BaseItem item)
         {
             try
             {
@@ -301,7 +301,7 @@ namespace StrmAssistant.Common
             };
         }
 
-        private static string GetVersionKey(MediaSourceInfo source)
+        internal static string GetVersionKey(MediaSourceInfo source)
         {
             var fileName = GetSourceFileName(source);
             var stem = RemoveExtension(fileName);
@@ -309,7 +309,7 @@ namespace StrmAssistant.Common
             return string.IsNullOrEmpty(normalized) ? null : normalized;
         }
 
-        private static string GetVersionSignature(MediaSourceInfo source)
+        internal static string GetVersionSignature(MediaSourceInfo source)
         {
             if (source is null) return null;
 

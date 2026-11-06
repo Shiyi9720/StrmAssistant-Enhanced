@@ -644,6 +644,45 @@
   <data name="GeneralOptions_CatchupScope_Catchup_Scope" xml:space="preserve">
     <value>追更任務範圍</value>
   </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_" xml:space="preserve">
+    <value>追更最小間隔（秒）</value>
+  </data>
+  <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
+    <value>兩次追更佇列執行之間的最小間隔秒數。最愛項目在獨立佇列中處理。預設 30。</value>
+  </data>
+  <data name="IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length" xml:space="preserve">
+    <value>按庫片頭探測時長</value>
+  </data>
+  <data name="IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_" xml:space="preserve">
+    <value>為單個電視節目庫覆蓋全域片頭探測時長。全域值：{0} 分鐘，可設定 2–20 分鐘。</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Library_Library" xml:space="preserve">
+    <value>媒體庫</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Override_Override" xml:space="preserve">
+    <value>覆蓋全域</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Minutes_Minutes" xml:space="preserve">
+    <value>時長（分鐘）</value>
+  </data>
+  <data name="IntroDetectionSettings_Save_Save" xml:space="preserve">
+    <value>儲存</value>
+  </data>
+  <data name="IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_" xml:space="preserve">
+    <value>已儲存，下一輪片頭探測即生效。</value>
+  </data>
+  <data name="IntroDetectionSettings_SaveFailed_Failed_to_save_settings_" xml:space="preserve">
+    <value>儲存失敗。</value>
+  </data>
+  <data name="IntroDetectionSettings_LoadFailed_Failed_to_load_settings_" xml:space="preserve">
+    <value>載入失敗。</value>
+  </data>
+  <data name="IntroDetectionSettings_NoLibraries_No_TV_libraries_found_" xml:space="preserve">
+    <value>沒有找到電視節目庫。</value>
+  </data>
+  <data name="IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_" xml:space="preserve">
+    <value>內建片頭增強未啟用。儲存的數值會在啟用探測後生效。</value>
+  </data>
   <data name="IntroSkipOptions_ClientScope_Client_Scope" xml:space="preserve">
     <value>允許的客戶端</value>
   </data>
@@ -1232,6 +1271,18 @@
   <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
     <value>把媒體資訊擷取分發到工作節點。請在每台節點上啟用並填寫相同的共用金鑰。工作節點不可用時自動回落到本機擷取。預設關閉。</value>
   </data>
+  <data name="DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction" xml:space="preserve">
+    <value>啟用分散式截圖擷取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>把章節截圖擷取分發到工作節點。僅適用於只擷取章節截圖的媒體庫。工作節點不可用時自動回落到本機擷取。預設關閉。</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction" xml:space="preserve">
+    <value>啟用分散式片頭聲紋擷取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>把片頭探測的音訊聲紋擷取分發到工作節點。探測比對與標記寫入仍在本機執行。工作節點不可用時自動回落到本機擷取。預設關閉。</value>
+  </data>
   <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
     <value>工作節點</value>
   </data>
@@ -1297,5 +1348,32 @@
   <data name="RefreshMovieMetadataTask_Refresh_Movie_Metadata" xml:space="preserve">
     <value>重新整理電影中繼資料</value>
   </data>
+  </data>
+  <data name="VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites" xml:space="preserve">
+    <value>跨庫收藏</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites" xml:space="preserve">
+    <value>跨庫收藏分離</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
+    <value>按媒體庫分別記錄電影收藏，在 A 庫收藏不會影響 B 庫的同一影片，取消收藏也只影響當前庫。僅對網頁客戶端中的電影生效。更改後需重啟 Emby。預設為關閉。</value>
+  </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command" xml:space="preserve">
+    <value>顯示重新探測片頭命令</value>
+  </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_" xml:space="preserve">
+    <value>在劇集或季的快捷選單中顯示「重新探測片頭」命令。會先清除該季現有的片頭與片尾標記，再重新執行片頭探測。預設為開啟。</value>
+  </data>
+  <data name="IntroRedetect_CommandName_Re_detect_Intro" xml:space="preserve">
+    <value>重新探測片頭</value>
+  </data>
+  <data name="IntroRedetect_Started_Intro_re_detection_started" xml:space="preserve">
+    <value>已開始重新探測片頭</value>
+  </data>
+  <data name="IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running" xml:space="preserve">
+    <value>重新探測片頭正在進行中</value>
+  </data>
+  <data name="IntroRedetect_Failed_Failed_to_start_intro_re_detection" xml:space="preserve">
+    <value>啟動重新探測片頭失敗</value>
   </data>
 </root>

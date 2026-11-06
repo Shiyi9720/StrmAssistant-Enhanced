@@ -8,9 +8,10 @@ using System.ComponentModel;
 namespace StrmAssistant.Options
 {
     /// <summary>
-    /// Optional distributed media info extraction. Off by default: when enabled, the media info
-    /// task first asks the configured worker nodes to probe an item, and silently falls back to
-    /// local extraction when no worker is reachable or returns a usable result.
+    /// Optional distributed extraction (media info, chapter images and intro fingerprints). Off
+    /// by default: when enabled, the tasks first ask the configured worker nodes to do the work
+    /// and silently fall back to local extraction when no worker is reachable or returns a usable
+    /// result.
     /// </summary>
     public class DistributedExtractOptions : EditableOptionsBase
     {
@@ -24,6 +25,24 @@ namespace StrmAssistant.Options
             "DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_",
             typeof(Resources))]
         public bool EnableDistributedExtract { get; set; } = false;
+
+        [DisplayNameL(
+            "DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction",
+            typeof(Resources))]
+        [DescriptionL(
+            "DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_",
+            typeof(Resources))]
+        [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
+        public bool EnableDistributedThumbnail { get; set; } = false;
+
+        [DisplayNameL(
+            "DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction",
+            typeof(Resources))]
+        [DescriptionL(
+            "DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_",
+            typeof(Resources))]
+        [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
+        public bool EnableDistributedFingerprint { get; set; } = false;
 
         [DisplayNameL("DistributedExtractOptions_WorkerNodes_Worker_Nodes", typeof(Resources))]
         [DescriptionL(

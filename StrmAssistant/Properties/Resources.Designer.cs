@@ -270,6 +270,42 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_.
         /// </summary>
         public static string DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_ {
@@ -846,6 +882,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Catchup Minimum Delay (Seconds).
+        /// </summary>
+        public static string GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Minimum seconds between two catch-up queue runs. Favorites are processed in their own queue. Default is 30..
+        /// </summary>
+        public static string GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_.
         /// </summary>
         public static string GeneralOptions_CooldownDurationSeconds_Applicable_to_single_thread_mode__Default_is_0_ {
@@ -1148,6 +1202,105 @@ namespace StrmAssistant.Properties
         public static string IntroSkipOptions_BlacklistShows_Optional_Blacklist_Shows {
             get {
                 return ResourceManager.GetString("IntroSkipOptions_BlacklistShows_Optional_Blacklist_Shows", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Column_Library_Library.
+        /// </summary>
+        public static string IntroDetectionSettings_Column_Library_Library {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Column_Library_Library", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Column_Minutes_Minutes.
+        /// </summary>
+        public static string IntroDetectionSettings_Column_Minutes_Minutes {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Column_Minutes_Minutes", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Column_Override_Override.
+        /// </summary>
+        public static string IntroDetectionSettings_Column_Override_Override {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Column_Override_Override", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_.
+        /// </summary>
+        public static string IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_.
+        /// </summary>
+        public static string IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_LoadFailed_Failed_to_load_settings_.
+        /// </summary>
+        public static string IntroDetectionSettings_LoadFailed_Failed_to_load_settings_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_LoadFailed_Failed_to_load_settings_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_NoLibraries_No_TV_libraries_found_.
+        /// </summary>
+        public static string IntroDetectionSettings_NoLibraries_No_TV_libraries_found_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_NoLibraries_No_TV_libraries_found_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Save_Save.
+        /// </summary>
+        public static string IntroDetectionSettings_Save_Save {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Save_Save", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_SaveFailed_Failed_to_save_settings_.
+        /// </summary>
+        public static string IntroDetectionSettings_SaveFailed_Failed_to_save_settings_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_SaveFailed_Failed_to_save_settings_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_.
+        /// </summary>
+        public static string IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length.
+        /// </summary>
+        public static string IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length", resourceCulture);
             }
         }
 
@@ -3839,6 +3992,87 @@ namespace StrmAssistant.Properties
         public static string Update_Failed_Message {
             get {
                 return ResourceManager.GetString("Update_Failed_Message", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites.
+        /// </summary>
+        public static string VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites {
+            get {
+                return ResourceManager.GetString("VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites.
+        /// </summary>
+        public static string VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites {
+            get {
+                return ResourceManager.GetString("VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_.
+        /// </summary>
+        public static string VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command.
+        /// </summary>
+        public static string IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_.
+        /// </summary>
+        public static string IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_CommandName_Re_detect_Intro.
+        /// </summary>
+        public static string IntroRedetect_CommandName_Re_detect_Intro {
+            get {
+                return ResourceManager.GetString("IntroRedetect_CommandName_Re_detect_Intro", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_Started_Intro_re_detection_started.
+        /// </summary>
+        public static string IntroRedetect_Started_Intro_re_detection_started {
+            get {
+                return ResourceManager.GetString("IntroRedetect_Started_Intro_re_detection_started", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running.
+        /// </summary>
+        public static string IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running {
+            get {
+                return ResourceManager.GetString("IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_Failed_Failed_to_start_intro_re_detection.
+        /// </summary>
+        public static string IntroRedetect_Failed_Failed_to_start_intro_re_detection {
+            get {
+                return ResourceManager.GetString("IntroRedetect_Failed_Failed_to_start_intro_re_detection", resourceCulture);
             }
         }
 

@@ -19,7 +19,6 @@ namespace StrmAssistant.Common
         private static DateTime _introSkipProcessLastRunTime = DateTime.MinValue;
         private static DateTime _fingerprintProcessLastRunTime = DateTime.MinValue;
         private static DateTime _episodeRefreshProcessLastRunTime = DateTime.MinValue;
-        private static readonly TimeSpan ThrottleInterval = TimeSpan.FromSeconds(30);
         private static readonly Random Random = new Random();
         private static int _currentMasterMaxConcurrentCount;
         private static int _currentTier2MaxConcurrentCount;
@@ -36,6 +35,14 @@ namespace StrmAssistant.Common
         public static ConcurrentQueue<Episode> IntroSkipItemQueue = new ConcurrentQueue<Episode>();
         public static ConcurrentQueue<BaseItem> FingerprintItemQueue = new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<BaseItem> EpisodeRefreshItemQueue = new ConcurrentQueue<BaseItem>();
+
+        // Favorites get their own queues so the catch-up work caused by a favorite is never
+        // batched together with the regular catch-up work of newly added items. The workers
+        // drain the favorite queue first, then the regular one.
+        public static ConcurrentQueue<BaseItem> FavoriteMediaInfoExtractItemQueue =
+            new ConcurrentQueue<BaseItem>();
+        public static ConcurrentQueue<Episode> FavoriteIntroSkipItemQueue = new ConcurrentQueue<Episode>();
+        public static ConcurrentQueue<BaseItem> FavoriteFingerprintItemQueue = new ConcurrentQueue<BaseItem>();
         public static Task MediaInfoProcessTask;
         public static Task FingerprintProcessTask;
         public static Task EpisodeRefreshProcessTask;
@@ -61,6 +68,7 @@ namespace StrmAssistant.Common
             if (MediaInfoProcessTask is null)
             {
                 MediaInfoExtractItemQueue.Clear();
+                FavoriteMediaInfoExtractItemQueue.Clear();
                 MediaInfoProcessTask = MediaInfo_ProcessItemQueueAsync()
                     .ContinueWith(task =>
                     {
@@ -85,6 +93,7 @@ namespace StrmAssistant.Common
             if (FingerprintProcessTask is null)
             {
                 FingerprintItemQueue.Clear();
+                FavoriteFingerprintItemQueue.Clear();
                 FingerprintProcessTask = Fingerprint_ProcessItemQueueAsync()
                     .ContinueWith(task =>
                     {
@@ -170,6 +179,14 @@ namespace StrmAssistant.Common
             }
         }
 
+        private static TimeSpan GetCatchupMinimumDelay()
+        {
+            // Never let the loops spin without a delay; the option is the minimum interval
+            // between two queue runs, not a way to disable the wait.
+            var seconds = Plugin.Instance.GetPluginOptions().GeneralOptions.CatchupMinimumDelaySeconds;
+            return TimeSpan.FromSeconds(Math.Max(seconds, 1));
+        }
+
         public static async Task MediaInfo_ProcessItemQueueAsync()
         {
             Logger.Info("MediaInfo - ProcessItemQueueAsync Started");
@@ -184,7 +201,7 @@ namespace StrmAssistant.Common
             while (!cancellationToken.IsCancellationRequested)
             {
                 var timeSinceLastRun = DateTime.UtcNow - _mediaInfoProcessLastRunTime;
-                var remainingTime = ThrottleInterval - timeSinceLastRun;
+                var remainingTime = GetCatchupMinimumDelay() - timeSinceLastRun;
                 if (remainingTime > TimeSpan.Zero)
                 {
                     try
@@ -197,15 +214,18 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                if (!MediaInfoExtractItemQueue.IsEmpty)
+                var isFavorite = !FavoriteMediaInfoExtractItemQueue.IsEmpty;
+                var queue = isFavorite ? FavoriteMediaInfoExtractItemQueue : MediaInfoExtractItemQueue;
+
+                if (!queue.IsEmpty)
                 {
                     var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
-                    var currentQueueCount = MediaInfoExtractItemQueue.Count;
-                    
+                    var currentQueueCount = queue.Count;
+
                     dequeueItems.Clear();
                     deferredItems.Clear();
 
-                    while (MediaInfoExtractItemQueue.TryDequeue(out var dequeueItem))
+                    while (queue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
                         var progress = library?.GetRefreshProgress();
@@ -290,7 +310,14 @@ namespace StrmAssistant.Common
                                     if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
                                         taskItem is Episode episode && Plugin.PlaySessionMonitor.IsLibraryInScope(episode))
                                     {
-                                        IntroSkipItemQueue.Enqueue(episode);
+                                        if (isFavorite)
+                                        {
+                                            FavoriteIntroSkipItemQueue.Enqueue(episode);
+                                        }
+                                        else
+                                        {
+                                            IntroSkipItemQueue.Enqueue(episode);
+                                        }
                                     }
 
                                     Logger.Info("MediaInfoExtract - Item processed: " + taskItem.Name + " - " +
@@ -344,14 +371,14 @@ namespace StrmAssistant.Common
                         
                     foreach (var item in deferredItems)
                     {
-                        MediaInfoExtractItemQueue.Enqueue(item);
+                        queue.Enqueue(item);
                     }
                 }
 
                 _mediaInfoProcessLastRunTime = DateTime.UtcNow;
             }
 
-            if (MediaInfoExtractItemQueue.IsEmpty)
+            if (MediaInfoExtractItemQueue.IsEmpty && FavoriteMediaInfoExtractItemQueue.IsEmpty)
             {
                 Logger.Info("MediaInfo - ProcessItemQueueAsync Stopped");
             }
@@ -374,7 +401,7 @@ namespace StrmAssistant.Common
             while (!cancellationToken.IsCancellationRequested)
             {
                 var timeSinceLastRun = DateTime.UtcNow - _fingerprintProcessLastRunTime;
-                var remainingTime = ThrottleInterval - timeSinceLastRun;
+                var remainingTime = GetCatchupMinimumDelay() - timeSinceLastRun;
                 if (remainingTime > TimeSpan.Zero)
                 {
                     try
@@ -387,17 +414,20 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                if (!FingerprintItemQueue.IsEmpty)
+                var isFavorite = !FavoriteFingerprintItemQueue.IsEmpty;
+                var queue = isFavorite ? FavoriteFingerprintItemQueue : FingerprintItemQueue;
+
+                if (!queue.IsEmpty)
                 {
                     var maxConcurrentCount = Plugin.Instance.GetPluginOptions().GeneralOptions.MaxConcurrentCount;
                     var fingerprintMaxConcurrentCount =
                         Plugin.Instance.GetPluginOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
-                    var currentQueueCount = FingerprintItemQueue.Count;
-                    
+                    var currentQueueCount = queue.Count;
+
                     dequeueItems.Clear();
                     deferredItems.Clear();
 
-                    while (FingerprintItemQueue.TryDequeue(out var dequeueItem))
+                    while (queue.TryDequeue(out var dequeueItem))
                     {
                         var library = dequeueItem.GetTopParent();
                         var progress = library?.GetRefreshProgress();
@@ -423,7 +453,14 @@ namespace StrmAssistant.Common
 
                         foreach (var item in mediaInfoItems)
                         {
-                            MediaInfoExtractItemQueue.Enqueue(item);
+                            if (isFavorite)
+                            {
+                                FavoriteMediaInfoExtractItemQueue.Enqueue(item);
+                            }
+                            else
+                            {
+                                MediaInfoExtractItemQueue.Enqueue(item);
+                            }
                         }
                     }
 
@@ -628,14 +665,14 @@ namespace StrmAssistant.Common
 
                     foreach (var item in deferredItems)
                     {
-                        FingerprintItemQueue.Enqueue(item);
+                        queue.Enqueue(item);
                     }
                 }
 
                 _fingerprintProcessLastRunTime = DateTime.UtcNow;
             }
 
-            if (FingerprintItemQueue.IsEmpty)
+            if (FingerprintItemQueue.IsEmpty && FavoriteFingerprintItemQueue.IsEmpty)
             {
                 Logger.Info("Fingerprint - ProcessItemQueueAsync Stopped");
             }
@@ -657,7 +694,7 @@ namespace StrmAssistant.Common
             while (!cancellationToken.IsCancellationRequested)
             {
                 var timeSinceLastRun = DateTime.UtcNow - _introSkipProcessLastRunTime;
-                var remainingTime = ThrottleInterval - timeSinceLastRun;
+                var remainingTime = GetCatchupMinimumDelay() - timeSinceLastRun;
                 if (remainingTime > TimeSpan.Zero)
                 {
                     try
@@ -670,10 +707,14 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                if (!IntroSkipItemQueue.IsEmpty)
+                var queue = !FavoriteIntroSkipItemQueue.IsEmpty
+                    ? FavoriteIntroSkipItemQueue
+                    : IntroSkipItemQueue;
+
+                if (!queue.IsEmpty)
                 {
                     dequeueItems.Clear();
-                    while (IntroSkipItemQueue.TryDequeue(out var dequeueItem))
+                    while (queue.TryDequeue(out var dequeueItem))
                     {
                         dequeueItems.Add(dequeueItem);
                     }
@@ -690,7 +731,7 @@ namespace StrmAssistant.Common
                 _introSkipProcessLastRunTime = DateTime.UtcNow;
             }
 
-            if (IntroSkipItemQueue.IsEmpty)
+            if (IntroSkipItemQueue.IsEmpty && FavoriteIntroSkipItemQueue.IsEmpty)
             {
                 Logger.Info("IntroSkip - ProcessItemQueueAsync Stopped");
             }
@@ -713,7 +754,7 @@ namespace StrmAssistant.Common
             while (!cancellationToken.IsCancellationRequested)
             {
                 var timeSinceLastRun = DateTime.UtcNow - _episodeRefreshProcessLastRunTime;
-                var remainingTime = ThrottleInterval - timeSinceLastRun;
+                var remainingTime = GetCatchupMinimumDelay() - timeSinceLastRun;
                 if (remainingTime > TimeSpan.Zero)
                 {
                     try

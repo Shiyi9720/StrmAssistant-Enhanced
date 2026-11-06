@@ -39,6 +39,12 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(CatchupMode), SimpleCondition.IsTrue)]
         public string CatchupTaskScope { get; set; } = CatchupTask.MediaInfo.ToString();
 
+        [DisplayNameL("GeneralOptions_CatchupMinimumDelaySeconds_Catchup_Minimum_Delay__Seconds_", typeof(Resources))]
+        [DescriptionL("GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_", typeof(Resources))]
+        [VisibleCondition(nameof(CatchupMode), SimpleCondition.IsTrue)]
+        [Required, MinValue(1), MaxValue(3600)]
+        public int CatchupMinimumDelaySeconds { get; set; } = 30;
+
         [DisplayNameL("PluginOptions_MaxConcurrentCount_Max_Concurrent_Count", typeof(Resources))]
         [DescriptionL("PluginOptions_MaxConcurrentCount_Max_Concurrent_Count_must_be_between_1_to_10__Default_is_1_", typeof(Resources))]
         [Required, MinValue(1), MaxValue(20)]
