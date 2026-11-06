@@ -29,6 +29,8 @@ namespace StrmAssistant.Common
     {
         private const int MaxPlaylistCount = 200;
         private const long MaxPlaylistSize = 8 * 1024 * 1024;
+        private const int MaxIfoCount = 32;
+        private const long MaxIfoSize = 4 * 1024 * 1024;
 
         private readonly ILogger _logger;
         private readonly IMediaProbeManager _mediaProbeManager;
@@ -158,8 +160,9 @@ namespace StrmAssistant.Common
 
                 if (chapters.Count == 0)
                 {
-                    // Blu-ray chapters live in the playlist, not in the m2ts stream.
-                    chapters = ReadBluRayChapters(item);
+                    // Blu-ray chapters live in the playlist and DVD chapters in the IFO; neither
+                    // container exposes them to ffprobe.
+                    chapters = ReadDiscChapters(item, source);
                 }
 
                 SaveChapters(item, chapters);
@@ -333,6 +336,84 @@ namespace StrmAssistant.Common
                 .OrderByDescending(f => f.Length)
                 .Select(f => f.FullName)
                 .FirstOrDefault();
+        }
+
+        private List<ChapterInfo> ReadDiscChapters(BaseItem item, string source)
+        {
+            // The extracted file keeps the disc type: DVD titles are extracted as VOB, Blu-ray
+            // titles as m2ts, for ISO images and folders alike.
+            return source.EndsWith(".vob", StringComparison.OrdinalIgnoreCase)
+                ? ReadDvdChapters(item, source)
+                : ReadBluRayChapters(item);
+        }
+
+        private List<ChapterInfo> ReadDvdChapters(BaseItem item, string source)
+        {
+            try
+            {
+                var ifos = ReadDvdIfos(item);
+
+                if (ifos.Count == 0) return new List<ChapterInfo>();
+
+                int? vtsNumber = null;
+
+                // The extracted file name identifies the VTS for folder based discs. ISO images
+                // keep their own file name, so the longest title across all IFOs is used there.
+                if (DvdIfoApi.TryGetVtsNumber(Path.GetFileName(source), out var number))
+                {
+                    vtsNumber = number;
+                }
+
+                var chapters = DvdIfoApi.SelectChapters(ifos, vtsNumber, item.RunTimeTicks ?? 0);
+
+                if (chapters.Count > 0)
+                {
+                    _logger?.Debug("DiscMediaInfo - DVD IFO chapters: " + chapters.Count + " - " + item.Path);
+                }
+
+                return chapters;
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DiscMediaInfo - DVD chapter extraction failed: " + e.Message);
+
+                return new List<ChapterInfo>();
+            }
+        }
+
+        private static Dictionary<string, byte[]> ReadDvdIfos(BaseItem item)
+        {
+            var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
+            if (IsIsoItem(item)) return IsoApi.ReadDvdIfos(item.Path);
+
+            var root = GetDiscRoot(item);
+
+            if (root is null) return result;
+
+            var folder = Path.Combine(root, "VIDEO_TS");
+
+            if (!Directory.Exists(folder)) return result;
+
+            foreach (var file in Directory.EnumerateFiles(folder)
+                         .Where(f => f.EndsWith(".ifo", StringComparison.OrdinalIgnoreCase))
+                         .Take(MaxIfoCount))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+
+                    if (!info.Exists || info.Length <= 0 || info.Length > MaxIfoSize) continue;
+
+                    result[info.Name] = File.ReadAllBytes(file);
+                }
+                catch
+                {
+                    // ignored: keep the IFOs that can be read
+                }
+            }
+
+            return result;
         }
 
         private List<ChapterInfo> ReadBluRayChapters(BaseItem item)
