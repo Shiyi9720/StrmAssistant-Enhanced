@@ -2070,6 +2070,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableExternalAudioScan_Enable_External_Audio_Scan.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableExternalAudioScan_Enable_External_Audio_Scan {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableExternalAudioScan_Enable_External_Audio_Scan", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction.
         /// </summary>
         public static string MediaInfoExtractOptions_EnableIsoExtraction_Enable_ISO_Extraction {
@@ -2093,6 +2111,24 @@ namespace StrmAssistant.Properties
         public static string MediaInfoExtractOptions_ExclusiveExtractFeatureControl_Exclusive_Extract_Feature_Control {
             get {
                 return ResourceManager.GetString("MediaInfoExtractOptions_ExclusiveExtractFeatureControl_Exclusive_Extract_Feature_Control", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ExternalAudioExtensions_Comma_separated_audio_file_extensions_to_scan__Default_is_flac_ac3_dts_dtshd_mka_aac_mp3_truehd_thd_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ExternalAudioExtensions_Comma_separated_audio_file_extensions_to_scan__Default_is_flac_ac3_dts_dtshd_mka_aac_mp3_truehd_thd_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ExternalAudioExtensions_Comma_separated_audio_file_extensions_to_scan__Default_is_flac_ac3_dts_dtshd_mka_aac_mp3_truehd_thd_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions.
+        /// </summary>
+        public static string MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions", resourceCulture);
             }
         }
 

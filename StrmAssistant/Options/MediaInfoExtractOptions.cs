@@ -94,6 +94,16 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
         public string SubtitleBlacklistCodecs { get; set; } = string.Empty;
 
+        [DisplayNameL("MediaInfoExtractOptions_EnableExternalAudioScan_Enable_External_Audio_Scan", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_", typeof(Resources))]
+        public bool EnableExternalAudioScan { get; set; } = false;
+
+        [DisplayNameL("MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_ExternalAudioExtensions_Comma_separated_audio_file_extensions_to_scan__Default_is_flac_ac3_dts_dtshd_mka_aac_mp3_truehd_thd_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableExternalAudioScan), SimpleCondition.IsTrue)]
+        public string ExternalAudioExtensions { get; set; } =
+            "flac,ac3,dts,dtshd,mka,aac,mp3,truehd,thd";
+
         [DisplayNameL("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_", typeof(Resources))]
         public string MediaInfoExcludeKeywords { get; set; } = string.Empty;
