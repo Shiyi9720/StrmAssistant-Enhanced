@@ -155,6 +155,9 @@ namespace StrmAssistant.Options
         public DistributedExtractOptions DistributedExtractOptions { get; set; } =
             new DistributedExtractOptions();
 
+        [DisplayNameL("MovieRefreshOptions_EditorTitle_Movie_Metadata_Refresh", typeof(Resources))]
+        public MovieRefreshOptions MovieRefreshOptions { get; set; } = new MovieRefreshOptions();
+
         [Browsable(false)]
         public IEnumerable<EditorSelectOption> LibraryList { get; set; }
 

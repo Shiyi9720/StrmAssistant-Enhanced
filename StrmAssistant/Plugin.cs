@@ -425,10 +425,19 @@ namespace StrmAssistant
                         }
                     }
 
-                    if (IsCatchupTaskSelected(CatchupTask.EpisodeRefresh) && e.Item is Episode ep &&
-                        LibraryApi.IsPremiereDateInScope(ep, DateTimeOffset.UtcNow.AddDays(-90), false))
+                    var catchupEpisodeRefresh = e.Item is Episode ep &&
+                                                LibraryApi.IsPremiereDateInScope(ep,
+                                                    DateTimeOffset.UtcNow.AddDays(-90), false);
+                    // Movies join the same catch-up when movie refresh is enabled; the queue
+                    // filters them with the episode rules against the date they were added.
+                    var catchupMovieRefresh = e.Item is Movie &&
+                                              GetOptions().MediaInfoExtractOptions.MovieRefreshOptions
+                                                  .EnableMovieRefresh;
+
+                    if (IsCatchupTaskSelected(CatchupTask.EpisodeRefresh) &&
+                        (catchupEpisodeRefresh || catchupMovieRefresh))
                     {
-                        QueueManager.EpisodeRefreshItemQueue.Enqueue(ep);
+                        QueueManager.EpisodeRefreshItemQueue.Enqueue(e.Item);
                     }
                 }
 
