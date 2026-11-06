@@ -1908,6 +1908,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfprobePath_Custom_ffprobe_Path.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfprobePath_Custom_ffprobe_Path {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfprobePath_Custom_ffprobe_Path", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfprobePath_Path_to_a_static_ffprobe_build_with_the_bluray_protocol_used_for_remote_ISO_and_BDMV_probing__Blank_uses_the_plugin_bin_folder_and_downloads_the_build_for_this_platform_on_first_use__Default_is_EMPTY_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_CustomFfprobePath_Path_to_a_static_ffprobe_build_with_the_bluray_protocol_used_for_remote_ISO_and_BDMV_probing__Blank_uses_the_plugin_bin_folder_and_downloads_the_build_for_this_platform_on_first_use__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_CustomFfprobePath_Path_to_a_static_ffprobe_build_with_the_bluray_protocol_used_for_remote_ISO_and_BDMV_probing__Blank_uses_the_plugin_bin_folder_and_downloads_the_build_for_this_platform_on_first_use__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments.
         /// </summary>
         public static string MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments {
@@ -2831,6 +2849,15 @@ namespace StrmAssistant.Properties
         public static string ModOptions_ExclusiveExtract_Only_allow_this_plugin_to_extract_media_info__ffprobe__and_capture_image__ffmpeg___Default_is_OFF_ {
             get {
                 return ResourceManager.GetString("ModOptions_ExclusiveExtract_Only_allow_this_plugin_to_extract_media_info__ffprobe__and_capture_image__ffmpeg___Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_.
+        /// </summary>
+        public static string ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_ {
+            get {
+                return ResourceManager.GetString("ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_", resourceCulture);
             }
         }
 

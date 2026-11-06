@@ -59,7 +59,12 @@ namespace StrmAssistant.Common
             {
                 if (item is null || !Options.EnableDiscMediaInfoExtraction) return false;
 
-                // Shortcuts (.strm) point at something we cannot read as a disc.
+                // .strm items whose target is an http/smb disc image (or a file inside a remote
+                // BDMV/VIDEO_TS structure) are probed through the plugin's own ffprobe.
+                var remote = GetRemoteDiscSource(item);
+
+                if (remote != null) return IsRemoteDisc(remote);
+
                 if (item.IsShortcut || !item.IsFileProtocol) return false;
 
                 var path = item.Path;
@@ -90,93 +95,128 @@ namespace StrmAssistant.Common
             return false;
         }
 
+        /// <summary>
+        /// True when the item resolves to an http/smb disc source. Used by the scan pipeline to
+        /// fall back to the regular refresh instead of leaving a failed remote item without data.
+        /// </summary>
+        public bool IsRemoteSource(BaseItem item)
+        {
+            return GetRemoteDiscSource(item) != null;
+        }
+
+        private static string GetRemoteDiscSource(BaseItem item)
+        {
+            var path = item?.Path;
+
+            if (string.IsNullOrEmpty(path)) return null;
+
+            if (LibraryApi.IsFileShortcut(path))
+            {
+                path = ReadShortcutTarget(path);
+            }
+
+            return !string.IsNullOrEmpty(path) && CustomFfprobeApi.IsRemoteUrl(path) ? path : null;
+        }
+
+        /// <summary>
+        /// Reads the first usable line of a .strm file, mirroring Emby's StrmMounter.
+        /// </summary>
+        private static string ReadShortcutTarget(string strmPath)
+        {
+            try
+            {
+                if (!File.Exists(strmPath)) return null;
+
+                foreach (var line in File.ReadLines(strmPath))
+                {
+                    var value = line.Replace("\t", string.Empty).Replace("\r", string.Empty).Trim();
+
+                    if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) continue;
+
+                    return value;
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance.Logger?.Debug("DiscMediaInfo - Shortcut read failed: " + e.Message);
+            }
+
+            return null;
+        }
+
+        private static string GetUrlPath(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return string.Empty;
+
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return uri.AbsolutePath;
+            }
+
+            var end = url.IndexOfAny(new[] { '?', '#' });
+
+            return end >= 0 ? url.Substring(0, end) : url;
+        }
+
+        private static bool IsRemoteDisc(string url)
+        {
+            if (!CustomFfprobeApi.IsRemoteUrl(url)) return false;
+
+            if (IsoApi.IsIsoPath(url)) return true;
+
+            var path = GetUrlPath(url);
+
+            return path.IndexOf("/BDMV/", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   path.IndexOf("/VIDEO_TS/", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsRemoteBdmvFile(string url)
+        {
+            var path = GetUrlPath(url);
+
+            return path.EndsWith(".m2ts", StringComparison.OrdinalIgnoreCase) ||
+                   path.EndsWith(".mts", StringComparison.OrdinalIgnoreCase) ||
+                   path.EndsWith(".vob", StringComparison.OrdinalIgnoreCase) ||
+                   path.EndsWith(".bdmv", StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task<bool> ExtractAsync(BaseItem item, CancellationToken cancellationToken)
         {
             try
             {
-                var source = await ResolveProbeSourceAsync(item, cancellationToken).ConfigureAwait(false);
+                var remote = GetRemoteDiscSource(item);
+                string source;
+                string discPath;
+                MediaInfo mediaInfo;
 
-                if (string.IsNullOrEmpty(source))
+                if (remote != null)
                 {
-                    _logger?.Info("DiscMediaInfo - No playable video found: " + item.Path);
-                    return false;
+                    (source, discPath, mediaInfo) =
+                        await ResolveRemoteProbeAsync(item, remote, cancellationToken).ConfigureAwait(false);
+
+                    if (mediaInfo is null)
+                    {
+                        _logger?.Info("DiscMediaInfo - Remote probe failed: " + remote);
+                        return false;
+                    }
+                }
+                else
+                {
+                    source = await ResolveProbeSourceAsync(item, cancellationToken).ConfigureAwait(false);
+
+                    if (string.IsNullOrEmpty(source))
+                    {
+                        _logger?.Info("DiscMediaInfo - No playable video found: " + item.Path);
+                        return false;
+                    }
+
+                    discPath = item.Path;
+                    mediaInfo = await ProbeWithEmbyAsync(item, source, MediaProtocol.File,
+                        cancellationToken).ConfigureAwait(false);
                 }
 
-                var mediaSource = new MediaSourceInfo
-                {
-                    Path = source,
-                    Protocol = MediaProtocol.File,
-                    Container = Path.GetExtension(source).TrimStart('.'),
-                    Name = item.Name
-                };
-
-                var mediaInfo = await _mediaProbeManager.GetMediaInfo(new MediaInfoRequest
-                {
-                    MediaSource = mediaSource,
-                    ExtractChapters = true,
-                    MediaType = DlnaProfileType.Video
-                }, cancellationToken).ConfigureAwait(false);
-
-                var streams = mediaInfo?.MediaStreams?
-                    .Where(s => s.Type == MediaStreamType.Video || s.Type == MediaStreamType.Audio ||
-                                s.Type == MediaStreamType.Subtitle)
-                    .ToList();
-
-                if (streams is null || streams.Count == 0 ||
-                    streams.All(s => s.Type != MediaStreamType.Video))
-                {
-                    _logger?.Info("DiscMediaInfo - No video stream probed: " + item.Path);
-                    return false;
-                }
-
-                _itemRepository.SaveMediaStreams(item.InternalId, streams, cancellationToken);
-                item.MediaStreams = streams;
-
-                item.RunTimeTicks = mediaInfo.RunTimeTicks ?? item.RunTimeTicks;
-                item.Size = GetMediaSize(item, source);
-
-                if (mediaInfo.Bitrate.HasValue && mediaInfo.Bitrate.Value > 0)
-                {
-                    item.TotalBitrate = mediaInfo.Bitrate.Value;
-                }
-
-                var videoStream = streams
-                    .Where(s => s.Type == MediaStreamType.Video && s.Width.HasValue && s.Height.HasValue)
-                    .OrderByDescending(s => (long)s.Width.Value * s.Height.Value)
-                    .FirstOrDefault();
-
-                if (videoStream != null)
-                {
-                    item.Width = videoStream.Width.GetValueOrDefault();
-                    item.Height = videoStream.Height.GetValueOrDefault();
-                }
-
-                if (string.IsNullOrEmpty(item.Container))
-                {
-                    item.Container = ResolveContainer(item);
-                }
-
-                var chapters = mediaInfo.Chapters?.ToList() ?? new List<ChapterInfo>();
-
-                if (chapters.Count == 0)
-                {
-                    // Blu-ray chapters live in the playlist and DVD chapters in the IFO; neither
-                    // container exposes them to ffprobe.
-                    chapters = ReadDiscChapters(item, source);
-                }
-
-                SaveChapters(item, chapters);
-
-                _libraryManager.UpdateItems(new List<BaseItem> { item }, null, ItemUpdateType.MetadataImport,
-                    false, false, null, cancellationToken);
-
-                _logger?.Info("DiscMediaInfo - Extracted " + streams.Count + " streams (" +
-                              streams.Count(s => s.Type == MediaStreamType.Video) + " video, " +
-                              streams.Count(s => s.Type == MediaStreamType.Audio) + " audio, " +
-                              streams.Count(s => s.Type == MediaStreamType.Subtitle) + " subtitle), " +
-                              chapters.Count + " chapters: " + item.Path);
-
-                return true;
+                return await ApplyMediaInfoAsync(item, mediaInfo, source, discPath, cancellationToken)
+                    .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -188,6 +228,155 @@ namespace StrmAssistant.Common
                 _logger?.Debug(e.StackTrace);
                 return false;
             }
+        }
+
+        private async Task<(string Source, string DiscPath, MediaInfo MediaInfo)> ResolveRemoteProbeAsync(
+            BaseItem item, string url, CancellationToken cancellationToken)
+        {
+            if (IsoApi.IsIsoPath(url))
+            {
+                // A static ffprobe can open the image through its bluray protocol, including the
+                // upstream http bridge. This gives streams and chapters in one step.
+                var probed = await CustomFfprobeApi.ProbeAsync("bluray:" + url, false,
+                    MediaProtocol.Http, cancellationToken).ConfigureAwait(false);
+
+                if (HasVideo(probed)) return (url, url, probed);
+
+                // Fallback that needs no custom binary: pull the main title out of the image
+                // with http range requests, then let Emby probe the extracted file.
+                if (!CustomFfprobeApi.IsHttpUrl(url)) return (null, null, null);
+
+                var timeoutSeconds = Math.Max(10, Options.DiscMediaInfoExtractionTimeoutSeconds);
+
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+                var extractTask = IsoApi.ExtractAsync(url, null, cancellationToken);
+                var completed = await Task.WhenAny(extractTask,
+                        Task.Delay(Timeout.Infinite, timeoutCts.Token))
+                    .ConfigureAwait(false);
+
+                if (completed != extractTask)
+                {
+                    _logger?.Info("DiscMediaInfo - Remote ISO extraction still running in background: " + url);
+                    return (null, null, null);
+                }
+
+                timeoutCts.Cancel();
+
+                var extracted = await extractTask.ConfigureAwait(false);
+
+                if (string.IsNullOrEmpty(extracted)) return (null, null, null);
+
+                var mediaInfo = await ProbeWithEmbyAsync(item, extracted, MediaProtocol.File,
+                    cancellationToken).ConfigureAwait(false);
+
+                return (extracted, url, mediaInfo);
+            }
+
+            if (IsRemoteBdmvFile(url))
+            {
+                var probed = await CustomFfprobeApi.ProbeAsync(url, false, MediaProtocol.Http,
+                    cancellationToken).ConfigureAwait(false);
+
+                if (HasVideo(probed)) return (url, url, probed);
+
+                var mediaInfo = await ProbeWithEmbyAsync(item, url, MediaProtocol.Http,
+                    cancellationToken).ConfigureAwait(false);
+
+                return (url, url, mediaInfo);
+            }
+
+            return (null, null, null);
+        }
+
+        private static bool HasVideo(MediaInfo mediaInfo)
+        {
+            return mediaInfo?.MediaStreams?.Any(s => s.Type == MediaStreamType.Video) is true;
+        }
+
+        private Task<MediaInfo> ProbeWithEmbyAsync(BaseItem item, string path, MediaProtocol protocol,
+            CancellationToken cancellationToken)
+        {
+            var mediaSource = new MediaSourceInfo
+            {
+                Path = path,
+                Protocol = protocol,
+                Container = Path.GetExtension(GetUrlPath(path)).TrimStart('.'),
+                Name = item.Name
+            };
+
+            return _mediaProbeManager.GetMediaInfo(new MediaInfoRequest
+            {
+                MediaSource = mediaSource,
+                ExtractChapters = true,
+                MediaType = DlnaProfileType.Video
+            }, cancellationToken);
+        }
+
+        private Task<bool> ApplyMediaInfoAsync(BaseItem item, MediaInfo mediaInfo, string source,
+            string discPath, CancellationToken cancellationToken)
+        {
+            var streams = mediaInfo?.MediaStreams?
+                .Where(s => s.Type == MediaStreamType.Video || s.Type == MediaStreamType.Audio ||
+                            s.Type == MediaStreamType.Subtitle)
+                .ToList();
+
+            if (streams is null || streams.Count == 0 ||
+                streams.All(s => s.Type != MediaStreamType.Video))
+            {
+                _logger?.Info("DiscMediaInfo - No video stream probed: " + item.Path);
+                return Task.FromResult(false);
+            }
+
+            _itemRepository.SaveMediaStreams(item.InternalId, streams, cancellationToken);
+            item.MediaStreams = streams;
+
+            item.RunTimeTicks = mediaInfo.RunTimeTicks ?? item.RunTimeTicks;
+            item.Size = GetMediaSize(item, source, discPath, mediaInfo.Size);
+
+            if (mediaInfo.Bitrate.HasValue && mediaInfo.Bitrate.Value > 0)
+            {
+                item.TotalBitrate = mediaInfo.Bitrate.Value;
+            }
+
+            var videoStream = streams
+                .Where(s => s.Type == MediaStreamType.Video && s.Width.HasValue && s.Height.HasValue)
+                .OrderByDescending(s => (long)s.Width.Value * s.Height.Value)
+                .FirstOrDefault();
+
+            if (videoStream != null)
+            {
+                item.Width = videoStream.Width.GetValueOrDefault();
+                item.Height = videoStream.Height.GetValueOrDefault();
+            }
+
+            if (string.IsNullOrEmpty(item.Container))
+            {
+                item.Container = ResolveContainer(discPath);
+            }
+
+            var chapters = mediaInfo.Chapters?.ToList() ?? new List<ChapterInfo>();
+
+            if (chapters.Count == 0)
+            {
+                // Blu-ray chapters live in the playlist and DVD chapters in the IFO; neither
+                // container exposes them to ffprobe.
+                chapters = ReadDiscChapters(item, source, discPath);
+            }
+
+            SaveChapters(item, chapters);
+
+            _libraryManager.UpdateItems(new List<BaseItem> { item }, null, ItemUpdateType.MetadataImport,
+                false, false, null, cancellationToken);
+
+            _logger?.Info("DiscMediaInfo - Extracted " + streams.Count + " streams (" +
+                          streams.Count(s => s.Type == MediaStreamType.Video) + " video, " +
+                          streams.Count(s => s.Type == MediaStreamType.Audio) + " audio, " +
+                          streams.Count(s => s.Type == MediaStreamType.Subtitle) + " subtitle), " +
+                          chapters.Count + " chapters: " + item.Path);
+
+            return Task.FromResult(true);
         }
 
         private async Task<string> ResolveProbeSourceAsync(BaseItem item, CancellationToken cancellationToken)
@@ -237,6 +426,21 @@ namespace StrmAssistant.Common
             return !string.IsNullOrEmpty(parent) && Directory.Exists(parent) ? parent : null;
         }
 
+        /// <summary>
+        /// Folder that holds BDMV/VIDEO_TS for a local path or an extracted file. Remote paths
+        /// return null because their structure is read through the image, not the file system.
+        /// </summary>
+        private static string GetDiscRootFromPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || CustomFfprobeApi.IsRemoteUrl(path)) return null;
+
+            if (Directory.Exists(path)) return path;
+
+            var parent = Path.GetDirectoryName(path);
+
+            return !string.IsNullOrEmpty(parent) && Directory.Exists(parent) ? parent : null;
+        }
+
         private static bool HasDiscStructure(BaseItem item)
         {
             var root = GetDiscRoot(item);
@@ -263,11 +467,27 @@ namespace StrmAssistant.Common
                    extension.Equals(".img", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string ResolveContainer(BaseItem item)
+        private static string ResolveContainer(string discPath)
         {
-            if (IsIsoItem(item)) return MediaContainers.Iso.GetFirstAliasOrName();
+            if (IsoApi.IsIsoPath(discPath)) return MediaContainers.Iso.GetFirstAliasOrName();
 
-            var root = GetDiscRoot(item);
+            var urlPath = GetUrlPath(discPath);
+
+            if (urlPath.EndsWith(".vob", StringComparison.OrdinalIgnoreCase) ||
+                urlPath.IndexOf("/VIDEO_TS/", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return MediaContainers.Dvd.GetFirstAliasOrName();
+            }
+
+            if (urlPath.EndsWith(".m2ts", StringComparison.OrdinalIgnoreCase) ||
+                urlPath.EndsWith(".mts", StringComparison.OrdinalIgnoreCase) ||
+                urlPath.EndsWith(".bdmv", StringComparison.OrdinalIgnoreCase) ||
+                urlPath.IndexOf("/BDMV/", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return MediaContainers.Bluray.GetFirstAliasOrName();
+            }
+
+            var root = GetDiscRootFromPath(discPath);
 
             if (root != null && Directory.Exists(Path.Combine(root, "BDMV")))
             {
@@ -277,23 +497,30 @@ namespace StrmAssistant.Common
             return MediaContainers.Dvd.GetFirstAliasOrName();
         }
 
-        private static long GetMediaSize(BaseItem item, string source)
+        private static long GetMediaSize(BaseItem item, string source, string discPath, long? probedSize)
         {
             try
             {
-                if (IsIsoItem(item))
+                if (IsoApi.IsIsoPath(discPath))
                 {
-                    var length = new FileInfo(item.Path).Length;
+                    var length = IsoApi.GetSourceLength(discPath);
 
                     if (length > 0) return length;
                 }
 
-                return new FileInfo(source).Length;
+                var info = new FileInfo(source);
+
+                if (info.Exists)
+                {
+                    return info.Length;
+                }
             }
             catch
             {
-                return item.Size;
+                // ignored
             }
+
+            return probedSize ?? item.Size;
         }
 
         private static string FindMainVideo(string root)
@@ -338,20 +565,20 @@ namespace StrmAssistant.Common
                 .FirstOrDefault();
         }
 
-        private List<ChapterInfo> ReadDiscChapters(BaseItem item, string source)
+        private List<ChapterInfo> ReadDiscChapters(BaseItem item, string source, string discPath)
         {
             // The extracted file keeps the disc type: DVD titles are extracted as VOB, Blu-ray
             // titles as m2ts, for ISO images and folders alike.
             return source.EndsWith(".vob", StringComparison.OrdinalIgnoreCase)
-                ? ReadDvdChapters(item, source)
-                : ReadBluRayChapters(item);
+                ? ReadDvdChapters(item, source, discPath)
+                : ReadBluRayChapters(item, discPath);
         }
 
-        private List<ChapterInfo> ReadDvdChapters(BaseItem item, string source)
+        private List<ChapterInfo> ReadDvdChapters(BaseItem item, string source, string discPath)
         {
             try
             {
-                var ifos = ReadDvdIfos(item);
+                var ifos = ReadDvdIfos(discPath);
 
                 if (ifos.Count == 0) return new List<ChapterInfo>();
 
@@ -359,7 +586,7 @@ namespace StrmAssistant.Common
 
                 // The extracted file name identifies the VTS for folder based discs. ISO images
                 // keep their own file name, so the longest title across all IFOs is used there.
-                if (DvdIfoApi.TryGetVtsNumber(Path.GetFileName(source), out var number))
+                if (DvdIfoApi.TryGetVtsNumber(Path.GetFileName(GetUrlPath(source)), out var number))
                 {
                     vtsNumber = number;
                 }
@@ -381,13 +608,13 @@ namespace StrmAssistant.Common
             }
         }
 
-        private static Dictionary<string, byte[]> ReadDvdIfos(BaseItem item)
+        private static Dictionary<string, byte[]> ReadDvdIfos(string discPath)
         {
             var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
 
-            if (IsIsoItem(item)) return IsoApi.ReadDvdIfos(item.Path);
+            if (IsoApi.IsIsoPath(discPath)) return IsoApi.ReadDvdIfos(discPath);
 
-            var root = GetDiscRoot(item);
+            var root = GetDiscRootFromPath(discPath);
 
             if (root is null) return result;
 
@@ -416,16 +643,16 @@ namespace StrmAssistant.Common
             return result;
         }
 
-        private List<ChapterInfo> ReadBluRayChapters(BaseItem item)
+        private List<ChapterInfo> ReadBluRayChapters(BaseItem item, string discPath)
         {
             try
             {
-                if (IsIsoItem(item))
+                if (IsoApi.IsIsoPath(discPath))
                 {
-                    return BdPlaylistApi.SelectChapters(IsoApi.ReadBdPlaylists(item.Path));
+                    return BdPlaylistApi.SelectChapters(IsoApi.ReadBdPlaylists(discPath));
                 }
 
-                var root = GetDiscRoot(item);
+                var root = GetDiscRootFromPath(discPath);
 
                 if (root is null) return new List<ChapterInfo>();
 

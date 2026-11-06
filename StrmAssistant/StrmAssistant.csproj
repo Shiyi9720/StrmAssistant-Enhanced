@@ -40,6 +40,15 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!--
+      Lib.Harmony only ships a reference assembly for netstandard2.0, so NuGet does not copy a
+      runtime assembly for a netstandard2.1 project. Compile against the reference assembly and
+      copy the net8.0 implementation (Emby 4.10 runs on .NET 8) next to the plugin; ILRepack
+      then merges it into the plugin assembly.
+    -->
+    <PackageReference Include="Lib.Harmony" Version="2.3.6" GeneratePathProperty="true" />
+    <None Include="$(PkgLib_Harmony)/lib/net8.0/0Harmony.dll" Link="0Harmony.dll"
+          CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -68,8 +77,8 @@
     </EmbeddedResource>
   </ItemGroup>
   <!--
-    Optional ILRepack step: merges ChineseConverter.dll and ToolGood.Words.Pinyin.dll into the
-    plugin assembly.
+    Optional ILRepack step: merges 0Harmony.dll, ChineseConverter.dll and ToolGood.Words.Pinyin.dll
+    into the plugin assembly.
     It only runs when an output path is supplied, so that building on a developer
     machine (including macOS) does not depend on a Windows-only %AppData% path.
 
@@ -77,7 +86,7 @@
       dotnet build -c Release -p:EmbyPluginPath=/path/to/emby/programdata/plugins
   -->
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(EmbyPluginPath)' != ''">
-    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
-    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="dotnet &quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+    <Exec Condition="'$(OS)' == 'Windows_NT'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
+    <Exec Condition="'$(OS)' != 'Windows_NT'" Command="dotnet &quot;$(ILRepack)&quot; /out:&quot;$(EmbyPluginPath)/$(TargetFileName)&quot; &quot;$(TargetPath)&quot; &quot;$(TargetDir)0Harmony.dll&quot; &quot;$(TargetDir)ChineseConverter.dll&quot; &quot;$(TargetDir)ToolGood.Words.Pinyin.dll&quot; /lib:&quot;$(TargetDir)&quot;" />
   </Target>
 </Project>
