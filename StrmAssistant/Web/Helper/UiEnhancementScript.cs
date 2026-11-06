@@ -87,7 +87,8 @@ namespace StrmAssistant.Web.Helper
         '.strmAssistantDoubanPoster img{width:100%;height:100%;object-fit:cover}' +
         '.strmAssistantDoubanTitle{margin-top:.4em;font-size:.9em;line-height:1.25;overflow:hidden;' +
         'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}' +
-        '.strmAssistantDoubanMeta{margin-top:.15em;font-size:.8em;opacity:.7}';
+        '.strmAssistantDoubanMeta{margin-top:.15em;font-size:.8em;opacity:.7} +
+        '.searchSuggestions{display:none!important}'';
     (document.head || document.documentElement).appendChild(style);
 })();
 ";

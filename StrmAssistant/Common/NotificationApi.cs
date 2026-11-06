@@ -278,15 +278,19 @@ namespace StrmAssistant.Common
         {
             Resources.Culture = Thread.CurrentThread.CurrentUICulture;
 
+            // Pro splits item level collection changes into two event ids so a receiver can tell
+            // an addition from a removal; the notification text itself is unchanged.
             SendCollectionNotification(collection,
                 string.Format(
                     (added
                         ? Resources.Notification_CollectionItemAdded_Description
                         : Resources.Notification_CollectionItemRemoved_Description).Replace("\\n",
-                        Environment.NewLine), item.Name, collection.Name));
+                        Environment.NewLine), item.Name, collection.Name),
+                added ? "collection.items.added" : "collection.items.removed");
         }
 
-        private void SendCollectionNotification(BaseItem collection, string description)
+        private void SendCollectionNotification(BaseItem collection, string description,
+            string eventId = "collection.update")
         {
             Resources.Culture = Thread.CurrentThread.CurrentUICulture;
 
@@ -294,7 +298,7 @@ namespace StrmAssistant.Common
             {
                 Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
                         Resources.Notification_CollectionUpdate_EventName,
-                EventId = "collection.update",
+                EventId = eventId,
                 Item = collection,
                 Description = description
             };

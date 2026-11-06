@@ -2745,6 +2745,51 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MovieRefreshOptions_EditorTitle_Movie_Metadata_Refresh.
+        /// </summary>
+        public static string MovieRefreshOptions_EditorTitle_Movie_Metadata_Refresh {
+            get {
+                return ResourceManager.GetString("MovieRefreshOptions_EditorTitle_Movie_Metadata_Refresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MovieRefreshOptions_EnableMovieRefresh_Enable_Movie_Refresh.
+        /// </summary>
+        public static string MovieRefreshOptions_EnableMovieRefresh_Enable_Movie_Refresh {
+            get {
+                return ResourceManager.GetString("MovieRefreshOptions_EnableMovieRefresh_Enable_Movie_Refresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MovieRefreshOptions_EnableMovieRefresh_Refresh_movies_with_the_same_rules_as_episodes__missing_overview__missing_image_or_non_Chinese_overview__Items_are_scoped_by_the_episode_refresh_lookback_days_against_the_date_added__Default_is_OFF_.
+        /// </summary>
+        public static string MovieRefreshOptions_EnableMovieRefresh_Refresh_movies_with_the_same_rules_as_episodes__missing_overview__missing_image_or_non_Chinese_overview__Items_are_scoped_by_the_episode_refresh_lookback_days_against_the_date_added__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MovieRefreshOptions_EnableMovieRefresh_Refresh_movies_with_the_same_rules_as_episodes__missing_overview__missing_image_or_non_Chinese_overview__Items_are_scoped_by_the_episode_refresh_lookback_days_against_the_date_added__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview.
+        /// </summary>
+        public static string MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview {
+            get {
+                return ResourceManager.GetString("MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MovieRefreshTask_Name_Refresh_Movie.
+        /// </summary>
+        public static string MovieRefreshTask_Name_Refresh_Movie {
+            get {
+                return ResourceManager.GetString("MovieRefreshTask_Name_Refresh_Movie", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to NetworkOptions_EditorTitle_Network.
         /// </summary>
         public static string NetworkOptions_EditorTitle_Network {
@@ -2984,6 +3029,24 @@ namespace StrmAssistant.Properties
         public static string Notification_CollectionItemRemoved_Description {
             get {
                 return ResourceManager.GetString("Notification_CollectionItemRemoved_Description", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Notification_CollectionItemsAdded_EventName.
+        /// </summary>
+        public static string Notification_CollectionItemsAdded_EventName {
+            get {
+                return ResourceManager.GetString("Notification_CollectionItemsAdded_EventName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Notification_CollectionItemsRemoved_EventName.
+        /// </summary>
+        public static string Notification_CollectionItemsRemoved_EventName {
+            get {
+                return ResourceManager.GetString("Notification_CollectionItemsRemoved_EventName", resourceCulture);
             }
         }
 
