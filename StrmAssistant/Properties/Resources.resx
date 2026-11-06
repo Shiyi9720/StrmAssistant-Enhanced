@@ -1658,4 +1658,22 @@
     <value>Fetch Douban ratings for movies and series that do not have a cached rating yet. Requests are rate limited and the task can be cancelled at any time.</value>
   </data>
   </data>
+  <data name="MetadataEnhanceOptions_EnableMovieDbCache_Enable_TMDB_Disk_Cache" xml:space="preserve">
+    <value>Enable TMDB Disk Cache</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableMovieDbCache_Cache_TMDB_search_and_detail_json_responses_on_disk_so_transient_network_errors_and_rate_limits_do_not_break_scraping__Only_GET_responses_are_cached__Default_is_OFF_" xml:space="preserve">
+    <value>Cache TMDB search and detail JSON responses on disk so transient network errors and rate limits do not break scraping. Only GET responses are cached. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheTtlDays_Cache_TTL__Days_" xml:space="preserve">
+    <value>Cache TTL (Days)</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheTtlDays_Number_of_days_a_cached_TMDB_response_stays_fresh__It_must_be_between_1_and_365__Default_is_30_" xml:space="preserve">
+    <value>Number of days a cached TMDB response stays fresh. It must be between 1 and 365. Default is 30.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Maximum_Cache_Size__MB_" xml:space="preserve">
+    <value>Maximum Cache Size (MB)</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Upper_limit_of_the_TMDB_disk_cache__Least_recently_used_entries_are_evicted_when_it_is_exceeded__It_must_be_between_16_and_4096__Default_is_256_" xml:space="preserve">
+    <value>Upper limit of the TMDB disk cache. Least recently used entries are evicted when it is exceeded. It must be between 16 and 4096. Default is 256.</value>
+  </data>
 </root>

@@ -1571,4 +1571,22 @@
     <value>为尚无缓存评分的电影和剧集获取豆瓣评分；请求有限速，任务可随时取消。</value>
   </data>
   </data>
+  <data name="MetadataEnhanceOptions_EnableMovieDbCache_Enable_TMDB_Disk_Cache" xml:space="preserve">
+    <value>启用 TMDB 磁盘缓存</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableMovieDbCache_Cache_TMDB_search_and_detail_json_responses_on_disk_so_transient_network_errors_and_rate_limits_do_not_break_scraping__Only_GET_responses_are_cached__Default_is_OFF_" xml:space="preserve">
+    <value>将 TMDB 搜索与详情 JSON 响应缓存到磁盘，网络抖动或接口限流时仍可继续刮削。仅缓存 GET 响应。默认关闭。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheTtlDays_Cache_TTL__Days_" xml:space="preserve">
+    <value>缓存有效期（天）</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheTtlDays_Number_of_days_a_cached_TMDB_response_stays_fresh__It_must_be_between_1_and_365__Default_is_30_" xml:space="preserve">
+    <value>缓存响应保持新鲜的天数。必须在 1 到 365 之间。默认 30。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Maximum_Cache_Size__MB_" xml:space="preserve">
+    <value>最大缓存大小（MB）</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Upper_limit_of_the_TMDB_disk_cache__Least_recently_used_entries_are_evicted_when_it_is_exceeded__It_must_be_between_16_and_4096__Default_is_256_" xml:space="preserve">
+    <value>TMDB 磁盘缓存的上限。超出后按最近最少使用（LRU）淘汰。必须在 16 到 4096 之间。默认 256。</value>
+  </data>
 </root>
