@@ -75,6 +75,9 @@ namespace StrmAssistant.Options
         [DescriptionL("ExperienceEnhanceOptions_NaturalSort_Sort_titles_with_a_locale_aware_natural_collation_so_numbers_are_compared_by_value_and_Chinese_titles_keep_their_reading_order__Default_is_OFF_", typeof(Resources))]
         public bool NaturalSort { get; set; } = false;
 
+        [DisplayNameL("PinyinSortOptions_EditorTitle_Pinyin_Sort_Title", typeof(Resources))]
+        public PinyinSortOptions PinyinSortOptions { get; set; } = new PinyinSortOptions();
+
         [DisplayNameL("UIFunctionOptions_EnforceLibraryOrder_Enforce_Library_Order", typeof(Resources))]
         [DescriptionL("UIFunctionOptions_EnforceLibraryOrder_Enforce_library_order_per_the_first_admin__Default_if_OFF_", typeof(Resources))]
         public bool EnforceLibraryOrder { get; set; } = false;
