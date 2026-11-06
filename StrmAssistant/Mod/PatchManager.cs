@@ -83,11 +83,9 @@ namespace StrmAssistant.Mod
 
             LogHarmonyIdentity();
 
-            if (!HarmonySelfTest())
-            {
-                MarkUnavailable("the Harmony detour engine does not work on this platform");
-                return;
-            }
+            // HarmonySelfTest() records the precise failure reason (engine unavailable vs. the
+            // detour silently having no effect) before returning false.
+            if (!HarmonySelfTest()) return;
 
             ExclusiveExtract = new ExclusiveExtract();
         }
@@ -219,7 +217,10 @@ namespace StrmAssistant.Mod
 
                     if (!IsPatched(targetMethod, tracker.PatchType))
                     {
-                        HarmonyMod.Patch(targetMethod, prefixMethod, postfixMethod, transpilerMethod, finalizerMethod);
+                        // HarmonyX 2.16 marks the legacy four-HarmonyMethod overload obsolete;
+                        // the current overload takes an extra ILManipulator (null here).
+                        HarmonyMod.Patch(targetMethod, prefixMethod, postfixMethod, transpilerMethod,
+                            finalizerMethod, null);
                     }
                 }
                 else
@@ -270,14 +271,34 @@ namespace StrmAssistant.Mod
                     harmonyAssembly.GetName().FullName, location,
                     RuntimeInformation.FrameworkDescription, RuntimeInformation.ProcessArchitecture));
 
-                var copies = AppDomain.CurrentDomain.GetAssemblies()
-                    .Where(a => string.Equals(a.GetName().Name, "0Harmony", StringComparison.OrdinalIgnoreCase))
+                // A duplicate 0Harmony or MonoMod assembly is the root cause of the
+                // "CecilILGenerator violates ILGeneratorProxy[TTarget]" type-identity error.
+                // Log every related assembly that is already loaded so a production log shows
+                // immediately whether more than one copy is in play.
+                var relatedNames = new[]
+                {
+                    "0Harmony", "MonoMod.Core", "MonoMod.Utils", "MonoMod.RuntimeDetour",
+                    "MonoMod.Backports", "MonoMod.ILHelpers", "MonoMod.Iced", "Mono.Cecil"
+                };
+
+                var loaded = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => relatedNames.Contains(a.GetName().Name, StringComparer.OrdinalIgnoreCase))
                     .ToList();
 
-                if (copies.Count > 1)
+                foreach (var group in loaded.GroupBy(a => a.GetName().Name, StringComparer.OrdinalIgnoreCase))
                 {
-                    Logger?.Warn("Multiple 0Harmony assemblies are loaded: " +
-                                 string.Join("; ", copies.Select(a => a.Location)));
+                    var copies = group.Select(a => string.IsNullOrEmpty(a.Location) ? "<loaded from bytes>" : a.Location)
+                        .ToList();
+
+                    Logger?.Info(string.Format("{0}: {1} -> {2}", group.Key,
+                        string.Join(", ", group.Select(a => a.GetName().FullName)),
+                        string.Join("; ", copies)));
+
+                    if (group.Count() > 1)
+                    {
+                        Logger?.Warn(string.Format("Multiple {0} assemblies are loaded: {1}",
+                            group.Key, string.Join("; ", copies)));
+                    }
                 }
             }
             catch (Exception e)
@@ -295,40 +316,93 @@ namespace StrmAssistant.Mod
         private static bool HarmonySelfTest()
         {
             var target = AccessTools.Method(typeof(PatchManager), nameof(SelfTestTarget));
-            var prefix = AccessTools.Method(typeof(PatchManager), nameof(SelfTestPrefix));
+            var postfix = AccessTools.Method(typeof(PatchManager), nameof(SelfTestPostfix));
 
-            if (target is null || prefix is null) return false;
+            if (target is null || postfix is null)
+            {
+                // This is a coding error, not a runtime limitation; still fail closed.
+                MarkUnavailable("the Harmony self-test target methods could not be found");
+                Logger?.Warn("Harmony self-test failed: target or postfix method not found");
+
+                return false;
+            }
 
             try
             {
-                HarmonyMod.Patch(target, new HarmonyMethod(prefix));
-
-                if (SelfTestTarget() != 2)
-                {
-                    Logger?.Warn("Harmony self-test failed: the patch was installed but had no effect");
-                    return false;
-                }
+                HarmonyMod.Patch(target, null, new HarmonyMethod(postfix), null, null, null);
             }
             catch (Exception e)
             {
-                Logger?.Warn("Harmony self-test failed: " + Describe(e));
+                // The detour engine itself refused to build/install the trampoline. This is the
+                // "engine unavailable" case (unsupported architecture, hardened runtime, a
+                // MonoMod type-identity conflict, ...), not a single Emby target failing.
+                var reason = "the Harmony detour engine could not install a patch on this runtime (" +
+                             Describe(e) + ")";
+                MarkUnavailable(reason);
+                Logger?.Warn("Harmony self-test failed: detour engine unavailable - " + Describe(e));
                 LoggerDebug(e);
 
                 return false;
             }
-            finally
+
+            var effect = SelfTestTarget();
+
+            bool registered;
+            try
             {
-                try
-                {
-                    if (prefix != null) HarmonyMod.Unpatch(target, prefix);
-                }
-                catch
-                {
-                    // ignored
-                }
+                registered = IsPatched(target, typeof(PatchManager));
+            }
+            catch
+            {
+                // Diagnostics only; the detour effect above is what decides.
+                registered = false;
             }
 
-            return SelfTestTarget() == 1;
+            try
+            {
+                HarmonyMod.Unpatch(target, postfix);
+            }
+            catch (Exception e)
+            {
+                var reason = "the Harmony detour engine could not remove its self-test patch (" +
+                             Describe(e) + ")";
+                MarkUnavailable(reason);
+                Logger?.Warn("Harmony self-test failed: detour engine cannot unpatch - " + Describe(e));
+                LoggerDebug(e);
+
+                return false;
+            }
+
+            var restored = SelfTestTarget();
+
+            if (effect != 2)
+            {
+                // Harmony accepted the patch (and may even list it) but the detour is a no-op.
+                // The classic causes are a MonoMod type-identity conflict or a runtime the
+                // engine does not really support.
+                var reason = "the Harmony detour engine installed a patch but it had no effect " +
+                             $"(registered={registered}, expected 2, got {effect})";
+                MarkUnavailable(reason);
+                Logger?.Warn("Harmony self-test failed: patch installed but had no effect " +
+                             $"(registered={registered}, expected 2, got {effect})");
+
+                return false;
+            }
+
+            if (restored != 1)
+            {
+                var reason = "the Harmony detour engine could not restore the original method " +
+                             $"(expected 1, got {restored})";
+                MarkUnavailable(reason);
+                Logger?.Warn("Harmony self-test failed: unpatch had no effect " +
+                             $"(expected 1, got {restored})");
+
+                return false;
+            }
+
+            Logger?.Info("Harmony self-test passed: detour was applied, observed and removed");
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -337,7 +411,10 @@ namespace StrmAssistant.Mod
             return 1;
         }
 
-        private static void SelfTestPrefix(ref int __result)
+        // Must be a postfix: a void prefix that only assigns __result does not change the
+        // result, because the original method still runs and overwrites __result. That made
+        // the old self-test report "installed but had no effect" on every platform.
+        private static void SelfTestPostfix(ref int __result)
         {
             __result = 2;
         }
