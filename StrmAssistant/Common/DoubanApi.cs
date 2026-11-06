@@ -40,6 +40,8 @@ namespace StrmAssistant.Common
         private static readonly Random Random = new Random();
         private static readonly SemaphoreSlim RequestGate = new SemaphoreSlim(1, 1);
         private static readonly LruCache DetailCache = new LruCache(200);
+        private static readonly LruCache RecommendationCache = new LruCache(16);
+        private static readonly TimeSpan RecommendationCacheTime = TimeSpan.FromMinutes(15);
 
         private static DateTime _lastRequestUtc = DateTime.MinValue;
         private static DateTime _blockedUntilUtc = DateTime.MinValue;
@@ -174,6 +176,132 @@ namespace StrmAssistant.Common
             if (detail != null) DetailCache.AddOrUpdateCache(cacheKey, detail);
 
             return detail;
+        }
+
+        /// <summary>
+        /// Returns Douban's hot movie list. The mobile collection endpoints are public and can
+        /// rate limit or disappear; callers receive an empty list instead of an exception.
+        /// </summary>
+        public async Task<List<DoubanRecommendation>> GetRecommendationsAsync(string kind, int limit,
+            CancellationToken cancellationToken)
+        {
+            limit = Math.Max(1, Math.Min(limit, 40));
+            kind = string.IsNullOrWhiteSpace(kind) ? "hot" : kind.Trim().ToLowerInvariant();
+
+            var cacheKey = "recommendations:" + kind + ":" + limit;
+
+            if (RecommendationCache.TryGetFromCache<DoubanRecommendationCache>(cacheKey, out var cached) &&
+                DateTime.UtcNow - cached.CachedAt < RecommendationCacheTime)
+            {
+                return cached.Items;
+            }
+
+            var items = await GetCollectionRecommendationsAsync(kind, limit, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (items.Count == 0 && kind != "showing")
+            {
+                items = await GetCollectionRecommendationsAsync("showing", limit, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            if (items.Count == 0)
+            {
+                items = await GetRecommendFeedAsync(limit, cancellationToken).ConfigureAwait(false);
+            }
+
+            items = items
+                .Where(item => !string.IsNullOrEmpty(item.DoubanId) && !string.IsNullOrEmpty(item.Title))
+                .GroupBy(item => item.DoubanId, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .Take(limit)
+                .ToList();
+
+            if (items.Count > 0)
+            {
+                RecommendationCache.AddOrUpdateCache(cacheKey, new DoubanRecommendationCache
+                {
+                    CachedAt = DateTime.UtcNow,
+                    Items = items
+                });
+            }
+
+            return items;
+        }
+
+        private async Task<List<DoubanRecommendation>> GetCollectionRecommendationsAsync(string kind, int limit,
+            CancellationToken cancellationToken)
+        {
+            var collection = kind == "showing" ? "movie_showing" : "movie_hot";
+            var url = DoubanApiBase + "/subject_collection/" + collection + "/items?start=0&count=" + limit;
+
+            var response = await GetJsonAsync<DoubanSubjectCollectionResponse>(url, cancellationToken)
+                .ConfigureAwait(false);
+
+            return response?.subject_collection_items?
+                .Select(ConvertSubject)
+                .Where(item => item != null)
+                .ToList() ?? new List<DoubanRecommendation>();
+        }
+
+        private async Task<List<DoubanRecommendation>> GetRecommendFeedAsync(int limit,
+            CancellationToken cancellationToken)
+        {
+            var url = DoubanApiBase + "/movie/recommend?start=0&count=" + Math.Min(limit * 3, 60);
+            var response = await GetJsonAsync<DoubanRecommendFeedResponse>(url, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (response?.items is null) return new List<DoubanRecommendation>();
+
+            return response.items
+                .Where(item => string.Equals(item.type, "movie", StringComparison.OrdinalIgnoreCase))
+                .Select(ConvertFeedItem)
+                .Where(item => item != null)
+                .ToList();
+        }
+
+        private static DoubanRecommendation ConvertSubject(DoubanSubject subject)
+        {
+            if (subject is null || string.IsNullOrEmpty(subject.id)) return null;
+
+            return new DoubanRecommendation
+            {
+                DoubanId = subject.id,
+                Title = subject.title,
+                OriginalTitle = subject.original_title,
+                Year = subject.year,
+                CoverUrl = NormalizeCoverUrl(subject.cover?.url),
+                Subtitle = subject.card_subtitle,
+                Rating = subject.rating?.value
+            };
+        }
+
+        private static DoubanRecommendation ConvertFeedItem(DoubanFeedItem item)
+        {
+            if (item is null || string.IsNullOrEmpty(item.id)) return null;
+
+            var coverUrl = item.pic?.large;
+
+            if (string.IsNullOrEmpty(coverUrl)) coverUrl = item.pic?.normal;
+            if (string.IsNullOrEmpty(coverUrl)) coverUrl = item.cover_url;
+
+            return new DoubanRecommendation
+            {
+                DoubanId = item.id,
+                Title = item.title,
+                OriginalTitle = item.original_title,
+                Year = item.year,
+                CoverUrl = NormalizeCoverUrl(coverUrl),
+                Subtitle = item.card_subtitle,
+                Rating = item.rating?.value
+            };
+        }
+
+        private static string NormalizeCoverUrl(string coverUrl)
+        {
+            if (string.IsNullOrEmpty(coverUrl)) return null;
+
+            return coverUrl.StartsWith("//", StringComparison.Ordinal) ? "https:" + coverUrl : coverUrl;
         }
 
         private async Task<T> GetJsonAsync<T>(string url, CancellationToken cancellationToken) where T : class
@@ -352,5 +480,72 @@ namespace StrmAssistant.Common
             public string intro { get; set; }
             public string cover_url { get; set; }
         }
+
+        private class DoubanRecommendationCache
+        {
+            public DateTime CachedAt { get; set; }
+            public List<DoubanRecommendation> Items { get; set; } = new List<DoubanRecommendation>();
+        }
+
+        private class DoubanSubjectCollectionResponse
+        {
+            public List<DoubanSubject> subject_collection_items { get; set; }
+        }
+
+        private class DoubanSubject
+        {
+            public string id { get; set; }
+            public string title { get; set; }
+            public string original_title { get; set; }
+            public string year { get; set; }
+            public string card_subtitle { get; set; }
+            public DoubanCover cover { get; set; }
+            public DoubanRating rating { get; set; }
+        }
+
+        private class DoubanCover
+        {
+            public string url { get; set; }
+        }
+
+        private class DoubanRating
+        {
+            public double? value { get; set; }
+        }
+
+        private class DoubanRecommendFeedResponse
+        {
+            public List<DoubanFeedItem> items { get; set; }
+        }
+
+        private class DoubanFeedItem
+        {
+            public string id { get; set; }
+            public string type { get; set; }
+            public string title { get; set; }
+            public string original_title { get; set; }
+            public string year { get; set; }
+            public string card_subtitle { get; set; }
+            public string cover_url { get; set; }
+            public DoubanPic pic { get; set; }
+            public DoubanRating rating { get; set; }
+        }
+
+        private class DoubanPic
+        {
+            public string large { get; set; }
+            public string normal { get; set; }
+        }
+    }
+
+    public class DoubanRecommendation
+    {
+        public string DoubanId { get; set; }
+        public string Title { get; set; }
+        public string OriginalTitle { get; set; }
+        public string Year { get; set; }
+        public string CoverUrl { get; set; }
+        public string Subtitle { get; set; }
+        public double? Rating { get; set; }
     }
 }

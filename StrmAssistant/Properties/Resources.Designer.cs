@@ -3462,5 +3462,68 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("BoxSetHomeVisibility_ShowOnHome_Show_on_Home", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Douban Recommendation Channel.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show Douban hot movie recommendations on the home screen. Uses Douban's public mobile API and degrades silently. Default is OFF..
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Douban Recommendations.
+        /// </summary>
+        public static string DoubanRecommendations_Title_Douban_Recommendations {
+            get {
+                return ResourceManager.GetString("DoubanRecommendations_Title_Douban_Recommendations", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to More.
+        /// </summary>
+        public static string DoubanRecommendations_More_More {
+            get {
+                return ResourceManager.GetString("DoubanRecommendations_More_More", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Less.
+        /// </summary>
+        public static string DoubanRecommendations_Less_Less {
+            get {
+                return ResourceManager.GetString("DoubanRecommendations_Less_Less", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open in library.
+        /// </summary>
+        public static string DoubanRecommendations_OpenInLibrary_Open_in_library {
+            get {
+                return ResourceManager.GetString("DoubanRecommendations_OpenInLibrary_Open_in_library", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search in library.
+        /// </summary>
+        public static string DoubanRecommendations_SearchInLibrary_Search_in_library {
+            get {
+                return ResourceManager.GetString("DoubanRecommendations_SearchInLibrary_Search_in_library", resourceCulture);
+            }
+        }
 }
 }
