@@ -3525,5 +3525,23 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("DoubanRecommendations_SearchInLibrary_Search_in_library", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh Seasons and Episodes.
+        /// </summary>
+        public static string RecursiveRefresh_Series_Refresh_Seasons_and_Episodes {
+            get {
+                return ResourceManager.GetString("RecursiveRefresh_Series_Refresh_Seasons_and_Episodes", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Refresh Season Episodes.
+        /// </summary>
+        public static string RecursiveRefresh_Season_Refresh_Season_Episodes {
+            get {
+                return ResourceManager.GetString("RecursiveRefresh_Season_Refresh_Season_Episodes", resourceCulture);
+            }
+        }
 }
 }

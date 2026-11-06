@@ -1280,4 +1280,10 @@
   <data name="DoubanRecommendations_SearchInLibrary_Search_in_library" xml:space="preserve">
     <value>Search in library</value>
   </data>
+  <data name="RecursiveRefresh_Series_Refresh_Seasons_and_Episodes" xml:space="preserve">
+    <value>Refresh Seasons and Episodes</value>
+  </data>
+  <data name="RecursiveRefresh_Season_Refresh_Season_Episodes" xml:space="preserve">
+    <value>Refresh Season Episodes</value>
+  </data>
 </root>

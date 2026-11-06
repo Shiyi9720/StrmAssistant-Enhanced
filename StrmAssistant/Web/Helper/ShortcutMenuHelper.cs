@@ -149,6 +149,14 @@ const strmAssistantCommandSource = {
                     (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u7247\u982D\u6A19\u8A18' : 'Clear Intro Markers');
                 result.push({ name: commandName, id: 'clear_intro', icon: 'clear_all' });
             }
+            if ((options.items[0].Type === 'Series' || options.items[0].Type === 'Season') &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                result.push({
+                    name: options.items[0].Type === 'Series' ? '@@REFRESH_SERIES@@' : '@@REFRESH_SEASON@@',
+                    id: 'refresh_recursive',
+                    icon: 'refresh'
+                });
+            }
             if (['Movie', 'Episode', 'Series', 'Season', 'MusicVideo', 'Video', 'Trailer', 'BoxSet'].includes(options.items[0].Type) &&
                 (options.user && options.user.Policy.IsAdministrator || false)) {
                 const commandName = locale === 'zh-cn' ? '\u5220\u9664\u6F14\u5458' :
@@ -198,6 +206,7 @@ const strmAssistantCommandSource = {
             unlock: 'unlock',
             clear_intro: 'clear_intro',
             remove_person: 'remove_person',
+            refresh_recursive: 'refresh_recursive',
             clear_chapter_images: 'clear_chapter_images',
             clear_bif: 'clear_bif',
             clear_media_info: 'clear_media_info'
@@ -262,7 +271,11 @@ setTimeout(() => {
     ".Replace("@@HIDE_BOXSET@@", UiEnhancementScript.JsString(
                     "BoxSetHomeVisibility_HideFromHome_Hide_from_Home", "Hide from Home"))
                 .Replace("@@SHOW_BOXSET@@", UiEnhancementScript.JsString(
-                    "BoxSetHomeVisibility_ShowOnHome_Show_on_Home", "Show on Home"));
+                    "BoxSetHomeVisibility_ShowOnHome_Show_on_Home", "Show on Home"))
+                .Replace("@@REFRESH_SERIES@@", UiEnhancementScript.JsString(
+                    "RecursiveRefresh_Series_Refresh_Seasons_and_Episodes", "Refresh Seasons and Episodes"))
+                .Replace("@@REFRESH_SEASON@@", UiEnhancementScript.JsString(
+                    "RecursiveRefresh_Season_Refresh_Season_Episodes", "Refresh Season Episodes"));
 
             var dataExplorer2Assembly = AppDomain.CurrentDomain.GetAssemblies()
                 .FirstOrDefault(a => a.GetName().Name == "Emby.DataExplorer2");

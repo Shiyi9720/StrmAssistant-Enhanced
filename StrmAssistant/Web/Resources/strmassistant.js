@@ -397,6 +397,52 @@
             }, function () { });
         },
 
+        refresh_recursive: function (itemId, itemName) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u9012\u5f52\u5237\u65b0' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u905e\u8ff4\u91cd\u65b0\u6574\u7406' : 'Refresh Recursively');
+            const confirmText = locale === 'zh-cn' ?
+                    '\u786e\u5b9a\u8981\u9012\u5f52\u5237\u65b0 {0} \u7684\u5b63\u548c\u96c6\u5417\uff1f' :
+                (['zh-hk', 'zh-tw'].includes(locale) ?
+                    '\u78ba\u5b9a\u8981\u905e\u8ff4\u91cd\u65b0\u6574\u7406 {0} \u7684\u5b63\u548c\u96c6\u55ce\uff1f' :
+                    'Refresh all seasons and episodes of {0}?');
+            const startedText = locale === 'zh-cn' ? '\u5df2\u5f00\u59cb\u540e\u53f0\u5237\u65b0' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u5df2\u958b\u59cb\u5f8c\u53f0\u91cd\u65b0\u6574\u7406' :
+                    'Recursive refresh started');
+            const runningText = locale === 'zh-cn' ? '\u5237\u65b0\u4efb\u52a1\u5df2\u5728\u8fd0\u884c' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u91cd\u65b0\u6574\u7406\u5de5\u4f5c\u5df2\u5728\u57f7\u884c' :
+                    'A refresh is already running');
+            const failureText = locale === 'zh-cn' ? '\u64cd\u4f5c\u5931\u8d25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64cd\u4f5c\u5931\u6557' : 'Operation Failed');
+
+            return confirm({
+                text: confirmText.replace('{0}', itemName),
+                title: title,
+                confirmText: title,
+                primary: 'cancel'
+            }).then(function () {
+                loading.show();
+
+                const apiClient = connectionManager.currentApiClient();
+
+                return apiClient.ajax({
+                    type: 'POST',
+                    url: apiClient.getUrl('StrmAssistant/Items/' + itemId + '/RefreshRecursive'),
+                    data: {},
+                    contentType: 'application/json'
+                }).then(function (result) {
+                    if (typeof result === 'string') {
+                        try { result = JSON.parse(result); } catch (e) { }
+                    }
+                    toast(result && result.AlreadyRunning ? runningText : startedText);
+                }, function () {
+                    toast(failureText);
+                }).finally(function () {
+                    loading.hide();
+                });
+            }, function () { });
+        },
+
         clear_intro: function (itemId) {
             const locale = globalize.getCurrentLocale().toLowerCase();
             const commandName = locale === 'zh-cn' ? '\u6E05\u9664\u7247\u5934\u6807\u8BB0' : 
