@@ -1298,4 +1298,10 @@
   <data name="DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_" xml:space="preserve">
     <value>Total time the task waits for worker nodes before falling back to local extraction. It must be between 10 and 600. Default is 120.</value>
   </data>
+  <data name="NetworkOptions_LocalDiscoveryAddress_Local_Discovery_Address" xml:space="preserve">
+    <value>Local Discovery Address</value>
+  </data>
+  <data name="NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_" xml:space="preserve">
+    <value>Address advertised to LAN clients through UDP discovery and the public system info endpoint. Set it to the local reverse proxy URL, or enter BLOCKED to disable the UDP reply. A restart is required. Default is EMPTY.</value>
+  </data>
 </root>

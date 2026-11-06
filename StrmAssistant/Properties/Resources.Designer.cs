@@ -3578,5 +3578,22 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_LocalDiscoveryAddress_Local_Discovery_Address.
+        /// </summary>
+        public static string NetworkOptions_LocalDiscoveryAddress_Local_Discovery_Address {
+            get {
+                return ResourceManager.GetString("NetworkOptions_LocalDiscoveryAddress_Local_Discovery_Address", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_.
+        /// </summary>
+        public static string NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_", resourceCulture);
+            }
+        }
 }
 }
