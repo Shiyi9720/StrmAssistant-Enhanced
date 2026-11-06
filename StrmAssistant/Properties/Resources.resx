@@ -959,6 +959,12 @@
   <data name="Notification_CollectionUpdate_EventName" xml:space="preserve">
     <value>Collection Updated</value>
   </data>
+  <data name="Notification_CollectionItemsAdded_EventName" xml:space="preserve">
+    <value>Collection Item Added</value>
+  </data>
+  <data name="Notification_CollectionItemsRemoved_EventName" xml:space="preserve">
+    <value>Collection Item Removed</value>
+  </data>
   <data name="Notification_MetadataUpdate_EventName" xml:space="preserve">
     <value>Metadata Updated</value>
   </data>
@@ -1342,5 +1348,20 @@
   </data>
   <data name="NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_" xml:space="preserve">
     <value>Address advertised to LAN clients through UDP discovery and the public system info endpoint. Set it to the local reverse proxy URL, or enter BLOCKED to disable the UDP reply. A restart is required. Default is EMPTY.</value>
+  </data>
+  <data name="MovieRefreshOptions_EditorTitle_Movie_Metadata_Refresh" xml:space="preserve">
+    <value>Movie Metadata Refresh</value>
+  </data>
+  <data name="MovieRefreshOptions_EnableMovieRefresh_Enable_Movie_Refresh" xml:space="preserve">
+    <value>Enable Movie Refresh</value>
+  </data>
+  <data name="MovieRefreshOptions_EnableMovieRefresh_Refresh_movies_with_the_same_rules_as_episodes__missing_overview__missing_image_or_non_Chinese_overview__Items_are_scoped_by_the_episode_refresh_lookback_days_against_the_date_added__Default_is_OFF_" xml:space="preserve">
+    <value>Refresh movies with the same rules as episodes: missing overview, missing image or non-Chinese overview. Items are scoped by the episode refresh lookback days against the date added. Default is OFF.</value>
+  </data>
+  <data name="MovieRefreshTask_Name_Refresh_Movie" xml:space="preserve">
+    <value>Refresh Movie</value>
+  </data>
+  <data name="MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview" xml:space="preserve">
+    <value>Refresh metadata for movies missing overview, image or Chinese overview.</value>
   </data>
 </root>

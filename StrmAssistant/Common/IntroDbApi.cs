@@ -19,10 +19,16 @@ using System.Threading.Tasks;
 namespace StrmAssistant.Common
 {
     /// <summary>
-    /// Looks up already known intro/outro timestamps on the public IntroDb service
-    /// (https://api.introdb.app). IntroDb indexes segments by IMDb id only, so an episode can be
-    /// matched when its series carries an IMDb id; TMDB and TVDB ids are only used as a local
-    /// fallback to find another copy of the same item that does have an IMDb id.
+    /// Looks up already known intro/outro timestamps on the public IntroDb services. Both
+    /// services index segments by IMDb id only, so an episode can be matched when its series
+    /// carries an IMDb id; TMDB and TVDB ids are only used as a local fallback to find another
+    /// copy of the same item that does have an IMDb id.
+    ///
+    /// introdb.app is asked first. When it has no usable data (not found, empty segments or a
+    /// transport failure), theintrodb.org is asked as a second source. Results from both are
+    /// merged per segment type with the first source taking precedence, so a title that only
+    /// carries one of intro/credits on either service still gets what is available, and a
+    /// segment reported by both is only used once.
     ///
     /// Results are cached on disk and feed the very same chapter marker store that the
     /// fingerprint based detection writes to, which means the caller can simply ask for markers
@@ -32,6 +38,7 @@ namespace StrmAssistant.Common
     public class IntroDbApi
     {
         private const string ApiBase = "https://api.introdb.app";
+        private const string SecondaryApiBase = "https://api.theintrodb.org/v4";
         private const string StoreFileName = "StrmAssistant.IntroDb.json";
         private const string MarkerSuffix = ChapterApi.MarkerSuffix;
 
@@ -43,8 +50,16 @@ namespace StrmAssistant.Common
 
         private static DateTime _lastRequestUtc = DateTime.MinValue;
         // Set after a transport level failure so that an unreachable service does not add a
-        // timeout to every single episode of a season.
+        // timeout to every single episode of a season. The two sources trip independently, so a
+        // failure of the primary does not stop the fallback from being queried.
         private static DateTime _unavailableUntilUtc = DateTime.MinValue;
+        private static DateTime _secondaryUnavailableUntilUtc = DateTime.MinValue;
+
+        private enum SegmentSource
+        {
+            Primary,
+            Secondary
+        }
 
         private readonly ILogger _logger;
         private readonly IHttpClient _httpClient;
@@ -264,11 +279,79 @@ namespace StrmAssistant.Common
         private async Task<IntroDbCacheEntry> RequestSegmentsAsync(string imdbId, int? season, int? episode,
             bool isMovie, CancellationToken cancellationToken)
         {
+            var primary = await RequestSourceAsync(SegmentSource.Primary, imdbId, season, episode, isMovie,
+                cancellationToken).ConfigureAwait(false);
+
+            if (primary != null && primary.HasAnySegment()) return primary;
+
+            var secondary = await RequestSourceAsync(SegmentSource.Secondary, imdbId, season, episode, isMovie,
+                cancellationToken).ConfigureAwait(false);
+
+            if (secondary != null && secondary.HasAnySegment())
+            {
+                return primary is null ? secondary : MergeEntries(primary, secondary);
+            }
+
+            // Cache a negative result only when the primary actually answered "not found". A
+            // primary that failed (timeout, 5xx, circuit open) must be retried on the next scan,
+            // even when the secondary had nothing either.
+            return primary;
+        }
+
+        /// <summary>
+        /// Merges the two sources per segment type. The primary keeps both segment types it has;
+        /// the secondary only contributes types the primary did not provide. This also removes
+        /// duplicates: a segment present in both sources is written once, from the primary.
+        /// </summary>
+        private static IntroDbCacheEntry MergeEntries(IntroDbCacheEntry primary, IntroDbCacheEntry secondary)
+        {
+            var entry = new IntroDbCacheEntry { Found = true };
+
+            if (primary.HasIntro() || !secondary.HasIntro())
+            {
+                entry.IntroStartMs = primary.IntroStartMs;
+                entry.IntroEndMs = primary.IntroEndMs;
+                entry.IntroConfidence = primary.IntroConfidence;
+                entry.IntroSubmissionCount = primary.IntroSubmissionCount;
+            }
+            else
+            {
+                entry.IntroStartMs = secondary.IntroStartMs;
+                entry.IntroEndMs = secondary.IntroEndMs;
+                entry.IntroConfidence = secondary.IntroConfidence;
+                entry.IntroSubmissionCount = secondary.IntroSubmissionCount;
+            }
+
+            if (primary.HasOutro() || !secondary.HasOutro())
+            {
+                entry.OutroStartMs = primary.OutroStartMs;
+                entry.OutroEndMs = primary.OutroEndMs;
+                entry.OutroEndOpen = primary.OutroEndOpen;
+                entry.OutroConfidence = primary.OutroConfidence;
+                entry.OutroSubmissionCount = primary.OutroSubmissionCount;
+            }
+            else
+            {
+                entry.OutroStartMs = secondary.OutroStartMs;
+                entry.OutroEndMs = secondary.OutroEndMs;
+                entry.OutroEndOpen = secondary.OutroEndOpen;
+                entry.OutroConfidence = secondary.OutroConfidence;
+                entry.OutroSubmissionCount = secondary.OutroSubmissionCount;
+            }
+
+            return entry;
+        }
+
+        private async Task<IntroDbCacheEntry> RequestSourceAsync(SegmentSource source, string imdbId, int? season,
+            int? episode, bool isMovie, CancellationToken cancellationToken)
+        {
+            if (DateTime.UtcNow < GetUnavailableUntil(source)) return null;
+
             await RequestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             try
             {
-                if (DateTime.UtcNow < _unavailableUntilUtc) return null;
+                if (DateTime.UtcNow < GetUnavailableUntil(source)) return null;
 
                 var elapsed = DateTime.UtcNow - _lastRequestUtc;
                 if (elapsed < RequestInterval)
@@ -276,15 +359,9 @@ namespace StrmAssistant.Common
                     await Task.Delay(RequestInterval - elapsed, cancellationToken).ConfigureAwait(false);
                 }
 
-                var query = "imdb_id=" + Uri.EscapeDataString(imdbId);
-
-                if (season.HasValue) query += "&season=" + season.Value;
-                if (episode.HasValue) query += "&episode=" + episode.Value;
-                if (isMovie) query += "&is_movie=true";
-
                 var options = new HttpRequestOptions
                 {
-                    Url = ApiBase + "/segments?" + query,
+                    Url = BuildUrl(source, imdbId, season, episode, isMovie),
                     CancellationToken = cancellationToken,
                     AcceptHeader = "application/json",
                     UserAgent = "StrmAssistant",
@@ -308,38 +385,26 @@ namespace StrmAssistant.Common
                 {
                     if ((int) response.StatusCode >= 500 || response.StatusCode == (HttpStatusCode) 429)
                     {
-                        _unavailableUntilUtc = DateTime.UtcNow.AddMinutes(2);
+                        SetUnavailable(source);
                     }
 
-                    _logger?.Debug("IntroDb - Request returned " + (int)response.StatusCode + " for " + imdbId +
-                                   " S" + season + "E" + episode);
+                    _logger?.Debug("IntroDb - " + source + " returned " + (int)response.StatusCode + " for " +
+                                   imdbId + " S" + season + "E" + episode);
                     // Do not cache failures, the service may be temporarily unavailable.
                     return null;
                 }
 
                 await using var contentStream = response.Content;
-                var segments = _jsonSerializer.DeserializeFromStream<IntroDbSegments>(contentStream);
 
-                if (segments is null) return new IntroDbCacheEntry { Found = false };
-
-                return new IntroDbCacheEntry
-                {
-                    Found = true,
-                    IntroStartMs = segments.intro?.StartMilliseconds ?? 0,
-                    IntroEndMs = segments.intro?.EndMilliseconds ?? 0,
-                    IntroConfidence = segments.intro?.confidence ?? 0,
-                    IntroSubmissionCount = segments.intro?.submission_count ?? 0,
-                    OutroStartMs = segments.outro?.StartMilliseconds ?? 0,
-                    OutroEndMs = segments.outro?.EndMilliseconds ?? 0,
-                    OutroConfidence = segments.outro?.confidence ?? 0,
-                    OutroSubmissionCount = segments.outro?.submission_count ?? 0
-                };
+                return source == SegmentSource.Primary
+                    ? ParsePrimary(_jsonSerializer.DeserializeFromStream<IntroDbSegments>(contentStream))
+                    : ParseSecondary(_jsonSerializer.DeserializeFromStream<TheIntroDbMedia>(contentStream));
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // A request timeout surfaces as a cancellation that is not owned by the caller.
-                _unavailableUntilUtc = DateTime.UtcNow.AddMinutes(2);
-                _logger?.Debug("IntroDb - Request timed out");
+                SetUnavailable(source);
+                _logger?.Debug("IntroDb - " + source + " request timed out");
                 return null;
             }
             catch (OperationCanceledException)
@@ -348,8 +413,8 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _unavailableUntilUtc = DateTime.UtcNow.AddMinutes(2);
-                _logger?.Debug("IntroDb - Request failed: " + e.Message);
+                SetUnavailable(source);
+                _logger?.Debug("IntroDb - " + source + " request failed: " + e.Message);
                 return null;
             }
             finally
@@ -357,6 +422,139 @@ namespace StrmAssistant.Common
                 _lastRequestUtc = DateTime.UtcNow;
                 RequestGate.Release();
             }
+        }
+
+        private static string BuildUrl(SegmentSource source, string imdbId, int? season, int? episode, bool isMovie)
+        {
+            var query = "imdb_id=" + Uri.EscapeDataString(imdbId);
+
+            if (source == SegmentSource.Primary)
+            {
+                if (season.HasValue) query += "&season=" + season.Value;
+                if (episode.HasValue) query += "&episode=" + episode.Value;
+                if (isMovie) query += "&is_movie=true";
+
+                return ApiBase + "/segments?" + query;
+            }
+
+            // theintrodb.org serves movies and episodes from /media; a movie has no season or
+            // episode parameters. details=true adds the per-segment confidence we filter on.
+            if (!isMovie)
+            {
+                if (season.HasValue) query += "&season=" + season.Value;
+                if (episode.HasValue) query += "&episode=" + episode.Value;
+            }
+
+            return SecondaryApiBase + "/media?" + query + "&details=true";
+        }
+
+        private static DateTime GetUnavailableUntil(SegmentSource source)
+        {
+            return source == SegmentSource.Primary ? _unavailableUntilUtc : _secondaryUnavailableUntilUtc;
+        }
+
+        private static void SetUnavailable(SegmentSource source)
+        {
+            var until = DateTime.UtcNow.AddMinutes(2);
+
+            if (source == SegmentSource.Primary)
+            {
+                _unavailableUntilUtc = until;
+            }
+            else
+            {
+                _secondaryUnavailableUntilUtc = until;
+            }
+        }
+
+        private static IntroDbCacheEntry ParsePrimary(IntroDbSegments segments)
+        {
+            if (segments is null) return new IntroDbCacheEntry { Found = false };
+
+            return new IntroDbCacheEntry
+            {
+                Found = true,
+                IntroStartMs = segments.intro?.StartMilliseconds ?? 0,
+                IntroEndMs = segments.intro?.EndMilliseconds ?? 0,
+                IntroConfidence = segments.intro?.confidence ?? 0,
+                IntroSubmissionCount = segments.intro?.submission_count ?? 0,
+                OutroStartMs = segments.outro?.StartMilliseconds ?? 0,
+                OutroEndMs = segments.outro?.EndMilliseconds ?? 0,
+                OutroConfidence = segments.outro?.confidence ?? 0,
+                OutroSubmissionCount = segments.outro?.submission_count ?? 0
+            };
+        }
+
+        private static IntroDbCacheEntry ParseSecondary(TheIntroDbMedia media)
+        {
+            if (media is null) return new IntroDbCacheEntry { Found = false };
+
+            // Both segment lists may hold several entries; a segment confirmed absent is sent as
+            // 0/0 and is skipped here. Only one intro and one credits range fit the marker model.
+            var intro = PickSegment(media.intro, true);
+            var credits = PickSegment(media.credits, false);
+
+            if (intro is null && credits is null) return new IntroDbCacheEntry { Found = false };
+
+            var entry = new IntroDbCacheEntry { Found = true };
+
+            if (intro != null)
+            {
+                entry.IntroStartMs = ToMilliseconds(intro.start_ms);
+                entry.IntroEndMs = ToMilliseconds(intro.end_ms);
+                entry.IntroConfidence = intro.confidence ?? 0;
+                entry.IntroSubmissionCount = intro.submission_count ?? 0;
+            }
+
+            if (credits != null)
+            {
+                entry.OutroStartMs = ToMilliseconds(credits.start_ms);
+
+                // A null end means "runs to the end of the media", which the marker writer
+                // resolves against the item duration.
+                entry.OutroEndOpen = !credits.end_ms.HasValue;
+                entry.OutroEndMs = credits.end_ms.HasValue ? ToMilliseconds(credits.end_ms) : 0;
+                entry.OutroConfidence = credits.confidence ?? 0;
+                entry.OutroSubmissionCount = credits.submission_count ?? 0;
+            }
+
+            return entry;
+        }
+
+        private static TheIntroDbSegment PickSegment(TheIntroDbSegment[] segments, bool requireEnd)
+        {
+            if (segments is null) return null;
+
+            foreach (var segment in segments)
+            {
+                if (segment is null) continue;
+
+                var start = segment.start_ms ?? 0;
+
+                if (start < 0) continue;
+
+                if (!requireEnd)
+                {
+                    // Credits always carry a start; a missing end means "to the end of the media".
+                    if (start > 0 && (!segment.end_ms.HasValue || segment.end_ms.Value > start))
+                    {
+                        return segment;
+                    }
+                }
+                else if (segment.end_ms.HasValue && segment.end_ms.Value > start)
+                {
+                    return segment;
+                }
+            }
+
+            return null;
+        }
+
+        private static int ToMilliseconds(long? value)
+        {
+            if (!value.HasValue || value.Value <= 0) return 0;
+
+            return value.Value > int.MaxValue ? int.MaxValue : (int)value.Value;
         }
 
         private bool ApplyMarkers(BaseItem item, IntroDbCacheEntry entry, IntroDbOptions options)
@@ -452,6 +650,10 @@ namespace StrmAssistant.Common
 
             var start = ToTicks(entry.OutroStartMs);
             var end = ToTicks(entry.OutroEndMs);
+
+            // An open-ended credits segment runs to the end of the media, so its end comes from
+            // the item duration. Without a known duration the segment cannot be validated.
+            if (entry.OutroEndOpen) end = item.RunTimeTicks ?? 0;
 
             if (start <= 0 || end <= start) return false;
 
@@ -580,6 +782,32 @@ namespace StrmAssistant.Common
                 new Dictionary<string, IntroDbCacheEntry>(StringComparer.OrdinalIgnoreCase);
         }
 
+        // theintrodb.org (v4 /media) returns one object per title with an array per segment type;
+        // each array may be absent, and a segment may omit its start or end timestamp. A segment
+        // confirmed absent is sent as 0/0 and is discarded when picking the range.
+        public class TheIntroDbMedia
+        {
+            public long? tvdb_id { get; set; }
+            public long? tmdb_id { get; set; }
+            public string imdb_id { get; set; }
+            public string type { get; set; }
+            public int? season { get; set; }
+            public int? episode { get; set; }
+            public string title { get; set; }
+            public TheIntroDbSegment[] intro { get; set; }
+            public TheIntroDbSegment[] recap { get; set; }
+            public TheIntroDbSegment[] credits { get; set; }
+            public TheIntroDbSegment[] preview { get; set; }
+        }
+
+        public class TheIntroDbSegment
+        {
+            public long? start_ms { get; set; }
+            public long? end_ms { get; set; }
+            public double? confidence { get; set; }
+            public int? submission_count { get; set; }
+        }
+
         public class IntroDbCacheEntry
         {
             public DateTime FetchedAtUtc { get; set; }
@@ -590,6 +818,9 @@ namespace StrmAssistant.Common
             public int IntroSubmissionCount { get; set; }
             public int OutroStartMs { get; set; }
             public int OutroEndMs { get; set; }
+            // The second source may report credits that run to the end of the media (no end
+            // timestamp). Such a segment has no end until it is resolved against the item.
+            public bool OutroEndOpen { get; set; }
             public double OutroConfidence { get; set; }
             public int OutroSubmissionCount { get; set; }
 
@@ -600,7 +831,12 @@ namespace StrmAssistant.Common
 
             public bool HasOutro()
             {
-                return OutroEndMs > OutroStartMs;
+                return OutroEndOpen ? OutroStartMs > 0 : OutroEndMs > OutroStartMs;
+            }
+
+            public bool HasAnySegment()
+            {
+                return HasIntro() || HasOutro();
             }
         }
     }
