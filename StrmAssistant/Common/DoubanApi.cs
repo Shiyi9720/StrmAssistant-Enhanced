@@ -14,6 +14,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using static StrmAssistant.Common.LanguageUtility;
@@ -41,6 +42,8 @@ namespace StrmAssistant.Common
         private static readonly Random Random = new Random();
         private static readonly SemaphoreSlim RequestGate = new SemaphoreSlim(1, 1);
         private static readonly LruCache DetailCache = new LruCache(200);
+        private static readonly LruCache CelebrityCache = new LruCache(200);
+        private static readonly LruCache SeasonCache = new LruCache(100);
         private static readonly LruCache RecommendationCache = new LruCache(16);
         private static readonly TimeSpan RecommendationCacheTime = TimeSpan.FromMinutes(15);
 
@@ -84,14 +87,26 @@ namespace StrmAssistant.Common
 
                 var needsOverview = string.IsNullOrWhiteSpace(item.Overview);
                 var needsPoster = item.GetImageInfo(ImageType.Primary, 0) is null;
+                var needsCast = options.EnableDoubanCast && item.SupportsPeople;
+                var needsSeason = options.EnableDoubanSeason && item is Series;
 
-                if (!needsOverview && !needsPoster) return;
+                if (!needsOverview && !needsPoster && !needsCast && !needsSeason) return;
 
                 var detail = await FindDetailAsync(item, cancellationToken).ConfigureAwait(false);
 
                 if (detail is null) return;
 
                 await SaveDoubanMetadataAsync(item, detail).ConfigureAwait(false);
+
+                if (needsCast)
+                {
+                    await SaveCastAsync(item, detail, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (needsSeason)
+                {
+                    await SaveSeasonMetadataAsync(item, detail, cancellationToken).ConfigureAwait(false);
+                }
 
                 if (needsOverview && !string.IsNullOrWhiteSpace(detail.intro))
                 {
@@ -142,6 +157,22 @@ namespace StrmAssistant.Common
                 }
             }
 
+            var ratingCount = detail.rating?.count;
+
+            if (ratingCount.HasValue && ratingCount.Value > 0 &&
+                string.IsNullOrEmpty(item.GetProviderId("DoubanRatingCount")))
+            {
+                item.SetProviderId("DoubanRatingCount",
+                    ratingCount.Value.ToString(CultureInfo.InvariantCulture));
+                changed = true;
+            }
+
+            var detailYear = ParseYear(detail.year, null);
+            var premiereDate = ParsePubDate(detail.pubdate, detailYear);
+
+            if (SetMissingPremiereDate(item, premiereDate)) changed = true;
+            if (SetMissingProductionYear(item, detailYear ?? premiereDate?.Year)) changed = true;
+
             if (changed)
             {
                 try
@@ -157,6 +188,472 @@ namespace StrmAssistant.Common
 
             _ratingStore.Save(item.InternalId, doubanId, item.Name, item.GetType().Name, rating,
                 detail.rating?.count);
+        }
+
+        private async Task SaveCastAsync(BaseItem item, DoubanDetail detail,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                List<PersonInfo> existing;
+
+                try
+                {
+                    existing = _libraryManager.GetItemPeople(item)?
+                        .Where(person => person != null)
+                        .ToList() ?? new List<PersonInfo>();
+                }
+                catch (Exception e)
+                {
+                    _logger?.Debug("DoubanSupplement - Failed to read people: " + e.Message);
+                    existing = new List<PersonInfo>();
+                }
+
+                var subjectType = item is Movie ? "movie" : "tv";
+                var celebrities = await GetCelebritiesAsync(detail.id, subjectType, cancellationToken)
+                    .ConfigureAwait(false);
+
+                var actors = celebrities?.actors != null && celebrities.actors.Count > 0
+                    ? celebrities.actors
+                    : detail.actors;
+                var directors = celebrities?.directors != null && celebrities.directors.Count > 0
+                    ? celebrities.directors
+                    : detail.directors;
+
+                var existingNames = new HashSet<string>(
+                    existing.Where(person => !string.IsNullOrWhiteSpace(person.Name))
+                        .Select(person => person.Name.Trim()),
+                    StringComparer.OrdinalIgnoreCase);
+                var additions = new List<PersonInfo>();
+
+                foreach (var actor in (actors ?? new List<DoubanPerson>())
+                             .Where(person => person != null && !string.IsNullOrWhiteSpace(person.name))
+                             .Take(10))
+                {
+                    var name = actor.name.Trim();
+
+                    if (!existingNames.Add(name)) continue;
+
+                    additions.Add(new PersonInfo
+                    {
+                        Name = name,
+                        Role = CleanRole(actor.character),
+                        Type = PersonType.Actor
+                    });
+                }
+
+                foreach (var director in (directors ?? new List<DoubanPerson>())
+                             .Where(person => person != null && !string.IsNullOrWhiteSpace(person.name))
+                             .Take(10))
+                {
+                    var name = director.name.Trim();
+
+                    if (!existingNames.Add(name)) continue;
+
+                    additions.Add(new PersonInfo
+                    {
+                        Name = name,
+                        Role = CleanRole(director.character),
+                        Type = PersonType.Director
+                    });
+                }
+
+                if (additions.Count == 0) return;
+
+                _libraryManager.UpdatePeople(item, existing.Concat(additions).ToList());
+                item.UpdateToRepository(ItemUpdateType.MetadataEdit);
+
+                _logger?.Info("DoubanSupplement - Cast updated: " + item.Name + " (+" +
+                              additions.Count + ")");
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DoubanSupplement - Cast update failed: " + e.Message);
+            }
+        }
+
+        private async Task<DoubanCelebrities> GetCelebritiesAsync(string subjectId, string subjectType,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(subjectId)) return null;
+
+            var cacheKey = "celebrities:" + subjectType + ":" + subjectId;
+
+            if (CelebrityCache.TryGetFromCache(cacheKey, out DoubanCelebrities cached)) return cached;
+
+            var result = await GetJsonAsync<DoubanCelebrities>(
+                    DoubanApiBase + "/" + subjectType + "/" + subjectId + "/celebrities", cancellationToken)
+                .ConfigureAwait(false);
+
+            if (result != null) CelebrityCache.AddOrUpdateCache(cacheKey, result);
+
+            return result;
+        }
+
+        private async Task<List<DoubanSeason>> GetSeasonsAsync(string subjectId, string subjectType,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(subjectId)) return null;
+
+            var cacheKey = "seasons:" + subjectType + ":" + subjectId;
+
+            if (SeasonCache.TryGetFromCache(cacheKey, out List<DoubanSeason> cached)) return cached;
+
+            var result = await GetJsonAsync<List<DoubanSeason>>(
+                    DoubanApiBase + "/" + subjectType + "/" + subjectId + "/seasons", cancellationToken)
+                .ConfigureAwait(false);
+
+            if (result != null) SeasonCache.AddOrUpdateCache(cacheKey, result);
+
+            return result;
+        }
+
+        private async Task SaveSeasonMetadataAsync(BaseItem item, DoubanDetail detail,
+            CancellationToken cancellationToken)
+        {
+            if (!(item is Series series)) return;
+
+            try
+            {
+                var seasons = GetLocalSeasons(series);
+
+                if (seasons.Count == 0) return;
+
+                var doubanSeasons = detail.seasons?.Where(season => season != null).ToList();
+
+                if (doubanSeasons is null || doubanSeasons.Count == 0)
+                {
+                    doubanSeasons = await GetSeasonsAsync(detail.id, "tv", cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                var doubanEpisodes = detail.episodes?.Where(episode => episode != null).ToList();
+                var changedAny = false;
+
+                foreach (var season in seasons)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var index = season.IndexNumber;
+
+                    if (!index.HasValue || index.Value <= 0) continue;
+
+                    var seasonNumber = index.Value;
+                    var match = doubanSeasons?.FirstOrDefault(candidate =>
+                        GetSeasonNumber(candidate) == seasonNumber);
+
+                    if (match is null && doubanSeasons?.Count == 1 &&
+                        doubanSeasons[0].title?.IndexOf("季", StringComparison.Ordinal) >= 0)
+                    {
+                        match = doubanSeasons[0];
+                    }
+
+                    var changed = false;
+
+                    if (match != null)
+                    {
+                        var matchYear = ParseYear(match.year, null);
+                        var matchDate = ParsePubDate(match.pubdate, matchYear);
+
+                        if (SetMissingPremiereDate(season, matchDate)) changed = true;
+                        if (SetMissingProductionYear(season, matchYear ?? matchDate?.Year)) changed = true;
+
+                        if (string.IsNullOrWhiteSpace(season.Overview) &&
+                            !string.IsNullOrWhiteSpace(match.intro))
+                        {
+                            season.Overview = match.intro.Trim();
+                            changed = true;
+                        }
+                    }
+                    else if (seasonNumber == 1)
+                    {
+                        var seriesYear = ParseYear(detail.year, null);
+                        var seriesDate = ParsePubDate(detail.pubdate, seriesYear);
+
+                        if (SetMissingPremiereDate(season, seriesDate)) changed = true;
+                        if (SetMissingProductionYear(season, seriesYear ?? seriesDate?.Year)) changed = true;
+                    }
+
+                    if (doubanEpisodes != null && doubanEpisodes.Count > 0 &&
+                        SupplementEpisodes(season, seasonNumber, doubanEpisodes, cancellationToken))
+                    {
+                        changed = true;
+                    }
+
+                    if (!changed) continue;
+
+                    season.UpdateToRepository(ItemUpdateType.MetadataEdit);
+                    changedAny = true;
+                }
+
+                if (changedAny)
+                {
+                    _logger?.Info("DoubanSupplement - Season metadata updated: " + series.Name);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DoubanSupplement - Season update failed: " + e.Message);
+            }
+        }
+
+        private bool SupplementEpisodes(Season season, int seasonIndex,
+            List<DoubanEpisode> doubanEpisodes, CancellationToken cancellationToken)
+        {
+            var episodes = GetLocalEpisodes(season);
+
+            if (episodes.Count == 0) return false;
+
+            var changedAny = false;
+
+            foreach (var episode in episodes)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var number = episode.IndexNumber;
+
+                if (!number.HasValue || number.Value <= 0) continue;
+
+                var match = doubanEpisodes.FirstOrDefault(candidate =>
+                {
+                    if (GetEpisodeNumber(candidate) != number.Value) return false;
+
+                    var candidateSeason = GetEpisodeSeason(candidate);
+                    return candidateSeason == seasonIndex ||
+                           (!candidateSeason.HasValue && seasonIndex == 1);
+                });
+
+                if (match is null) continue;
+
+                var changed = false;
+
+                if (string.IsNullOrWhiteSpace(episode.Name) && !string.IsNullOrWhiteSpace(match.title))
+                {
+                    episode.Name = match.title.Trim();
+                    changed = true;
+                }
+
+                if (string.IsNullOrWhiteSpace(episode.Overview) && !string.IsNullOrWhiteSpace(match.intro))
+                {
+                    episode.Overview = match.intro.Trim();
+                    changed = true;
+                }
+
+                var episodeYear = ParseYear(match.year, null);
+                var episodeDate = ParsePubDate(match.pubdate, episodeYear);
+
+                if (SetMissingPremiereDate(episode, episodeDate)) changed = true;
+                if (SetMissingProductionYear(episode, episodeYear ?? episodeDate?.Year)) changed = true;
+
+                if (!changed) continue;
+
+                episode.UpdateToRepository(ItemUpdateType.MetadataEdit);
+                changedAny = true;
+            }
+
+            return changedAny;
+        }
+
+        private List<Season> GetLocalSeasons(Series series)
+        {
+            try
+            {
+                return _libraryManager.GetItemList(new InternalItemsQuery
+                    {
+                        IncludeItemTypes = new[] { nameof(Season) },
+                        ParentWithPresentationUniqueKeyFromItemId = series.InternalId
+                    })
+                    .OfType<Season>()
+                    .OrderBy(season => season.IndexNumber ?? int.MaxValue)
+                    .ToList();
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DoubanSupplement - Failed to read seasons: " + e.Message);
+                return new List<Season>();
+            }
+        }
+
+        private List<Episode> GetLocalEpisodes(Season season)
+        {
+            try
+            {
+                return _libraryManager.GetItemList(new InternalItemsQuery
+                    {
+                        IncludeItemTypes = new[] { nameof(Episode) },
+                        ParentIds = new[] { season.InternalId }
+                    })
+                    .OfType<Episode>()
+                    .OrderBy(episode => episode.IndexNumber ?? int.MaxValue)
+                    .ToList();
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DoubanSupplement - Failed to read episodes: " + e.Message);
+                return new List<Episode>();
+            }
+        }
+
+        private static string CleanRole(string character)
+        {
+            if (string.IsNullOrWhiteSpace(character)) return null;
+
+            var role = character.Trim();
+
+            if (role.StartsWith("饰演", StringComparison.Ordinal))
+            {
+                role = role.Substring(2).Trim();
+            }
+            else if (role.StartsWith("饰", StringComparison.Ordinal))
+            {
+                role = role.Substring(1).Trim();
+            }
+
+            return string.IsNullOrWhiteSpace(role) ? null : role;
+        }
+
+        private static DateTimeOffset? ParsePubDate(IEnumerable<string> pubdate, int? preferredYear = null)
+        {
+            var values = pubdate?.Where(date => !string.IsNullOrWhiteSpace(date)).ToList();
+
+            if (values is null || values.Count == 0) return null;
+
+            var parsed = new List<DateTimeOffset>();
+
+            foreach (var value in values)
+            {
+                var match = Regex.Match(value, @"(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})");
+
+                if (!match.Success) continue;
+
+                var normalized = match.Groups[1].Value + "-" + match.Groups[2].Value + "-" +
+                                 match.Groups[3].Value;
+
+                if (DateTime.TryParseExact(normalized, "yyyy-M-d", CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out var date))
+                {
+                    parsed.Add(new DateTimeOffset(date, TimeSpan.Zero));
+                }
+            }
+
+            if (parsed.Count == 0) return null;
+
+            if (preferredYear.HasValue)
+            {
+                var preferred = parsed.FirstOrDefault(date => date.Year == preferredYear.Value);
+
+                return preferred != default ? preferred : (DateTimeOffset?)null;
+            }
+
+            return parsed[0];
+        }
+
+        private static int? ParseYear(string year, DateTimeOffset? date)
+        {
+            if (int.TryParse(year, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+                parsed > 0)
+            {
+                return parsed;
+            }
+
+            return date?.Year;
+        }
+
+        private static bool SetMissingPremiereDate(BaseItem item, DateTimeOffset? date)
+        {
+            if (item is null || !date.HasValue) return false;
+
+            if (item.PremiereDate.HasValue && item.PremiereDate.Value != DateTimeOffset.MinValue)
+            {
+                return false;
+            }
+
+            item.PremiereDate = date;
+            return true;
+        }
+
+        private static bool SetMissingProductionYear(BaseItem item, int? year)
+        {
+            if (item is null || !year.HasValue || year.Value <= 0) return false;
+
+            if (item.ProductionYear.HasValue && item.ProductionYear.Value > 0) return false;
+
+            item.ProductionYear = year.Value;
+            return true;
+        }
+
+        private static int? GetSeasonNumber(DoubanSeason season)
+        {
+            if (season is null) return null;
+            if (season.season_number.HasValue) return season.season_number;
+            if (season.season.HasValue) return season.season;
+            if (string.IsNullOrWhiteSpace(season.title)) return null;
+
+            var match = Regex.Match(season.title, @"第\s*([0-9]+|[一二三四五六七八九十]+)\s*季");
+
+            if (!match.Success)
+            {
+                match = Regex.Match(season.title, @"(?:Season|S)\s*([0-9]+)",
+                    RegexOptions.IgnoreCase);
+            }
+
+            return match.Success ? ParseSeasonNumber(match.Groups[1].Value) : (int?)null;
+        }
+
+        private static int? ParseSeasonNumber(string value)
+        {
+            if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+                parsed > 0)
+            {
+                return parsed;
+            }
+
+            var numerals = new Dictionary<char, int>
+            {
+                ['一'] = 1,
+                ['二'] = 2,
+                ['三'] = 3,
+                ['四'] = 4,
+                ['五'] = 5,
+                ['六'] = 6,
+                ['七'] = 7,
+                ['八'] = 8,
+                ['九'] = 9,
+                ['十'] = 10
+            };
+
+            if (value.Length == 1 && numerals.TryGetValue(value[0], out var single)) return single;
+
+            if (value.Length == 2)
+            {
+                if (value[1] == '十' && numerals.TryGetValue(value[0], out var tens)) return tens * 10;
+                if (value[0] == '十' && numerals.TryGetValue(value[1], out var ones)) return 10 + ones;
+            }
+
+            if (value.Length == 3 && value[1] == '十' &&
+                numerals.TryGetValue(value[0], out var tensDigit) &&
+                numerals.TryGetValue(value[2], out var onesDigit))
+            {
+                return tensDigit * 10 + onesDigit;
+            }
+
+            return null;
+        }
+
+        private static int? GetEpisodeNumber(DoubanEpisode episode)
+        {
+            return episode.episode_number ?? episode.episode;
+        }
+
+        private static int? GetEpisodeSeason(DoubanEpisode episode)
+        {
+            return episode.season_number;
         }
 
         public DoubanRatingCacheEntry GetCachedRating(long itemId)
@@ -532,6 +1029,53 @@ namespace StrmAssistant.Common
             public string intro { get; set; }
             public string cover_url { get; set; }
             public DoubanRating rating { get; set; }
+            public List<DoubanPerson> actors { get; set; }
+            public List<DoubanPerson> directors { get; set; }
+            public List<string> pubdate { get; set; }
+            public string year { get; set; }
+            public int? episodes_count { get; set; }
+            public List<DoubanSeason> seasons { get; set; }
+            public List<DoubanEpisode> episodes { get; set; }
+        }
+
+        private class DoubanCelebrities
+        {
+            public List<DoubanPerson> actors { get; set; }
+            public List<DoubanPerson> directors { get; set; }
+        }
+
+        private class DoubanPerson
+        {
+            public string id { get; set; }
+            public string name { get; set; }
+            public string latin_name { get; set; }
+            public string character { get; set; }
+        }
+
+        private class DoubanSeason
+        {
+            public string id { get; set; }
+            public string title { get; set; }
+            public int? season { get; set; }
+            public int? season_number { get; set; }
+            public int? episodes_count { get; set; }
+            public int? episode_count { get; set; }
+            public List<string> pubdate { get; set; }
+            public string year { get; set; }
+            public string intro { get; set; }
+            public string cover_url { get; set; }
+        }
+
+        private class DoubanEpisode
+        {
+            public string id { get; set; }
+            public string title { get; set; }
+            public string intro { get; set; }
+            public int? episode { get; set; }
+            public int? episode_number { get; set; }
+            public int? season_number { get; set; }
+            public List<string> pubdate { get; set; }
+            public string year { get; set; }
         }
 
         private class DoubanRecommendationCache

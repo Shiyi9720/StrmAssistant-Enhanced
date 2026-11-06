@@ -1120,6 +1120,8 @@ namespace StrmAssistant
                     options.MetadataEnhanceOptions.EnableDoubanRecommendations);
                 Logger.Info("DoubanRequestIntervalSeconds is set to {0}",
                     options.MetadataEnhanceOptions.DoubanRequestIntervalSeconds);
+                Logger.Info("EnableDoubanCast is set to {0}", options.MetadataEnhanceOptions.EnableDoubanCast);
+                Logger.Info("EnableDoubanSeason is set to {0}", options.MetadataEnhanceOptions.EnableDoubanSeason);
                 Logger.Info("EnableLocalMovieDb is set to {0}", options.MetadataEnhanceOptions.EnableLocalMovieDb);
                 Logger.Info("LocalMovieDbUrl is set to {0}",
                     string.IsNullOrWhiteSpace(options.MetadataEnhanceOptions.LocalMovieDbUrl)

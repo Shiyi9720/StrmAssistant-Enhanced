@@ -1676,4 +1676,16 @@
   <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Upper_limit_of_the_TMDB_disk_cache__Least_recently_used_entries_are_evicted_when_it_is_exceeded__It_must_be_between_16_and_4096__Default_is_256_" xml:space="preserve">
     <value>Upper limit of the TMDB disk cache. Least recently used entries are evicted when it is exceeded. It must be between 16 and 4096. Default is 256.</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanCast_Enable_Douban_Cast_Supplement" xml:space="preserve">
+    <value>Enable Douban Cast Supplement</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanCast_Append_missing_main_cast_and_directors_from_Douban__Existing_people_are_kept_and_deduplicated_by_name__Default_is_OFF_" xml:space="preserve">
+    <value>Append missing main cast and directors from Douban. Existing people are kept and deduplicated by name. Default is OFF.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSeason_Enable_Douban_Season_Supplement" xml:space="preserve">
+    <value>Enable Douban Season Supplement</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_" xml:space="preserve">
+    <value>Fill missing season and episode information for series from Douban. Existing values are never overwritten. Default is OFF.</value>
+  </data>
 </root>

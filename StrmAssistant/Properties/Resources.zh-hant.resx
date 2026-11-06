@@ -1589,4 +1589,16 @@
   <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Upper_limit_of_the_TMDB_disk_cache__Least_recently_used_entries_are_evicted_when_it_is_exceeded__It_must_be_between_16_and_4096__Default_is_256_" xml:space="preserve">
     <value>TMDB 磁碟快取的上限。超出後按最近最少使用（LRU）淘汰。必須在 16 到 4096 之間。預設 256。</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanCast_Enable_Douban_Cast_Supplement" xml:space="preserve">
+    <value>啟用豆瓣演職人員補充</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanCast_Append_missing_main_cast_and_directors_from_Douban__Existing_people_are_kept_and_deduplicated_by_name__Default_is_OFF_" xml:space="preserve">
+    <value>從豆瓣追加缺失的主演與導演。保留現有人員並按姓名去重。預設關閉。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSeason_Enable_Douban_Season_Supplement" xml:space="preserve">
+    <value>啟用豆瓣季/集資訊補充</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_" xml:space="preserve">
+    <value>從豆瓣補充劇集缺失的季/集資訊。不覆寫已有值。預設關閉。</value>
+  </data>
 </root>
