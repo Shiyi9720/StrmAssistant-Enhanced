@@ -1172,4 +1172,25 @@
   <data name="BoxSetHomeVisibility_ShowOnHome_Show_on_Home" xml:space="preserve">
     <value>显示在首页</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel" xml:space="preserve">
+    <value>豆瓣推荐频道</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_" xml:space="preserve">
+    <value>在首页显示豆瓣热门电影推荐，使用豆瓣公开移动端接口，失败时静默降级。默认关闭。</value>
+  </data>
+  <data name="DoubanRecommendations_Title_Douban_Recommendations" xml:space="preserve">
+    <value>豆瓣推荐</value>
+  </data>
+  <data name="DoubanRecommendations_More_More" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="DoubanRecommendations_Less_Less" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="DoubanRecommendations_OpenInLibrary_Open_in_library" xml:space="preserve">
+    <value>在媒体库中打开</value>
+  </data>
+  <data name="DoubanRecommendations_SearchInLibrary_Search_in_library" xml:space="preserve">
+    <value>在媒体库中搜索</value>
+  </data>
 </root>

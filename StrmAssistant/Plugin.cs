@@ -890,6 +890,8 @@ namespace StrmAssistant
             {
                 Logger.Info("EnableDoubanSupplement is set to {0}",
                     options.MetadataEnhanceOptions.EnableDoubanSupplement);
+                Logger.Info("EnableDoubanRecommendations is set to {0}",
+                    options.MetadataEnhanceOptions.EnableDoubanRecommendations);
                 Logger.Info("DoubanRequestIntervalSeconds is set to {0}",
                     options.MetadataEnhanceOptions.DoubanRequestIntervalSeconds);
                 Logger.Info("EnableLocalMovieDb is set to {0}", options.MetadataEnhanceOptions.EnableLocalMovieDb);

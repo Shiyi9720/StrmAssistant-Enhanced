@@ -107,6 +107,10 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableDoubanSupplement), SimpleCondition.IsTrue)]
         public int DoubanRequestIntervalSeconds { get; set; } = 3;
 
+        [DisplayNameL("MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_", typeof(Resources))]
+        public bool EnableDoubanRecommendations { get; set; } = false;
+
         [Browsable(false)]
         [Required]
         public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
