@@ -3870,6 +3870,60 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command.
+        /// </summary>
+        public static string IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_.
+        /// </summary>
+        public static string IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_CommandName_Re_detect_Intro.
+        /// </summary>
+        public static string IntroRedetect_CommandName_Re_detect_Intro {
+            get {
+                return ResourceManager.GetString("IntroRedetect_CommandName_Re_detect_Intro", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_Started_Intro_re_detection_started.
+        /// </summary>
+        public static string IntroRedetect_Started_Intro_re_detection_started {
+            get {
+                return ResourceManager.GetString("IntroRedetect_Started_Intro_re_detection_started", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running.
+        /// </summary>
+        public static string IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running {
+            get {
+                return ResourceManager.GetString("IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroRedetect_Failed_Failed_to_start_intro_re_detection.
+        /// </summary>
+        public static string IntroRedetect_Failed_Failed_to_start_intro_re_detection {
+            get {
+                return ResourceManager.GetString("IntroRedetect_Failed_Failed_to_start_intro_re_detection", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Wiki_Link.
         /// </summary>
         public static string Wiki_Link {
