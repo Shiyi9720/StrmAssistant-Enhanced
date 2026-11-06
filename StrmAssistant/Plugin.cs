@@ -678,6 +678,18 @@ namespace StrmAssistant
                     .Where(v => options.IntroSkipOptions.LibraryList.Any(option => option.Value == v)) ??
                 Enumerable.Empty<string>());
 
+            var pinyinSortOptions = options.ExperienceEnhanceOptions.PinyinSortOptions;
+            var pinyinSortLibraryList = pinyinSortOptions?.LibraryList;
+
+            if (pinyinSortLibraryList != null)
+            {
+                pinyinSortOptions.LibraryScope = string.Join(",",
+                    pinyinSortOptions.LibraryScope
+                        ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(v => pinyinSortLibraryList.Any(option => option.Value == v)) ??
+                    Enumerable.Empty<string>());
+            }
+
             options.IntroSkipOptions.UserScope = string.Join(",",
                 options.IntroSkipOptions.UserScope
                     ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -1114,6 +1126,11 @@ namespace StrmAssistant
             }
 
             options.MediaInfoExtractOptions.LibraryList = list;
+            if (options.ExperienceEnhanceOptions.PinyinSortOptions != null)
+            {
+                options.ExperienceEnhanceOptions.PinyinSortOptions.LibraryList =
+                    list.Where(option => option.Value != "-1").ToList();
+            }
             options.IntroSkipOptions.LibraryList = listShow;
             options.IntroSkipOptions.MarkerEnabledLibraryList = listMarkerEnabled;
             // per-library fingerprint overrides are hidden from the UI (see IntroSkipOptions)
