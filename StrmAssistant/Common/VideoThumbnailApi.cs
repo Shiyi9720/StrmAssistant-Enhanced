@@ -12,6 +12,7 @@ using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using StrmAssistant.Properties;
+using StrmAssistant.Web.Api;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -282,12 +283,18 @@ namespace StrmAssistant.Common
         {
             if (chapters is null || chapters.Count == 0) return;
 
-            if (string.IsNullOrEmpty(FfmpegApi.GetCustomFfmpegPath())) return;
-
             var videoStream = mediaSource?.MediaStreams?.FirstOrDefault(s => s.Type == MediaStreamType.Video) ??
                               item.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video);
 
-            if (!DvP5Screenshot.CanHandle(_ffmpegManager, videoStream)) return;
+            if (!DvP5Screenshot.IsDolbyVisionProfile5(videoStream)) return;
+
+            var distributedEnabled = Plugin.DistributedExtractApi != null &&
+                                     DistributedExtractApi.IsDvP5DistributionEnabled;
+
+            // Without distributed extraction the custom ffmpeg is required on this node, exactly
+            // as before. With it enabled the worker may own the capability, so the local self
+            // check is deferred until a remote attempt has failed.
+            if (!distributedEnabled && !DvP5Screenshot.IsAvailable(_ffmpegManager)) return;
 
             var inputPath = mediaSource?.Path;
 
@@ -299,7 +306,7 @@ namespace StrmAssistant.Common
                 return;
             }
 
-            var processed = 0;
+            var targets = new List<(ChapterInfo Chapter, string ImagePath, TimeSpan Offset)>();
 
             foreach (var chapter in chapters)
             {
@@ -314,21 +321,61 @@ namespace StrmAssistant.Common
                     ? TimeSpan.FromSeconds(15)
                     : TimeSpan.FromTicks(chapter.StartPositionTicks);
 
+                targets.Add((chapter, imagePath, offset));
+            }
+
+            if (targets.Count == 0) return;
+
+            if (distributedEnabled)
+            {
+                var points = targets.Select(t => new DistributedDvP5Point
+                {
+                    StartPositionTicks = t.Chapter.StartPositionTicks,
+                    OffsetSeconds = t.Offset.TotalSeconds
+                }).ToList();
+
+                var frames = await Plugin.DistributedExtractApi
+                    .TryExtractDvP5ChapterImagesAsync(inputPath, points, cancellationToken)
+                    .ConfigureAwait(false);
+
+                var applied = frames is null ? 0 : ApplyDvP5Frames(targets, frames);
+
+                if (applied == targets.Count)
+                {
+                    _logger?.Info($"DvP5Screenshot - Replaced {targets.Count} chapter image(s) via worker: " +
+                                  $"{item.Name} - {item.Path}");
+                    SaveChapterImageChanges(item, chapters);
+                    return;
+                }
+
+                // A partial write still needs its chapter records kept in sync; the local pass
+                // below (when available) will overwrite every target again.
+                if (applied > 0) SaveChapterImageChanges(item, chapters);
+            }
+
+            if (!DvP5Screenshot.IsAvailable(_ffmpegManager)) return;
+
+            var processed = 0;
+
+            foreach (var target in targets)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var tempPath = await DvP5Screenshot
-                    .ExtractSingleImageAsync(_ffmpegManager, inputPath, offset, cancellationToken)
+                    .ExtractSingleImageAsync(_ffmpegManager, inputPath, target.Offset, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (tempPath is null) continue;
 
                 try
                 {
-                    File.Copy(tempPath, imagePath, true);
-                    chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(imagePath);
+                    File.Copy(tempPath, target.ImagePath, true);
+                    target.Chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(target.ImagePath);
                     processed++;
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("DvP5Screenshot - Failed to replace chapter image: " + imagePath);
+                    _logger?.Error("DvP5Screenshot - Failed to replace chapter image: " + target.ImagePath);
                     _logger?.Error(e.Message);
                 }
                 finally
@@ -347,15 +394,63 @@ namespace StrmAssistant.Common
             if (processed > 0)
             {
                 _logger?.Info($"DvP5Screenshot - Replaced {processed} chapter image(s): {item.Name} - {item.Path}");
+                SaveChapterImageChanges(item, chapters);
+            }
+        }
+
+        private int ApplyDvP5Frames(
+            List<(ChapterInfo Chapter, string ImagePath, TimeSpan Offset)> targets,
+            Dictionary<long, byte[]> frames)
+        {
+            var applied = 0;
+
+            foreach (var target in targets)
+            {
+                if (!frames.TryGetValue(target.Chapter.StartPositionTicks, out var bytes) ||
+                    bytes is null || bytes.Length < 4)
+                {
+                    continue;
+                }
+
+                var tempPath = target.ImagePath + ".dvp5.tmp";
 
                 try
                 {
-                    _itemRepository?.SaveChapters(item.InternalId, chapters);
+                    _fileSystem.WriteAllBytes(tempPath, bytes);
+                    _fileSystem.MoveFile(tempPath, target.ImagePath, true);
+                    target.Chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(target.ImagePath);
+                    applied++;
                 }
                 catch (Exception e)
                 {
-                    _logger?.Debug("DvP5Screenshot - Failed to save chapters: " + e.Message);
+                    _logger?.Error("DvP5Screenshot - Failed to write worker image: " + target.ImagePath);
+                    _logger?.Error(e.Message);
                 }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(tempPath)) File.Delete(tempPath);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+            }
+
+            return applied;
+        }
+
+        private void SaveChapterImageChanges(Video item, List<ChapterInfo> chapters)
+        {
+            try
+            {
+                _itemRepository?.SaveChapters(item.InternalId, chapters);
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DvP5Screenshot - Failed to save chapters: " + e.Message);
             }
         }
 

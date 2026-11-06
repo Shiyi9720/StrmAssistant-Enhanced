@@ -1403,6 +1403,18 @@
   <data name="DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
     <value>Offload audio fingerprint extraction for intro detection to worker nodes. The detection and marker writes stay on this node. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
   </data>
+  <data name="DistributedExtractOptions_EnableDistributedHdrVivid_Enable_Distributed_HDR_Vivid_Detection" xml:space="preserve">
+    <value>Enable Distributed HDR Vivid Detection</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedHdrVivid_Offload_HDR_Vivid_detection_to_worker_nodes__The_worker_probes_the_first_video_frame_with_its_own_ffprobe__When_no_worker_is_reachable_or_returns_no_result_the_detection_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>Offload HDR Vivid detection to worker nodes. The worker probes the first video frame with its own ffprobe. When no worker is reachable or returns no result, the detection falls back to local extraction. Default is False.</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedDvP5_Enable_Distributed_Dolby_Vision_P5_Chapter_Images" xml:space="preserve">
+    <value>Enable Distributed Dolby Vision P5 Chapter Images</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedDvP5_Offload_Dolby_Vision_Profile_5_chapter_image_extraction_to_worker_nodes__Every_worker_must_have_a_custom_ffmpeg_with_Vulkan_and_libplacebo__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>Offload Dolby Vision Profile 5 chapter image extraction to worker nodes. Every worker must have a custom ffmpeg with Vulkan and libplacebo. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
+  </data>
   <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
     <value>Worker Nodes</value>
   </data>

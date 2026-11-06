@@ -42,6 +42,11 @@ namespace StrmAssistant.Common
         private const int MaxNodeBackoffSeconds = 600;
         private const int MinRequestTimeoutSeconds = 10;
         private const int FingerprintSampleRate = 16000;
+        private const int MaxDvP5FrameCount = 100;
+        private const int MaxDvP5FrameBytes = 20 * 1024 * 1024;
+        private static readonly TimeSpan MediaRootsCacheDuration = TimeSpan.FromSeconds(300);
+        private static readonly StringComparison PathComparison =
+            Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         private static readonly long FirstChapterTicks = TimeSpan.FromSeconds(15).Ticks;
 
         private sealed class NodeHealth
@@ -77,6 +82,10 @@ namespace StrmAssistant.Common
         private readonly IApplicationPaths _applicationPaths;
         private readonly IFileSystem _fileSystem;
         private readonly ILogger _logger;
+
+        private readonly object _mediaRootsLock = new object();
+        private List<string> _mediaRootsCache;
+        private DateTime _mediaRootsCacheUtc = DateTime.MinValue;
 
         public DistributedExtractApi(IHttpClient httpClient, IJsonSerializer jsonSerializer,
             IMediaProbeManager mediaProbeManager, ILibraryManager libraryManager, IItemRepository itemRepository,
@@ -121,9 +130,17 @@ namespace StrmAssistant.Common
 
         public static bool IsFingerprintDistributionEnabled => IsFingerprintEnabled;
 
+        public static bool IsHdrVividDistributionEnabled => IsHdrVividEnabled;
+
+        public static bool IsDvP5DistributionEnabled => IsDvP5Enabled;
+
         private static bool IsThumbnailEnabled => IsEnabled && Options.EnableDistributedThumbnail;
 
         private static bool IsFingerprintEnabled => IsEnabled && Options.EnableDistributedFingerprint;
+
+        private static bool IsHdrVividEnabled => IsEnabled && Options.EnableDistributedHdrVivid;
+
+        private static bool IsDvP5Enabled => IsEnabled && Options.EnableDistributedDvP5;
 
         /// <summary>
         /// Tries the configured worker nodes in turn and applies the first usable result.
@@ -288,6 +305,137 @@ namespace StrmAssistant.Common
                 cancellationToken).ConfigureAwait(false);
 
             return success ? targetPath : null;
+        }
+
+        /// <summary>
+        /// Master side of distributed HDR Vivid detection. Returns true/false when a worker
+        /// produced a usable answer, or null when the caller should probe locally.
+        /// </summary>
+        public async Task<bool?> TryDetectHdrVividAsync(string mediaPath, CancellationToken cancellationToken)
+        {
+            if (!IsHdrVividEnabled) return null;
+
+            if (!IsLocalDistributablePath(mediaPath)) return null;
+
+            bool? detected = null;
+
+            var handled = await TryWorkersAsync<DistributedHdrVividRequest, DistributedHdrVividResponse>(
+                "HdrVivid", mediaPath, "/StrmAssistant/DistributedExtract/HdrVivid",
+                remaining =>
+                {
+                    var options = Options;
+                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+
+                    return new DistributedHdrVividRequest
+                    {
+                        ApiKey = options.SharedApiKey,
+                        Path = mappedPath,
+                        Protocol = GetProtocol(mappedPath).ToString(),
+                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
+                    };
+                },
+                response => response?.Success == true,
+                response => response?.Error,
+                response =>
+                {
+                    detected = response.Detected;
+                    return true;
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            return handled ? detected : (bool?)null;
+        }
+
+        /// <summary>
+        /// Master side of distributed Dolby Vision Profile 5 chapter image extraction. Returns
+        /// the decoded frames keyed by chapter start position, or null when the caller should
+        /// extract locally.
+        /// </summary>
+        public async Task<Dictionary<long, byte[]>> TryExtractDvP5ChapterImagesAsync(string mediaPath,
+            List<DistributedDvP5Point> points, CancellationToken cancellationToken)
+        {
+            if (!IsDvP5Enabled) return null;
+
+            if (!IsLocalDistributablePath(mediaPath)) return null;
+
+            if (points is null || points.Count == 0 || points.Count > MaxDvP5FrameCount) return null;
+
+            if (points.Any(p => p is null) ||
+                points.Select(p => p.StartPositionTicks).Distinct().Count() != points.Count)
+            {
+                return null;
+            }
+
+            Dictionary<long, byte[]> frames = null;
+
+            var handled = await TryWorkersAsync<DistributedDvP5Request, DistributedDvP5Response>(
+                "DvP5", mediaPath, "/StrmAssistant/DistributedExtract/DvP5",
+                remaining =>
+                {
+                    var options = Options;
+                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+
+                    return new DistributedDvP5Request
+                    {
+                        ApiKey = options.SharedApiKey,
+                        Path = mappedPath,
+                        Protocol = GetProtocol(mappedPath).ToString(),
+                        Points = points,
+                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
+                    };
+                },
+                response => response?.Success == true && response.Images != null &&
+                            response.Images.Count == points.Count,
+                response => response?.Error,
+                response =>
+                {
+                    var decoded = DecodeDvP5Images(points, response.Images);
+
+                    if (decoded is null) return false;
+
+                    frames = decoded;
+                    return true;
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            return handled ? frames : null;
+        }
+
+        private static Dictionary<long, byte[]> DecodeDvP5Images(List<DistributedDvP5Point> points,
+            List<DistributedDvP5Image> images)
+        {
+            if (images is null || images.Count != points.Count) return null;
+
+            var frames = new Dictionary<long, byte[]>();
+
+            foreach (var point in points)
+            {
+                var image = images.FirstOrDefault(i =>
+                    i != null && i.StartPositionTicks == point.StartPositionTicks);
+
+                if (image is null || string.IsNullOrEmpty(image.Data)) return null;
+
+                byte[] bytes;
+
+                try
+                {
+                    bytes = Convert.FromBase64String(image.Data);
+                }
+                catch (FormatException)
+                {
+                    return null;
+                }
+
+                if (bytes.Length < 4 || bytes.Length > MaxDvP5FrameBytes) return null;
+
+                // The worker only ever returns JPEG frames. Reject anything else so a broken
+                // response cannot replace a chapter image with arbitrary bytes.
+                if (bytes[0] != 0xFF || bytes[1] != 0xD8) return null;
+
+                frames[point.StartPositionTicks] = bytes;
+            }
+
+            return frames.Count == points.Count ? frames : null;
         }
 
         private async Task<bool> TryWorkersAsync<TRequest, TResponse>(string source, string itemDescription,
@@ -698,6 +846,283 @@ namespace StrmAssistant.Common
                               " - " + e.Message);
                 _logger?.Debug(e.StackTrace);
                 return FailThumbnail(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Worker side: validates the shared key and probes the first video frame for HDR Vivid
+        /// (CUVA 2094-10) metadata. Unlike the existing endpoints this one accepts local files
+        /// only and requires the path to live inside one of this node's library folders.
+        /// </summary>
+        public async Task<DistributedHdrVividResponse> HandleWorkerHdrVividRequestAsync(
+            DistributedHdrVividRequest request, CancellationToken cancellationToken)
+        {
+            var options = Options;
+
+            if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
+            {
+                return FailHdrVivid("Distributed extraction is not enabled on this node");
+            }
+
+            if (!options.EnableDistributedHdrVivid)
+            {
+                return FailHdrVivid("Distributed HDR Vivid detection is not enabled on this node");
+            }
+
+            if (!SecretEquals(request?.ApiKey, options.SharedApiKey))
+            {
+                _logger?.Info("DistributedExtract - Worker HDR Vivid request rejected: invalid API key");
+                return FailHdrVivid("Invalid API key");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Path))
+            {
+                return FailHdrVivid("Path is required");
+            }
+
+            if (request.Path.IndexOf('"') >= 0)
+            {
+                return FailHdrVivid("Invalid path");
+            }
+
+            var protocol = ParseProtocol(request.Protocol, request.Path);
+
+            if (protocol != MediaProtocol.File)
+            {
+                return FailHdrVivid("Unsupported protocol: " + protocol);
+            }
+
+            if (!IsAllowedMediaPath(request.Path))
+            {
+                return FailHdrVivid("Path is outside the media library: " + request.Path);
+            }
+
+            if (!File.Exists(request.Path))
+            {
+                return FailHdrVivid("File not found: " + request.Path);
+            }
+
+            var probePath = _ffmpegManager?.FfmpegConfiguration?.ProbePath;
+
+            if (string.IsNullOrEmpty(probePath))
+            {
+                return FailHdrVivid("Ffprobe is unavailable");
+            }
+
+            var timeoutSeconds = request.TimeoutSeconds > 0
+                ? Math.Max(MinRequestTimeoutSeconds, Math.Min(600, request.TimeoutSeconds))
+                : Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+
+            var started = DateTime.UtcNow;
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+            try
+            {
+                var output = await FfmpegApi.RunAndCaptureAsync(_ffmpegManager, probePath,
+                        MediaInfoApi.BuildHdrVividProbeArguments(request.Path), "HdrVividDetect",
+                        (int)TimeSpan.FromSeconds(timeoutSeconds).TotalMilliseconds, cts.Token)
+                    .ConfigureAwait(false);
+
+                if (output is null)
+                {
+                    return FailHdrVivid("Probe did not complete");
+                }
+
+                var detected = MediaInfoApi.IsHdrVividProbeOutput(output);
+
+                _logger?.Debug("DistributedExtract - Worker HDR Vivid detection on " + request.Path + ": " +
+                               detected);
+
+                return new DistributedHdrVividResponse
+                {
+                    Success = true,
+                    Detected = detected,
+                    NodeName = Plugin.Instance?.Name,
+                    ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                return FailHdrVivid("Detection timed out after " + timeoutSeconds + " seconds");
+            }
+            catch (Exception e)
+            {
+                _logger?.Info("DistributedExtract - Worker HDR Vivid detection failed: " + request.Path +
+                              " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+                return FailHdrVivid(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Worker side: validates the shared key and extracts Dolby Vision Profile 5 chapter
+        /// frames with the node's custom ffmpeg build. A node without Vulkan + libplacebo fails
+        /// before extracting anything, so the master can fall back to its own extraction.
+        /// </summary>
+        public async Task<DistributedDvP5Response> HandleWorkerDvP5RequestAsync(
+            DistributedDvP5Request request, CancellationToken cancellationToken)
+        {
+            var options = Options;
+
+            if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
+            {
+                return FailDvP5("Distributed extraction is not enabled on this node");
+            }
+
+            if (!options.EnableDistributedDvP5)
+            {
+                return FailDvP5("Distributed Dolby Vision P5 extraction is not enabled on this node");
+            }
+
+            if (!SecretEquals(request?.ApiKey, options.SharedApiKey))
+            {
+                _logger?.Info("DistributedExtract - Worker DV P5 request rejected: invalid API key");
+                return FailDvP5("Invalid API key");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Path))
+            {
+                return FailDvP5("Path is required");
+            }
+
+            if (request.Path.IndexOf('"') >= 0)
+            {
+                return FailDvP5("Invalid path");
+            }
+
+            if (request.Points is null || request.Points.Count == 0)
+            {
+                return FailDvP5("No extraction points");
+            }
+
+            if (request.Points.Count > MaxDvP5FrameCount)
+            {
+                return FailDvP5("Too many extraction points");
+            }
+
+            foreach (var point in request.Points)
+            {
+                if (point is null || point.StartPositionTicks < 0 ||
+                    double.IsNaN(point.OffsetSeconds) || double.IsInfinity(point.OffsetSeconds) ||
+                    point.OffsetSeconds < 0 || point.OffsetSeconds > TimeSpan.FromDays(1).TotalSeconds)
+                {
+                    return FailDvP5("Invalid extraction point");
+                }
+            }
+
+            if (request.Points.Select(p => p.StartPositionTicks).Distinct().Count() != request.Points.Count)
+            {
+                return FailDvP5("Duplicate extraction points");
+            }
+
+            var protocol = ParseProtocol(request.Protocol, request.Path);
+
+            if (protocol != MediaProtocol.File)
+            {
+                return FailDvP5("Unsupported protocol: " + protocol);
+            }
+
+            if (!IsAllowedMediaPath(request.Path))
+            {
+                return FailDvP5("Path is outside the media library: " + request.Path);
+            }
+
+            if (!File.Exists(request.Path))
+            {
+                return FailDvP5("File not found: " + request.Path);
+            }
+
+            if (_ffmpegManager is null)
+            {
+                return FailDvP5("Ffmpeg is unavailable");
+            }
+
+            if (!DvP5Screenshot.IsAvailable(_ffmpegManager))
+            {
+                return FailDvP5("A custom ffmpeg with Vulkan and libplacebo is unavailable on this node");
+            }
+
+            var timeoutSeconds = request.TimeoutSeconds > 0
+                ? Math.Max(MinRequestTimeoutSeconds, Math.Min(600, request.TimeoutSeconds))
+                : Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+
+            var started = DateTime.UtcNow;
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+            try
+            {
+                var images = new List<DistributedDvP5Image>();
+
+                foreach (var point in request.Points)
+                {
+                    cts.Token.ThrowIfCancellationRequested();
+
+                    var offset = TimeSpan.FromSeconds(point.OffsetSeconds);
+                    var tempPath = await DvP5Screenshot
+                        .ExtractSingleImageAsync(_ffmpegManager, request.Path, offset, cts.Token)
+                        .ConfigureAwait(false);
+
+                    if (string.IsNullOrEmpty(tempPath) || !File.Exists(tempPath))
+                    {
+                        return FailDvP5("Frame extraction failed at " +
+                                        offset.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "s");
+                    }
+
+                    try
+                    {
+                        var bytes = await _fileSystem.ReadAllBytesAsync(tempPath, cts.Token)
+                            .ConfigureAwait(false);
+
+                        if (bytes.Length < 4 || bytes.Length > MaxDvP5FrameBytes ||
+                            bytes[0] != 0xFF || bytes[1] != 0xD8)
+                        {
+                            return FailDvP5("Frame extraction returned an invalid image");
+                        }
+
+                        images.Add(new DistributedDvP5Image
+                        {
+                            StartPositionTicks = point.StartPositionTicks,
+                            Data = Convert.ToBase64String(bytes)
+                        });
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            File.Delete(tempPath);
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+                }
+
+                _logger?.Debug("DistributedExtract - Worker extracted " + images.Count +
+                               " Dolby Vision P5 frame(s) from " + request.Path);
+
+                return new DistributedDvP5Response
+                {
+                    Success = true,
+                    Images = images,
+                    NodeName = Plugin.Instance?.Name,
+                    ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                return FailDvP5("Extraction timed out after " + timeoutSeconds + " seconds");
+            }
+            catch (Exception e)
+            {
+                _logger?.Info("DistributedExtract - Worker DV P5 extraction failed: " + request.Path +
+                              " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+                return FailDvP5(e.Message);
             }
         }
 
@@ -1209,6 +1634,21 @@ namespace StrmAssistant.Common
             return !(Directory.Exists(path) && !File.Exists(path));
         }
 
+        private static bool IsLocalDistributablePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+
+            if (path.StartsWith("smb://", StringComparison.OrdinalIgnoreCase)) return false;
+
+            if (GetProtocol(path) != MediaProtocol.File) return false;
+
+            var extension = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
+
+            if (extension == "iso" || extension == "img" || extension == "strm") return false;
+
+            return !(Directory.Exists(path) && !File.Exists(path));
+        }
+
         private static MediaProtocol GetProtocol(string path)
         {
             // Emby represents both http and https sources with MediaProtocol.Http.
@@ -1264,6 +1704,105 @@ namespace StrmAssistant.Common
             return path;
         }
 
+        /// <summary>
+        /// New endpoints accept local files only. The path is normalized and must live inside
+        /// one of this node's library folders. Symbolic links are not resolved because
+        /// netstandard2.1 has no ResolveLinkTarget; the library roots and the worker user's
+        /// permissions remain the trust boundary.
+        /// </summary>
+        private bool IsAllowedMediaPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path)) return false;
+
+            string fullPath;
+
+            try
+            {
+                fullPath = Path.GetFullPath(path);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
+            foreach (var root in GetMediaRoots())
+            {
+                if (IsPathUnderRoot(fullPath, root)) return true;
+            }
+
+            return false;
+        }
+
+        private List<string> GetMediaRoots()
+        {
+            var now = DateTime.UtcNow;
+
+            lock (_mediaRootsLock)
+            {
+                if (_mediaRootsCache != null && now - _mediaRootsCacheUtc < MediaRootsCacheDuration)
+                {
+                    return _mediaRootsCache;
+                }
+
+                List<string> roots;
+
+                try
+                {
+                    roots = _libraryManager.GetVirtualFolders()
+                        .Where(f => f?.Locations != null)
+                        .SelectMany(f => f.Locations)
+                        .Select(NormalizeRoot)
+                        .Where(r => !string.IsNullOrEmpty(r))
+                        .Distinct(Path.DirectorySeparatorChar == '\\'
+                            ? StringComparer.OrdinalIgnoreCase
+                            : StringComparer.Ordinal)
+                        .ToList();
+                }
+                catch (Exception e)
+                {
+                    _logger?.Debug("DistributedExtract - Failed to read media library roots: " + e.Message);
+                    roots = new List<string>();
+                }
+
+                _mediaRootsCache = roots;
+                _mediaRootsCacheUtc = now;
+
+                return roots;
+            }
+        }
+
+        private static string NormalizeRoot(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return null;
+
+            try
+            {
+                var full = Path.GetFullPath(path);
+
+                if (full.Length > 1)
+                {
+                    full = full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+
+                return full;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        private static bool IsPathUnderRoot(string fullPath, string root)
+        {
+            if (string.Equals(fullPath, root, PathComparison)) return true;
+
+            var separator = root.EndsWith(Path.DirectorySeparatorChar.ToString())
+                ? string.Empty
+                : Path.DirectorySeparatorChar.ToString();
+
+            return fullPath.StartsWith(root + separator, PathComparison);
+        }
+
         private static bool SecretEquals(string provided, string expected)
         {
             if (string.IsNullOrEmpty(provided) || string.IsNullOrEmpty(expected)) return false;
@@ -1288,6 +1827,16 @@ namespace StrmAssistant.Common
         private static DistributedFingerprintResponse FailFingerprint(string error)
         {
             return new DistributedFingerprintResponse { Success = false, Error = error };
+        }
+
+        private static DistributedHdrVividResponse FailHdrVivid(string error)
+        {
+            return new DistributedHdrVividResponse { Success = false, Error = error };
+        }
+
+        private static DistributedDvP5Response FailDvP5(string error)
+        {
+            return new DistributedDvP5Response { Success = false, Error = error };
         }
     }
 }
