@@ -105,7 +105,11 @@ namespace StrmAssistant
         private bool _currentEnableAltMovieDbUrl;
         private bool _currentEnableLocalMovieDb;
         private bool _currentDistinguishChinesePosters;
+<<<<<<< HEAD
         private bool _currentPreferOriginalPoster;
+=======
+        private string _currentLocalDiscoveryAddress;
+>>>>>>> hermesh/s_pm7f7civ_01m6p75na4bz680mtr394sxdk8
         private ChineseMetadataOrderOption _currentChineseMetadataOrder;
         private bool _currentConvertSimplifiedToTraditional;
 
@@ -211,7 +215,11 @@ namespace StrmAssistant
             _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
             _currentEnableLocalMovieDb = GetOptions().MetadataEnhanceOptions.EnableLocalMovieDb;
             _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
+<<<<<<< HEAD
             _currentPreferOriginalPoster = GetOptions().MetadataEnhanceOptions.PreferOriginalPoster;
+=======
+            _currentLocalDiscoveryAddress = GetOptions().NetworkOptions.LocalDiscoveryAddress;
+>>>>>>> hermesh/s_pm7f7civ_01m6p75na4bz680mtr394sxdk8
             _currentChineseMetadataOrder = GetOptions().MetadataEnhanceOptions.ChineseMetadataOrder;
             _currentConvertSimplifiedToTraditional =
                 GetOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional;
@@ -668,6 +676,17 @@ namespace StrmAssistant
                             ? "EMPTY"
                             : options.NetworkOptions.ProxyWhitelist);
                     }
+                }
+
+                Logger.Info("LocalDiscoveryAddress is set to {0}",
+                    string.IsNullOrWhiteSpace(options.NetworkOptions.LocalDiscoveryAddress)
+                        ? "EMPTY"
+                        : options.NetworkOptions.LocalDiscoveryAddress);
+                if (!string.Equals(_currentLocalDiscoveryAddress, options.NetworkOptions.LocalDiscoveryAddress,
+                        StringComparison.Ordinal))
+                {
+                    _currentLocalDiscoveryAddress = options.NetworkOptions.LocalDiscoveryAddress;
+                    Logger.Info("LocalDiscoveryAddress changed. Restart Emby to apply it.");
                 }
             }
 
