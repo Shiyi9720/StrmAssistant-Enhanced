@@ -36,9 +36,9 @@ namespace StrmAssistant.Common
         public static ConcurrentQueue<BaseItem> FingerprintItemQueue = new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<BaseItem> EpisodeRefreshItemQueue = new ConcurrentQueue<BaseItem>();
 
-        // Favorites get their own queues so the catch-up work caused by a favorite is never
-        // batched together with the regular catch-up work of newly added items. The workers
-        // drain the favorite queue first, then the regular one.
+        // When favorite catch-up priority is enabled, favorites get their own queues so the
+        // catch-up work caused by a favorite is never batched together with the regular
+        // catch-up work of newly added items. The workers drain the favorite queue first.
         public static ConcurrentQueue<BaseItem> FavoriteMediaInfoExtractItemQueue =
             new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<Episode> FavoriteIntroSkipItemQueue = new ConcurrentQueue<Episode>();
@@ -187,6 +187,31 @@ namespace StrmAssistant.Common
             return TimeSpan.FromSeconds(Math.Max(seconds, 1));
         }
 
+        private static bool IsFavoriteCatchupPriorityEnabled()
+        {
+            return Plugin.Instance?.GetPluginOptions()?.GeneralOptions.EnableFavoriteCatchupPriority is true;
+        }
+
+        private static void DrainFavoriteQueuesWhenDisabled()
+        {
+            if (IsFavoriteCatchupPriorityEnabled()) return;
+
+            while (FavoriteMediaInfoExtractItemQueue.TryDequeue(out var mediaInfoItem))
+            {
+                MediaInfoExtractItemQueue.Enqueue(mediaInfoItem);
+            }
+
+            while (FavoriteFingerprintItemQueue.TryDequeue(out var fingerprintItem))
+            {
+                FingerprintItemQueue.Enqueue(fingerprintItem);
+            }
+
+            while (FavoriteIntroSkipItemQueue.TryDequeue(out var introSkipItem))
+            {
+                IntroSkipItemQueue.Enqueue(introSkipItem);
+            }
+        }
+
         public static async Task MediaInfo_ProcessItemQueueAsync()
         {
             Logger.Info("MediaInfo - ProcessItemQueueAsync Started");
@@ -214,7 +239,8 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                var isFavorite = !FavoriteMediaInfoExtractItemQueue.IsEmpty;
+                DrainFavoriteQueuesWhenDisabled();
+                var isFavorite = IsFavoriteCatchupPriorityEnabled() && !FavoriteMediaInfoExtractItemQueue.IsEmpty;
                 var queue = isFavorite ? FavoriteMediaInfoExtractItemQueue : MediaInfoExtractItemQueue;
 
                 if (!queue.IsEmpty)
@@ -414,7 +440,8 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                var isFavorite = !FavoriteFingerprintItemQueue.IsEmpty;
+                DrainFavoriteQueuesWhenDisabled();
+                var isFavorite = IsFavoriteCatchupPriorityEnabled() && !FavoriteFingerprintItemQueue.IsEmpty;
                 var queue = isFavorite ? FavoriteFingerprintItemQueue : FingerprintItemQueue;
 
                 if (!queue.IsEmpty)
@@ -707,7 +734,8 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                var queue = !FavoriteIntroSkipItemQueue.IsEmpty
+                DrainFavoriteQueuesWhenDisabled();
+                var queue = IsFavoriteCatchupPriorityEnabled() && !FavoriteIntroSkipItemQueue.IsEmpty
                     ? FavoriteIntroSkipItemQueue
                     : IntroSkipItemQueue;
 

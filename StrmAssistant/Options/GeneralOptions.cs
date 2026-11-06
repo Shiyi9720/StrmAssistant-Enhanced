@@ -45,6 +45,11 @@ namespace StrmAssistant.Options
         [Required, MinValue(1), MaxValue(3600)]
         public int CatchupMinimumDelaySeconds { get; set; } = 30;
 
+        [DisplayNameL("GeneralOptions_EnableFavoriteCatchupPriority_Favorite_Catchup_Priority_Queue", typeof(Resources))]
+        [DescriptionL("GeneralOptions_EnableFavoriteCatchupPriority_Put_catch_up_work_triggered_by_favorites_into_a_separate_queue_that_is_drained_before_the_regular_queue__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(CatchupMode), SimpleCondition.IsTrue)]
+        public bool EnableFavoriteCatchupPriority { get; set; } = false;
+
         [DisplayNameL("PluginOptions_MaxConcurrentCount_Max_Concurrent_Count", typeof(Resources))]
         [DescriptionL("PluginOptions_MaxConcurrentCount_Max_Concurrent_Count_must_be_between_1_to_10__Default_is_1_", typeof(Resources))]
         [Required, MinValue(1), MaxValue(20)]
