@@ -1192,6 +1192,20 @@ namespace StrmAssistant
 
             options.MetadataEnhanceOptions.EpisodeRefreshOptionList = episodeRefreshOptionList;
 
+            options.MetadataEnhanceOptions.RefreshPersonMode =
+                options.MetadataEnhanceOptions.GetEffectiveRefreshPersonMode().ToString();
+            var refreshPersonModeList = new List<EditorRadioOption>();
+            foreach (Enum item in Enum.GetValues(typeof(RefreshPersonModeOption)))
+            {
+                refreshPersonModeList.Add(new EditorRadioOption
+                {
+                    Value = item.ToString(),
+                    PrimaryText = EnumExtensions.GetDescription(item)
+                });
+            }
+
+            options.MetadataEnhanceOptions.RefreshPersonModeList = refreshPersonModeList;
+
             var introSkipPreferenceList = new List<EditorSelectOption>();
             foreach (Enum item in Enum.GetValues(typeof(IntroSkipPreference)))
             {

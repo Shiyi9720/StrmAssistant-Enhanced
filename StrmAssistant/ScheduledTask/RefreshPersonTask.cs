@@ -36,12 +36,24 @@ namespace StrmAssistant.ScheduledTask
             await Task.Yield();
             progress.Report(0);
 
+            var options = Plugin.Instance.GetPluginOptions();
+            var refreshPersonMode = options.MetadataEnhanceOptions.GetEffectiveRefreshPersonMode();
+            var isFullRefresh = refreshPersonMode == RefreshPersonModeOption.Manual;
+            _logger?.Info("Refresh Person Mode: " + refreshPersonMode);
+
+            if (refreshPersonMode == RefreshPersonModeOption.Off)
+            {
+                progress.Report(100.0);
+                _logger?.Info("RefreshPerson - Scheduled Task Disabled");
+                return;
+            }
+
             var serverPreferredMetadataLanguage = Plugin.MetadataApi.GetServerPreferredMetadataLanguage();
             _logger?.Info("Server Preferred Metadata Language: " + serverPreferredMetadataLanguage);
             var isServerPreferZh = !string.IsNullOrEmpty(serverPreferredMetadataLanguage) && string.Equals(
                 serverPreferredMetadataLanguage.Split('-')[0], "zh", StringComparison.OrdinalIgnoreCase);
 
-            if (!isServerPreferZh)
+            if (refreshPersonMode == RefreshPersonModeOption.Auto && !isServerPreferZh)
             {
                 progress.Report(100.0);
                 _ = Plugin.NotificationApi.SendMessageToAdmins(
@@ -120,16 +132,6 @@ namespace StrmAssistant.ScheduledTask
 
             IsRunning = true;
 
-            var refreshPersonMode = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.RefreshPersonMode;
-            var refreshPersonOptions = Enum.GetValues(typeof(RefreshPersonOption))
-                .Cast<RefreshPersonOption>()
-                .Where(o => refreshPersonMode?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
-                .ToHashSet();
-            _logger?.Info("Refresh Person Mode: " + (refreshPersonOptions.Any()
-                ? string.Join(", ", refreshPersonOptions)
-                : RefreshPersonOption.Default.ToString()));
-            NoAdult = refreshPersonOptions.Contains(RefreshPersonOption.NoAdult);
-
             for (var startIndex = 0; startIndex < remainingCount; startIndex += batchSize)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -151,10 +153,10 @@ namespace StrmAssistant.ScheduledTask
                     var metadataRefreshSkip =
                         (taskItem.IsFieldLocked(MetadataFields.Name) &&
                          taskItem.IsFieldLocked(MetadataFields.Overview)) ||
-                        (!refreshPersonOptions.Contains(RefreshPersonOption.FullRefresh) && IsChinese(taskItem.Name) &&
+                        (!isFullRefresh && IsChinese(taskItem.Name) &&
                          IsChinese(taskItem.Overview) && taskItem.DateLastSaved >= DateTimeOffset.UtcNow.AddDays(-30));
                     var imageRefreshSkip = taskItem.HasImage(ImageType.Primary) ||
-                                           !refreshPersonOptions.Contains(RefreshPersonOption.FullRefresh) &&
+                                           !isFullRefresh &&
                                            taskItem.DateLastRefreshed >= DateTimeOffset.UtcNow.AddDays(-30);
 
                     if (metadataRefreshSkip && imageRefreshSkip)
@@ -273,9 +275,8 @@ namespace StrmAssistant.ScheduledTask
         public string Description => Resources.ResourceManager.GetString(
             "RefreshPersonTask_Description_Refreshes_and_repairs_Chinese_actors", Plugin.Instance.DefaultUICulture);
 
-        public string Name => "Refresh Chinese Actor";
-        //public string Name => Resources.ResourceManager.GetString("RefreshPersonTask_Name_Refresh_Chinese_Actor",
-        //    Plugin.Instance.DefaultUICulture);
+        public string Name => Resources.ResourceManager.GetString("RefreshPersonTask_Name_Refresh_Chinese_Actor",
+            Plugin.Instance.DefaultUICulture);
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
@@ -284,6 +285,5 @@ namespace StrmAssistant.ScheduledTask
 
         public static bool IsRunning { get; private set; }
 
-        public static bool NoAdult { get; private set; }
     }
 }

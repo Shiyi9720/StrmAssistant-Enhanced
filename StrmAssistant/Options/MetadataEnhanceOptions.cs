@@ -3,6 +3,7 @@ using Emby.Web.GenericEdit.Common;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 
@@ -13,6 +14,18 @@ namespace StrmAssistant.Options
         Default,
         FullRefresh,
         NoAdult
+    }
+
+    public enum RefreshPersonModeOption
+    {
+        [DescriptionL("RefreshPersonModeOption_Auto_Automatic", typeof(Resources))]
+        Auto,
+
+        [DescriptionL("RefreshPersonModeOption_Manual_Manual__Full_Refresh_", typeof(Resources))]
+        Manual,
+
+        [DescriptionL("RefreshPersonModeOption_Off_Off", typeof(Resources))]
+        Off
     }
 
     public enum ChineseMetadataOrderOption
@@ -122,8 +135,32 @@ namespace StrmAssistant.Options
         public bool EnableDoubanRecommendations { get; set; } = false;
 
         [Browsable(false)]
+        public List<EditorRadioOption> RefreshPersonModeList { get; set; } = new List<EditorRadioOption>();
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonMode_Refresh_Chinese_Actor", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonMode_Automatic_only_runs_when_the_server_preferred_metadata_language_is_Chinese_and_skips_recently_refreshed_persons__Manual_always_performs_a_full_refresh_when_triggered_even_when_the_server_language_is_not_Chinese__Off_disables_the_task_", typeof(Resources))]
         [Required]
-        public string RefreshPersonMode { get; set; } = RefreshPersonOption.Default.ToString();
+        [SelectItemsSource(nameof(RefreshPersonModeList))]
+        [SelectShowRadioGroup]
+        public string RefreshPersonMode { get; set; } = RefreshPersonModeOption.Auto.ToString();
+
+        public RefreshPersonModeOption GetEffectiveRefreshPersonMode()
+        {
+            if (Enum.TryParse(RefreshPersonMode, true, out RefreshPersonModeOption mode) &&
+                Enum.IsDefined(typeof(RefreshPersonModeOption), mode))
+            {
+                return mode;
+            }
+
+            if (!string.IsNullOrEmpty(RefreshPersonMode) &&
+                RefreshPersonMode.IndexOf(nameof(RefreshPersonOption.FullRefresh),
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return RefreshPersonModeOption.Manual;
+            }
+
+            return RefreshPersonModeOption.Auto;
+        }
 
         public enum EpisodeRefreshOption
         {
