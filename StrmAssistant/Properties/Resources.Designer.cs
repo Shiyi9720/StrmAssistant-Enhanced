@@ -2700,6 +2700,42 @@ namespace StrmAssistant.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds.
+        /// </summary>
+        public static string MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots.
         /// </summary>
         public static string MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots {
@@ -3451,6 +3487,12 @@ namespace StrmAssistant.Properties {
         public static string BoxSetHomeVisibility_HideFromHome_Hide_from_Home {
             get {
                 return ResourceManager.GetString("BoxSetHomeVisibility_HideFromHome_Hide_from_Home", resourceCulture);
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EditorTitle_Distributed_Extract.
+        /// </summary>
+        public static string DistributedExtractOptions_EditorTitle_Distributed_Extract {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EditorTitle_Distributed_Extract", resourceCulture);
             }
         }
 
@@ -3460,6 +3502,11 @@ namespace StrmAssistant.Properties {
         public static string BoxSetHomeVisibility_ShowOnHome_Show_on_Home {
             get {
                 return ResourceManager.GetString("BoxSetHomeVisibility_ShowOnHome_Show_on_Home", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction", resourceCulture);
             }
         }
 
@@ -3469,6 +3516,11 @@ namespace StrmAssistant.Properties {
         public static string MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel {
             get {
                 return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
             }
         }
 
@@ -3478,6 +3530,11 @@ namespace StrmAssistant.Properties {
         public static string MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_ {
             get {
                 return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_WorkerNodes_Worker_Nodes.
+        /// </summary>
+        public static string DistributedExtractOptions_WorkerNodes_Worker_Nodes {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_WorkerNodes_Worker_Nodes", resourceCulture);
             }
         }
 
@@ -3487,6 +3544,11 @@ namespace StrmAssistant.Properties {
         public static string DoubanRecommendations_Title_Douban_Recommendations {
             get {
                 return ResourceManager.GetString("DoubanRecommendations_Title_Douban_Recommendations", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_.
+        /// </summary>
+        public static string DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_", resourceCulture);
             }
         }
 
@@ -3496,6 +3558,11 @@ namespace StrmAssistant.Properties {
         public static string DoubanRecommendations_More_More {
             get {
                 return ResourceManager.GetString("DoubanRecommendations_More_More", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_SharedApiKey_Shared_API_Key.
+        /// </summary>
+        public static string DistributedExtractOptions_SharedApiKey_Shared_API_Key {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_SharedApiKey_Shared_API_Key", resourceCulture);
             }
         }
 
@@ -3505,6 +3572,11 @@ namespace StrmAssistant.Properties {
         public static string DoubanRecommendations_Less_Less {
             get {
                 return ResourceManager.GetString("DoubanRecommendations_Less_Less", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_.
+        /// </summary>
+        public static string DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_", resourceCulture);
             }
         }
 
@@ -3514,6 +3586,11 @@ namespace StrmAssistant.Properties {
         public static string DoubanRecommendations_OpenInLibrary_Open_in_library {
             get {
                 return ResourceManager.GetString("DoubanRecommendations_OpenInLibrary_Open_in_library", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_PathMapping_Path_Mapping.
+        /// </summary>
+        public static string DistributedExtractOptions_PathMapping_Path_Mapping {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_PathMapping_Path_Mapping", resourceCulture);
             }
         }
 
@@ -3523,6 +3600,11 @@ namespace StrmAssistant.Properties {
         public static string DoubanRecommendations_SearchInLibrary_Search_in_library {
             get {
                 return ResourceManager.GetString("DoubanRecommendations_SearchInLibrary_Search_in_library", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_.
+        /// </summary>
+        public static string DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_", resourceCulture);
             }
         }
 
@@ -3532,6 +3614,11 @@ namespace StrmAssistant.Properties {
         public static string RecursiveRefresh_Series_Refresh_Seasons_and_Episodes {
             get {
                 return ResourceManager.GetString("RecursiveRefresh_Series_Refresh_Seasons_and_Episodes", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds.
+        /// </summary>
+        public static string DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds", resourceCulture);
             }
         }
 
@@ -3541,6 +3628,11 @@ namespace StrmAssistant.Properties {
         public static string RecursiveRefresh_Season_Refresh_Season_Episodes {
             get {
                 return ResourceManager.GetString("RecursiveRefresh_Season_Refresh_Season_Episodes", resourceCulture);
+        ///   Looks up a localized string similar to DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_.
+        /// </summary>
+        public static string DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_", resourceCulture);
             }
         }
 }

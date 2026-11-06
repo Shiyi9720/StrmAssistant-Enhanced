@@ -1007,6 +1007,18 @@
   <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_" xml:space="preserve">
     <value>首次提取时播放请求等待的最长时间；超时后提取会在后台继续。取值范围 10-600，默认 60。</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction" xml:space="preserve">
+    <value>光盘媒体信息提取</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_" xml:space="preserve">
+    <value>探测 ISO 镜像与 BDMV/VIDEO_TS 目录，从主视频中提取完整媒体信息。默认开启。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds" xml:space="preserve">
+    <value>光盘提取超时时间（秒）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_" xml:space="preserve">
+    <value>媒体信息任务等待 ISO 提取的最长时间；超时后提取会在后台继续。取值范围 60-7200，默认 600。</value>
+  </data>
   <data name="IsoExtractTask_Name_Extract_ISO_Video" xml:space="preserve">
     <value>提取 ISO 视频</value>
   </data>
@@ -1198,5 +1210,37 @@
   </data>
   <data name="RecursiveRefresh_Season_Refresh_Season_Episodes" xml:space="preserve">
     <value>递归刷新本季剧集</value>
+  <data name="DistributedExtractOptions_EditorTitle_Distributed_Extract" xml:space="preserve">
+    <value>分布式媒体信息提取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction" xml:space="preserve">
+    <value>启用分布式提取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>把媒体信息提取分发到工作节点。请在每台节点上启用并填写相同的共享密钥。工作节点不可用时自动回落到本机提取。默认关闭。</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
+    <value>工作节点</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_" xml:space="preserve">
+    <value>工作节点的 HTTP 地址，逗号分隔，例如 http://192.168.1.10:8096。默认空。</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Shared_API_Key" xml:space="preserve">
+    <value>共享密钥</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_" xml:space="preserve">
+    <value>节点之间请求鉴权用的密钥，所有节点必须一致。默认空。</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Path_Mapping" xml:space="preserve">
+    <value>路径映射</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_" xml:space="preserve">
+    <value>路径映射，格式为 本机前缀=&gt;工作节点前缀，逗号分隔。工作节点挂载路径不同时使用。默认空。</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds" xml:space="preserve">
+    <value>超时时间（秒）</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_" xml:space="preserve">
+    <value>等待工作节点的总时长，超时后回落到本机提取。取值范围 10-600，默认 120。</value>
   </data>
 </root>

@@ -1094,6 +1094,18 @@
   <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_" xml:space="preserve">
     <value>How long a playback request waits for the first extraction before it continues in the background. It must be between 10 and 600. Default is 60.</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction" xml:space="preserve">
+    <value>Disc Media Info Extraction</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_" xml:space="preserve">
+    <value>Probe ISO images and BDMV/VIDEO_TS folders and extract full media info from the main video. Default is True.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds" xml:space="preserve">
+    <value>Disc Extraction Timeout Seconds</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_" xml:space="preserve">
+    <value>How long the media info task waits for an ISO extraction before it continues in the background. It must be between 60 and 7200. Default is 600.</value>
+  </data>
   <data name="IsoExtractTask_Name_Extract_ISO_Video" xml:space="preserve">
     <value>Extract ISO Video</value>
   </data>
@@ -1285,5 +1297,38 @@
   </data>
   <data name="RecursiveRefresh_Season_Refresh_Season_Episodes" xml:space="preserve">
     <value>Refresh Season Episodes</value>
+  </data>
+  <data name="DistributedExtractOptions_EditorTitle_Distributed_Extract" xml:space="preserve">
+    <value>Distributed Media Info Extraction</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction" xml:space="preserve">
+    <value>Enable Distributed Extraction</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>Offload media info extraction to worker nodes. Enable it and use the same shared key on every node. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
+    <value>Worker Nodes</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated HTTP URLs of worker nodes, for example http://192.168.1.10:8096. Default is EMPTY.</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Shared_API_Key" xml:space="preserve">
+    <value>Shared API Key</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_" xml:space="preserve">
+    <value>Secret used to authenticate requests between nodes. It must be the same on every node. Default is EMPTY.</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Path_Mapping" xml:space="preserve">
+    <value>Path Mapping</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated mappings in the form local-prefix=&gt;worker-prefix. Use it when workers mount the same media at a different path. Default is EMPTY.</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds" xml:space="preserve">
+    <value>Timeout Seconds</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_" xml:space="preserve">
+    <value>Total time the task waits for worker nodes before falling back to local extraction. It must be between 10 and 600. Default is 120.</value>
   </data>
 </root>

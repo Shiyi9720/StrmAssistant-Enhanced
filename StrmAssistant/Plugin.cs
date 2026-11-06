@@ -69,6 +69,8 @@ namespace StrmAssistant
         public static BoxSetHomeVisibilityStore BoxSetHomeVisibilityStore { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
         public static IntroDbApi IntroDbApi { get; private set; }
+        public static DiscMediaInfoApi DiscMediaInfoApi { get; private set; }
+        public static DistributedExtractApi DistributedExtractApi { get; private set; }
         public static SearchIndexService SearchIndexService { get; private set; }
 
         private readonly Guid _id = new Guid("63c322b7-a371-41a3-b11f-04f8418b37d8");
@@ -229,6 +231,9 @@ namespace StrmAssistant
             LibraryApi = new LibraryApi(libraryManager, providerManager, fileSystem, mediaMountManager, userManager);
             MediaInfoApi = new MediaInfoApi(libraryManager, fileSystem, providerManager, mediaSourceManager,
                 itemRepository, jsonSerializer, libraryMonitor);
+            DiscMediaInfoApi = new DiscMediaInfoApi(mediaProbeManager, libraryManager, itemRepository);
+            DistributedExtractApi = new DistributedExtractApi(httpClient, jsonSerializer, mediaProbeManager,
+                libraryManager, itemRepository);
             ChapterApi = new ChapterApi(libraryManager, itemRepository);
             FingerprintApi = new FingerprintApi(libraryManager, fileSystem, applicationPaths,
                 FfmpegApi.WrapFfmpegManager(ffmpegManager), mediaEncoder, mediaMountManager, jsonSerializer,
