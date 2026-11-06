@@ -4787,6 +4787,42 @@ namespace StrmAssistant.Properties
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanCast_Enable_Douban_Cast_Supplement.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanCast_Enable_Douban_Cast_Supplement {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanCast_Enable_Douban_Cast_Supplement", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanCast_Append_missing_main_cast_and_directors_from_Douban__Existing_people_are_kept_and_deduplicated_by_name__Default_is_OFF_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanCast_Append_missing_main_cast_and_directors_from_Douban__Existing_people_are_kept_and_deduplicated_by_name__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanCast_Append_missing_main_cast_and_directors_from_Douban__Existing_people_are_kept_and_deduplicated_by_name__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanSeason_Enable_Douban_Season_Supplement.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanSeason_Enable_Douban_Season_Supplement {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanSeason_Enable_Douban_Season_Supplement", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", resourceCulture);
+            }
+        }
+
 
 
 
