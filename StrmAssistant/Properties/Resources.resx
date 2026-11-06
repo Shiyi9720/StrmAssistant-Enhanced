@@ -1391,6 +1391,12 @@
   <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
     <value>Offload media info extraction to worker nodes. Enable it and use the same shared key on every node. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
   </data>
+  <data name="DistributedExtractOptions_EnableDistributedMediaInfo_Enable_Distributed_Media_Info_Extraction" xml:space="preserve">
+    <value>Enable Distributed Media Info Extraction</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedMediaInfo_Offload_media_info_extraction_to_worker_nodes_with_the_static_ffprobe__The_worker_only_accepts_local_media_files_inside_its_library_folders__When_no_worker_is_reachable_or_the_result_is_unusable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>Offload media info extraction to worker nodes using the static ffprobe. The worker only accepts local media files inside its library folders. When no worker is reachable or the result is unusable, the task falls back to local extraction. Default is False.</value>
+  </data>
   <data name="DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction" xml:space="preserve">
     <value>Enable Distributed Thumbnail Extraction</value>
   </data>
@@ -1420,6 +1426,12 @@
   </data>
   <data name="DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_" xml:space="preserve">
     <value>Comma separated HTTP URLs of worker nodes, for example http://192.168.1.10:8096. Default is EMPTY.</value>
+  </data>
+  <data name="DistributedExtractOptions_MediaInfoWorkerConcurrency_Media_Info_Worker_Concurrency" xml:space="preserve">
+    <value>Media Info Worker Concurrency</value>
+  </data>
+  <data name="DistributedExtractOptions_MediaInfoWorkerConcurrency_Maximum_number_of_media_info_extractions_sent_to_worker_nodes_at_the_same_time__It_must_be_between_1_and_4__Default_is_2_" xml:space="preserve">
+    <value>Maximum number of media info extractions sent to worker nodes at the same time. It must be between 1 and 4. Default is 2.</value>
   </data>
   <data name="DistributedExtractOptions_SharedApiKey_Shared_API_Key" xml:space="preserve">
     <value>Shared API Key</value>

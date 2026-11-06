@@ -44,6 +44,7 @@ namespace StrmAssistant.ScheduledTask
             var index = 0;
             var current = 0;
             var skip = 0;
+            var distributionStats = new MediaInfoExtractionStats();
 
             var tasks = new List<Task>();
 
@@ -55,6 +56,8 @@ namespace StrmAssistant.ScheduledTask
                 }
                 catch
                 {
+                    _logger?.Info("MediaInfoExtract - Distribution Summary - " +
+                                  distributionStats.ToLogMessage());
                     return;
                 }
 
@@ -62,6 +65,8 @@ namespace StrmAssistant.ScheduledTask
                 {
                     QueueManager.MasterSemaphore.Release();
                     _logger?.Info("MediaInfoExtract - Scheduled Task Cancelled");
+                    _logger?.Info("MediaInfoExtract - Distribution Summary - " +
+                                  distributionStats.ToLogMessage());
                     return;
                 }
 
@@ -80,7 +85,8 @@ namespace StrmAssistant.ScheduledTask
                         }
 
                         result = await Plugin.LibraryApi
-                            .OrchestrateMediaInfoProcessAsync(taskItem, "MediaInfoExtract Task", cancellationToken)
+                            .OrchestrateMediaInfoProcessAsync(taskItem, "MediaInfoExtract Task", cancellationToken,
+                                distributionStats)
                             .ConfigureAwait(false);
 
                         if (result is null)
@@ -152,6 +158,7 @@ namespace StrmAssistant.ScheduledTask
 
             progress.Report(100.0);
             _logger?.Info($"MediaInfoExtract - Number of items skipped: {skip}");
+            _logger?.Info("MediaInfoExtract - Distribution Summary - " + distributionStats.ToLogMessage());
             _logger?.Info("MediaInfoExtract - Scheduled Task Complete");
         }
 

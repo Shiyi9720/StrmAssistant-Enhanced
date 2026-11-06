@@ -27,6 +27,15 @@ namespace StrmAssistant.Options
         public bool EnableDistributedExtract { get; set; } = false;
 
         [DisplayNameL(
+            "DistributedExtractOptions_EnableDistributedMediaInfo_Enable_Distributed_Media_Info_Extraction",
+            typeof(Resources))]
+        [DescriptionL(
+            "DistributedExtractOptions_EnableDistributedMediaInfo_Offload_media_info_extraction_to_worker_nodes_with_the_static_ffprobe__The_worker_only_accepts_local_media_files_inside_its_library_folders__When_no_worker_is_reachable_or_the_result_is_unusable_the_task_falls_back_to_local_extraction__Default_is_False_",
+            typeof(Resources))]
+        [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
+        public bool EnableDistributedMediaInfo { get; set; } = false;
+
+        [DisplayNameL(
             "DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction",
             typeof(Resources))]
         [DescriptionL(
@@ -68,6 +77,16 @@ namespace StrmAssistant.Options
             typeof(Resources))]
         [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
         public string WorkerNodes { get; set; } = string.Empty;
+
+        [DisplayNameL(
+            "DistributedExtractOptions_MediaInfoWorkerConcurrency_Media_Info_Worker_Concurrency",
+            typeof(Resources))]
+        [DescriptionL(
+            "DistributedExtractOptions_MediaInfoWorkerConcurrency_Maximum_number_of_media_info_extractions_sent_to_worker_nodes_at_the_same_time__It_must_be_between_1_and_4__Default_is_2_",
+            typeof(Resources))]
+        [Required, MinValue(1), MaxValue(4)]
+        [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
+        public int MediaInfoWorkerConcurrency { get; set; } = 2;
 
         [DisplayNameL("DistributedExtractOptions_SharedApiKey_Shared_API_Key", typeof(Resources))]
         [DescriptionL(

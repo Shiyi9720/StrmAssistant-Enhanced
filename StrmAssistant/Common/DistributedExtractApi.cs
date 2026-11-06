@@ -68,6 +68,8 @@ namespace StrmAssistant.Common
 
         private static readonly ConcurrentDictionary<string, NodeHealth> NodeStates =
             new ConcurrentDictionary<string, NodeHealth>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<int, SemaphoreSlim> MediaInfoDistributionGates =
+            new ConcurrentDictionary<int, SemaphoreSlim>();
 
         private static int _roundRobinIndex;
 
@@ -128,6 +130,8 @@ namespace StrmAssistant.Common
 
         public static bool IsThumbnailDistributionEnabled => IsThumbnailEnabled;
 
+        public static bool IsMediaInfoDistributionEnabled => IsMediaInfoEnabled;
+
         public static bool IsFingerprintDistributionEnabled => IsFingerprintEnabled;
 
         public static bool IsHdrVividDistributionEnabled => IsHdrVividEnabled;
@@ -135,6 +139,8 @@ namespace StrmAssistant.Common
         public static bool IsDvP5DistributionEnabled => IsDvP5Enabled;
 
         private static bool IsThumbnailEnabled => IsEnabled && Options.EnableDistributedThumbnail;
+
+        private static bool IsMediaInfoEnabled => IsEnabled && Options.EnableDistributedMediaInfo;
 
         private static bool IsFingerprintEnabled => IsEnabled && Options.EnableDistributedFingerprint;
 
@@ -149,33 +155,84 @@ namespace StrmAssistant.Common
         public async Task<bool> TryExtractAsync(BaseItem item, string mediaPath, string source,
             CancellationToken cancellationToken)
         {
-            if (!IsEnabled || !(item is Video || item is Audio)) return false;
+            var attempt = await TryExtractWithResultAsync(item, mediaPath, source, cancellationToken)
+                .ConfigureAwait(false);
 
-            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath)) return false;
+            return attempt.Success;
+        }
 
-            return await TryWorkersAsync<DistributedMediaInfoRequest, DistributedMediaInfoResponse>(
-                source, item.Name + " - " + item.Path, "/StrmAssistant/DistributedExtract/MediaInfo",
-                remaining =>
-                {
-                    var options = Options;
-                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+        /// <summary>
+        /// Master side of distributed media-info extraction. The worker returns raw ffprobe JSON;
+        /// the master normalizes it and writes the result through the existing media-info apply
+        /// path. Every failure is returned as a reason so the task can report local/worker fallback
+        /// counts without changing the caller's local fallback behaviour.
+        /// </summary>
+        public async Task<MediaInfoDistributionAttempt> TryExtractWithResultAsync(BaseItem item, string mediaPath,
+            string source, CancellationToken cancellationToken)
+        {
+            if (!Options.EnableDistributedMediaInfo)
+            {
+                return new MediaInfoDistributionAttempt();
+            }
 
-                    return new DistributedMediaInfoRequest
+            if (!(item is Video || item is Audio))
+            {
+                return new MediaInfoDistributionAttempt();
+            }
+
+            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath) ||
+                !IsLocalDistributablePath(mediaPath))
+            {
+                return MediaInfoFallback(item, MediaInfoFallbackReason.PathNotAllowed);
+            }
+
+            if (!IsMediaInfoEnabled)
+            {
+                return MediaInfoFallback(item, MediaInfoFallbackReason.NoWorker);
+            }
+
+            var concurrency = Options.MediaInfoWorkerConcurrency;
+            concurrency = concurrency <= 0 ? 2 : Math.Min(4, concurrency);
+
+            var gate = MediaInfoDistributionGates.GetOrAdd(concurrency,
+                value => new SemaphoreSlim(value, value));
+
+            await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                var attempt = await TryWorkersWithResultAsync<DistributedMediaInfoRequest, DistributedMediaInfoResponse>(
+                    source, item.Name + " - " + item.Path, "/StrmAssistant/DistributedExtract/MediaInfo",
+                    remaining =>
                     {
-                        ApiKey = options.SharedApiKey,
-                        Path = mappedPath,
-                        Protocol = GetProtocol(mappedPath).ToString(),
-                        Container = Path.GetExtension(mediaPath).TrimStart('.'),
-                        Name = item.Name,
-                        MediaType = item is Audio ? "Audio" : "Video",
-                        ExtractChapters = true,
-                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
-                    };
-                },
-                response => response?.Success == true,
-                response => response?.Error,
-                response => TryApply(item, response, cancellationToken),
-                cancellationToken).ConfigureAwait(false);
+                        var options = Options;
+                        var mappedPath = MapPath(mediaPath, options.PathMapping);
+
+                        return new DistributedMediaInfoRequest
+                        {
+                            ApiKey = options.SharedApiKey,
+                            Path = mappedPath,
+                            TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds,
+                                Math.Min(600, (int)remaining.TotalSeconds))
+                        };
+                    },
+                    response => response?.Success == true && !string.IsNullOrWhiteSpace(response.FfprobeJson),
+                    response => response?.Error,
+                    response => response?.ErrorCode,
+                    response => TryApply(item, response, mediaPath, cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!attempt.Success && attempt.Attempted)
+                {
+                    LogMediaInfoFallback(item, attempt.FallbackReason);
+                }
+
+                return attempt;
+            }
+            finally
+            {
+                gate.Release();
+            }
         }
 
         /// <summary>
@@ -443,16 +500,46 @@ namespace StrmAssistant.Common
             Func<TResponse, string> getError, Func<TResponse, bool> apply, CancellationToken cancellationToken)
             where TResponse : class
         {
+            var result = await TryWorkersWithResultAsync(source, itemDescription, endpoint, requestFactory, isSuccess,
+                    getError, null, apply, cancellationToken)
+                .ConfigureAwait(false);
+
+            return result.Success;
+        }
+
+        private async Task<MediaInfoDistributionAttempt> TryWorkersWithResultAsync<TRequest, TResponse>(
+            string source, string itemDescription, string endpoint, Func<TimeSpan, TRequest> requestFactory,
+            Func<TResponse, bool> isSuccess, Func<TResponse, string> getError,
+            Func<TResponse, string> getErrorCode, Func<TResponse, bool> apply, CancellationToken cancellationToken)
+            where TResponse : class
+        {
+            var sawTimeout = false;
+            var sawWorkerError = false;
+            var sawPathNotAllowed = false;
+
             try
             {
-                if (!IsEnabled) return false;
+                if (!IsEnabled)
+                {
+                    return new MediaInfoDistributionAttempt
+                    {
+                        FallbackReason = MediaInfoFallbackReason.NoWorker
+                    };
+                }
 
                 var nodes = GetWorkerNodes();
 
-                if (nodes.Count == 0) return false;
+                if (nodes.Count == 0)
+                {
+                    return new MediaInfoDistributionAttempt
+                    {
+                        Attempted = true,
+                        FallbackReason = MediaInfoFallbackReason.NoWorker
+                    };
+                }
 
                 var options = Options;
-                var timeoutSeconds = Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+                var timeoutSeconds = Math.Max(MinRequestTimeoutSeconds, Math.Min(600, options.TimeoutSeconds));
                 var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
                 var startIndex = (int)((uint)Interlocked.Increment(ref _roundRobinIndex) % (uint)nodes.Count);
 
@@ -485,6 +572,7 @@ namespace StrmAssistant.Common
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
+                        sawTimeout = true;
                         RecordNodeFailure(node, health, "timeout");
                         continue;
                     }
@@ -494,12 +582,28 @@ namespace StrmAssistant.Common
                     }
                     catch (Exception e)
                     {
+                        sawWorkerError = true;
                         RecordNodeFailure(node, health, e.Message);
                         continue;
                     }
 
                     if (response is null || !isSuccess(response))
                     {
+                        var errorCode = getErrorCode?.Invoke(response);
+
+                        if (string.Equals(errorCode, "path_not_allowed", StringComparison.OrdinalIgnoreCase))
+                        {
+                            sawPathNotAllowed = true;
+                        }
+                        else if (string.Equals(errorCode, "timeout", StringComparison.OrdinalIgnoreCase))
+                        {
+                            sawTimeout = true;
+                        }
+                        else
+                        {
+                            sawWorkerError = true;
+                        }
+
                         // A worker side rejection is usually about this file (missing path,
                         // nothing probed), so the node itself is still considered healthy.
                         _logger?.Debug("DistributedExtract - No usable result from " + node + ": " +
@@ -521,11 +625,16 @@ namespace StrmAssistant.Common
                     {
                         _logger?.Info("DistributedExtract - Apply failed: " + itemDescription + " - " + e.Message);
                         _logger?.Debug(e.StackTrace);
-                        return false;
+                        return new MediaInfoDistributionAttempt
+                        {
+                            Attempted = true,
+                            FallbackReason = MediaInfoFallbackReason.WorkerError
+                        };
                     }
 
                     if (!applied)
                     {
+                        sawWorkerError = true;
                         _logger?.Debug("DistributedExtract - Unusable payload from " + node + ": " + itemDescription);
                         continue;
                     }
@@ -536,7 +645,11 @@ namespace StrmAssistant.Common
                     _logger?.Info("DistributedExtract - Extracted via " + node + " (" + source +
                                   "): " + itemDescription);
 
-                    return true;
+                    return new MediaInfoDistributionAttempt
+                    {
+                        Success = true,
+                        Attempted = true
+                    };
                 }
             }
             catch (OperationCanceledException)
@@ -545,15 +658,27 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
+                sawWorkerError = true;
                 _logger?.Debug("DistributedExtract - Failed: " + itemDescription + " - " + e.Message);
                 _logger?.Debug(e.StackTrace);
             }
 
-            return false;
+            return new MediaInfoDistributionAttempt
+            {
+                Attempted = true,
+                FallbackReason = sawPathNotAllowed
+                    ? MediaInfoFallbackReason.PathNotAllowed
+                    : sawTimeout
+                        ? MediaInfoFallbackReason.Timeout
+                        : sawWorkerError
+                            ? MediaInfoFallbackReason.WorkerError
+                            : MediaInfoFallbackReason.NoWorker
+            };
         }
 
         /// <summary>
-        /// Worker side: validates the shared key and probes the requested path.
+        /// Worker side: validates the shared key, confines the request to a local media file under
+        /// one of this node's library roots, and returns the static ffprobe JSON unchanged.
         /// </summary>
         public async Task<DistributedMediaInfoResponse> HandleWorkerRequestAsync(
             DistributedMediaInfoRequest request, CancellationToken cancellationToken)
@@ -565,6 +690,11 @@ namespace StrmAssistant.Common
                 return Fail("Distributed extraction is not enabled on this node");
             }
 
+            if (!options.EnableDistributedMediaInfo)
+            {
+                return Fail("Distributed media info extraction is not enabled on this node");
+            }
+
             if (!SecretEquals(request?.ApiKey, options.SharedApiKey))
             {
                 _logger?.Info("DistributedExtract - Worker request rejected: invalid API key");
@@ -573,24 +703,31 @@ namespace StrmAssistant.Common
 
             if (string.IsNullOrWhiteSpace(request.Path))
             {
-                return Fail("Path is required");
+                return Fail("Path is required", "path_not_allowed");
             }
 
-            var protocol = ParseProtocol(request.Protocol, request.Path);
-
-            if (protocol == MediaProtocol.File && !File.Exists(request.Path))
+            if (request.Path.IndexOf('"') >= 0 || request.Path.IndexOf('\r') >= 0 ||
+                request.Path.IndexOf('\n') >= 0 || request.Path.IndexOf('\0') >= 0)
             {
-                return Fail("File not found: " + request.Path);
+                return Fail("Invalid path", "path_not_allowed");
             }
 
-            if (protocol != MediaProtocol.File && !IsHttpProtocol(protocol))
+            if (IsRejectedMediaPath(request.Path) ||
+                !TryNormalizeAllowedMediaPath(request.Path, out var fullPath) ||
+                Directory.Exists(fullPath) || IsDiscFolderPath(fullPath))
             {
-                return Fail("Unsupported protocol: " + protocol);
+                return Fail("Path is outside the media library or not a supported file: " + request.Path,
+                    "path_not_allowed");
+            }
+
+            if (!File.Exists(fullPath))
+            {
+                return Fail("File not found: " + request.Path, "path_not_allowed");
             }
 
             var timeoutSeconds = request.TimeoutSeconds > 0
                 ? Math.Max(MinRequestTimeoutSeconds, Math.Min(600, request.TimeoutSeconds))
-                : Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+                : Math.Max(MinRequestTimeoutSeconds, Math.Min(600, options.TimeoutSeconds));
 
             var started = DateTime.UtcNow;
 
@@ -599,78 +736,36 @@ namespace StrmAssistant.Common
 
             try
             {
-                var mediaSource = new MediaSourceInfo
-                {
-                    Path = request.Path,
-                    Protocol = protocol,
-                    Container = request.Container,
-                    Name = request.Name,
-                    IsRemote = protocol != MediaProtocol.File
-                };
+                var ffprobeJson = await CustomFfprobeApi.RunProbeJsonAsync(fullPath,
+                        "-show_streams -show_chapters -show_format", timeoutSeconds * 1000, cts.Token)
+                    .ConfigureAwait(false);
 
-                var mediaInfo = await _mediaProbeManager.GetMediaInfo(new MediaInfoRequest
+                if (string.IsNullOrWhiteSpace(ffprobeJson))
                 {
-                    MediaSource = mediaSource,
-                    ExtractChapters = request.ExtractChapters,
-                    MediaType = string.Equals(request.MediaType, "Audio", StringComparison.OrdinalIgnoreCase)
-                        ? DlnaProfileType.Audio
-                        : DlnaProfileType.Video
-                }, cts.Token).ConfigureAwait(false);
+                    var elapsed = DateTime.UtcNow - started;
 
-                if (mediaInfo is null)
-                {
+                    if (!cancellationToken.IsCancellationRequested &&
+                        (cts.IsCancellationRequested || elapsed >= TimeSpan.FromSeconds(timeoutSeconds)))
+                    {
+                        return Fail("Probe timed out after " + timeoutSeconds + " seconds", "timeout");
+                    }
+
                     return Fail("Probe returned no result");
                 }
 
-                var streams = mediaInfo.MediaStreams?
-                    .Where(s => (s.Type == MediaStreamType.Video || s.Type == MediaStreamType.Audio ||
-                                 s.Type == MediaStreamType.Subtitle) &&
-                                !(s.IsExternal && s.Type == MediaStreamType.Subtitle))
-                    .ToList() ?? new List<MediaStream>();
-
-                if (streams.Count == 0 ||
-                    streams.All(s => s.Type != MediaStreamType.Video && s.Type != MediaStreamType.Audio))
-                {
-                    return Fail("No media streams found");
-                }
-
-                for (var i = 0; i < streams.Count; i++)
-                {
-                    streams[i].Index = i;
-                }
-
-                var chapters = (mediaInfo.Chapters ?? Array.Empty<ChapterInfo>())
-                    .Select(c =>
-                    {
-                        c.ImageTag = null;
-                        return c;
-                    })
-                    .ToList();
-
-                var payload = new MediaInfoPayload
-                {
-                    MediaStreams = streams,
-                    Chapters = chapters,
-                    RunTimeTicks = mediaInfo.RunTimeTicks,
-                    Size = mediaInfo.Size,
-                    Bitrate = mediaInfo.Bitrate,
-                    Container = mediaInfo.Container
-                };
-
-                _logger?.Debug("DistributedExtract - Worker probed " + request.Path + " -> " +
-                               streams.Count + " streams, " + chapters.Count + " chapters");
+                _logger?.Debug("DistributedExtract - Worker probed " + fullPath);
 
                 return new DistributedMediaInfoResponse
                 {
                     Success = true,
-                    MediaInfoJson = _jsonSerializer.SerializeToString(payload),
+                    FfprobeJson = ffprobeJson,
                     NodeName = Plugin.Instance?.Name,
                     ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
                 };
             }
             catch (OperationCanceledException)
             {
-                return Fail("Probe timed out after " + timeoutSeconds + " seconds");
+                return Fail("Probe timed out after " + timeoutSeconds + " seconds", "timeout");
             }
             catch (Exception e)
             {
@@ -1305,23 +1400,57 @@ namespace StrmAssistant.Common
             return _jsonSerializer.DeserializeFromString<TResponse>(body);
         }
 
-        private bool TryApply(BaseItem item, DistributedMediaInfoResponse response,
+        private bool TryApply(BaseItem item, DistributedMediaInfoResponse response, string mediaPath,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(response.MediaInfoJson)) return false;
+            if (string.IsNullOrWhiteSpace(response?.FfprobeJson)) return false;
 
-            MediaInfoPayload payload;
+            var mediaInfo = CustomFfprobeApi.NormalizeProbeJson(response.FfprobeJson, item is Audio, mediaPath,
+                MediaProtocol.File);
 
-            try
+            if (mediaInfo is null) return false;
+
+            var streams = mediaInfo.MediaStreams?
+                .Where(s => (s.Type == MediaStreamType.Video || s.Type == MediaStreamType.Audio ||
+                             s.Type == MediaStreamType.Subtitle) &&
+                            !(s.IsExternal && s.Type == MediaStreamType.Subtitle))
+                .ToList() ?? new List<MediaStream>();
+
+            if (streams.Count == 0 ||
+                streams.All(s => s.Type != MediaStreamType.Video && s.Type != MediaStreamType.Audio))
             {
-                payload = _jsonSerializer.DeserializeFromString<MediaInfoPayload>(response.MediaInfoJson);
-            }
-            catch (Exception e)
-            {
-                _logger?.Debug("DistributedExtract - Invalid payload: " + e.Message);
                 return false;
             }
 
+            for (var i = 0; i < streams.Count; i++)
+            {
+                streams[i].Index = i;
+            }
+
+            var chapters = (mediaInfo.Chapters ?? Array.Empty<ChapterInfo>())
+                .Select(c =>
+                {
+                    c.ImageTag = null;
+                    return c;
+                })
+                .ToList();
+
+            var payload = new MediaInfoPayload
+            {
+                MediaStreams = streams,
+                Chapters = chapters,
+                RunTimeTicks = mediaInfo.RunTimeTicks,
+                Size = mediaInfo.Size,
+                Bitrate = mediaInfo.Bitrate,
+                Container = mediaInfo.Container
+            };
+
+            return ApplyMediaInfoPayload(item, payload, cancellationToken);
+        }
+
+        private bool ApplyMediaInfoPayload(BaseItem item, MediaInfoPayload payload,
+            CancellationToken cancellationToken)
+        {
             var streams = payload?.MediaStreams?
                 .Where(s => s.Type == MediaStreamType.Video || s.Type == MediaStreamType.Audio ||
                             s.Type == MediaStreamType.Subtitle)
@@ -1712,9 +1841,14 @@ namespace StrmAssistant.Common
         /// </summary>
         private bool IsAllowedMediaPath(string path)
         {
-            if (string.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path)) return false;
+            return TryNormalizeAllowedMediaPath(path, out _);
+        }
 
-            string fullPath;
+        private bool TryNormalizeAllowedMediaPath(string path, out string fullPath)
+        {
+            fullPath = null;
+
+            if (string.IsNullOrWhiteSpace(path) || !Path.IsPathRooted(path)) return false;
 
             try
             {
@@ -1730,7 +1864,72 @@ namespace StrmAssistant.Common
                 if (IsPathUnderRoot(fullPath, root)) return true;
             }
 
+            fullPath = null;
             return false;
+        }
+
+        private static bool IsRejectedMediaPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return true;
+
+            if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("smb://", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("bluray:", StringComparison.OrdinalIgnoreCase) ||
+                path.IndexOf("://", StringComparison.Ordinal) >= 0)
+            {
+                return true;
+            }
+
+            var extension = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
+
+            return extension == "strm" || extension == "iso" || extension == "img";
+        }
+
+        private static bool IsDiscFolderPath(string fullPath)
+        {
+            var segments = fullPath.Split(new[]
+            {
+                Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar
+            }, StringSplitOptions.RemoveEmptyEntries);
+
+            return segments.Any(s =>
+                string.Equals(s, "BDMV", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(s, "VIDEO_TS", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private MediaInfoDistributionAttempt MediaInfoFallback(BaseItem item, MediaInfoFallbackReason reason)
+        {
+            LogMediaInfoFallback(item, reason);
+
+            return new MediaInfoDistributionAttempt
+            {
+                Attempted = true,
+                FallbackReason = reason
+            };
+        }
+
+        private void LogMediaInfoFallback(BaseItem item, MediaInfoFallbackReason reason)
+        {
+            _logger?.Info("DistributedExtract - Media info fallback (" + GetFallbackReasonCode(reason) + "): " +
+                          item?.Name + " - " + item?.Path);
+        }
+
+        private static string GetFallbackReasonCode(MediaInfoFallbackReason reason)
+        {
+            switch (reason)
+            {
+                case MediaInfoFallbackReason.NoWorker:
+                    return "no_worker";
+                case MediaInfoFallbackReason.Timeout:
+                    return "timeout";
+                case MediaInfoFallbackReason.WorkerError:
+                    return "worker_error";
+                case MediaInfoFallbackReason.PathNotAllowed:
+                    return "path_not_allowed";
+                default:
+                    return "worker_error";
+            }
         }
 
         private List<string> GetMediaRoots()
@@ -1814,9 +2013,9 @@ namespace StrmAssistant.Common
                    CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes);
         }
 
-        private static DistributedMediaInfoResponse Fail(string error)
+        private static DistributedMediaInfoResponse Fail(string error, string errorCode = "worker_error")
         {
-            return new DistributedMediaInfoResponse { Success = false, Error = error };
+            return new DistributedMediaInfoResponse { Success = false, Error = error, ErrorCode = errorCode };
         }
 
         private static DistributedThumbnailResponse FailThumbnail(string error)
