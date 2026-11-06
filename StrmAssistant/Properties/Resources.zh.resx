@@ -1430,4 +1430,7 @@
   <data name="PinyinSortNameTask_Description_Convert_Chinese_titles_of_movies_series_seasons_and_episodes_to_pinyin_initials_and_write_them_to_the_sort_title" xml:space="preserve">
     <value>把电影、剧集、季、集的中文标题转换为拼音首字母并写入排序标题。</value>
   </data>
+  <data name="AudioEffect_Label_Audio_effect" xml:space="preserve">
+    <value>音效</value>
+  </data>
 </root>
