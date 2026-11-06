@@ -141,6 +141,20 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableIsoExtraction), SimpleCondition.IsTrue)]
         public int IsoExtractionWaitSeconds { get; set; } = 60;
 
+        [DisplayNameL("MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_", typeof(Resources))]
+        public bool EnableDiscMediaInfoExtraction { get; set; } = true;
+
+        [DisplayNameL("MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_", typeof(Resources))]
+        [Required, MinValue(60), MaxValue(7200)]
+        [VisibleCondition(nameof(EnableDiscMediaInfoExtraction), SimpleCondition.IsTrue)]
+        public int DiscMediaInfoExtractionTimeoutSeconds { get; set; } = 600;
+
+        [DisplayNameL("DistributedExtractOptions_EditorTitle_Distributed_Extract", typeof(Resources))]
+        public DistributedExtractOptions DistributedExtractOptions { get; set; } =
+            new DistributedExtractOptions();
+
         [Browsable(false)]
         public IEnumerable<EditorSelectOption> LibraryList { get; set; }
 
