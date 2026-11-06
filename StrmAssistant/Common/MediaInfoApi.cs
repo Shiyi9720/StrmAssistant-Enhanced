@@ -270,26 +270,9 @@ namespace StrmAssistant.Common
 
             if (string.IsNullOrEmpty(inputPath)) return false;
 
-            var ffmpegManager = Plugin.Instance?.FfmpegManager;
+            var detected = await DetectHdrVividCoreAsync(inputPath, cancellationToken).ConfigureAwait(false);
 
-            if (ffmpegManager?.FfmpegConfiguration?.ProbePath is null) return false;
-
-            var arguments = "-hide_banner -loglevel error -select_streams v:0 -read_intervals %+#1 " +
-                            "-show_entries frame=side_data_list -of default=noprint_wrappers=1 " +
-                            $"\"{inputPath}\"";
-
-            var output = await FfmpegApi.RunAndCaptureAsync(ffmpegManager,
-                    ffmpegManager.FfmpegConfiguration.ProbePath, arguments, "HdrVividDetect", 60000,
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            if (string.IsNullOrEmpty(output) ||
-                output.IndexOf("CUVA", StringComparison.OrdinalIgnoreCase) < 0 &&
-                output.IndexOf("HDR Vivid", StringComparison.OrdinalIgnoreCase) < 0 &&
-                output.IndexOf("2094-10", StringComparison.OrdinalIgnoreCase) < 0)
-            {
-                return false;
-            }
+            if (!detected) return false;
 
             _logger?.Info($"HdrVividDetect - HDR Vivid detected: {video.Name} - {video.Path}");
 
@@ -300,6 +283,48 @@ namespace StrmAssistant.Common
                 ItemUpdateType.MetadataEdit, false, false, null, CancellationToken.None);
 
             return true;
+        }
+
+        internal static string BuildHdrVividProbeArguments(string inputPath)
+        {
+            return "-hide_banner -loglevel error -select_streams v:0 -read_intervals %+#1 " +
+                   "-show_entries frame=side_data_list -of default=noprint_wrappers=1 " +
+                   $"\"{inputPath}\"";
+        }
+
+        internal static bool IsHdrVividProbeOutput(string output)
+        {
+            return !string.IsNullOrEmpty(output) &&
+                   (output.IndexOf("CUVA", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    output.IndexOf("HDR Vivid", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    output.IndexOf("2094-10", StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private async Task<bool> DetectHdrVividCoreAsync(string inputPath, CancellationToken cancellationToken)
+        {
+            // Optional distributed detection: the worker only answers whether the first video
+            // frame carries HDR Vivid metadata. A null result means it could not handle the
+            // request, so the local ffprobe below stays the fallback.
+            if (Plugin.DistributedExtractApi != null &&
+                DistributedExtractApi.IsHdrVividDistributionEnabled)
+            {
+                var distributed = await Plugin.DistributedExtractApi
+                    .TryDetectHdrVividAsync(inputPath, cancellationToken).ConfigureAwait(false);
+
+                if (distributed.HasValue) return distributed.Value;
+            }
+
+            var ffmpegManager = Plugin.Instance?.FfmpegManager;
+
+            if (ffmpegManager?.FfmpegConfiguration?.ProbePath is null) return false;
+
+            var output = await FfmpegApi.RunAndCaptureAsync(ffmpegManager,
+                    ffmpegManager.FfmpegConfiguration.ProbePath,
+                    BuildHdrVividProbeArguments(inputPath), "HdrVividDetect", 60000,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return IsHdrVividProbeOutput(output);
         }
 
         public MetadataRefreshOptions GetMediaInfoRefreshOptions()
