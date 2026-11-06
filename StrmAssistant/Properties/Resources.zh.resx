@@ -1166,4 +1166,10 @@
   <data name="IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_" xml:space="preserve">
     <value>查询结果在重新请求 IntroDb 之前的复用天数。默认 30。</value>
   </data>
+  <data name="BoxSetHomeVisibility_HideFromHome_Hide_from_Home" xml:space="preserve">
+    <value>从首页隐藏</value>
+  </data>
+  <data name="BoxSetHomeVisibility_ShowOnHome_Show_on_Home" xml:space="preserve">
+    <value>显示在首页</value>
+  </data>
 </root>

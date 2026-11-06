@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace StrmAssistant.Web.Helper
 {
@@ -22,7 +23,32 @@ namespace StrmAssistant.Web.Helper
         public static string GetShortcutsScript()
         {
             return (_shortcutsJs ?? string.Empty) + (_injectShortcutCommand ?? string.Empty) +
-                   UiEnhancementScript.Get();
+                   GetHiddenBoxSetsStateScript() + UiEnhancementScript.Get();
+        }
+
+        private static string GetHiddenBoxSetsStateScript()
+        {
+            var hiddenIds = Plugin.BoxSetHomeVisibilityStore?.GetHiddenIds();
+
+            if (hiddenIds is null || hiddenIds.Count == 0) return string.Empty;
+
+            var builder = new StringBuilder();
+            builder.Append("\nwindow.strmAssistantHiddenBoxSets = {");
+
+            for (var i = 0; i < hiddenIds.Count; i++)
+            {
+                if (i > 0) builder.Append(',');
+
+                var id = (hiddenIds[i] ?? string.Empty)
+                    .Replace("\\", "\\\\")
+                    .Replace("\"", "\\\"");
+
+                builder.Append('"').Append(id).Append("\":true");
+            }
+
+            builder.Append("};\n");
+
+            return builder.ToString();
         }
 
         public static void Initialize(IServerConfigurationManager configurationManager)
@@ -59,7 +85,7 @@ namespace StrmAssistant.Web.Helper
                 shortcutsJs = reader.ReadToEnd();
             }
 
-            const string injectShortcutCommand = @"
+            var injectShortcutCommand = @"
 const strmAssistantCommandSource = {
     getCommands: function(options) {
         const locale = this.globalize.getCurrentLocale().toLowerCase();
@@ -82,7 +108,17 @@ const strmAssistantCommandSource = {
         }
         if (options.items?.length === 1 && options.items[0].LibraryOptions && options.items[0].Type === 'VirtualFolder' &&
             options.items[0].CollectionType === 'boxsets') {
-            return [{ name: this.globalize.translate('Remove'), id: 'remove', icon: 'remove_circle_outline' }];
+            const libraryId = options.items[0].Id || options.items[0].ItemId;
+            const hidden = !!(window.strmAssistantHiddenBoxSets &&
+                window.strmAssistantHiddenBoxSets[libraryId]);
+            return [
+                { name: this.globalize.translate('Remove'), id: 'remove', icon: 'remove_circle_outline' },
+                {
+                    name: hidden ? '@@SHOW_BOXSET@@' : '@@HIDE_BOXSET@@',
+                    id: 'toggle_boxset_home',
+                    icon: hidden ? 'visibility' : 'visibility_off'
+                }
+            ];
         }
         if (options.items?.length === 1) {
             const result = [];
@@ -185,6 +221,14 @@ const strmAssistantCommandSource = {
                 return Promise.all(promises);
             });
         }
+        if (command === 'toggle_boxset_home') {
+            const libraryId = items[0].Id || items[0].ItemId;
+            const hidden = !!(window.strmAssistantHiddenBoxSets &&
+                window.strmAssistantHiddenBoxSets[libraryId]);
+            return require(['components/strmassistant/strmassistant']).then(responses => {
+                return responses[0].toggleBoxsetHome(libraryId, items[0].Name, !hidden);
+            });
+        }
         if (actions[command]) {
             return require(['components/strmassistant/strmassistant']).then(responses => {
                 if (command === 'traverse') {
@@ -215,7 +259,10 @@ setTimeout(() => {
         });
     });
 }, 3000);
-    ";
+    ".Replace("@@HIDE_BOXSET@@", UiEnhancementScript.JsString(
+                    "BoxSetHomeVisibility_HideFromHome_Hide_from_Home", "Hide from Home"))
+                .Replace("@@SHOW_BOXSET@@", UiEnhancementScript.JsString(
+                    "BoxSetHomeVisibility_ShowOnHome_Show_on_Home", "Show on Home"));
 
             var dataExplorer2Assembly = AppDomain.CurrentDomain.GetAssemblies()
                 .FirstOrDefault(a => a.GetName().Name == "Emby.DataExplorer2");

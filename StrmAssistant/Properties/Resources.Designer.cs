@@ -3444,5 +3444,23 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Hide from Home.
+        /// </summary>
+        public static string BoxSetHomeVisibility_HideFromHome_Hide_from_Home {
+            get {
+                return ResourceManager.GetString("BoxSetHomeVisibility_HideFromHome_Hide_from_Home", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show on Home.
+        /// </summary>
+        public static string BoxSetHomeVisibility_ShowOnHome_Show_on_Home {
+            get {
+                return ResourceManager.GetString("BoxSetHomeVisibility_ShowOnHome_Show_on_Home", resourceCulture);
+            }
+        }
 }
 }
