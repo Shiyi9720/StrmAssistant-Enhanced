@@ -270,6 +270,42 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_.
         /// </summary>
         public static string DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_ {

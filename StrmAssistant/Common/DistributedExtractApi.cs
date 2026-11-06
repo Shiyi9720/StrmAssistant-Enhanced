@@ -1,12 +1,17 @@
+using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Net;
+using MediaBrowser.Controller;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaEncoding;
 using MediaBrowser.Controller.Persistence;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Dlna;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Serialization;
@@ -15,6 +20,7 @@ using StrmAssistant.Web.Api;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -26,15 +32,17 @@ using System.Threading.Tasks;
 namespace StrmAssistant.Common
 {
     /// <summary>
-    /// Distributed media info extraction. Worker nodes run the same plugin and expose a small
-    /// endpoint that probes a media path with Emby's own probe manager. The master only sends the
-    /// resolved media path and applies the returned streams/chapters; every transport or result
-    /// failure returns false so the caller can continue with local extraction.
+    /// Distributed extraction. Worker nodes run the same plugin and expose small endpoints that
+    /// probe media, extract chapter images and create audio fingerprints with Emby's own
+    /// components. The master only sends resolved paths and applies the returned data; every
+    /// transport or result failure returns false so the caller can continue with local extraction.
     /// </summary>
     public class DistributedExtractApi
     {
         private const int MaxNodeBackoffSeconds = 600;
         private const int MinRequestTimeoutSeconds = 10;
+        private const int FingerprintSampleRate = 16000;
+        private static readonly long FirstChapterTicks = TimeSpan.FromSeconds(15).Ticks;
 
         private sealed class NodeHealth
         {
@@ -63,16 +71,31 @@ namespace StrmAssistant.Common
         private readonly IMediaProbeManager _mediaProbeManager;
         private readonly ILibraryManager _libraryManager;
         private readonly IItemRepository _itemRepository;
+        private readonly IImageExtractionManager _imageExtractionManager;
+        private readonly IFfmpegManager _ffmpegManager;
+        private readonly IMediaEncoder _mediaEncoder;
+        private readonly IApplicationPaths _applicationPaths;
+        private readonly IFileSystem _fileSystem;
         private readonly ILogger _logger;
 
         public DistributedExtractApi(IHttpClient httpClient, IJsonSerializer jsonSerializer,
-            IMediaProbeManager mediaProbeManager, ILibraryManager libraryManager, IItemRepository itemRepository)
+            IMediaProbeManager mediaProbeManager, ILibraryManager libraryManager, IItemRepository itemRepository,
+            IImageExtractionManager imageExtractionManager, IFfmpegManager ffmpegManager,
+            IMediaEncoder mediaEncoder, IApplicationPaths applicationPaths, IFileSystem fileSystem,
+            IServerApplicationHost serverApplicationHost)
         {
             _httpClient = httpClient;
             _jsonSerializer = jsonSerializer;
             _mediaProbeManager = mediaProbeManager;
             _libraryManager = libraryManager;
             _itemRepository = itemRepository;
+            _imageExtractionManager = imageExtractionManager is null
+                ? null
+                : ImageExtractionTimeout.Wrap(imageExtractionManager, ffmpegManager, serverApplicationHost);
+            _ffmpegManager = ffmpegManager;
+            _mediaEncoder = mediaEncoder;
+            _applicationPaths = applicationPaths;
+            _fileSystem = fileSystem;
             _logger = Plugin.Instance?.Logger;
         }
 
@@ -94,6 +117,14 @@ namespace StrmAssistant.Common
             }
         }
 
+        public static bool IsThumbnailDistributionEnabled => IsThumbnailEnabled;
+
+        public static bool IsFingerprintDistributionEnabled => IsFingerprintEnabled;
+
+        private static bool IsThumbnailEnabled => IsEnabled && Options.EnableDistributedThumbnail;
+
+        private static bool IsFingerprintEnabled => IsEnabled && Options.EnableDistributedFingerprint;
+
         /// <summary>
         /// Tries the configured worker nodes in turn and applies the first usable result.
         /// Returns false immediately when the feature is disabled and on every failure.
@@ -101,11 +132,172 @@ namespace StrmAssistant.Common
         public async Task<bool> TryExtractAsync(BaseItem item, string mediaPath, string source,
             CancellationToken cancellationToken)
         {
+            if (!IsEnabled || !(item is Video || item is Audio)) return false;
+
+            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath)) return false;
+
+            return await TryWorkersAsync<DistributedMediaInfoRequest, DistributedMediaInfoResponse>(
+                source, item.Name + " - " + item.Path, "/StrmAssistant/DistributedExtract/MediaInfo",
+                remaining =>
+                {
+                    var options = Options;
+                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+
+                    return new DistributedMediaInfoRequest
+                    {
+                        ApiKey = options.SharedApiKey,
+                        Path = mappedPath,
+                        Protocol = GetProtocol(mappedPath).ToString(),
+                        Container = Path.GetExtension(mediaPath).TrimStart('.'),
+                        Name = item.Name,
+                        MediaType = item is Audio ? "Audio" : "Video",
+                        ExtractChapters = true,
+                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
+                    };
+                },
+                response => response?.Success == true,
+                response => response?.Error,
+                response => TryApply(item, response, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Master side of distributed chapter image extraction. Only the chapter images that are
+        /// still missing are extracted by a worker; the returned JPEG frames are written to the
+        /// same internal metadata paths Emby uses and the chapters are saved. Returns false on any
+        /// failure so the caller continues with the local extraction.
+        /// </summary>
+        public async Task<bool> TryExtractChapterImagesAsync(Video item, string mediaPath,
+            List<ChapterInfo> chapters, CancellationToken cancellationToken)
+        {
+            if (!IsThumbnailEnabled || _imageExtractionManager is null) return false;
+
+            if (item is null || chapters is null || chapters.Count == 0) return false;
+
+            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath)) return false;
+
+            var runtimeTicks = item.RunTimeTicks.GetValueOrDefault();
+            var points = new List<DistributedThumbnailPoint>();
+
+            foreach (var chapter in chapters)
+            {
+                if (chapter.StartPositionTicks >= runtimeTicks) break;
+
+                var existingPath = GetChapterImagePath(item, chapter.StartPositionTicks);
+
+                if (File.Exists(existingPath)) continue;
+
+                // Emby extracts the first chapter at 15 seconds to avoid black frames.
+                var offsetTicks = chapter.StartPositionTicks <= 0
+                    ? Math.Min(FirstChapterTicks, runtimeTicks)
+                    : chapter.StartPositionTicks;
+
+                points.Add(new DistributedThumbnailPoint
+                {
+                    StartPositionTicks = chapter.StartPositionTicks,
+                    OffsetSeconds = TimeSpan.FromTicks(Math.Max(0, offsetTicks)).TotalSeconds
+                });
+            }
+
+            if (points.Count == 0) return false;
+
+            return await TryWorkersAsync<DistributedThumbnailRequest, DistributedThumbnailResponse>(
+                "VideoThumbnail", item.Name + " - " + item.Path, "/StrmAssistant/DistributedExtract/Thumbnail",
+                remaining =>
+                {
+                    var options = Options;
+                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+
+                    return new DistributedThumbnailRequest
+                    {
+                        ApiKey = options.SharedApiKey,
+                        Path = mappedPath,
+                        Protocol = GetProtocol(mappedPath).ToString(),
+                        Container = Path.GetExtension(mediaPath).TrimStart('.'),
+                        Name = item.Name,
+                        Points = points,
+                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
+                    };
+                },
+                response => response?.Success == true && response.Images != null,
+                response => response?.Error,
+                response => TryApplyChapterImages(item, points, chapters, response),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Master side of distributed intro fingerprint extraction. Returns the path of the
+        /// fingerprint file that was written, or null on any failure (the caller then runs the
+        /// local extraction). Emby's own pipeline reads the same .fp file afterwards.
+        /// </summary>
+        public async Task<string> TryCreateTitleFingerprintAsync(Episode item, LibraryOptions libraryOptions,
+            CancellationToken cancellationToken)
+        {
+            if (!IsFingerprintEnabled || _ffmpegManager is null || _mediaEncoder is null) return null;
+
+            if (item is null) return null;
+
+            var mediaPath = item.Path;
+
+            if (item.IsShortcut)
+            {
+                try
+                {
+                    mediaPath = await Plugin.LibraryApi.GetStrmMountPath(mediaPath).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    _logger?.Debug("DistributedExtract - Failed to resolve shortcut: " + item.Path + " - " +
+                                   e.Message);
+                    return null;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath)) return null;
+
+            var minutes = GetTitleFingerprintDurationMinutes(libraryOptions);
+
+            if (item.RunTimeTicks.GetValueOrDefault() < TimeSpan.FromMinutes(minutes).Ticks) return null;
+
+            var targetPath = GetTitleFingerprintPath(item, minutes);
+
+            if (File.Exists(targetPath)) return null;
+
+            var mappedMediaPath = mediaPath;
+
+            var success = await TryWorkersAsync<DistributedFingerprintRequest, DistributedFingerprintResponse>(
+                "IntroFingerprint", item.Name + " - " + item.Path, "/StrmAssistant/DistributedExtract/Fingerprint",
+                remaining =>
+                {
+                    var options = Options;
+                    var mappedPath = MapPath(mappedMediaPath, options.PathMapping);
+
+                    return new DistributedFingerprintRequest
+                    {
+                        ApiKey = options.SharedApiKey,
+                        Path = mappedPath,
+                        Protocol = GetProtocol(mappedPath).ToString(),
+                        Name = item.Name,
+                        Minutes = minutes,
+                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
+                    };
+                },
+                response => response?.Success == true && !string.IsNullOrWhiteSpace(response.Data),
+                response => response?.Error,
+                response => TryApplyTitleFingerprint(targetPath, response),
+                cancellationToken).ConfigureAwait(false);
+
+            return success ? targetPath : null;
+        }
+
+        private async Task<bool> TryWorkersAsync<TRequest, TResponse>(string source, string itemDescription,
+            string endpoint, Func<TimeSpan, TRequest> requestFactory, Func<TResponse, bool> isSuccess,
+            Func<TResponse, string> getError, Func<TResponse, bool> apply, CancellationToken cancellationToken)
+            where TResponse : class
+        {
             try
             {
-                if (!IsEnabled || !(item is Video || item is Audio)) return false;
-
-                if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath)) return false;
+                if (!IsEnabled) return false;
 
                 var nodes = GetWorkerNodes();
 
@@ -134,25 +326,14 @@ namespace StrmAssistant.Common
                     }
 
                     var remaining = deadline - now;
-                    var mappedPath = MapPath(mediaPath, options.PathMapping);
-                    var request = new DistributedMediaInfoRequest
-                    {
-                        ApiKey = options.SharedApiKey,
-                        Path = mappedPath,
-                        Protocol = GetProtocol(mappedPath).ToString(),
-                        Container = Path.GetExtension(mediaPath).TrimStart('.'),
-                        Name = item.Name,
-                        MediaType = item is Audio ? "Audio" : "Video",
-                        ExtractChapters = true,
-                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
-                    };
+                    var request = requestFactory(remaining);
 
-                    DistributedMediaInfoResponse response;
+                    TResponse response;
 
                     try
                     {
-                        response = await SendAsync(node, request, remaining, cancellationToken)
-                            .ConfigureAwait(false);
+                        response = await SendAsync<TRequest, TResponse>(node, endpoint, request, remaining,
+                            cancellationToken).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
@@ -169,12 +350,12 @@ namespace StrmAssistant.Common
                         continue;
                     }
 
-                    if (response?.Success != true)
+                    if (response is null || !isSuccess(response))
                     {
                         // A worker side rejection is usually about this file (missing path,
                         // nothing probed), so the node itself is still considered healthy.
                         _logger?.Debug("DistributedExtract - No usable result from " + node + ": " +
-                                       (response?.Error ?? "empty response") + " - " + item.Path);
+                                       (getError(response) ?? "empty response") + " - " + itemDescription);
                         continue;
                     }
 
@@ -182,7 +363,7 @@ namespace StrmAssistant.Common
 
                     try
                     {
-                        applied = TryApply(item, response, cancellationToken);
+                        applied = apply(response);
                     }
                     catch (OperationCanceledException)
                     {
@@ -190,14 +371,14 @@ namespace StrmAssistant.Common
                     }
                     catch (Exception e)
                     {
-                        _logger?.Info("DistributedExtract - Apply failed: " + item.Path + " - " + e.Message);
+                        _logger?.Info("DistributedExtract - Apply failed: " + itemDescription + " - " + e.Message);
                         _logger?.Debug(e.StackTrace);
                         return false;
                     }
 
                     if (!applied)
                     {
-                        _logger?.Debug("DistributedExtract - Unusable payload from " + node + ": " + item.Path);
+                        _logger?.Debug("DistributedExtract - Unusable payload from " + node + ": " + itemDescription);
                         continue;
                     }
 
@@ -205,7 +386,7 @@ namespace StrmAssistant.Common
                     Interlocked.Exchange(ref health.BlockedUntilTicks, 0);
 
                     _logger?.Info("DistributedExtract - Extracted via " + node + " (" + source +
-                                  "): " + item.Name + " - " + item.Path);
+                                  "): " + itemDescription);
 
                     return true;
                 }
@@ -216,7 +397,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Debug("DistributedExtract - Failed: " + item?.Path + " - " + e.Message);
+                _logger?.Debug("DistributedExtract - Failed: " + itemDescription + " - " + e.Message);
                 _logger?.Debug(e.StackTrace);
             }
 
@@ -351,14 +532,326 @@ namespace StrmAssistant.Common
             }
         }
 
-        private async Task<DistributedMediaInfoResponse> SendAsync(string node,
-            DistributedMediaInfoRequest request, TimeSpan budget, CancellationToken cancellationToken)
+        /// <summary>
+        /// Worker side: validates the shared key, probes the path and extracts the requested
+        /// frames with Emby's image extraction manager.
+        /// </summary>
+        public async Task<DistributedThumbnailResponse> HandleWorkerThumbnailRequestAsync(
+            DistributedThumbnailRequest request, CancellationToken cancellationToken)
+        {
+            var options = Options;
+
+            if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
+            {
+                return FailThumbnail("Distributed extraction is not enabled on this node");
+            }
+
+            if (!options.EnableDistributedThumbnail)
+            {
+                return FailThumbnail("Distributed thumbnail extraction is not enabled on this node");
+            }
+
+            if (!SecretEquals(request?.ApiKey, options.SharedApiKey))
+            {
+                _logger?.Info("DistributedExtract - Worker thumbnail request rejected: invalid API key");
+                return FailThumbnail("Invalid API key");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Path))
+            {
+                return FailThumbnail("Path is required");
+            }
+
+            if (request.Points is null || request.Points.Count == 0)
+            {
+                return FailThumbnail("No extraction points");
+            }
+
+            if (_imageExtractionManager is null)
+            {
+                return FailThumbnail("Image extraction is unavailable");
+            }
+
+            var protocol = ParseProtocol(request.Protocol, request.Path);
+
+            if (protocol == MediaProtocol.File && !File.Exists(request.Path))
+            {
+                return FailThumbnail("File not found: " + request.Path);
+            }
+
+            if (protocol != MediaProtocol.File && !IsHttpProtocol(protocol))
+            {
+                return FailThumbnail("Unsupported protocol: " + protocol);
+            }
+
+            var timeoutSeconds = request.TimeoutSeconds > 0
+                ? Math.Max(MinRequestTimeoutSeconds, Math.Min(600, request.TimeoutSeconds))
+                : Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+
+            var started = DateTime.UtcNow;
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+            try
+            {
+                var mediaSource = new MediaSourceInfo
+                {
+                    Path = request.Path,
+                    Protocol = protocol,
+                    Container = request.Container,
+                    Name = request.Name,
+                    IsRemote = protocol != MediaProtocol.File
+                };
+
+                var mediaInfo = await _mediaProbeManager.GetMediaInfo(new MediaInfoRequest
+                {
+                    MediaSource = mediaSource,
+                    ExtractChapters = false,
+                    MediaType = DlnaProfileType.Video
+                }, cts.Token).ConfigureAwait(false);
+
+                if (mediaInfo?.MediaStreams is null)
+                {
+                    return FailThumbnail("Probe returned no result");
+                }
+
+                mediaSource.MediaStreams = mediaInfo.MediaStreams;
+                mediaSource.RunTimeTicks = mediaInfo.RunTimeTicks;
+
+                var videoStream = mediaInfo.MediaStreams
+                    .FirstOrDefault(s => s.Type == MediaStreamType.Video && !s.IsExternal);
+
+                if (videoStream is null)
+                {
+                    return FailThumbnail("No video stream found");
+                }
+
+                var container = Enum.TryParse<MediaContainers>(request.Container, true, out var parsed) &&
+                                Enum.IsDefined(typeof(MediaContainers), parsed)
+                    ? parsed
+                    : (MediaContainers?)null;
+
+                var images = new List<DistributedThumbnailImage>();
+
+                foreach (var point in request.Points)
+                {
+                    cts.Token.ThrowIfCancellationRequested();
+
+                    var offset = TimeSpan.FromSeconds(Math.Max(0, point.OffsetSeconds));
+                    var tempPath = await _imageExtractionManager
+                        .ExtractVideoImage(mediaSource, request.Path, container, protocol, videoStream, null,
+                            offset, cts.Token).ConfigureAwait(false);
+
+                    if (string.IsNullOrEmpty(tempPath) || !File.Exists(tempPath))
+                    {
+                        return FailThumbnail("Frame extraction failed at " +
+                                             offset.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "s");
+                    }
+
+                    try
+                    {
+                        var bytes = await _fileSystem.ReadAllBytesAsync(tempPath, cts.Token).ConfigureAwait(false);
+
+                        if (bytes.Length == 0)
+                        {
+                            return FailThumbnail("Frame extraction returned an empty image");
+                        }
+
+                        images.Add(new DistributedThumbnailImage
+                        {
+                            StartPositionTicks = point.StartPositionTicks,
+                            Data = Convert.ToBase64String(bytes)
+                        });
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            File.Delete(tempPath);
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+                }
+
+                _logger?.Debug("DistributedExtract - Worker extracted " + images.Count + " frame(s) from " +
+                               request.Path);
+
+                return new DistributedThumbnailResponse
+                {
+                    Success = true,
+                    Images = images,
+                    NodeName = Plugin.Instance?.Name,
+                    ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                return FailThumbnail("Extraction timed out after " + timeoutSeconds + " seconds");
+            }
+            catch (Exception e)
+            {
+                _logger?.Info("DistributedExtract - Worker thumbnail extraction failed: " + request.Path +
+                              " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+                return FailThumbnail(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Worker side: validates the shared key and creates a raw chromaprint fingerprint with
+        /// the same ffmpeg arguments Emby uses for intro detection.
+        /// </summary>
+        public async Task<DistributedFingerprintResponse> HandleWorkerFingerprintRequestAsync(
+            DistributedFingerprintRequest request, CancellationToken cancellationToken)
+        {
+            var options = Options;
+
+            if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
+            {
+                return FailFingerprint("Distributed extraction is not enabled on this node");
+            }
+
+            if (!options.EnableDistributedFingerprint)
+            {
+                return FailFingerprint("Distributed fingerprint extraction is not enabled on this node");
+            }
+
+            if (!SecretEquals(request?.ApiKey, options.SharedApiKey))
+            {
+                _logger?.Info("DistributedExtract - Worker fingerprint request rejected: invalid API key");
+                return FailFingerprint("Invalid API key");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Path))
+            {
+                return FailFingerprint("Path is required");
+            }
+
+            if (request.Minutes < 1 || request.Minutes > 30)
+            {
+                return FailFingerprint("Invalid fingerprint duration: " + request.Minutes);
+            }
+
+            if (_ffmpegManager is null || _mediaEncoder is null)
+            {
+                return FailFingerprint("Ffmpeg is unavailable");
+            }
+
+            if (_ffmpegManager.FfmpegCapabilities?.SupportsChromaprint != true)
+            {
+                return FailFingerprint("Chromaprint is not supported by ffmpeg on this node");
+            }
+
+            var protocol = ParseProtocol(request.Protocol, request.Path);
+
+            if (protocol == MediaProtocol.File && !File.Exists(request.Path))
+            {
+                return FailFingerprint("File not found: " + request.Path);
+            }
+
+            if (protocol != MediaProtocol.File && !IsHttpProtocol(protocol))
+            {
+                return FailFingerprint("Unsupported protocol: " + protocol);
+            }
+
+            var timeoutSeconds = request.TimeoutSeconds > 0
+                ? Math.Max(MinRequestTimeoutSeconds, Math.Min(600, request.TimeoutSeconds))
+                : Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+
+            var started = DateTime.UtcNow;
+            var tempPath = Path.Combine(_applicationPaths.TempDirectory, Guid.NewGuid().ToString("N"));
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+            try
+            {
+                var duration = TimeSpan.FromMinutes(request.Minutes);
+                var inputArgument = _mediaEncoder.GetInputArgument(request.Path.AsSpan(), protocol);
+
+                var arguments = string.Join(" ", new[]
+                {
+                    "-i " + inputArgument,
+                    "-t " + _mediaEncoder.GetTimeParameter(duration.Ticks),
+                    "-ac 1",
+                    "-acodec pcm_s16le",
+                    "-ar " + FingerprintSampleRate.ToString(CultureInfo.InvariantCulture),
+                    "-vn",
+                    "-sn",
+                    "-f chromaprint",
+                    "-fp_format raw",
+                    "\"" + tempPath + "\""
+                });
+
+                using var runner = _ffmpegManager.CreateFfMpegRunner("CreateTitleFingerprint", null);
+                runner.Start(arguments);
+
+                if (!await runner.WaitForExitAsync((int)TimeSpan.FromSeconds(timeoutSeconds).TotalMilliseconds,
+                        cts.Token).ConfigureAwait(false))
+                {
+                    throw new TimeoutException("Operation timed out after " + timeoutSeconds + " seconds");
+                }
+
+                if (runner.LastExitCode.GetValueOrDefault() == -1 || !File.Exists(tempPath))
+                {
+                    runner.LogOutput(LogSeverity.Error);
+                    return FailFingerprint("Fingerprint extraction failed");
+                }
+
+                var bytes = await _fileSystem.ReadAllBytesAsync(tempPath, cts.Token).ConfigureAwait(false);
+
+                if (bytes.Length == 0 || bytes.Length % 4 != 0)
+                {
+                    return FailFingerprint("Fingerprint output is empty or invalid");
+                }
+
+                _logger?.Debug("DistributedExtract - Worker created fingerprint (" + bytes.Length +
+                               " bytes) for " + request.Path);
+
+                return new DistributedFingerprintResponse
+                {
+                    Success = true,
+                    Data = Convert.ToBase64String(bytes),
+                    NodeName = Plugin.Instance?.Name,
+                    ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
+                };
+            }
+            catch (OperationCanceledException)
+            {
+                return FailFingerprint("Fingerprint extraction timed out after " + timeoutSeconds + " seconds");
+            }
+            catch (Exception e)
+            {
+                _logger?.Info("DistributedExtract - Worker fingerprint extraction failed: " + request.Path +
+                              " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+                return FailFingerprint(e.Message);
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
+
+        private async Task<TResponse> SendAsync<TRequest, TResponse>(string node, string endpoint,
+            TRequest request, TimeSpan budget, CancellationToken cancellationToken) where TResponse : class
         {
             var timeoutMs = Math.Max(1000, (int)Math.Min(int.MaxValue, budget.TotalMilliseconds));
 
             var httpOptions = new HttpRequestOptions
             {
-                Url = node + "/StrmAssistant/DistributedExtract/MediaInfo",
+                Url = node + endpoint,
                 RequestContent = _jsonSerializer.SerializeToString(request).AsMemory(),
                 RequestContentType = "application/json",
                 AcceptHeader = "application/json",
@@ -384,7 +877,7 @@ namespace StrmAssistant.Common
 
             if (string.IsNullOrWhiteSpace(body)) return null;
 
-            return _jsonSerializer.DeserializeFromString<DistributedMediaInfoResponse>(body);
+            return _jsonSerializer.DeserializeFromString<TResponse>(body);
         }
 
         private bool TryApply(BaseItem item, DistributedMediaInfoResponse response,
@@ -475,6 +968,192 @@ namespace StrmAssistant.Common
             }
 
             _itemRepository.SaveChapters(item.InternalId, true, merged);
+        }
+
+        private bool TryApplyChapterImages(Video item, List<DistributedThumbnailPoint> points,
+            List<ChapterInfo> chapters, DistributedThumbnailResponse response)
+        {
+            var images = response?.Images;
+
+            if (images is null || images.Count != points.Count) return false;
+
+            var decoded = new List<KeyValuePair<long, byte[]>>();
+
+            foreach (var point in points)
+            {
+                var image = images.FirstOrDefault(i =>
+                    i.StartPositionTicks == point.StartPositionTicks && !string.IsNullOrEmpty(i.Data));
+
+                if (image is null) return false;
+
+                byte[] bytes;
+
+                try
+                {
+                    bytes = Convert.FromBase64String(image.Data);
+                }
+                catch (FormatException)
+                {
+                    return false;
+                }
+
+                if (bytes.Length < 4) return false;
+
+                decoded.Add(new KeyValuePair<long, byte[]>(point.StartPositionTicks, bytes));
+            }
+
+            var chaptersPath = Path.Combine(item.GetInternalMetadataPath(), "chapters");
+            _fileSystem.CreateDirectory(chaptersPath);
+
+            // Chapter images that were already on disk keep their records in sync too.
+            foreach (var chapter in chapters)
+            {
+                if (chapter.StartPositionTicks >= item.RunTimeTicks.GetValueOrDefault()) break;
+
+                var existingPath = GetChapterImagePath(item, chapter.StartPositionTicks);
+
+                if (File.Exists(existingPath))
+                {
+                    chapter.ImagePath = existingPath;
+                    chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(existingPath);
+                }
+            }
+
+            foreach (var pair in decoded)
+            {
+                var imagePath = GetChapterImagePath(item, pair.Key);
+                var tempPath = imagePath + ".tmp";
+
+                try
+                {
+                    _fileSystem.WriteAllBytes(tempPath, pair.Value);
+                    _fileSystem.MoveFile(tempPath, imagePath, true);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (File.Exists(tempPath)) File.Delete(tempPath);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+
+                var chapter = chapters.FirstOrDefault(c => c.StartPositionTicks == pair.Key);
+
+                if (chapter != null)
+                {
+                    chapter.ImagePath = imagePath;
+                    chapter.ImageDateModified = _fileSystem.GetLastWriteTimeUtc(imagePath);
+                }
+            }
+
+            DeleteDeadChapterImages(chaptersPath, chapters);
+
+            // Same overload Emby uses: saving with clearExtractionFailureResult also clears a
+            // previous thumbnail extraction failure record for this item.
+            _itemRepository.SaveChapters(item.InternalId, true, chapters);
+
+            return true;
+        }
+
+        private void DeleteDeadChapterImages(string chaptersPath, List<ChapterInfo> chapters)
+        {
+            if (!Directory.Exists(chaptersPath)) return;
+
+            var keep = new HashSet<string>(
+                chapters.Where(c => !string.IsNullOrEmpty(c.ImagePath)).Select(c => c.ImagePath),
+                StringComparer.OrdinalIgnoreCase);
+
+            try
+            {
+                foreach (var file in Directory.GetFiles(chaptersPath))
+                {
+                    if (keep.Contains(file)) continue;
+
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DistributedExtract - Failed to clean chapter images: " + e.Message);
+            }
+        }
+
+        private bool TryApplyTitleFingerprint(string targetPath, DistributedFingerprintResponse response)
+        {
+            byte[] data;
+
+            try
+            {
+                data = Convert.FromBase64String(response.Data);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+
+            if (data.Length == 0 || data.Length % 4 != 0) return false;
+
+            var directory = Path.GetDirectoryName(targetPath);
+
+            if (!string.IsNullOrEmpty(directory)) _fileSystem.CreateDirectory(directory);
+
+            var tempPath = targetPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+            try
+            {
+                _fileSystem.WriteAllBytes(tempPath, data);
+                _fileSystem.MoveFile(tempPath, targetPath, true);
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+
+            return File.Exists(targetPath);
+        }
+
+        private static string GetChapterImagePath(Video item, long chapterPositionTicks)
+        {
+            // Mirrors Emby's ThumbnailGenerator.GetChapterImagePath().
+            var fileName = item.DateModified.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) + "_" +
+                           chapterPositionTicks.ToString(CultureInfo.InvariantCulture) + ".jpg";
+
+            return Path.Combine(item.GetInternalMetadataPath(), "chapters", fileName);
+        }
+
+        private static string GetTitleFingerprintPath(Episode item, int minutes)
+        {
+            // Mirrors Emby's AudioFingerprintManager.GetTitleFingerprintFileName().
+            var fileName = "title_" + minutes.ToString(CultureInfo.InvariantCulture) + "_" +
+                           item.DateCreated.Ticks.ToString(CultureInfo.InvariantCulture) + ".fp";
+
+            return Path.Combine(item.GetInternalMetadataPath(), fileName);
+        }
+
+        private static int GetTitleFingerprintDurationMinutes(LibraryOptions libraryOptions)
+        {
+            // Mirrors Emby's AudioFingerprintManager.GetTitleFingerprintDurationMinutes().
+            var length = libraryOptions?.IntroDetectionFingerprintLength ?? 10;
+
+            return length >= 2 && length < 30 ? length : 10;
         }
 
         private void RecordNodeFailure(string node, NodeHealth health, string reason)
@@ -599,6 +1278,16 @@ namespace StrmAssistant.Common
         private static DistributedMediaInfoResponse Fail(string error)
         {
             return new DistributedMediaInfoResponse { Success = false, Error = error };
+        }
+
+        private static DistributedThumbnailResponse FailThumbnail(string error)
+        {
+            return new DistributedThumbnailResponse { Success = false, Error = error };
+        }
+
+        private static DistributedFingerprintResponse FailFingerprint(string error)
+        {
+            return new DistributedFingerprintResponse { Success = false, Error = error };
         }
     }
 }

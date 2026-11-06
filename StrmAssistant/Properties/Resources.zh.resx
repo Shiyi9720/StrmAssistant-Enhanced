@@ -1271,6 +1271,18 @@
   <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
     <value>把媒体信息提取分发到工作节点。请在每台节点上启用并填写相同的共享密钥。工作节点不可用时自动回落到本机提取。默认关闭。</value>
   </data>
+  <data name="DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction" xml:space="preserve">
+    <value>启用分布式截图提取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedThumbnail_Offload_chapter_image_extraction_to_worker_nodes__It_applies_to_libraries_that_extract_chapter_images_only__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>把章节截图提取分发到工作节点。仅适用于只提取章节截图的媒体库。工作节点不可用时自动回落到本机提取。默认关闭。</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedFingerprint_Enable_Distributed_Intro_Fingerprint_Extraction" xml:space="preserve">
+    <value>启用分布式片头声纹提取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedFingerprint_Offload_audio_fingerprint_extraction_for_intro_detection_to_worker_nodes__The_detection_and_marker_writes_stay_on_this_node__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>把片头探测的音频声纹提取分发到工作节点。探测比对与标记写入仍在本机执行。工作节点不可用时自动回落到本机提取。默认关闭。</value>
+  </data>
   <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
     <value>工作节点</value>
   </data>
