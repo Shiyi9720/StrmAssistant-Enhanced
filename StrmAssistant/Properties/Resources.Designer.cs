@@ -3480,5 +3480,103 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EditorTitle_Distributed_Extract.
+        /// </summary>
+        public static string DistributedExtractOptions_EditorTitle_Distributed_Extract {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EditorTitle_Distributed_Extract", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_WorkerNodes_Worker_Nodes.
+        /// </summary>
+        public static string DistributedExtractOptions_WorkerNodes_Worker_Nodes {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_WorkerNodes_Worker_Nodes", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_.
+        /// </summary>
+        public static string DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_SharedApiKey_Shared_API_Key.
+        /// </summary>
+        public static string DistributedExtractOptions_SharedApiKey_Shared_API_Key {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_SharedApiKey_Shared_API_Key", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_.
+        /// </summary>
+        public static string DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_PathMapping_Path_Mapping.
+        /// </summary>
+        public static string DistributedExtractOptions_PathMapping_Path_Mapping {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_PathMapping_Path_Mapping", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_.
+        /// </summary>
+        public static string DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds.
+        /// </summary>
+        public static string DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_.
+        /// </summary>
+        public static string DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_", resourceCulture);
+            }
+        }
 }
 }

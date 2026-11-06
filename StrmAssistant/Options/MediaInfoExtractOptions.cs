@@ -151,6 +151,10 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableDiscMediaInfoExtraction), SimpleCondition.IsTrue)]
         public int DiscMediaInfoExtractionTimeoutSeconds { get; set; } = 600;
 
+        [DisplayNameL("DistributedExtractOptions_EditorTitle_Distributed_Extract", typeof(Resources))]
+        public DistributedExtractOptions DistributedExtractOptions { get; set; } =
+            new DistributedExtractOptions();
+
         [Browsable(false)]
         public IEnumerable<EditorSelectOption> LibraryList { get; set; }
 

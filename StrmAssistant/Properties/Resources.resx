@@ -1265,4 +1265,37 @@
   <data name="IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_" xml:space="preserve">
     <value>How long lookup results are reused before querying IntroDb again. Default is 30.</value>
   </data>
+  <data name="DistributedExtractOptions_EditorTitle_Distributed_Extract" xml:space="preserve">
+    <value>Distributed Media Info Extraction</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction" xml:space="preserve">
+    <value>Enable Distributed Extraction</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>Offload media info extraction to worker nodes. Enable it and use the same shared key on every node. When no worker is reachable, the task falls back to local extraction. Default is False.</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
+    <value>Worker Nodes</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated HTTP URLs of worker nodes, for example http://192.168.1.10:8096. Default is EMPTY.</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Shared_API_Key" xml:space="preserve">
+    <value>Shared API Key</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_" xml:space="preserve">
+    <value>Secret used to authenticate requests between nodes. It must be the same on every node. Default is EMPTY.</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Path_Mapping" xml:space="preserve">
+    <value>Path Mapping</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_" xml:space="preserve">
+    <value>Comma separated mappings in the form local-prefix=&gt;worker-prefix. Use it when workers mount the same media at a different path. Default is EMPTY.</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds" xml:space="preserve">
+    <value>Timeout Seconds</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_" xml:space="preserve">
+    <value>Total time the task waits for worker nodes before falling back to local extraction. It must be between 10 and 600. Default is 120.</value>
+  </data>
 </root>
