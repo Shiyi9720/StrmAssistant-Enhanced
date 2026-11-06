@@ -314,7 +314,7 @@ namespace StrmAssistant.Common
             }, cancellationToken);
         }
 
-        private Task<bool> ApplyMediaInfoAsync(BaseItem item, MediaInfo mediaInfo, string source,
+        private async Task<bool> ApplyMediaInfoAsync(BaseItem item, MediaInfo mediaInfo, string source,
             string discPath, CancellationToken cancellationToken)
         {
             var streams = mediaInfo?.MediaStreams?
@@ -326,8 +326,12 @@ namespace StrmAssistant.Common
                 streams.All(s => s.Type != MediaStreamType.Video))
             {
                 _logger?.Info("DiscMediaInfo - No video stream probed: " + item.Path);
-                return Task.FromResult(false);
+                return false;
             }
+
+            // Must run before SaveMediaStreams so the Dolby Vision flags are persisted with the
+            // streams. A failure only means the item keeps Emby's unmarked result.
+            await MarkDvP7Async(item, streams, source, cancellationToken).ConfigureAwait(false);
 
             _itemRepository.SaveMediaStreams(item.InternalId, streams, cancellationToken);
             item.MediaStreams = streams;
@@ -376,7 +380,77 @@ namespace StrmAssistant.Common
                           streams.Count(s => s.Type == MediaStreamType.Subtitle) + " subtitle), " +
                           chapters.Count + " chapters: " + item.Path);
 
-            return Task.FromResult(true);
+            return true;
+        }
+
+        /// <summary>
+        /// Detects a Dolby Vision Profile 7 dual-layer title and marks its base layer. Emby has
+        /// no layer field, so the base layer is tagged as Dolby Vision profile 7 (DoviProfile76)
+        /// exactly like a single-track P7 file; the enhancement layer stays a normal second
+        /// video stream. The detection only runs for HEVC discs and is silently skipped when the
+        /// static ffprobe is unavailable or the probe fails.
+        /// </summary>
+        private async Task MarkDvP7Async(BaseItem item, List<MediaStream> streams, string source,
+            CancellationToken cancellationToken)
+        {
+            if (!HasHevcVideo(streams) || string.IsNullOrEmpty(source)) return;
+
+            DvP7Info dvP7;
+
+            try
+            {
+                // A retail image is probed through libbluray; an extracted/local title is read
+                // directly. Both carry the PMT that holds the Dolby Vision stream group.
+                var target = IsoApi.IsIsoPath(source) ? "bluray:" + source : source;
+
+                dvP7 = await DvP7Api.DetectAsync(target, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("DiscMediaInfo - DV P7 detection failed: " + e.Message);
+
+                return;
+            }
+
+            if (dvP7?.IsDvP7 != true) return;
+
+            var baseLayer = dvP7.BaseLayerIndex.HasValue
+                ? streams.FirstOrDefault(s =>
+                    s.Type == MediaStreamType.Video && s.Index == dvP7.BaseLayerIndex.Value)
+                : null;
+
+            baseLayer ??= streams
+                .Where(s => s.Type == MediaStreamType.Video && s.Width.HasValue && s.Height.HasValue)
+                .OrderByDescending(s => (long)s.Width.Value * s.Height.Value)
+                .FirstOrDefault();
+
+            if (baseLayer is null) return;
+
+            baseLayer.ExtendedVideoType = ExtendedVideoTypes.DolbyVision;
+            baseLayer.ExtendedVideoSubType = ExtendedVideoSubTypes.DoviProfile76;
+
+            _logger?.Info("DiscMediaInfo - Dolby Vision Profile 7 dual-layer (" + dvP7.Evidence +
+                          "): BL " + DescribeLayer(dvP7.BaseLayerId, dvP7.BaseLayerIndex) +
+                          ", EL " + DescribeLayer(dvP7.EnhancementLayerId, dvP7.EnhancementLayerIndex) +
+                          " - " + item.Path);
+        }
+
+        private static bool HasHevcVideo(IEnumerable<MediaStream> streams)
+        {
+            return streams != null && streams.Any(s => s.Type == MediaStreamType.Video &&
+                (string.Equals(s.Codec, "hevc", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(s.Codec, "h265", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        private static string DescribeLayer(string id, int? index)
+        {
+            if (!string.IsNullOrEmpty(id)) return id;
+
+            return index.HasValue ? "index " + index.Value : "unknown";
         }
 
         private async Task<string> ResolveProbeSourceAsync(BaseItem item, CancellationToken cancellationToken)
