@@ -2853,6 +2853,15 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_.
+        /// </summary>
+        public static string ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_ {
+            get {
+                return ResourceManager.GetString("ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ModOptions_FallbackLanguages_Fallback_Languages.
         /// </summary>
         public static string ModOptions_FallbackLanguages_Fallback_Languages {

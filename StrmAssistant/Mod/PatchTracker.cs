@@ -27,5 +27,11 @@ namespace StrmAssistant.Mod
         public PatchApproach FallbackPatchApproach { get; set; }
 
         public bool IsSupported { get; set; } = true;
+
+        /// <summary>
+        /// Name(s) of the patch point(s) that failed, kept for logging and for the
+        /// settings page so a broken mod is never presented as a working one.
+        /// </summary>
+        public string FailureReason { get; set; } = string.Empty;
     }
 }
