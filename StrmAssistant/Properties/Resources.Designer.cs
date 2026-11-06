@@ -1799,7 +1799,7 @@ namespace StrmAssistant.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Prefer original poster based on the original language. Support TMDB, TVDB and FANART. Default is OFF..
+        ///   Looks up a localized string similar to Request TMDB images in the original language and prefer them over localized posters. Default is OFF..
         /// </summary>
         public static string ModOptions_OriginalPoster_Show_original_poster_based_on_original_language__Default_is_OFF_ {
             get {

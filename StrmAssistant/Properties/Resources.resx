@@ -342,7 +342,7 @@
     <value>Original Language Poster</value>
   </data>
   <data name="ModOptions_OriginalPoster_Show_original_poster_based_on_original_language__Default_is_OFF_" xml:space="preserve">
-    <value>Prefer original poster based on the original language. Support TMDB, TVDB and FANART. Default is OFF.</value>
+    <value>Request TMDB images in the original language and prefer them over localized posters. Default is OFF.</value>
   </data>
   <data name="IntroSkipOptions_UnlockIntroSkip_Built_in_Intro_Skip_Enhanced" xml:space="preserve">
     <value>Built-in Intro Detection Enhanced</value>
