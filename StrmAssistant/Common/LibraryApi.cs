@@ -1112,10 +1112,26 @@ namespace StrmAssistant.Common
 
         public async Task RefreshEpisodeMetadata(Episode taskItem, CancellationToken cancellationToken)
         {
+            await RefreshItemMetadata(taskItem, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task RefreshMovieMetadata(Movie taskItem, CancellationToken cancellationToken)
+        {
+            await RefreshItemMetadata(taskItem, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Full metadata refresh for a single item, shared by the episode and movie refresh paths.
+        /// Only the library options are adjusted: a type without any metadata or image fetcher
+        /// (common in libraries that were trimmed down for fast scanning) falls back to TMDB so
+        /// that the refresh can actually produce metadata.
+        /// </summary>
+        public async Task RefreshItemMetadata(BaseItem taskItem, CancellationToken cancellationToken)
+        {
             var collectionFolders = (BaseItem[])_libraryManager.GetCollectionFolders(taskItem);
             var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
             var dummyLibraryOptions = CopyLibraryOptions(libraryOptions);
-            var typeOption = dummyLibraryOptions.TypeOptions.FirstOrDefault(o => o.Type == nameof(Episode));
+            var typeOption = dummyLibraryOptions.TypeOptions.FirstOrDefault(o => o.Type == taskItem.GetType().Name);
 
             if (typeOption != null)
             {
@@ -1137,29 +1153,59 @@ namespace StrmAssistant.Common
                     cancellationToken).ConfigureAwait(false);
         }
 
-        private bool EpisodeNeedsRefresh(Episode item, DateTimeOffset lookBackTime,
-            HashSet<EpisodeRefreshOption> episodeRefreshOptions, bool includeNoPrem)
+        /// <summary>
+        /// Conditions shared by the episode and movie refresh rules. All of them apply to movies
+        /// too; only the default episode name rule is episode specific.
+        /// </summary>
+        private static bool HasRefreshCondition(BaseItem item, HashSet<EpisodeRefreshOption> refreshOptions,
+            bool isEpisode)
         {
-            var name = item.Name;
             var overview = item.Overview;
             var primaryImageInfo = item.GetImageInfo(ImageType.Primary, 0);
             var dimensionsMatch = item.Width > 0 && item.Height > 0 && item.Width == primaryImageInfo?.Width &&
                                   item.Height == primaryImageInfo?.Height;
+
+            return string.IsNullOrWhiteSpace(overview) ||
+                   (refreshOptions.Contains(EpisodeRefreshOption.NoImage) && primaryImageInfo is null) ||
+                   (refreshOptions.Contains(EpisodeRefreshOption.NonChineseOverview) && !IsChinese(overview)) ||
+                   (isEpisode && refreshOptions.Contains(EpisodeRefreshOption.DefaultEpisodeName) &&
+                    IsDefaultChineseEpisodeName(item.Name)) ||
+                   (refreshOptions.Contains(EpisodeRefreshOption.ReplaceCapturedImage) && dimensionsMatch);
+        }
+
+        private bool EpisodeNeedsRefresh(Episode item, DateTimeOffset lookBackTime,
+            HashSet<EpisodeRefreshOption> episodeRefreshOptions, bool includeNoPrem)
+        {
             var hasProviderIds = item.Series != null && (item.Series.HasProviderId(MetadataProviders.Tmdb) ||
                                                          item.Series.HasProviderId(MetadataProviders.Imdb) ||
                                                          item.Series.HasProviderId(MetadataProviders.Tvdb));
 
-            var needsRefresh = string.IsNullOrWhiteSpace(overview) ||
-                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.NoImage) &&
-                                primaryImageInfo is null) ||
-                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.NonChineseOverview) &&
-                                !IsChinese(overview)) ||
-                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.DefaultEpisodeName) &&
-                                IsDefaultChineseEpisodeName(name)) ||
-                               (episodeRefreshOptions.Contains(EpisodeRefreshOption.ReplaceCapturedImage) &&
-                                dimensionsMatch);
+            return HasRefreshCondition(item, episodeRefreshOptions, true) && hasProviderIds &&
+                   IsPremiereDateInScope(item, lookBackTime, includeNoPrem);
+        }
 
-            return needsRefresh && hasProviderIds && IsPremiereDateInScope(item, lookBackTime, includeNoPrem);
+        private static bool MovieNeedsRefresh(Movie item, DateTimeOffset lookBackTime,
+            HashSet<EpisodeRefreshOption> movieRefreshOptions, bool includeNoDate)
+        {
+            var hasProviderIds = item.HasProviderId(MetadataProviders.Tmdb) ||
+                                 item.HasProviderId(MetadataProviders.Imdb) ||
+                                 item.HasProviderId(MetadataProviders.Tvdb);
+
+            return HasRefreshCondition(item, movieRefreshOptions, false) && hasProviderIds &&
+                   IsDateCreatedInScope(item, lookBackTime, includeNoDate);
+        }
+
+        /// <summary>
+        /// Movies are scoped by when they entered the library. Their release date is usually far
+        /// beyond any lookback window, so it would exclude nearly every movie.
+        /// </summary>
+        private static bool IsDateCreatedInScope(BaseItem item, DateTimeOffset lookBackTime, bool includeNoDate)
+        {
+            var dateCreated = item.DateCreated;
+
+            if (dateCreated == DateTimeOffset.MinValue) return includeNoDate;
+
+            return dateCreated > lookBackTime;
         }
 
         public List<Episode> FetchEpisodeRefreshTaskItems()
@@ -1168,12 +1214,7 @@ namespace StrmAssistant.Common
             _logger?.Info("EpisodeRefresh - Lookback days: " + lookBackDays);
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
-            var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
-            _logger?.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
-            var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
-                .Cast<EpisodeRefreshOption>()
-                .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
-                .ToHashSet();
+            var episodeRefreshOptions = GetEpisodeRefreshOptions();
 
             var itemsToRefresh = _libraryManager
                 .GetItemList(new InternalItemsQuery
@@ -1190,21 +1231,55 @@ namespace StrmAssistant.Common
             return itemsToRefresh;
         }
 
-        public List<Episode> FetchEpisodeRefreshQueueItems(List<Episode> items)
+        /// <summary>
+        /// Movies matching the same rules as episodes. Items are scoped by the date they were
+        /// added to the library, using the episode lookback days.
+        /// </summary>
+        public List<Movie> FetchMovieRefreshTaskItems()
+        {
+            if (!Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MovieRefreshOptions.EnableMovieRefresh)
+            {
+                _logger?.Info("MovieRefresh - Disabled");
+                return new List<Movie>();
+            }
+
+            var lookBackDays = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshLookbackDays;
+            _logger?.Info("MovieRefresh - Lookback days: " + lookBackDays);
+            var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
+
+            var movieRefreshOptions = GetEpisodeRefreshOptions();
+
+            var itemsToRefresh = _libraryManager
+                .GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { nameof(Movie) }, IsLocked = false
+                })
+                .OfType<Movie>()
+                .Where(m => MovieNeedsRefresh(m, lookBackTime, movieRefreshOptions, true))
+                .OrderByDescending(m => m.DateCreated)
+                .ToList();
+
+            _logger?.Info("MovieRefresh - Number of items: " + itemsToRefresh.Count);
+
+            return itemsToRefresh;
+        }
+
+        public List<BaseItem> FetchEpisodeRefreshQueueItems(List<BaseItem> items)
         {
             const int lookBackDays = 90;
             _logger?.Info("EpisodeRefresh - Lookback days: " + lookBackDays);
             var lookBackTime = DateTimeOffset.UtcNow.AddDays(-lookBackDays);
 
-            var episodeRefreshScope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
-            _logger?.Info("EpisodeRefresh - Scope: " + episodeRefreshScope);
-            var episodeRefreshOptions = Enum.GetValues(typeof(EpisodeRefreshOption))
-                .Cast<EpisodeRefreshOption>()
-                .Where(o => episodeRefreshScope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
-                .ToHashSet();
+            var episodeRefreshOptions = GetEpisodeRefreshOptions();
 
-            var groupedBySeason = items.GroupBy(i => i.Season);
-            var itemsToRefresh = new List<Episode>();
+            var itemsToRefresh = new List<BaseItem>();
+
+            // Movies take part in the same catch-up; they are scoped by the date added because
+            // their release date is rarely inside the window.
+            itemsToRefresh.AddRange(items.OfType<Movie>()
+                .Where(m => MovieNeedsRefresh(m, lookBackTime, episodeRefreshOptions, false)));
+
+            var groupedBySeason = items.OfType<Episode>().GroupBy(i => i.Season);
 
             foreach (var group in groupedBySeason)
             {
@@ -1227,6 +1302,17 @@ namespace StrmAssistant.Common
             _logger?.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
 
             return itemsToRefresh;
+        }
+
+        private HashSet<EpisodeRefreshOption> GetEpisodeRefreshOptions()
+        {
+            var scope = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.EpisodeRefreshScope;
+            _logger?.Info("EpisodeRefresh - Scope: " + scope);
+
+            return Enum.GetValues(typeof(EpisodeRefreshOption))
+                .Cast<EpisodeRefreshOption>()
+                .Where(o => scope?.Contains(o.ToString(), StringComparison.OrdinalIgnoreCase) is true)
+                .ToHashSet();
         }
     }
 }
