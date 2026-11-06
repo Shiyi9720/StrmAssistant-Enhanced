@@ -1247,6 +1247,12 @@
   <data name="IntroDbOptions_EnableIntroDb_Fetch_intro_and_credits_markers_from_the_public_IntroDb_database_during_intro_detection__Default_is_OFF_" xml:space="preserve">
     <value>在片頭偵測時從公開的 IntroDb 資料庫取得片頭與片尾標記。預設關閉。</value>
   </data>
+  <data name="IntroDbOptions_EnableMovieIntroDb_Enable_Movie_IntroDb" xml:space="preserve">
+    <value>啟用電影 IntroDb</value>
+  </data>
+  <data name="IntroDbOptions_EnableMovieIntroDb_Look_up_credits_for_movies_and_record_the_range_in_the_plugin_store__Emby_has_no_movie_skip_button__Default_is_OFF_" xml:space="preserve">
+    <value>查詢電影的片尾並記錄到外掛儲存。Emby 對電影沒有跳過按鈕，因此結果僅落庫並寫日誌。預設關閉。</value>
+  </data>
   <data name="IntroDbOptions_WriteIntroMarkers_Write_Intro_Markers" xml:space="preserve">
     <value>寫入片頭標記</value>
   </data>
