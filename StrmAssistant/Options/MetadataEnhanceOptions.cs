@@ -135,6 +135,22 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableAltMovieDbUrl), SimpleCondition.IsTrue)]
         public string AltMovieDbApiKey { get; set; } = string.Empty;
 
+        [DisplayNameL("MetadataEnhanceOptions_EnableMovieDbCache_Enable_TMDB_Disk_Cache", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableMovieDbCache_Cache_TMDB_search_and_detail_json_responses_on_disk_so_transient_network_errors_and_rate_limits_do_not_break_scraping__Only_GET_responses_are_cached__Default_is_OFF_", typeof(Resources))]
+        public bool EnableMovieDbCache { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_MovieDbCacheTtlDays_Cache_TTL__Days_", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_MovieDbCacheTtlDays_Number_of_days_a_cached_TMDB_response_stays_fresh__It_must_be_between_1_and_365__Default_is_30_", typeof(Resources))]
+        [Required, MinValue(1), MaxValue(365)]
+        [VisibleCondition(nameof(EnableMovieDbCache), SimpleCondition.IsTrue)]
+        public int MovieDbCacheTtlDays { get; set; } = 30;
+
+        [DisplayNameL("MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Maximum_Cache_Size__MB_", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Upper_limit_of_the_TMDB_disk_cache__Least_recently_used_entries_are_evicted_when_it_is_exceeded__It_must_be_between_16_and_4096__Default_is_256_", typeof(Resources))]
+        [Required, MinValue(16), MaxValue(4096)]
+        [VisibleCondition(nameof(EnableMovieDbCache), SimpleCondition.IsTrue)]
+        public int MovieDbCacheMaxSizeMb { get; set; } = 256;
+
         [DisplayNameL("MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", typeof(Resources))]
         public bool EnableDoubanSupplement { get; set; } = false;
