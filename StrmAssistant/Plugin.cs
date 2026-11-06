@@ -370,6 +370,12 @@ namespace StrmAssistant
 
             if (_libraryManager.IsScanRunning) return;
 
+            if (IntroDbApi != null && e.Argument.Item is Movie movie &&
+                GetOptions().IntroSkipOptions.IntroDbOptions.EnableMovieIntroDb)
+            {
+                _ = IntroDbApi.ApplyToMovieAsync(movie, System.Threading.CancellationToken.None);
+            }
+
             if (GetOptions().MetadataEnhanceOptions.EnableDoubanSupplement &&
                 (e.Argument.Item is Movie || e.Argument.Item is Series))
             {

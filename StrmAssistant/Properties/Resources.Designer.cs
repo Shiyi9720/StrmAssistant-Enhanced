@@ -1215,6 +1215,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to IntroDbOptions_EnableMovieIntroDb_Enable_Movie_IntroDb.
+        /// </summary>
+        public static string IntroDbOptions_EnableMovieIntroDb_Enable_Movie_IntroDb {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_EnableMovieIntroDb_Enable_Movie_IntroDb", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDbOptions_EnableMovieIntroDb_Look_up_credits_for_movies_and_record_the_range_in_the_plugin_store__Emby_has_no_movie_skip_button__Default_is_OFF_.
+        /// </summary>
+        public static string IntroDbOptions_EnableMovieIntroDb_Look_up_credits_for_movies_and_record_the_range_in_the_plugin_store__Emby_has_no_movie_skip_button__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("IntroDbOptions_EnableMovieIntroDb_Look_up_credits_for_movies_and_record_the_range_in_the_plugin_store__Emby_has_no_movie_skip_button__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to IntroDbOptions_MinimumConfidencePercent_Ignore_IntroDb_segments_below_this_confidence_percentage__0_accepts_everything__Default_is_50_.
         /// </summary>
         public static string IntroDbOptions_MinimumConfidencePercent_Ignore_IntroDb_segments_below_this_confidence_percentage__0_accepts_everything__Default_is_50_ {
