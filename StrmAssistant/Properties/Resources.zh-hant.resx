@@ -525,7 +525,7 @@
     <value>刷新演員訊息</value>
   </data>
   <data name="MetadataEnhanceOptions_RefreshPersonMode_Automatic_only_runs_when_the_server_preferred_metadata_language_is_Chinese_and_skips_recently_refreshed_persons__Manual_always_performs_a_full_refresh_when_triggered_even_when_the_server_language_is_not_Chinese__Off_disables_the_task_" xml:space="preserve">
-    <value>自動：僅在伺服器偏好中繼資料語言為中文時執行，並略過近期已刷新的演員。手動：觸發時一律完整重新整理，即使伺服器語言不是中文。關閉：停用此工作。</value>
+    <value>自動：僅在伺服器偏好中繼資料語言為中文時執行（可關閉語言限制），並保留現有的近期重新整理略過行為。手動：觸發時一律完整重新整理。關閉：停用此工作。</value>
   </data>
   <data name="RefreshPersonModeOption_Auto_Automatic" xml:space="preserve">
     <value>自動</value>
@@ -1444,5 +1444,65 @@
   </data>
   <data name="AudioEffect_Label_Audio_effect" xml:space="preserve">
     <value>音效</value>
+  </data>
+  <data name="RefreshPersonScopeOption_FollowRefreshMode_Follow_Refresh_Mode" xml:space="preserve">
+    <value>跟隨重新整理模式</value>
+  </data>
+  <data name="RefreshPersonScopeOption_MissingChineseName_Missing_Chinese_Name_Only" xml:space="preserve">
+    <value>僅缺少中文名</value>
+  </data>
+  <data name="RefreshPersonScopeOption_AllPersons_All_Persons" xml:space="preserve">
+    <value>全部演員</value>
+  </data>
+  <data name="RefreshPersonScopeOption_MainCast_Main_Cast_Only" xml:space="preserve">
+    <value>僅主演</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonScope_Refresh_Scope" xml:space="preserve">
+    <value>重新整理範圍</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonScope_Follow_Refresh_Mode_keeps_the_existing_Auto_and_Manual_behaviour__Missing_Chinese_Name_Only_processes_persons_without_a_Chinese_name__All_Persons_processes_every_person__Main_Cast_Only_limits_the_task_to_actors_in_the_main_cast_lists__Default_is_Follow_Refresh_Mode_" xml:space="preserve">
+    <value>跟隨重新整理模式保留現有的自動/手動行為；僅缺少中文名只處理沒有中文名的演員；全部演員處理所有演員；僅主演只處理主要演員名單中的人物。預設為跟隨重新整理模式。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_Locked_Persons" xml:space="preserve">
+    <value>略過已鎖定人物</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_persons_marked_as_locked__Default_is_ON_" xml:space="preserve">
+    <value>略過標記為已鎖定的人物。預設開啟。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_Persons_Without_TMDB_Id" xml:space="preserve">
+    <value>略過無 TMDB ID 人物</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_persons_that_have_no_TMDB_person_id__Default_is_ON_" xml:space="preserve">
+    <value>略過沒有 TMDB 人物 ID 的演員。預設開啟。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_Recently_Refreshed_Persons" xml:space="preserve">
+    <value>略過近期已重新整理人物</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_persons_that_were_refreshed_within_the_configured_number_of_days__Default_is_ON_" xml:space="preserve">
+    <value>略過在設定天數內重新整理過的演員。預設開啟。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Skip_Recently_Refreshed_Days" xml:space="preserve">
+    <value>近期重新整理天數</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Number_of_days_used_by_the_recently_refreshed_skip_rule__Default_is_30_" xml:space="preserve">
+    <value>近期重新整理略過規則使用的天數。預設 30。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_Chinese_Server_Language" xml:space="preserve">
+    <value>要求伺服器語言為中文</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_the_server_preferred_metadata_language_to_be_Chinese_for_automatic_runs__Manual_runs_can_always_be_triggered__Default_is_ON_" xml:space="preserve">
+    <value>自動執行時要求伺服器偏好的中繼資料語言為中文；手動觸發不受此限制。預設開啟。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Max_Concurrent_Count" xml:space="preserve">
+    <value>最大並行數</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Number_of_persons_refreshed_in_parallel__It_must_be_between_1_and_4__Default_is_1_" xml:space="preserve">
+    <value>並行重新整理的演員數量，必須介於 1 到 4 之間。預設 1。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Request_Interval__Milliseconds_" xml:space="preserve">
+    <value>請求間隔（毫秒）</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_" xml:space="preserve">
+    <value>TMDB 請求之間的最小間隔（毫秒），必須介於 0 到 10000 之間。預設 250。</value>
   </data>
 </root>

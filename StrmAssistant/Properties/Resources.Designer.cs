@@ -2817,6 +2817,150 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonScope_Refresh_Scope.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonScope_Refresh_Scope {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonScope_Refresh_Scope", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonScope_Follow_Refresh_Mode_keeps_the_existing_Auto_and_Manual_behaviour__Missing_Chinese_Name_Only_processes_persons_without_a_Chinese_name__All_Persons_processes_every_person__Main_Cast_Only_limits_the_task_to_actors_in_the_main_cast_lists__Default_is_Follow_Refresh_Mode_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonScope_Follow_Refresh_Mode_keeps_the_existing_Auto_and_Manual_behaviour__Missing_Chinese_Name_Only_processes_persons_without_a_Chinese_name__All_Persons_processes_every_person__Main_Cast_Only_limits_the_task_to_actors_in_the_main_cast_lists__Default_is_Follow_Refresh_Mode_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonScope_Follow_Refresh_Mode_keeps_the_existing_Auto_and_Manual_behaviour__Missing_Chinese_Name_Only_processes_persons_without_a_Chinese_name__All_Persons_processes_every_person__Main_Cast_Only_limits_the_task_to_actors_in_the_main_cast_lists__Default_is_Follow_Refresh_Mode_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_Locked_Persons.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_Locked_Persons {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_Locked_Persons", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_persons_marked_as_locked__Default_is_ON_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_persons_marked_as_locked__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_persons_marked_as_locked__Default_is_ON_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_Persons_Without_TMDB_Id.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_Persons_Without_TMDB_Id {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_Persons_Without_TMDB_Id", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_persons_that_have_no_TMDB_person_id__Default_is_ON_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_persons_that_have_no_TMDB_person_id__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_persons_that_have_no_TMDB_person_id__Default_is_ON_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_Recently_Refreshed_Persons.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_Recently_Refreshed_Persons {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_Recently_Refreshed_Persons", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_persons_that_were_refreshed_within_the_configured_number_of_days__Default_is_ON_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_persons_that_were_refreshed_within_the_configured_number_of_days__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_persons_that_were_refreshed_within_the_configured_number_of_days__Default_is_ON_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Skip_Recently_Refreshed_Days.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Skip_Recently_Refreshed_Days {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Skip_Recently_Refreshed_Days", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Number_of_days_used_by_the_recently_refreshed_skip_rule__Default_is_30_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Number_of_days_used_by_the_recently_refreshed_skip_rule__Default_is_30_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Number_of_days_used_by_the_recently_refreshed_skip_rule__Default_is_30_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_Chinese_Server_Language.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_Chinese_Server_Language {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_Chinese_Server_Language", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_the_server_preferred_metadata_language_to_be_Chinese_for_automatic_runs__Manual_runs_can_always_be_triggered__Default_is_ON_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_the_server_preferred_metadata_language_to_be_Chinese_for_automatic_runs__Manual_runs_can_always_be_triggered__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_the_server_preferred_metadata_language_to_be_Chinese_for_automatic_runs__Manual_runs_can_always_be_triggered__Default_is_ON_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Max_Concurrent_Count.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Max_Concurrent_Count {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Max_Concurrent_Count", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Number_of_persons_refreshed_in_parallel__It_must_be_between_1_and_4__Default_is_1_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Number_of_persons_refreshed_in_parallel__It_must_be_between_1_and_4__Default_is_1_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Number_of_persons_refreshed_in_parallel__It_must_be_between_1_and_4__Default_is_1_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Request_Interval__Milliseconds_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Request_Interval__Milliseconds_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Request_Interval__Milliseconds_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ModOptions_ChineseMovieDb_Chinese_MovieDb.
         /// </summary>
         public static string ModOptions_ChineseMovieDb_Chinese_MovieDb {
@@ -3875,6 +4019,42 @@ namespace StrmAssistant.Properties
         public static string RefreshPersonModeOption_Off_Off {
             get {
                 return ResourceManager.GetString("RefreshPersonModeOption_Off_Off", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshPersonScopeOption_FollowRefreshMode_Follow_Refresh_Mode.
+        /// </summary>
+        public static string RefreshPersonScopeOption_FollowRefreshMode_Follow_Refresh_Mode {
+            get {
+                return ResourceManager.GetString("RefreshPersonScopeOption_FollowRefreshMode_Follow_Refresh_Mode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshPersonScopeOption_MissingChineseName_Missing_Chinese_Name_Only.
+        /// </summary>
+        public static string RefreshPersonScopeOption_MissingChineseName_Missing_Chinese_Name_Only {
+            get {
+                return ResourceManager.GetString("RefreshPersonScopeOption_MissingChineseName_Missing_Chinese_Name_Only", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshPersonScopeOption_AllPersons_All_Persons.
+        /// </summary>
+        public static string RefreshPersonScopeOption_AllPersons_All_Persons {
+            get {
+                return ResourceManager.GetString("RefreshPersonScopeOption_AllPersons_All_Persons", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshPersonScopeOption_MainCast_Main_Cast_Only.
+        /// </summary>
+        public static string RefreshPersonScopeOption_MainCast_Main_Cast_Only {
+            get {
+                return ResourceManager.GetString("RefreshPersonScopeOption_MainCast_Main_Cast_Only", resourceCulture);
             }
         }
 
