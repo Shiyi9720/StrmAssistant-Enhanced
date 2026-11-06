@@ -36,8 +36,17 @@ namespace StrmAssistant.Common
 
         internal static bool CanHandle(IFfmpegManager ffmpegManager, MediaStream videoStream)
         {
-            return IsDolbyVisionProfile5(videoStream) &&
-                   !string.IsNullOrEmpty(FfmpegApi.GetCustomFfmpegPath()) &&
+            return IsDolbyVisionProfile5(videoStream) && IsAvailable(ffmpegManager);
+        }
+
+        /// <summary>
+        /// True when a custom ffmpeg build is configured and passes the Vulkan + libplacebo
+        /// self check. The worker uses this before extracting any frame so a node without Vulkan
+        /// fails cleanly instead of writing a wrongly tonemapped (green) image.
+        /// </summary>
+        internal static bool IsAvailable(IFfmpegManager ffmpegManager)
+        {
+            return !string.IsNullOrEmpty(FfmpegApi.GetCustomFfmpegPath()) &&
                    FfmpegApi.CheckCustomFfmpeg(ffmpegManager);
         }
 
