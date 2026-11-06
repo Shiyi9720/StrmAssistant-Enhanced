@@ -53,7 +53,8 @@ namespace StrmAssistant.Mod
             if (!IsModOperational)
             {
                 Plugin.Instance.Logger.Warn(
-                    $"{PatchTracker.PatchType.Name} Patch skipped: {ModFailureReason}");
+                    $"{PatchTracker.PatchType.Name} Patch skipped: the mod engine is unavailable " +
+                    $"({ModFailureReason})");
                 return;
             }
 
@@ -69,7 +70,8 @@ namespace StrmAssistant.Mod
                 MarkUnavailable($"{PatchTracker.PatchType.Name} patch set failed: " +
                                 PatchTracker.FailureReason);
                 Plugin.Instance.Logger.Warn(
-                    $"{PatchTracker.PatchType.Name} Patch Failed ({PatchTracker.FailureReason}), rolled back");
+                    $"{PatchTracker.PatchType.Name} Patch Failed: individual target(s) failed and " +
+                    $"the set was rolled back ({PatchTracker.FailureReason})");
                 Prepare(false);
             }
         }
