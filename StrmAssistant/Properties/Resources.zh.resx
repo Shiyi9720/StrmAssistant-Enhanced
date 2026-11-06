@@ -1007,6 +1007,18 @@
   <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_" xml:space="preserve">
     <value>首次提取时播放请求等待的最长时间；超时后提取会在后台继续。取值范围 10-600，默认 60。</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction" xml:space="preserve">
+    <value>光盘媒体信息提取</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_" xml:space="preserve">
+    <value>探测 ISO 镜像与 BDMV/VIDEO_TS 目录，从主视频中提取完整媒体信息。默认开启。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds" xml:space="preserve">
+    <value>光盘提取超时时间（秒）</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_" xml:space="preserve">
+    <value>媒体信息任务等待 ISO 提取的最长时间；超时后提取会在后台继续。取值范围 60-7200，默认 600。</value>
+  </data>
   <data name="IsoExtractTask_Name_Extract_ISO_Video" xml:space="preserve">
     <value>提取 ISO 视频</value>
   </data>

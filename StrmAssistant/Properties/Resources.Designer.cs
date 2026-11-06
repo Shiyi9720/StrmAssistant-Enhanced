@@ -2700,6 +2700,42 @@ namespace StrmAssistant.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds.
+        /// </summary>
+        public static string MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots.
         /// </summary>
         public static string MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots {

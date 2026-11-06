@@ -29,7 +29,34 @@ namespace StrmAssistant.Common
 
         public static bool IsIsoPath(string path)
         {
-            return !string.IsNullOrEmpty(path) && path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase);
+            return !string.IsNullOrEmpty(path) &&
+                   (path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) ||
+                    path.EndsWith(".img", StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Reads the raw bytes of every Blu-ray playlist (BDMV/PLAYLIST/*.mpls) in the image.
+        /// Used to pull chapter marks out of an ISO. Returns an empty list when the image has no
+        /// UDF BDMV structure or cannot be parsed.
+        /// </summary>
+        public static List<byte[]> ReadBdPlaylists(string isoPath)
+        {
+            var result = new List<byte[]>();
+
+            if (!File.Exists(isoPath)) return result;
+
+            try
+            {
+                using var reader = new IsoImageReader(isoPath);
+
+                return reader.ReadBdPlaylists();
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("IsoExtract - Playlist read failed: " + e.Message);
+
+                return result;
+            }
         }
 
         /// <summary>
@@ -383,6 +410,45 @@ namespace StrmAssistant.Common
                 }
 
                 return null;
+            }
+
+            public List<byte[]> ReadBdPlaylists()
+            {
+                var result = new List<byte[]>();
+
+                try
+                {
+                    var context = ReadUdfContext();
+
+                    if (context is null) return result;
+
+                    var bdmv = FindUdfDirectory(context, context.RootFileEntry, "BDMV");
+
+                    if (bdmv is null) return result;
+
+                    var playlist = FindUdfDirectory(context, bdmv, "PLAYLIST");
+
+                    if (playlist is null) return result;
+
+                    var directoryData = ReadFileEntryData(context, playlist);
+
+                    foreach (var entry in ListUdfEntries(context, directoryData).Select(e => e.Value)
+                                 .Where(e => !e.IsDirectory &&
+                                             e.Name.EndsWith(".mpls", StringComparison.OrdinalIgnoreCase))
+                                 .Take(200))
+                    {
+                        // A playlist is a few KB; anything huge is not a valid playlist.
+                        if (entry.Size <= 0 || entry.Size > 8 * 1024 * 1024) continue;
+
+                        result.Add(ReadFileEntryData(context, entry));
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.Debug("IsoExtract - Playlist parse failed: " + e.Message);
+                }
+
+                return result;
             }
 
             private UdfContext ReadUdfContext()
