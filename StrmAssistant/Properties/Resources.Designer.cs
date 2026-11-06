@@ -900,11 +900,29 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Minimum seconds between two catch-up queue runs. Favorites are processed in their own queue. Default is 30..
+        ///   Looks up a localized string similar to Minimum seconds between two catch-up queue runs. Default is 30..
         /// </summary>
         public static string GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_ {
             get {
                 return ResourceManager.GetString("GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeneralOptions_EnableFavoriteCatchupPriority_Favorite_Catchup_Priority_Queue.
+        /// </summary>
+        public static string GeneralOptions_EnableFavoriteCatchupPriority_Favorite_Catchup_Priority_Queue {
+            get {
+                return ResourceManager.GetString("GeneralOptions_EnableFavoriteCatchupPriority_Favorite_Catchup_Priority_Queue", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to GeneralOptions_EnableFavoriteCatchupPriority_Put_catch_up_work_triggered_by_favorites_into_a_separate_queue_that_is_drained_before_the_regular_queue__Default_is_OFF_.
+        /// </summary>
+        public static string GeneralOptions_EnableFavoriteCatchupPriority_Put_catch_up_work_triggered_by_favorites_into_a_separate_queue_that_is_drained_before_the_regular_queue__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_EnableFavoriteCatchupPriority_Put_catch_up_work_triggered_by_favorites_into_a_separate_queue_that_is_drained_before_the_regular_queue__Default_is_OFF_", resourceCulture);
             }
         }
 

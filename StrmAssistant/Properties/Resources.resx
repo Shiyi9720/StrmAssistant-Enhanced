@@ -750,7 +750,13 @@
     <value>Catchup Minimum Delay (Seconds)</value>
   </data>
   <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
-    <value>Minimum seconds between two catch-up queue runs. Favorites are processed in their own queue. Default is 30.</value>
+    <value>Minimum seconds between two catch-up queue runs. Default is 30.</value>
+  </data>
+  <data name="GeneralOptions_EnableFavoriteCatchupPriority_Favorite_Catchup_Priority_Queue" xml:space="preserve">
+    <value>Favorite Catch-up Priority Queue</value>
+  </data>
+  <data name="GeneralOptions_EnableFavoriteCatchupPriority_Put_catch_up_work_triggered_by_favorites_into_a_separate_queue_that_is_drained_before_the_regular_queue__Default_is_OFF_" xml:space="preserve">
+    <value>Put catch-up work triggered by favorites into a separate queue that is drained before the regular queue. Default is OFF.</value>
   </data>
   <data name="IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length" xml:space="preserve">
     <value>Per-Library Intro Detection Length</value>

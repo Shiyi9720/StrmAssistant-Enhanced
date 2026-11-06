@@ -663,7 +663,13 @@
     <value>追更最小間隔（秒）</value>
   </data>
   <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
-    <value>兩次追更佇列執行之間的最小間隔秒數。最愛項目在獨立佇列中處理。預設 30。</value>
+    <value>兩次追更佇列執行之間的最小間隔秒數。預設 30。</value>
+  </data>
+  <data name="GeneralOptions_EnableFavoriteCatchupPriority_Favorite_Catchup_Priority_Queue" xml:space="preserve">
+    <value>最愛追更優先佇列</value>
+  </data>
+  <data name="GeneralOptions_EnableFavoriteCatchupPriority_Put_catch_up_work_triggered_by_favorites_into_a_separate_queue_that_is_drained_before_the_regular_queue__Default_is_OFF_" xml:space="preserve">
+    <value>將收藏觸發的追更工作放入獨立佇列，並優先於一般佇列處理。預設關閉。</value>
   </data>
   <data name="IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length" xml:space="preserve">
     <value>按庫片頭探測時長</value>
