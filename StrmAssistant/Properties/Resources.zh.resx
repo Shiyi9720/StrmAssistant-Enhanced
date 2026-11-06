@@ -1211,4 +1211,10 @@
   <data name="DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_" xml:space="preserve">
     <value>等待工作节点的总时长，超时后回落到本机提取。取值范围 10-600，默认 120。</value>
   </data>
+  <data name="NetworkOptions_LocalDiscoveryAddress_Local_Discovery_Address" xml:space="preserve">
+    <value>本地发现地址</value>
+  </data>
+  <data name="NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_" xml:space="preserve">
+    <value>通过 UDP 发现和系统公开信息接口向局域网客户端公布的地址。可填写本地反代地址；填写 BLOCKED 可禁用 UDP 应答。修改后需重启生效。默认为空。</value>
+  </data>
 </root>

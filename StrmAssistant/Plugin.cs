@@ -104,6 +104,7 @@ namespace StrmAssistant
         private bool _currentEnableAltMovieDbUrl;
         private bool _currentEnableLocalMovieDb;
         private bool _currentDistinguishChinesePosters;
+        private string _currentLocalDiscoveryAddress;
         private ChineseMetadataOrderOption _currentChineseMetadataOrder;
         private bool _currentConvertSimplifiedToTraditional;
 
@@ -209,6 +210,7 @@ namespace StrmAssistant
             _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
             _currentEnableLocalMovieDb = GetOptions().MetadataEnhanceOptions.EnableLocalMovieDb;
             _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
+            _currentLocalDiscoveryAddress = GetOptions().NetworkOptions.LocalDiscoveryAddress;
             _currentChineseMetadataOrder = GetOptions().MetadataEnhanceOptions.ChineseMetadataOrder;
             _currentConvertSimplifiedToTraditional =
                 GetOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional;
@@ -664,6 +666,17 @@ namespace StrmAssistant
                             ? "EMPTY"
                             : options.NetworkOptions.ProxyWhitelist);
                     }
+                }
+
+                Logger.Info("LocalDiscoveryAddress is set to {0}",
+                    string.IsNullOrWhiteSpace(options.NetworkOptions.LocalDiscoveryAddress)
+                        ? "EMPTY"
+                        : options.NetworkOptions.LocalDiscoveryAddress);
+                if (!string.Equals(_currentLocalDiscoveryAddress, options.NetworkOptions.LocalDiscoveryAddress,
+                        StringComparison.Ordinal))
+                {
+                    _currentLocalDiscoveryAddress = options.NetworkOptions.LocalDiscoveryAddress;
+                    Logger.Info("LocalDiscoveryAddress changed. Restart Emby to apply it.");
                 }
             }
 
