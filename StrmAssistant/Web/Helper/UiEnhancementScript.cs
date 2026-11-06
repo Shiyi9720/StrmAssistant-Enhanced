@@ -14,6 +14,8 @@ namespace StrmAssistant.Web.Helper
             var options = Plugin.Instance?.GetPluginOptions();
 
             var multiVersionSort = options?.GeneralOptions.MultiVersionSort ?? true;
+            var multiVersionFriendlyNames =
+                options?.GeneralOptions.MultiVersionFriendlyNames ?? true;
             var reverseSeasonEpisodeOrder =
                 options?.ExperienceEnhanceOptions.ReverseSeasonEpisodeOrder ?? false;
             var episodeDisplayStyle = options?.ExperienceEnhanceOptions.EpisodeDisplayStyle ??
@@ -29,7 +31,8 @@ namespace StrmAssistant.Web.Helper
             var multiSelectActions = options?.ExperienceEnhanceOptions.MultiSelectActions ?? false;
             var doubanRecommendations = options?.MetadataEnhanceOptions.EnableDoubanRecommendations ?? false;
 
-            return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
+            return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" +
+                   GetVersionNamesScript(multiVersionFriendlyNames) + "\n" + GetPlaybackScript() +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
                    GetCollectionMembershipScript() + "\n" +
                    GetDashboardTasksScript() + "\n" + GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
@@ -61,6 +64,19 @@ namespace StrmAssistant.Web.Helper
         '.strmAssistantEpisodeStats{display:inline-block;margin:.35em 0;padding:.25em .6em;' +
         'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}' +
         '.strmAssistantHiddenBoxSet{display:none!important}' +
+        '.strmAssistantVersionList{display:flex;flex-wrap:wrap;gap:.35em;width:100%;margin-top:.45em}' +
+        '.strmAssistantVersionItem{display:inline-flex;align-items:center;max-width:100%;padding:.25em .65em;' +
+        'border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.06);' +
+        'color:inherit;font:inherit;font-size:.9em;line-height:1.4;cursor:pointer;text-align:left}' +
+        '.strmAssistantVersionItem:hover,.strmAssistantVersionItem:focus{background:rgba(255,255,255,.13)}' +
+        '.strmAssistantVersionItem.strmAssistantVersionSelected{border-color:#52b54b;' +
+        'background:rgba(82,181,75,.2)}' +
+        '.strmAssistantVersionName{overflow-wrap:anywhere}' +
+        '.strmAssistantVersionToken{font-weight:600}' +
+        '.strmAssistantVersionToken-resolution{color:#6fc3ff}' +
+        '.strmAssistantVersionToken-source{color:#8fd694}' +
+        '.strmAssistantVersionToken-codec{color:#ffd166}' +
+        '.strmAssistantVersionToken-audio{color:#d8a7ff}' +
         '.strmAssistantDoubanSection{padding-top:.5em}' +
         '.strmAssistantDoubanMore{margin-left:auto;background:none;border:0;color:inherit;cursor:pointer;' +
         'font-size:.9em;opacity:.75}' +
@@ -853,6 +869,360 @@ namespace StrmAssistant.Web.Helper
             if (sortAttempts > 60) clearInterval(sortTimer);
         }, 2000);
     }
+})();
+";
+        }
+
+        /// <summary>
+        /// Shows readable file names in the multi-version selector. Media source names are
+        /// decorated before Emby renders the select options, and a small highlighted list mirrors
+        /// the same sources without touching the item title or any other lists.
+        /// </summary>
+        private static string GetVersionNamesScript(bool enabled)
+        {
+            return @"
+(function () {
+    'use strict';
+
+    var enabled = " + (enabled ? "true" : "false") + @";
+    if (!enabled) return;
+    if (window.__strmAssistantVersionNamesPatched) return;
+
+    var itemCache = {};
+    var patched = false;
+    var scheduled = false;
+
+    var extensionPattern = /\.(?:mkv|mp4|avi|ts|m2ts|iso|strm|mov|wmv|flv|webm|rmvb|m4v|mpg|mpeg)$/i;
+    var highlightPattern = /\b(?:2160p|1080p|720p|576p|480p|8k|4k|uhd|blu-?ray|bdrip|brrip|remux|web-?dl|webdl|webrip|hdtv|dvdrip|hdrip|amzn|nf|dsnp|atvp|hmax|h\s*26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg-?2|10-?bit|8-?bit|hdr10\+?|hdr|dolby\s+vision|dv|dts(?:-?hd)?(?:\s+ma)?|truehd|atmos|ddp?|eac3|ac3|aac|flac|opus)\b/gi;
+
+    function decode(value) {
+        try { return decodeURIComponent(value); } catch (e) { return value; }
+    }
+
+    function getFileName(source) {
+        if (!source) return '';
+
+        var path = source.Path ? String(source.Path) : '';
+        if (path) {
+            var marker = path.lastIndexOf('?/');
+            if (marker >= 0) {
+                path = path.substring(marker + 2);
+            } else if (/^https?:\/\//i.test(path) && source.Name) {
+                return String(source.Name);
+            } else {
+                var query = path.indexOf('?');
+                if (query >= 0) path = path.substring(0, query);
+                path = path.substring(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1);
+            }
+
+            path = decode(path);
+            if (path) return path;
+        }
+
+        return source.Name ? String(source.Name) : '';
+    }
+
+    function getPrettyName(source) {
+        var name = getFileName(source).replace(extensionPattern, '').replace(/[._]+/g, ' ')
+            .replace(/\s+/g, ' ').trim();
+        return name || (source && source.Name ? String(source.Name) : '');
+    }
+
+    function classifyToken(token) {
+        var value = token.toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ')
+            .replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+        if (/^(?:2160p|1080p|720p|576p|480p|8k|4k|uhd)$/.test(value)) return 'resolution';
+        if (/^(?:blu ray|bdrip|brrip|remux|web dl|webdl|webrip|hdtv|dvdrip|hdrip|amzn|nf|dsnp|atvp|hmax)$/.test(value)) return 'source';
+        if (/^(?:h 26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg 2|10 bit|10bit|8 bit|8bit|hdr10\+?|hdr|dolby vision|dv)$/.test(value)) return 'codec';
+        if (/^(?:dts|dts hd|dts hd ma|truehd|atmos|dd|ddp|eac3|ac3|aac|flac|opus)$/.test(value)) return 'audio';
+        return '';
+    }
+
+    function appendToken(element, token) {
+        var kind = classifyToken(token);
+        var span = document.createElement('span');
+        span.textContent = token;
+        span.className = 'strmAssistantVersionToken' + (kind ? ' strmAssistantVersionToken-' + kind : '');
+        element.appendChild(span);
+    }
+
+    function appendHighlighted(element, text) {
+        var lastIndex = 0;
+        var match;
+        highlightPattern.lastIndex = 0;
+
+        while ((match = highlightPattern.exec(text)) !== null) {
+            if (match.index > lastIndex) {
+                element.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+            }
+            appendToken(element, match[0]);
+            lastIndex = highlightPattern.lastIndex;
+            if (!match[0].length) highlightPattern.lastIndex++;
+        }
+
+        if (lastIndex < text.length) {
+            element.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+    }
+
+    function decorateSource(source) {
+        if (!source) return '';
+
+        var prettyName = source.__strmAssistantFriendlyName;
+        if (!prettyName) {
+            prettyName = getPrettyName(source);
+            source.__strmAssistantFriendlyName = prettyName;
+        }
+        if (prettyName) source.Name = prettyName;
+        return prettyName || '';
+    }
+
+    function rememberSources(sources) {
+        if (!Array.isArray(sources) || sources.length < 2) return;
+        for (var i = 0; i < sources.length; i++) decorateSource(sources[i]);
+    }
+
+    function rememberItem(item) {
+        if (!item || item.Id == null || !Array.isArray(item.MediaSources) ||
+            item.MediaSources.length < 2) return;
+
+        var signature = [];
+        for (var i = 0; i < item.MediaSources.length; i++) {
+            var source = item.MediaSources[i];
+            if (!source) continue;
+
+            var prettyName = decorateSource(source);
+            signature.push((source.Id || '') + '|' + (source.ItemId || '') + '|' + prettyName);
+        }
+
+        itemCache[String(item.Id)] = { item: item, signature: signature.join('||') };
+    }
+
+    function rememberResponse(data) {
+        if (!data || typeof data !== 'object') return;
+        rememberItem(data);
+        if (data.Item && data.Item !== data) rememberItem(data.Item);
+    }
+
+    function findCurrentItem(select) {
+        var ids = {};
+        for (var i = 0; i < select.options.length; i++) ids[select.options[i].value] = true;
+
+        for (var key in itemCache) {
+            if (!Object.prototype.hasOwnProperty.call(itemCache, key)) continue;
+            var entry = itemCache[key];
+            var sources = entry.item.MediaSources || [];
+            for (var j = 0; j < sources.length; j++) {
+                if (ids[sources[j].Id] || ids[sources[j].ItemId]) return entry;
+            }
+        }
+
+        return null;
+    }
+
+    function entryFromOptions(select) {
+        if (!select || select.options.length < 2) return null;
+
+        var sources = [];
+        var signature = [];
+        for (var i = 0; i < select.options.length; i++) {
+            var option = select.options[i];
+            var name = option.textContent || option.value;
+            sources.push({
+                Id: option.value,
+                ItemId: option.value,
+                Name: name
+            });
+            signature.push(option.value + '|' + name);
+        }
+
+        return { item: { MediaSources: sources }, signature: signature.join('||') };
+    }
+
+    function updateSelectLabels(select, entry) {
+        var changed = false;
+        var sources = entry.item.MediaSources || [];
+
+        for (var i = 0; i < select.options.length; i++) {
+            var option = select.options[i];
+            var source = null;
+            for (var j = 0; j < sources.length; j++) {
+                if (sources[j].Id === option.value || sources[j].ItemId === option.value) {
+                    source = sources[j];
+                    break;
+                }
+            }
+
+            var prettyName = source ? decorateSource(source) : '';
+            if (!prettyName) continue;
+            if (option.textContent !== prettyName) {
+                option.textContent = prettyName;
+                changed = true;
+            }
+            if (option.title !== prettyName) option.title = prettyName;
+        }
+
+        if (changed && typeof select.refreshItems === 'function') {
+            select.refreshItems();
+        }
+    }
+
+    function updateSelection(select) {
+        var container = select.closest ? select.closest('.selectSourceContainer') : null;
+        if (!container) return;
+        var buttons = container.querySelectorAll('.strmAssistantVersionItem');
+        for (var i = 0; i < buttons.length; i++) {
+            var selected = buttons[i].getAttribute('data-source-id') === select.value;
+            buttons[i].classList.toggle('strmAssistantVersionSelected', selected);
+            buttons[i].setAttribute('aria-selected', selected ? 'true' : 'false');
+        }
+    }
+
+    function renderVersionList(entry, select) {
+        var container = select.closest ? select.closest('.selectSourceContainer') : null;
+        if (!container) return;
+
+        var list = container.querySelector('.strmAssistantVersionList');
+        if (!list) {
+            list = document.createElement('div');
+            list.className = 'strmAssistantVersionList';
+            list.setAttribute('role', 'listbox');
+            container.appendChild(list);
+        }
+
+        if (list.getAttribute('data-signature') !== entry.signature) {
+            while (list.firstChild) list.removeChild(list.firstChild);
+            list.setAttribute('data-signature', entry.signature);
+
+            for (var i = 0; i < entry.item.MediaSources.length; i++) {
+                (function (source) {
+                    if (!source) return;
+
+                    var button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'strmAssistantVersionItem';
+                    button.setAttribute('role', 'option');
+                    button.setAttribute('data-source-id', source.Id || source.ItemId || '');
+                    button.title = source.__strmAssistantFriendlyName || source.Name || '';
+
+                    var label = document.createElement('span');
+                    label.className = 'strmAssistantVersionName';
+                    appendHighlighted(label, button.title);
+                    button.appendChild(label);
+
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        var sourceId = button.getAttribute('data-source-id');
+                        if (select.value !== sourceId) {
+                            select.value = sourceId;
+                            select.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    });
+
+                    list.appendChild(button);
+                })(entry.item.MediaSources[i]);
+            }
+        }
+
+        updateSelectLabels(select, entry);
+        updateSelection(select);
+    }
+
+    function apply() {
+        var select = document.querySelector('.itemView .selectSource') ||
+            document.querySelector('.selectSource');
+        if (!select) return;
+
+        if (!select.__strmAssistantVersionListBound) {
+            select.__strmAssistantVersionListBound = true;
+            select.addEventListener('change', function () { updateSelection(select); });
+        }
+
+        var entry = findCurrentItem(select) || entryFromOptions(select);
+        if (entry) renderVersionList(entry, select);
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            try { apply(); } catch (e) { }
+        }, 150);
+    }
+
+    function patchApiClient(connectionManager) {
+        if (patched) return true;
+        if (!connectionManager || !connectionManager.currentApiClient) return false;
+
+        var apiClient = connectionManager.currentApiClient();
+        if (!apiClient) return false;
+
+        var proto = Object.getPrototypeOf(apiClient);
+        if (!proto || typeof proto.getJSON !== 'function') return false;
+
+        if (proto.__strmAssistantVersionNamesPatched) {
+            patched = true;
+            return true;
+        }
+
+        var originalGetJSON = proto.getJSON;
+        proto.getJSON = function () {
+            var result = originalGetJSON.apply(this, arguments);
+            if (result && typeof result.then === 'function') {
+                return result.then(function (data) {
+                    try { rememberResponse(data); } catch (e) { }
+                    return data;
+                });
+            }
+            try { rememberResponse(result); } catch (e) { }
+            return result;
+        };
+
+        if (typeof proto.getPlaybackInfo === 'function') {
+            var originalGetPlaybackInfo = proto.getPlaybackInfo;
+            proto.getPlaybackInfo = function () {
+                var result = originalGetPlaybackInfo.apply(this, arguments);
+                if (result && typeof result.then === 'function') {
+                    return result.then(function (response) {
+                        try { rememberSources(response && response.MediaSources); } catch (e) { }
+                        return response;
+                    });
+                }
+                try { rememberSources(result && result.MediaSources); } catch (e) { }
+                return result;
+            };
+        }
+
+        proto.__strmAssistantVersionNamesPatched = true;
+        patched = true;
+        return true;
+    }
+
+    function start() {
+        if (!document.body) {
+            setTimeout(start, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        window.addEventListener('hashchange', schedule);
+        schedule();
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        try {
+            require(['connectionManager']).then(function (modules) {
+                if (patchApiClient(modules && modules[0])) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+
+    start();
 })();
 ";
         }
