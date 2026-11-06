@@ -866,6 +866,12 @@
   <data name="Notification_CollectionUpdate_EventName" xml:space="preserve">
     <value>合集有更新</value>
   </data>
+  <data name="Notification_CollectionItemsAdded_EventName" xml:space="preserve">
+    <value>合集条目已添加</value>
+  </data>
+  <data name="Notification_CollectionItemsRemoved_EventName" xml:space="preserve">
+    <value>合集条目已移除</value>
+  </data>
   <data name="Notification_MetadataUpdate_EventName" xml:space="preserve">
     <value>元数据已更新</value>
   </data>

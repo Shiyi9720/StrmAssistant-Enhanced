@@ -56,7 +56,8 @@ namespace StrmAssistant.Web.Helper
         'font-size:.75em;line-height:1.5;font-weight:600;pointer-events:none;' +
         'box-shadow:0 1px 3px rgba(0,0,0,.4)}' +
         '.strmAssistantEpisodeStats{display:inline-block;margin:.35em 0;padding:.25em .6em;' +
-        'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}';
+        'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}' +
+        '.searchSuggestions{display:none!important}';
     (document.head || document.documentElement).appendChild(style);
 })();
 ";
