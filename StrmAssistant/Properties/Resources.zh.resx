@@ -1209,6 +1209,7 @@
     <value>递归刷新季和集</value>
   </data>
   <data name="RecursiveRefresh_Season_Refresh_Season_Episodes" xml:space="preserve">
+  </data>
     <value>递归刷新本季剧集</value>
   <data name="DistributedExtractOptions_EditorTitle_Distributed_Extract" xml:space="preserve">
     <value>分布式媒体信息提取</value>

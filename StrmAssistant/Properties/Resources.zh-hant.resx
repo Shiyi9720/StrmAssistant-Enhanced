@@ -1209,6 +1209,7 @@
     <value>遞迴重新整理季和集</value>
   </data>
   <data name="RecursiveRefresh_Season_Refresh_Season_Episodes" xml:space="preserve">
+  </data>
     <value>遞迴重新整理本季劇集</value>
   <data name="DistributedExtractOptions_EditorTitle_Distributed_Extract" xml:space="preserve">
     <value>分散式媒體資訊擷取</value>
