@@ -288,6 +288,42 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedDvP5_Enable_Distributed_Dolby_Vision_P5_Chapter_Images.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedDvP5_Enable_Distributed_Dolby_Vision_P5_Chapter_Images {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedDvP5_Enable_Distributed_Dolby_Vision_P5_Chapter_Images", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedDvP5_Offload_Dolby_Vision_Profile_5_chapter_image_extraction_to_worker_nodes__Every_worker_must_have_a_custom_ffmpeg_with_Vulkan_and_libplacebo__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedDvP5_Offload_Dolby_Vision_Profile_5_chapter_image_extraction_to_worker_nodes__Every_worker_must_have_a_custom_ffmpeg_with_Vulkan_and_libplacebo__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedDvP5_Offload_Dolby_Vision_Profile_5_chapter_image_extraction_to_worker_nodes__Every_worker_must_have_a_custom_ffmpeg_with_Vulkan_and_libplacebo__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedHdrVivid_Enable_Distributed_HDR_Vivid_Detection.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedHdrVivid_Enable_Distributed_HDR_Vivid_Detection {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedHdrVivid_Enable_Distributed_HDR_Vivid_Detection", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedHdrVivid_Offload_HDR_Vivid_detection_to_worker_nodes__The_worker_probes_the_first_video_frame_with_its_own_ffprobe__When_no_worker_is_reachable_or_returns_no_result_the_detection_falls_back_to_local_extraction__Default_is_False_.
+        /// </summary>
+        public static string DistributedExtractOptions_EnableDistributedHdrVivid_Offload_HDR_Vivid_detection_to_worker_nodes__The_worker_probes_the_first_video_frame_with_its_own_ffprobe__When_no_worker_is_reachable_or_returns_no_result_the_detection_falls_back_to_local_extraction__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("DistributedExtractOptions_EnableDistributedHdrVivid_Offload_HDR_Vivid_detection_to_worker_nodes__The_worker_probes_the_first_video_frame_with_its_own_ffprobe__When_no_worker_is_reachable_or_returns_no_result_the_detection_falls_back_to_local_extraction__Default_is_False_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction.
         /// </summary>
         public static string DistributedExtractOptions_EnableDistributedThumbnail_Enable_Distributed_Thumbnail_Extraction {
