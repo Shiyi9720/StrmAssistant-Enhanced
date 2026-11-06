@@ -1094,6 +1094,18 @@
   <data name="MediaInfoExtractOptions_IsoExtractionWaitSeconds_How_long_a_playback_request_waits_for_the_first_extraction_before_it_continues_in_the_background__It_must_be_between_10_and_600__Default_is_60_" xml:space="preserve">
     <value>How long a playback request waits for the first extraction before it continues in the background. It must be between 10 and 600. Default is 60.</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction" xml:space="preserve">
+    <value>Disc Media Info Extraction</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Probe_ISO_images_and_BDMV_VIDEO_TS_folders_and_extract_full_media_info_from_the_main_video__Default_is_True_" xml:space="preserve">
+    <value>Probe ISO images and BDMV/VIDEO_TS folders and extract full media info from the main video. Default is True.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_Disc_Extraction_Timeout_Seconds" xml:space="preserve">
+    <value>Disc Extraction Timeout Seconds</value>
+  </data>
+  <data name="MediaInfoExtractOptions_DiscMediaInfoExtractionTimeoutSeconds_How_long_the_media_info_task_waits_for_an_ISO_extraction_before_it_continues_in_the_background__It_must_be_between_60_and_7200__Default_is_600_" xml:space="preserve">
+    <value>How long the media info task waits for an ISO extraction before it continues in the background. It must be between 60 and 7200. Default is 600.</value>
+  </data>
   <data name="IsoExtractTask_Name_Extract_ISO_Video" xml:space="preserve">
     <value>Extract ISO Video</value>
   </data>
