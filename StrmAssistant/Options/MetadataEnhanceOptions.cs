@@ -28,6 +28,21 @@ namespace StrmAssistant.Options
         Off
     }
 
+    public enum RefreshPersonScopeOption
+    {
+        [DescriptionL("RefreshPersonScopeOption_FollowRefreshMode_Follow_Refresh_Mode", typeof(Resources))]
+        FollowRefreshMode,
+
+        [DescriptionL("RefreshPersonScopeOption_MissingChineseName_Missing_Chinese_Name_Only", typeof(Resources))]
+        MissingChineseName,
+
+        [DescriptionL("RefreshPersonScopeOption_AllPersons_All_Persons", typeof(Resources))]
+        AllPersons,
+
+        [DescriptionL("RefreshPersonScopeOption_MainCast_Main_Cast_Only", typeof(Resources))]
+        MainCast
+    }
+
     public enum ChineseMetadataOrderOption
     {
         [DescriptionL("ChineseMetadataOrderOption_LibraryDefault_Library_Default", typeof(Resources))]
@@ -161,6 +176,43 @@ namespace StrmAssistant.Options
 
             return RefreshPersonModeOption.Auto;
         }
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonScope_Refresh_Scope", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonScope_Follow_Refresh_Mode_keeps_the_existing_Auto_and_Manual_behaviour__Missing_Chinese_Name_Only_processes_persons_without_a_Chinese_name__All_Persons_processes_every_person__Main_Cast_Only_limits_the_task_to_actors_in_the_main_cast_lists__Default_is_Follow_Refresh_Mode_", typeof(Resources))]
+        public RefreshPersonScopeOption RefreshPersonScope { get; set; } =
+            RefreshPersonScopeOption.FollowRefreshMode;
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_Locked_Persons", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonSkipLockedPeople_Skip_persons_marked_as_locked__Default_is_ON_", typeof(Resources))]
+        public bool RefreshPersonSkipLockedPeople { get; set; } = true;
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_Persons_Without_TMDB_Id", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonSkipMissingTmdbId_Skip_persons_that_have_no_TMDB_person_id__Default_is_ON_", typeof(Resources))]
+        public bool RefreshPersonSkipMissingTmdbId { get; set; } = true;
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_Recently_Refreshed_Persons", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonSkipRecentlyRefreshed_Skip_persons_that_were_refreshed_within_the_configured_number_of_days__Default_is_ON_", typeof(Resources))]
+        public bool RefreshPersonSkipRecentlyRefreshed { get; set; } = true;
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Skip_Recently_Refreshed_Days", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonRecentRefreshDays_Number_of_days_used_by_the_recently_refreshed_skip_rule__Default_is_30_", typeof(Resources))]
+        [Required, MinValue(1), MaxValue(3650)]
+        [VisibleCondition(nameof(RefreshPersonSkipRecentlyRefreshed), SimpleCondition.IsTrue)]
+        public int RefreshPersonRecentRefreshDays { get; set; } = 30;
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_Chinese_Server_Language", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_the_server_preferred_metadata_language_to_be_Chinese_for_automatic_runs__Manual_runs_can_always_be_triggered__Default_is_ON_", typeof(Resources))]
+        public bool RefreshPersonRequireChineseLanguage { get; set; } = true;
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Max_Concurrent_Count", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Number_of_persons_refreshed_in_parallel__It_must_be_between_1_and_4__Default_is_1_", typeof(Resources))]
+        [Required, MinValue(1), MaxValue(4)]
+        public int RefreshPersonMaxConcurrentCount { get; set; } = 1;
+
+        [DisplayNameL("MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Request_Interval__Milliseconds_", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_", typeof(Resources))]
+        [Required, MinValue(0), MaxValue(10000)]
+        public int RefreshPersonRequestIntervalMs { get; set; } = 250;
 
         public enum EpisodeRefreshOption
         {
