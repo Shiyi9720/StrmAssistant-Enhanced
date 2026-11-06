@@ -35,7 +35,7 @@ namespace StrmAssistant.Common
         public static ConcurrentQueue<BaseItem> MediaInfoExtractItemQueue = new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<Episode> IntroSkipItemQueue = new ConcurrentQueue<Episode>();
         public static ConcurrentQueue<BaseItem> FingerprintItemQueue = new ConcurrentQueue<BaseItem>();
-        public static ConcurrentQueue<Episode> EpisodeRefreshItemQueue = new ConcurrentQueue<Episode>(); 
+        public static ConcurrentQueue<BaseItem> EpisodeRefreshItemQueue = new ConcurrentQueue<BaseItem>();
         public static Task MediaInfoProcessTask;
         public static Task FingerprintProcessTask;
         public static Task EpisodeRefreshProcessTask;
@@ -707,7 +707,7 @@ namespace StrmAssistant.Common
             EpisodeRefreshTokenSource = new CancellationTokenSource();
             var cancellationToken = EpisodeRefreshTokenSource.Token;
 
-            var dequeueItems = new List<Episode>();
+            var dequeueItems = new List<BaseItem>();
             var tasks = new List<Task>();
 
             while (!cancellationToken.IsCancellationRequested)
@@ -786,7 +786,7 @@ namespace StrmAssistant.Common
                                         return;
                                     }
 
-                                    await Plugin.LibraryApi.RefreshEpisodeMetadata(taskItem, cancellationToken)
+                                    await Plugin.LibraryApi.RefreshItemMetadata(taskItem, cancellationToken)
                                         .ConfigureAwait(false);
 
                                     Logger.Info("EpisodeRefresh - Item processed: " + taskItem.Name + " - " +

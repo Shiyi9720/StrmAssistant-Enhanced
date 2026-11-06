@@ -1223,4 +1223,19 @@
   <data name="NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_" xml:space="preserve">
     <value>透過 UDP 探索與系統公開資訊介面向區域網路用戶端公布的位址。可填寫本機反向代理位址；填寫 BLOCKED 可停用 UDP 回應。修改後需重新啟動生效。預設為空。</value>
   </data>
+  <data name="MovieRefreshOptions_EditorTitle_Movie_Metadata_Refresh" xml:space="preserve">
+    <value>電影中繼資料重新整理</value>
+  </data>
+  <data name="MovieRefreshOptions_EnableMovieRefresh_Enable_Movie_Refresh" xml:space="preserve">
+    <value>啟用電影重新整理</value>
+  </data>
+  <data name="MovieRefreshOptions_EnableMovieRefresh_Refresh_movies_with_the_same_rules_as_episodes__missing_overview__missing_image_or_non_Chinese_overview__Items_are_scoped_by_the_episode_refresh_lookback_days_against_the_date_added__Default_is_OFF_" xml:space="preserve">
+    <value>依與劇集相同的規則重新整理電影：缺少簡介、缺少圖片或簡介非中文。條目依加入媒體庫的時間與劇集重新整理的回溯天數篩選。預設為關閉。</value>
+  </data>
+  <data name="MovieRefreshTask_Name_Refresh_Movie" xml:space="preserve">
+    <value>重新整理電影</value>
+  </data>
+  <data name="MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview" xml:space="preserve">
+    <value>重新整理缺少簡介、圖片或中文簡介的電影中繼資料。</value>
+  </data>
 </root>
