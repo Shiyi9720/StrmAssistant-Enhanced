@@ -2718,6 +2718,24 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonMode_Refresh_Chinese_Actor.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonMode_Refresh_Chinese_Actor {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonMode_Refresh_Chinese_Actor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_RefreshPersonMode_Automatic_only_runs_when_the_server_preferred_metadata_language_is_Chinese_and_skips_recently_refreshed_persons__Manual_always_performs_a_full_refresh_when_triggered_even_when_the_server_language_is_not_Chinese__Off_disables_the_task_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_RefreshPersonMode_Automatic_only_runs_when_the_server_preferred_metadata_language_is_Chinese_and_skips_recently_refreshed_persons__Manual_always_performs_a_full_refresh_when_triggered_even_when_the_server_language_is_not_Chinese__Off_disables_the_task_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_RefreshPersonMode_Automatic_only_runs_when_the_server_preferred_metadata_language_is_Chinese_and_skips_recently_refreshed_persons__Manual_always_performs_a_full_refresh_when_triggered_even_when_the_server_language_is_not_Chinese__Off_disables_the_task_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to ModOptions_ChineseMovieDb_Chinese_MovieDb.
         /// </summary>
         public static string ModOptions_ChineseMovieDb_Chinese_MovieDb {
@@ -3740,6 +3758,33 @@ namespace StrmAssistant.Properties
         public static string RefreshPersonTask_Name_Refresh_Chinese_Actor {
             get {
                 return ResourceManager.GetString("RefreshPersonTask_Name_Refresh_Chinese_Actor", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshPersonModeOption_Auto_Automatic.
+        /// </summary>
+        public static string RefreshPersonModeOption_Auto_Automatic {
+            get {
+                return ResourceManager.GetString("RefreshPersonModeOption_Auto_Automatic", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshPersonModeOption_Manual_Manual__Full_Refresh_.
+        /// </summary>
+        public static string RefreshPersonModeOption_Manual_Manual__Full_Refresh_ {
+            get {
+                return ResourceManager.GetString("RefreshPersonModeOption_Manual_Manual__Full_Refresh_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshPersonModeOption_Off_Off.
+        /// </summary>
+        public static string RefreshPersonModeOption_Off_Off {
+            get {
+                return ResourceManager.GetString("RefreshPersonModeOption_Off_Off", resourceCulture);
             }
         }
 
