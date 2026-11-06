@@ -872,6 +872,12 @@
   <data name="Notification_CollectionUpdate_EventName" xml:space="preserve">
     <value>合集有更新</value>
   </data>
+  <data name="Notification_CollectionItemsAdded_EventName" xml:space="preserve">
+    <value>合集条目已添加</value>
+  </data>
+  <data name="Notification_CollectionItemsRemoved_EventName" xml:space="preserve">
+    <value>合集条目已移除</value>
+  </data>
   <data name="Notification_MetadataUpdate_EventName" xml:space="preserve">
     <value>元数据已更新</value>
   </data>
@@ -1255,5 +1261,20 @@
   </data>
   <data name="NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_" xml:space="preserve">
     <value>通过 UDP 发现和系统公开信息接口向局域网客户端公布的地址。可填写本地反代地址；填写 BLOCKED 可禁用 UDP 应答。修改后需重启生效。默认为空。</value>
+  </data>
+  <data name="MovieRefreshOptions_EditorTitle_Movie_Metadata_Refresh" xml:space="preserve">
+    <value>电影元数据刷新</value>
+  </data>
+  <data name="MovieRefreshOptions_EnableMovieRefresh_Enable_Movie_Refresh" xml:space="preserve">
+    <value>启用电影刷新</value>
+  </data>
+  <data name="MovieRefreshOptions_EnableMovieRefresh_Refresh_movies_with_the_same_rules_as_episodes__missing_overview__missing_image_or_non_Chinese_overview__Items_are_scoped_by_the_episode_refresh_lookback_days_against_the_date_added__Default_is_OFF_" xml:space="preserve">
+    <value>按与剧集相同的规则刷新电影：缺少简介、缺少图片或简介非中文。条目按加入媒体库的时间与剧集刷新的回溯天数筛选。默认关闭。</value>
+  </data>
+  <data name="MovieRefreshTask_Name_Refresh_Movie" xml:space="preserve">
+    <value>刷新电影</value>
+  </data>
+  <data name="MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview" xml:space="preserve">
+    <value>刷新缺少简介、图片或中文简介的电影元数据。</value>
   </data>
 </root>
