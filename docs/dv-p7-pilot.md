@@ -2,7 +2,7 @@
 
 - 日期：2026-11-06
 - 批次：第二十三批（第一步 + 第二步试点）
-- 结论：**本机没有原盘 ISO；用户提供了 NAS 上三张盘的路径，但 Mac 登录钥匙串里没有 SMB 凭据，匿名/guest/当前用户挂载均被服务器拒绝。按任务要求停在试点这一步，未索要或猜测密码，未用合成样例冒充真盘证据，也未开始检测功能的代码实现。**
+- 结论：**本机没有原盘 ISO；用户提供了 NAS 上三张盘的路径，但 Mac 登录钥匙串里没有 SMB 凭据，匿名/guest/当前用户挂载均被服务器拒绝。NAS 升级完成后（22:40）重试，结果相同。按任务要求停在试点这一步，未索要或猜测密码，未用合成样例冒充真盘证据，也未开始检测功能的代码实现。**
 
 ## 一、目标
 
@@ -173,6 +173,35 @@ mount_smbfs: server rejected the connection: Authentication error   (exit 77)
 4. 告诉本会话挂载点，或直接告诉三张 ISO 的绝对路径。
 
 之后本会话即可用 `/tmp/ffprobe-static/ffprobe` 直接跑试点，不需要再接触凭据。
+
+### 6.7 NAS 升级后重试（22:40）
+
+用户告知 NAS 刚完成升级，可能是上次认证失败的原因。升级完成后重新检查：
+
+```
+$ ping -c 2 192.168.31.51                 → 2/2 通，约 5.5ms
+$ nc -z 192.168.31.51 445                 → succeeded
+$ nc -z 192.168.31.51 139                 → succeeded
+$ dns-sd -B _smb._tcp local               → SHIYIFNOS
+
+$ smbutil view //192.168.31.51
+smbutil: server rejected the authentication: Authentication error
+
+$ smbutil view -G //192.168.31.51         # 允许 guest
+smbutil: server rejected the authentication: Authentication error
+
+$ mount_smbfs -N -o nopassprompt,nobrowse //192.168.31.51/CloudDrive /tmp/nasmount
+mount_smbfs: server rejected the connection: Authentication error   (exit 77)
+
+$ mount_smbfs -N -o nopassprompt,nobrowse //guest@192.168.31.51/CloudDrive /tmp/nasmount
+mount_smbfs: server rejected the connection: Authentication error   (exit 77)
+```
+
+钥匙串复查同样没有变化：按 IP、主机名、主机名小写、`主机名.local`、`-r "smb "` 均未找到；
+`~/Library/Preferences/nsmb.conf` 仍不存在。
+
+结论：**升级后 SMB 认证依旧要求账号密码，本机钥匙串里仍没有该凭据**。
+按红线立刻停住，没有弹密码框、没有猜测密码、没有继续重试。
 
 ## 七、本批状态
 
