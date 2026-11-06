@@ -345,6 +345,58 @@
                 failureText);
         },
 
+        toggle_boxset_home: function (libraryId, libraryName, hide) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = hide
+                ? (locale === 'zh-cn' ? '\u9690\u85cf\u5408\u96c6\u5e93' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u96b1\u85cf\u5408\u96c6\u5eab' : 'Hide Collection Library'))
+                : (locale === 'zh-cn' ? '\u663e\u793a\u5408\u96c6\u5e93' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u986f\u793a\u5408\u96c6\u5eab' : 'Show Collection Library'));
+            const confirmText = hide
+                ? (locale === 'zh-cn' ? '\u786e\u5b9a\u8981\u5c06 {0} \u4ece\u9996\u9875\u9690\u85cf\u5417\uff1f' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u78ba\u5b9a\u8981\u5c07 {0} \u5f9e\u9996\u9801\u96b1\u85cf\u55ce\uff1f' :
+                        'Hide {0} from the home screen?'))
+                : (locale === 'zh-cn' ? '\u786e\u5b9a\u8981\u5c06 {0} \u663e\u793a\u5728\u9996\u9875\u5417\uff1f' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u78ba\u5b9a\u8981\u5c07 {0} \u986f\u793a\u5728\u9996\u9801\u55ce\uff1f' :
+                        'Show {0} on the home screen?'));
+            const successText = hide
+                ? (locale === 'zh-cn' ? '\u5df2\u4ece\u9996\u9875\u9690\u85cf' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u5df2\u5f9e\u9996\u9801\u96b1\u85cf' : 'Hidden from Home'))
+                : (locale === 'zh-cn' ? '\u5df2\u663e\u793a\u5728\u9996\u9875' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '\u5df2\u986f\u793a\u5728\u9996\u9801' : 'Shown on Home'));
+            const failureText = locale === 'zh-cn' ? '\u64cd\u4f5c\u5931\u8d25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64cd\u4f5c\u5931\u6557' : 'Operation Failed');
+
+            return confirm({
+                text: confirmText.replace('{0}', libraryName),
+                title: title,
+                confirmText: title,
+                primary: 'cancel'
+            }).then(function () {
+                loading.show();
+
+                const apiClient = connectionManager.currentApiClient();
+
+                return apiClient.ajax({
+                    type: 'POST',
+                    url: apiClient.getUrl('StrmAssistant/BoxSets/' + libraryId + '/HomeVisibility?Hidden=' +
+                        (hide ? 'true' : 'false')),
+                    data: {},
+                    contentType: 'application/json'
+                }).then(function () {
+                    window.strmAssistantHiddenBoxSets = window.strmAssistantHiddenBoxSets || {};
+                    if (hide) window.strmAssistantHiddenBoxSets[libraryId] = true;
+                    else delete window.strmAssistantHiddenBoxSets[libraryId];
+                    window.dispatchEvent(new Event('strmAssistantBoxSetVisibilityChanged'));
+                    toast(successText);
+                }, function () {
+                    toast(failureText);
+                }).finally(function () {
+                    loading.hide();
+                });
+            }, function () { });
+        },
+
         clear_intro: function (itemId) {
             const locale = globalize.getCurrentLocale().toLowerCase();
             const commandName = locale === 'zh-cn' ? '\u6E05\u9664\u7247\u5934\u6807\u8BB0' : 
