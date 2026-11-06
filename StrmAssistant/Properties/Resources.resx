@@ -1517,4 +1517,7 @@
   <data name="PinyinSortNameTask_Description_Convert_Chinese_titles_of_movies_series_seasons_and_episodes_to_pinyin_initials_and_write_them_to_the_sort_title" xml:space="preserve">
     <value>Convert Chinese titles of movies, series, seasons and episodes to pinyin initials and write them to the sort title.</value>
   </data>
+  <data name="AudioEffect_Label_Audio_effect" xml:space="preserve">
+    <value>Audio effect</value>
+  </data>
 </root>
