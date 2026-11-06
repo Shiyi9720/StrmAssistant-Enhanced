@@ -517,6 +517,12 @@ namespace StrmAssistant.Common
 
         public bool IsExtractNeeded(BaseItem item, bool enableImageCapture)
         {
+            // ISO images and Blu-ray/DVD folders are handled by their own probe path.
+            if (Plugin.DiscMediaInfoApi?.IsSupported(item) is true)
+            {
+                return !HasMediaInfo(item);
+            }
+
             if (item.MediaContainer.HasValue && ExcludeMediaContainers.Contains(item.MediaContainer.Value))
                 return false;
 
@@ -684,13 +690,14 @@ namespace StrmAssistant.Common
             if (string.IsNullOrEmpty(filePath)) return null;
 
             var fileExtension = Path.GetExtension(filePath).TrimStart('.');
-            var extractSkip = mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension);
+            var isDisc = Plugin.DiscMediaInfoApi?.IsSupported(taskItem) is true;
+            var extractSkip = !isDisc && (mediaInfoRestoreMode || ExcludeMediaExtensions.Contains(fileExtension));
 
             var refreshOptions = Plugin.MediaInfoApi.GetMediaInfoRefreshOptions();
 
             var directoryService = refreshOptions.DirectoryService;
 
-            if (Uri.TryCreate(filePath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
+            if (!isDisc && Uri.TryCreate(filePath, UriKind.Absolute, out var uri) && uri.IsAbsoluteUri &&
                 uri.Scheme == Uri.UriSchemeFile)
             {
                 var file = directoryService.GetFile(filePath);
@@ -730,7 +737,62 @@ namespace StrmAssistant.Common
                 }
             }
 
+            if (isDisc)
+            {
+                // Restore mode must never probe; a missing JSON stays missing.
+                if (mediaInfoRestoreMode) return null;
+
+                taskItem.DateLastRefreshed = new DateTimeOffset();
+
+                var discExtracted = await Plugin.DiscMediaInfoApi
+                    .ExtractAsync(taskItem, cancellationToken).ConfigureAwait(false);
+
+                if (!discExtracted) return null;
+
+                if (taskItem is Video &&
+                    Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                {
+                    await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, refreshOptions, false, false)
+                        .ConfigureAwait(false);
+                }
+
+                Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(taskItem, source);
+
+                if (persistMediaInfo)
+                {
+                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
+                        .ConfigureAwait(false);
+                }
+
+                return true;
+            }
+
             if (extractSkip) return null;
+
+            // Optional distributed extraction: worker nodes probe the resolved media path. Any
+            // failure returns false silently and the local refresh below stays the fallback.
+            var distributedExtracted = await Plugin.DistributedExtractApi
+                .TryExtractAsync(taskItem, filePath, source, cancellationToken).ConfigureAwait(false);
+
+            if (distributedExtracted)
+            {
+                if (taskItem is Video &&
+                    Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                {
+                    await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, refreshOptions, false, false)
+                        .ConfigureAwait(false);
+                }
+
+                Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(taskItem, source);
+
+                if (persistMediaInfo)
+                {
+                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
+                        .ConfigureAwait(false);
+                }
+
+                return true;
+            }
 
             taskItem.DateLastRefreshed = new DateTimeOffset();
 
