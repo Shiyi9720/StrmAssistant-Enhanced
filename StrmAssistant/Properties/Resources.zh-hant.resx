@@ -1286,4 +1286,22 @@
   <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
     <value>按媒體庫分別記錄電影收藏，在 A 庫收藏不會影響 B 庫的同一影片，取消收藏也只影響當前庫。僅對網頁客戶端中的電影生效。更改後需重啟 Emby。預設為關閉。</value>
   </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command" xml:space="preserve">
+    <value>顯示重新探測片頭命令</value>
+  </data>
+  <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_a_Re_detect_Intro_command_for_a_series_or_a_season_in_the_shortcut_menu__It_clears_that_season_s_existing_intro_and_credits_markers_and_runs_intro_detection_again__Default_is_ON_" xml:space="preserve">
+    <value>在劇集或季的快捷選單中顯示「重新探測片頭」命令。會先清除該季現有的片頭與片尾標記，再重新執行片頭探測。預設為開啟。</value>
+  </data>
+  <data name="IntroRedetect_CommandName_Re_detect_Intro" xml:space="preserve">
+    <value>重新探測片頭</value>
+  </data>
+  <data name="IntroRedetect_Started_Intro_re_detection_started" xml:space="preserve">
+    <value>已開始重新探測片頭</value>
+  </data>
+  <data name="IntroRedetect_AlreadyRunning_Intro_re_detection_is_already_running" xml:space="preserve">
+    <value>重新探測片頭正在進行中</value>
+  </data>
+  <data name="IntroRedetect_Failed_Failed_to_start_intro_re_detection" xml:space="preserve">
+    <value>啟動重新探測片頭失敗</value>
+  </data>
 </root>
