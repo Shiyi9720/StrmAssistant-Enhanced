@@ -19,6 +19,46 @@ namespace StrmAssistant.Options
         [Required]
         public bool IncludeExtra { get; set; } = false;
 
+        [Browsable(false)]
+        public bool IsModSupported => Plugin.Instance?.IsModSupported == true;
+
+        [DisplayNameL("ModOptions_ExclusiveExtract_Exclusive_Extract", typeof(Resources))]
+        [DescriptionL("ModOptions_ExclusiveExtract_Only_allow_this_plugin_to_extract_media_info__ffprobe__and_capture_image__ffmpeg___Default_is_OFF_", typeof(Resources))]
+        [Required]
+        [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
+        public bool ExclusiveExtract { get; set; } = false;
+
+        public enum ExclusiveControl
+        {
+            [DescriptionL("ExclusiveControl_IgnoreFileChange_IgnoreFileChange", typeof(Resources))]
+            IgnoreFileChange,
+            [DescriptionL("ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange", typeof(Resources))]
+            ExtractOnFileChange,
+            [DescriptionL("ExclusiveControl_CatchAllAllow_CatchAllAllow", typeof(Resources))]
+            CatchAllAllow,
+            [DescriptionL("ExclusiveControl_CatchAllBlock_CatchAllBlock", typeof(Resources))]
+            CatchAllBlock,
+            [DescriptionL("ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange", typeof(Resources))]
+            IgnoreExtSubChange,
+            [DescriptionL("ExclusiveControl_NoPersistIntegration_NoPersistIntegration", typeof(Resources))]
+            NoPersistIntegration,
+            [DescriptionL("ExclusiveControl_NoIntroProtect_NoIntroProtect", typeof(Resources))]
+            NoIntroProtect,
+            [DescriptionL("ExclusiveControl_NoNfoSaverOptimization_No_Nfo_Saver_Optimization", typeof(Resources))]
+            NoNfoSaverOptimization,
+            [DescriptionL("ExclusiveControl_ExtractAlternative_ExtractAlternative", typeof(Resources))]
+            ExtractAlternative
+        }
+
+        [Browsable(false)]
+        public List<EditorSelectOption> ExclusiveControlList { get; set; } = new List<EditorSelectOption>();
+
+        [DisplayNameL("MediaInfoExtractOptions_ExclusiveExtractFeatureControl_Exclusive_Extract_Feature_Control", typeof(Resources))]
+        [EditMultilSelect]
+        [SelectItemsSource(nameof(ExclusiveControlList))]
+        [VisibleCondition(nameof(ExclusiveExtract), SimpleCondition.IsTrue)]
+        public string ExclusiveControlFeatures { get; set; } = string.Empty;
+
         [DisplayNameL("MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_CustomFfprobeArguments_Extra_arguments_inserted_before_the_input_for_ffprobe_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", typeof(Resources))]
         public string CustomFfprobeArguments { get; set; } = string.Empty;

@@ -11,6 +11,7 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Querying;
+using StrmAssistant.Mod;
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using System;
@@ -680,6 +681,8 @@ namespace StrmAssistant.Common
             var persistMediaInfo = (taskItem is Video || taskItem is Audio) &&
                                    persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
+
+            ExclusiveExtract.AllowExtractInstance(taskItem);
 
             var filePath = taskItem.Path;
             if (taskItem.IsShortcut)
