@@ -1571,4 +1571,22 @@
     <value>為尚無快取評分的電影和劇集取得豆瓣評分；請求有限速，任務可隨時取消。</value>
   </data>
   </data>
+  <data name="MetadataEnhanceOptions_EnableMovieDbCache_Enable_TMDB_Disk_Cache" xml:space="preserve">
+    <value>啟用 TMDB 磁碟快取</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableMovieDbCache_Cache_TMDB_search_and_detail_json_responses_on_disk_so_transient_network_errors_and_rate_limits_do_not_break_scraping__Only_GET_responses_are_cached__Default_is_OFF_" xml:space="preserve">
+    <value>將 TMDB 搜尋與詳情 JSON 回應快取到磁碟，網路抖動或介面限流時仍可繼續刮削。僅快取 GET 回應。預設關閉。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheTtlDays_Cache_TTL__Days_" xml:space="preserve">
+    <value>快取有效期（天）</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheTtlDays_Number_of_days_a_cached_TMDB_response_stays_fresh__It_must_be_between_1_and_365__Default_is_30_" xml:space="preserve">
+    <value>快取回應保持新鮮的天數。必須在 1 到 365 之間。預設 30。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Maximum_Cache_Size__MB_" xml:space="preserve">
+    <value>最大快取大小（MB）</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieDbCacheMaxSizeMb_Upper_limit_of_the_TMDB_disk_cache__Least_recently_used_entries_are_evicted_when_it_is_exceeded__It_must_be_between_16_and_4096__Default_is_256_" xml:space="preserve">
+    <value>TMDB 磁碟快取的上限。超出後按最近最少使用（LRU）淘汰。必須在 16 到 4096 之間。預設 256。</value>
+  </data>
 </root>

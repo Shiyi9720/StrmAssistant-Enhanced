@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -282,8 +283,25 @@ namespace StrmAssistant.Common
         {
             public string Url { get; set; }
             public bool IsTmdbApiRequest { get; set; }
+            public bool IsCacheable { get; set; }
             public bool IsConfigurationRequest { get; set; }
             public bool RequestedSimplifiedChinese { get; set; }
+        }
+
+        private static bool IsCacheableApiPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+
+            if (string.Equals(path.TrimEnd('/'), "/3/configuration", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return path.StartsWith("/3/search/", StringComparison.OrdinalIgnoreCase) ||
+                   path.StartsWith("/3/movie/", StringComparison.OrdinalIgnoreCase) ||
+                   path.StartsWith("/3/tv/", StringComparison.OrdinalIgnoreCase) ||
+                   path.StartsWith("/3/person/", StringComparison.OrdinalIgnoreCase) ||
+                   path.StartsWith("/3/collection/", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -492,6 +510,7 @@ namespace StrmAssistant.Common
             if (isApiHost)
             {
                 result.IsTmdbApiRequest = true;
+                result.IsCacheable = IsCacheableApiPath(uri.AbsolutePath);
                 result.IsConfigurationRequest = string.Equals(uri.AbsolutePath.TrimEnd('/'), "/3/configuration",
                     StringComparison.OrdinalIgnoreCase);
 
@@ -680,6 +699,7 @@ namespace StrmAssistant.Common
             public string ResponseImageBaseUrl { get; set; }
             public bool ConvertSimplifiedToTraditional { get; set; }
             public string OriginalLanguageCacheKey { get; set; }
+            public string CacheableUrl { get; set; }
         }
 
         private static string GetOriginalLanguageCacheKey(string url)
@@ -723,7 +743,8 @@ namespace StrmAssistant.Common
                 ConvertSimplifiedToTraditional =
                     rewrite.RequestedSimplifiedChinese &&
                     Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional,
-                OriginalLanguageCacheKey = originalLanguageCacheKey
+                OriginalLanguageCacheKey = originalLanguageCacheKey,
+                CacheableUrl = rewrite.IsCacheable ? rewrite.Url : null
             };
         }
 
@@ -810,17 +831,152 @@ namespace StrmAssistant.Common
                 _httpClient = httpClient;
             }
 
-            private async Task<HttpResponseInfo> SendAsync(HttpRequestOptions options, Func<Task<HttpResponseInfo>> send)
+            private async Task<HttpResponseInfo> SendAsync(HttpRequestOptions options,
+                Func<Task<HttpResponseInfo>> send, bool isGet)
             {
                 var prepared = Prepare(options);
-                var response = await send().ConfigureAwait(false);
+                var cacheKey = isGet && !string.IsNullOrEmpty(prepared?.CacheableUrl)
+                    ? MovieDbCache.Instance.GetKey(prepared.CacheableUrl)
+                    : null;
+
+                if (!string.IsNullOrEmpty(cacheKey) &&
+                    MovieDbCache.Instance.TryGet(cacheKey, false, out var cached, out _))
+                {
+                    return await PostProcessAsync(prepared, CreateCachedResponse(cached, false))
+                        .ConfigureAwait(false);
+                }
+
+                HttpResponseInfo response;
+
+                try
+                {
+                    response = await send().ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    if (!string.IsNullOrEmpty(cacheKey) && !options.CancellationToken.IsCancellationRequested &&
+                        MovieDbCache.Instance.TryGet(cacheKey, true, out var stale, out _))
+                    {
+                        LogStaleFallback(prepared.CacheableUrl, e.Message);
+
+                        return await PostProcessAsync(prepared, CreateCachedResponse(stale, true))
+                            .ConfigureAwait(false);
+                    }
+
+                    throw;
+                }
+
+                if (!string.IsNullOrEmpty(cacheKey) && !IsSuccessful(response) &&
+                    MovieDbCache.Instance.TryGet(cacheKey, true, out var staleResponse, out _))
+                {
+                    LogStaleFallback(prepared.CacheableUrl,
+                        response is null ? "no response" : ((int)response.StatusCode).ToString());
+
+                    try
+                    {
+                        response?.Content?.Dispose();
+                    }
+                    catch
+                    {
+                        // Best effort cleanup only.
+                    }
+
+                    return await PostProcessAsync(prepared, CreateCachedResponse(staleResponse, true))
+                        .ConfigureAwait(false);
+                }
+
+                if (!string.IsNullOrEmpty(cacheKey) && IsSuccessful(response) && IsJsonResponse(response))
+                {
+                    var body = await ReadBodyAsync(response).ConfigureAwait(false);
+
+                    if (!string.IsNullOrEmpty(body))
+                    {
+                        MovieDbCache.Instance.Store(cacheKey, prepared.CacheableUrl, body,
+                            response.ContentType);
+                    }
+                }
 
                 return await PostProcessAsync(prepared, response).ConfigureAwait(false);
             }
 
+            private static bool IsSuccessful(HttpResponseInfo response)
+            {
+                if (response is null) return false;
+
+                var statusCode = (int)response.StatusCode;
+                return statusCode >= 200 && statusCode < 300;
+            }
+
+            private static async Task<string> ReadBodyAsync(HttpResponseInfo response)
+            {
+                if (response?.Content is null) return null;
+
+                var buffer = new MemoryStream();
+                var completed = true;
+
+                try
+                {
+                    await response.Content.CopyToAsync(buffer).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    completed = false;
+                    Plugin.Instance?.Logger?.Debug("MovieDb cache - Response read failed: " + e.Message);
+                }
+
+                var bytes = buffer.ToArray();
+
+                try
+                {
+                    response.Content.Dispose();
+                }
+                catch
+                {
+                    // Best effort cleanup only.
+                }
+
+                response.Content = new MemoryStream(bytes);
+                response.ContentLength = bytes.Length;
+
+                if (!completed || bytes.Length == 0) return null;
+
+                var body = Encoding.UTF8.GetString(bytes);
+
+                return body.Length > 0 && body[0] == '\uFEFF' ? body.Substring(1) : body;
+            }
+
+            private static HttpResponseInfo CreateCachedResponse(MovieDbCacheEntry entry, bool stale)
+            {
+                var bytes = Encoding.UTF8.GetBytes(entry.Body);
+                var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["X-StrmAssistant-Cache"] = stale ? "stale" : "hit"
+                };
+
+                if (stale) headers["X-StrmAssistant-Stale"] = "true";
+
+                return new HttpResponseInfo
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    ContentType = string.IsNullOrEmpty(entry.ContentType)
+                        ? "application/json; charset=utf-8"
+                        : entry.ContentType,
+                    Content = new MemoryStream(bytes),
+                    ContentLength = bytes.Length,
+                    ResponseUrl = entry.Url,
+                    Headers = headers
+                };
+            }
+
+            private static void LogStaleFallback(string url, string reason)
+            {
+                Plugin.Instance?.Logger?.Debug("MovieDb cache stale fallback ({0}) - {1}",
+                    reason, MovieDbCache.SanitizeUrl(url));
+            }
+
             public Task<HttpResponseInfo> GetResponse(HttpRequestOptions options)
             {
-                return SendAsync(options, () => _httpClient.GetResponse(options));
+                return SendAsync(options, () => _httpClient.GetResponse(options), true);
             }
 
             public Task<Stream> Get(HttpRequestOptions options)
@@ -831,12 +987,13 @@ namespace StrmAssistant.Common
 
             public Task<HttpResponseInfo> SendAsync(HttpRequestOptions options, string httpMethod)
             {
-                return SendAsync(options, () => _httpClient.SendAsync(options, httpMethod));
+                return SendAsync(options, () => _httpClient.SendAsync(options, httpMethod),
+                    string.Equals(httpMethod, "GET", StringComparison.OrdinalIgnoreCase));
             }
 
             public Task<HttpResponseInfo> Post(HttpRequestOptions options)
             {
-                return SendAsync(options, () => _httpClient.Post(options));
+                return SendAsync(options, () => _httpClient.Post(options), false);
             }
 
             public Task<string> GetTempFile(HttpRequestOptions options)
@@ -847,7 +1004,7 @@ namespace StrmAssistant.Common
 
             public Task<HttpResponseInfo> GetTempFileResponse(HttpRequestOptions options)
             {
-                return SendAsync(options, () => _httpClient.GetTempFileResponse(options));
+                return SendAsync(options, () => _httpClient.GetTempFileResponse(options), true);
             }
 
             public IDisposable GetConnectionContext(HttpRequestOptions options)
