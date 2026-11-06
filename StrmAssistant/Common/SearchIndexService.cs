@@ -3,6 +3,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
@@ -22,12 +23,13 @@ namespace StrmAssistant.Common
     /// <summary>
     /// Builds and serves the inverted index used by Chinese search. Titles are reduced to compact
     /// keys (lower case letters/digits/CJK), pinyin, pinyin initials, simplified/traditional
-    /// variants, original/sort titles and title+year combinations. The index is persisted to the
-    /// plugin data folder and is rebuilt in the background so that startup is never blocked.
+    /// variants, original/sort titles, title+year combinations, main cast names and the external
+    /// ids (Douban/Bangumi/IMDb) used by the Chinese metadata sources. The index is persisted to
+    /// the plugin data folder and is rebuilt in the background so that startup is never blocked.
     /// </summary>
     public sealed class SearchIndexService
     {
-        internal const int CurrentVersion = 2;
+        internal const int CurrentVersion = 3;
 
         public const int TierExact = 0;
         public const int TierPrefix = 1;
@@ -37,6 +39,7 @@ namespace StrmAssistant.Common
         private const int PageSize = 500;
         private const int MaxAliasFetchPerBuild = 1000;
         private const int MaxAliasCount = 8;
+        private const int MaxActorCount = 8;
         private const int MaxWeakCandidates = 4000;
         private const int MaxFuzzyChecks = 20000;
 
@@ -312,10 +315,68 @@ namespace StrmAssistant.Common
                 TmdbId = item.ProviderIds != null && item.ProviderIds.TryGetValue("Tmdb", out var tmdb)
                     ? tmdb
                     : null,
+                People = GetActorNames(item),
+                ProviderIds = GetSearchableProviderIds(item),
                 Aliases = GetAlternateTitles(item).Take(MaxAliasCount).ToList()
             };
 
             return entry;
+        }
+
+        private List<string> GetActorNames(BaseItem item)
+        {
+            if (!item.SupportsPeople) return new List<string>();
+
+            try
+            {
+                return _libraryManager.GetItemPeople(item)
+                    .Where(person => person != null && person.Type == PersonType.Actor &&
+                                     !string.IsNullOrWhiteSpace(person.Name))
+                    .Select(person => person.Name.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Take(MaxActorCount)
+                    .ToList();
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("ChineseSearch - Actor lookup failed: " + e.Message);
+                return new List<string>();
+            }
+        }
+
+        private static Dictionary<string, string> GetSearchableProviderIds(BaseItem item)
+        {
+            var providerIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (item.ProviderIds == null) return providerIds;
+
+            foreach (var pair in item.ProviderIds)
+            {
+                if (string.IsNullOrWhiteSpace(pair.Value)) continue;
+
+                var key = SearchTextHelper.Compact(pair.Key);
+                string canonicalKey = null;
+
+                if (key == "douban" || key == "doubanid")
+                {
+                    canonicalKey = "doubanid";
+                }
+                else if (key == "bgm" || key == "bgmid" || key == "bangumi" || key == "bangumiid")
+                {
+                    canonicalKey = "bgmid";
+                }
+                else if (key == "imdb" || key == "imdbid")
+                {
+                    canonicalKey = "imdbid";
+                }
+
+                if (canonicalKey != null)
+                {
+                    providerIds[canonicalKey] = pair.Value.Trim();
+                }
+            }
+
+            return providerIds;
         }
 
         private static IEnumerable<string> GetAlternateTitles(BaseItem item)
@@ -392,7 +453,7 @@ namespace StrmAssistant.Common
                 });
             }
 
-            void AddTitle(string title, SearchKeyKind kind)
+            void AddTitle(string title, SearchKeyKind kind, bool includeYear = true)
             {
                 if (string.IsNullOrWhiteSpace(title)) return;
 
@@ -431,7 +492,7 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                if (entry.Year.HasValue)
+                if (includeYear && entry.Year.HasValue)
                 {
                     AddKey(SearchTextHelper.Compact(title) + entry.Year.Value, SearchKeyKind.Year, chinese);
                 }
@@ -454,6 +515,16 @@ namespace StrmAssistant.Common
             foreach (var alias in entry.Aliases ?? Enumerable.Empty<string>())
             {
                 AddTitle(alias, SearchKeyKind.Alias);
+            }
+
+            foreach (var actor in entry.People ?? Enumerable.Empty<string>())
+            {
+                AddTitle(actor, SearchKeyKind.Actor, false);
+            }
+
+            foreach (var providerId in entry.ProviderIds ?? Enumerable.Empty<KeyValuePair<string, string>>())
+            {
+                AddKey(SearchTextHelper.Compact(providerId.Value), SearchKeyKind.ExternalId, false);
             }
 
             return new IndexedItem
@@ -567,6 +638,11 @@ namespace StrmAssistant.Common
                 return string.Equals(key.Key, variant.Text, StringComparison.Ordinal) ? TierExact : -1;
             }
 
+            if (kind == SearchKeyKind.ExternalId)
+            {
+                return string.Equals(key.Key, variant.Text, StringComparison.Ordinal) ? TierExact : -1;
+            }
+
             if (string.Equals(key.Key, variant.Text, StringComparison.Ordinal)) return TierExact;
 
             if (key.Key.Length > variant.Text.Length && key.Key.StartsWith(variant.Text, StringComparison.Ordinal))
@@ -630,9 +706,12 @@ namespace StrmAssistant.Common
                 case SearchKeyKind.OriginalTitle: return 1;
                 case SearchKeyKind.SortName: return 2;
                 case SearchKeyKind.Alias: return 3;
-                case SearchKeyKind.Pinyin: return 4;
-                case SearchKeyKind.Initials: return 5;
-                default: return 6;
+                case SearchKeyKind.Actor: return 4;
+                case SearchKeyKind.Pinyin: return 5;
+                case SearchKeyKind.Initials: return 6;
+                case SearchKeyKind.ExternalId: return 7;
+                case SearchKeyKind.Year: return 8;
+                default: return 9;
             }
         }
 
@@ -972,6 +1051,8 @@ namespace StrmAssistant.Common
         public string TmdbId { get; set; }
         public bool AliasesFetched { get; set; }
         public List<string> Aliases { get; set; } = new List<string>();
+        public List<string> People { get; set; } = new List<string>();
+        public Dictionary<string, string> ProviderIds { get; set; } = new Dictionary<string, string>();
     }
 
     internal sealed class IndexedItem
@@ -1000,7 +1081,9 @@ namespace StrmAssistant.Common
         Alias = 3,
         Pinyin = 4,
         Initials = 5,
-        Year = 6
+        Year = 6,
+        Actor = 7,
+        ExternalId = 8
     }
 
     internal sealed class QueryVariant

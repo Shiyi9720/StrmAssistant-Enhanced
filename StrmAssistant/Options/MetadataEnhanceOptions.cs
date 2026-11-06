@@ -25,6 +25,16 @@ namespace StrmAssistant.Options
         SimplifiedFirst
     }
 
+    public enum MovieMetadataRefreshMode
+    {
+        [DescriptionL("MovieMetadataRefreshMode_FullRefresh_Full_Refresh", typeof(Resources))]
+        FullRefresh,
+        [DescriptionL("MovieMetadataRefreshMode_MissingFieldsOnly_Missing_Fields_Only", typeof(Resources))]
+        MissingFieldsOnly,
+        [DescriptionL("MovieMetadataRefreshMode_NeverOverwriteExisting_Never_Overwrite_Existing", typeof(Resources))]
+        NeverOverwriteExisting
+    }
+
     public class MetadataEnhanceOptions : EditableOptionsBase
     {
         [DisplayNameL("PluginOptions_MetadataEnhanceOptions_Metadata_Enhance", typeof(Resources))]
@@ -143,5 +153,9 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_EpisodeRefreshLookbackDays_Episode_metadata_refresh_lookback_days__Default_is_365_", typeof(Resources))]
         [Required, MinValue(1)]
         public int EpisodeRefreshLookbackDays { get; set; } = 365;
+
+        [DisplayNameL("MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_", typeof(Resources))]
+        public MovieMetadataRefreshMode MovieRefreshMode { get; set; } = MovieMetadataRefreshMode.FullRefresh;
     }
 }

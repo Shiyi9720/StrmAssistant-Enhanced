@@ -10,6 +10,7 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -52,6 +53,7 @@ namespace StrmAssistant.Common
         private readonly IFileSystem _fileSystem;
         private readonly ILibraryManager _libraryManager;
         private readonly IJsonSerializer _jsonSerializer;
+        private readonly DoubanRatingStore _ratingStore;
 
         public DoubanApi(IProviderManager providerManager, IFileSystem fileSystem, ILibraryManager libraryManager,
             IJsonSerializer jsonSerializer, IHttpClient httpClient)
@@ -62,6 +64,7 @@ namespace StrmAssistant.Common
             _libraryManager = libraryManager;
             _jsonSerializer = jsonSerializer;
             _httpClient = ProxyApi.Wrap(httpClient);
+            _ratingStore = new DoubanRatingStore(jsonSerializer);
         }
 
         public async Task SupplementAsync(BaseItem item, CancellationToken cancellationToken)
@@ -88,6 +91,8 @@ namespace StrmAssistant.Common
 
                 if (detail is null) return;
 
+                await SaveDoubanMetadataAsync(item, detail).ConfigureAwait(false);
+
                 if (needsOverview && !string.IsNullOrWhiteSpace(detail.intro))
                 {
                     item.Overview = detail.intro.Trim();
@@ -110,6 +115,53 @@ namespace StrmAssistant.Common
                 _logger?.Debug("DoubanSupplement - Failed: " + e.Message);
                 _logger?.Debug(e.StackTrace);
             }
+        }
+
+        private async Task SaveDoubanMetadataAsync(BaseItem item, DoubanDetail detail)
+        {
+            var changed = false;
+            var doubanId = detail.id?.Trim();
+
+            if (!string.IsNullOrEmpty(doubanId) &&
+                !string.Equals(item.GetProviderId("Douban"), doubanId, StringComparison.Ordinal))
+            {
+                item.SetProviderId("Douban", doubanId);
+                changed = true;
+            }
+
+            var rating = detail.rating?.value;
+
+            if (rating.HasValue && rating.Value > 0)
+            {
+                var ratingText = rating.Value.ToString("0.0#", CultureInfo.InvariantCulture);
+
+                if (!string.Equals(item.GetProviderId("DoubanRating"), ratingText, StringComparison.Ordinal))
+                {
+                    item.SetProviderId("DoubanRating", ratingText);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                try
+                {
+                    await _providerManager.SaveMetadata(item, ItemUpdateType.MetadataEdit).ConfigureAwait(false);
+                    _logger?.Info("DoubanSupplement - Provider ids updated: " + item.Name);
+                }
+                catch (Exception e)
+                {
+                    _logger?.Debug("DoubanSupplement - Failed to save provider ids: " + e.Message);
+                }
+            }
+
+            _ratingStore.Save(item.InternalId, doubanId, item.Name, item.GetType().Name, rating,
+                detail.rating?.count);
+        }
+
+        public DoubanRatingCacheEntry GetCachedRating(long itemId)
+        {
+            return _ratingStore.Get(itemId);
         }
 
         private async Task<DoubanDetail> FindDetailAsync(BaseItem item, CancellationToken cancellationToken)
@@ -479,6 +531,7 @@ namespace StrmAssistant.Common
             public string title { get; set; }
             public string intro { get; set; }
             public string cover_url { get; set; }
+            public DoubanRating rating { get; set; }
         }
 
         private class DoubanRecommendationCache
@@ -511,6 +564,7 @@ namespace StrmAssistant.Common
         private class DoubanRating
         {
             public double? value { get; set; }
+            public int? count { get; set; }
         }
 
         private class DoubanRecommendFeedResponse

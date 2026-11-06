@@ -1363,5 +1363,26 @@
   </data>
   <data name="MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview" xml:space="preserve">
     <value>Refresh metadata for movies missing overview, image or Chinese overview.</value>
+  <data name="MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode" xml:space="preserve">
+    <value>Movie Metadata Refresh Mode</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_" xml:space="preserve">
+    <value>Choose how existing movies are refreshed. Full Refresh replaces everything as before. Missing Fields Only skips complete movies and fills gaps. Never Overwrite Existing queries the provider but keeps current values. Default is Full Refresh.</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_FullRefresh_Full_Refresh" xml:space="preserve">
+    <value>Full Refresh</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_MissingFieldsOnly_Missing_Fields_Only" xml:space="preserve">
+    <value>Missing Fields Only</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_NeverOverwriteExisting_Never_Overwrite_Existing" xml:space="preserve">
+    <value>Never Overwrite Existing</value>
+  </data>
+  <data name="RefreshMovieMetadataTask_Description_Refresh_existing_movies_using_the_configured_movie_metadata_refresh_mode" xml:space="preserve">
+    <value>Refresh existing movies using the configured movie metadata refresh mode.</value>
+  </data>
+  <data name="RefreshMovieMetadataTask_Refresh_Movie_Metadata" xml:space="preserve">
+    <value>Refresh Movie Metadata</value>
+  </data>
   </data>
 </root>

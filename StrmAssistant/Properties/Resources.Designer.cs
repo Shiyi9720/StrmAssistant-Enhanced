@@ -3850,5 +3850,68 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("Wiki_Link", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode.
+        /// </summary>
+        public static string MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed.
+        /// </summary>
+        public static string MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MovieMetadataRefreshMode_FullRefresh_Full_Refresh.
+        /// </summary>
+        public static string MovieMetadataRefreshMode_FullRefresh_Full_Refresh {
+            get {
+                return ResourceManager.GetString("MovieMetadataRefreshMode_FullRefresh_Full_Refresh", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MovieMetadataRefreshMode_MissingFieldsOnly_Missing_Fields_Only.
+        /// </summary>
+        public static string MovieMetadataRefreshMode_MissingFieldsOnly_Missing_Fields_Only {
+            get {
+                return ResourceManager.GetString("MovieMetadataRefreshMode_MissingFieldsOnly_Missing_Fields_Only", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MovieMetadataRefreshMode_NeverOverwriteExisting_Never_Overwrite_Existing.
+        /// </summary>
+        public static string MovieMetadataRefreshMode_NeverOverwriteExisting_Never_Overwrite_Existing {
+            get {
+                return ResourceManager.GetString("MovieMetadataRefreshMode_NeverOverwriteExisting_Never_Overwrite_Existing", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshMovieMetadataTask_Description_Refresh_existing_movies_using_the_configured_movie_metadata_refresh_mode.
+        /// </summary>
+        public static string RefreshMovieMetadataTask_Description_Refresh_existing_movies_using_the_configured_movie_metadata_refresh_mode {
+            get {
+                return ResourceManager.GetString("RefreshMovieMetadataTask_Description_Refresh_existing_movies_using_the_configured_movie_metadata_refresh_mode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to RefreshMovieMetadataTask_Refresh_Movie_Metadata.
+        /// </summary>
+        public static string RefreshMovieMetadataTask_Refresh_Movie_Metadata {
+            get {
+                return ResourceManager.GetString("RefreshMovieMetadataTask_Refresh_Movie_Metadata", resourceCulture);
+            }
+        }
     }
 }
