@@ -136,6 +136,15 @@ namespace StrmAssistant
 
         internal static string _satelliteRoot;
 
+        /// <summary>
+        /// 依赖程序集放这个后缀的子目录（如 StrmAssistantLite.deps），不要放插件目录顶层。
+        /// Emby 启动时会把 plugins 顶层的每个 *.dll 按字节加载并 GetTypes（见
+        /// ApplicationHost.DiscoverTypes/LoadAssembly）；按字节加载的程序集不会按名字绑定它的
+        /// 依赖，扫描 0Harmony/MonoMod/Cecil 时就会抛 "Could not load MonoMod.Utils / Mono.Cecil"
+        /// 和 ReflectionTypeLoadException。子目录不在扫描范围内，改为由本回调在插件初始化时按需加载。
+        /// </summary>
+        private const string DependencyFolderSuffix = ".deps";
+
         static Plugin()
         {
             // 卫星程序集（zh/zh-hant）跟随插件放在 <plugins>/<culture>/ 子目录。
@@ -178,9 +187,17 @@ namespace StrmAssistant
                     }
                     else
                     {
-                        // 插件目录里的依赖（如 ToolGood.Words.Pinyin / ChineseConverter）：
-                        // 插件主程序集是按字节加载的，默认探测不会看插件目录，这里按简单名兜底
-                        file = Path.Combine(_satelliteRoot, an.Name + ".dll");
+                        // 插件主程序集是按字节加载的，默认探测不会看插件目录；依赖（如
+                        // 0Harmony / MonoMod.* / Mono.Cecil / ToolGood.Words.Pinyin）优先从
+                        // <plugins>/<AssemblyName>.deps/ 加载，找不到再回退旧的顶层布局。
+                        var depsRoot = Path.Combine(_satelliteRoot,
+                            typeof(Plugin).Assembly.GetName().Name + DependencyFolderSuffix);
+                        file = Path.Combine(depsRoot, an.Name + ".dll");
+
+                        if (!File.Exists(file))
+                        {
+                            file = Path.Combine(_satelliteRoot, an.Name + ".dll");
+                        }
                     }
 
                     var loaded = File.Exists(file) ? Assembly.Load(File.ReadAllBytes(file)) : null;
