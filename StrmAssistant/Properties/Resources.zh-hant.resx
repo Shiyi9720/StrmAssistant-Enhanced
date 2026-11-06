@@ -650,6 +650,39 @@
   <data name="GeneralOptions_CatchupMinimumDelaySeconds_Minimum_seconds_between_two_catch_up_queue_runs__Favorites_are_processed_in_their_own_queue__Default_is_30_" xml:space="preserve">
     <value>兩次追更佇列執行之間的最小間隔秒數。最愛項目在獨立佇列中處理。預設 30。</value>
   </data>
+  <data name="IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length" xml:space="preserve">
+    <value>按庫片頭探測時長</value>
+  </data>
+  <data name="IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_" xml:space="preserve">
+    <value>為單個電視節目庫覆蓋全域片頭探測時長。全域值：{0} 分鐘，可設定 2–20 分鐘。</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Library_Library" xml:space="preserve">
+    <value>媒體庫</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Override_Override" xml:space="preserve">
+    <value>覆蓋全域</value>
+  </data>
+  <data name="IntroDetectionSettings_Column_Minutes_Minutes" xml:space="preserve">
+    <value>時長（分鐘）</value>
+  </data>
+  <data name="IntroDetectionSettings_Save_Save" xml:space="preserve">
+    <value>儲存</value>
+  </data>
+  <data name="IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_" xml:space="preserve">
+    <value>已儲存，下一輪片頭探測即生效。</value>
+  </data>
+  <data name="IntroDetectionSettings_SaveFailed_Failed_to_save_settings_" xml:space="preserve">
+    <value>儲存失敗。</value>
+  </data>
+  <data name="IntroDetectionSettings_LoadFailed_Failed_to_load_settings_" xml:space="preserve">
+    <value>載入失敗。</value>
+  </data>
+  <data name="IntroDetectionSettings_NoLibraries_No_TV_libraries_found_" xml:space="preserve">
+    <value>沒有找到電視節目庫。</value>
+  </data>
+  <data name="IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_" xml:space="preserve">
+    <value>內建片頭增強未啟用。儲存的數值會在啟用探測後生效。</value>
+  </data>
   <data name="IntroSkipOptions_ClientScope_Client_Scope" xml:space="preserve">
     <value>允許的客戶端</value>
   </data>

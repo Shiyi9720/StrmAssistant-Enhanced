@@ -1170,6 +1170,105 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Column_Library_Library.
+        /// </summary>
+        public static string IntroDetectionSettings_Column_Library_Library {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Column_Library_Library", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Column_Minutes_Minutes.
+        /// </summary>
+        public static string IntroDetectionSettings_Column_Minutes_Minutes {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Column_Minutes_Minutes", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Column_Override_Override.
+        /// </summary>
+        public static string IntroDetectionSettings_Column_Override_Override {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Column_Override_Override", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_.
+        /// </summary>
+        public static string IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Description_Override_the_global_intro_detection_fingerprint_length_for_individual_TV_libraries__Global_value_is__0__minutes__Valid_range_is_2_to_20_minutes_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_.
+        /// </summary>
+        public static string IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Disabled_Built_in_intro_skip_enhancement_is_not_enabled_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_LoadFailed_Failed_to_load_settings_.
+        /// </summary>
+        public static string IntroDetectionSettings_LoadFailed_Failed_to_load_settings_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_LoadFailed_Failed_to_load_settings_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_NoLibraries_No_TV_libraries_found_.
+        /// </summary>
+        public static string IntroDetectionSettings_NoLibraries_No_TV_libraries_found_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_NoLibraries_No_TV_libraries_found_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Save_Save.
+        /// </summary>
+        public static string IntroDetectionSettings_Save_Save {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Save_Save", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_SaveFailed_Failed_to_save_settings_.
+        /// </summary>
+        public static string IntroDetectionSettings_SaveFailed_Failed_to_save_settings_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_SaveFailed_Failed_to_save_settings_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_.
+        /// </summary>
+        public static string IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_ {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Saved_Settings_saved__they_apply_to_the_next_intro_detection_run_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length.
+        /// </summary>
+        public static string IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length {
+            get {
+                return ResourceManager.GetString("IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to IntroSkipOptions_ClientScope_Allowed_clients__Default_is_Emby_Infuse_SenPlayer.
         /// </summary>
         public static string IntroSkipOptions_ClientScope_Allowed_clients__Default_is_Emby_Infuse_SenPlayer {

@@ -2035,7 +2035,8 @@ namespace StrmAssistant.Web.Helper
         none: '@@NONE@@',
         rebuild: '@@REBUILD@@',
         queued: '@@QUEUED@@',
-        failed: '@@FAILED@@'
+        failed: '@@FAILED@@',
+        settings: '@@SETTINGS@@'
     };
     var panel = null;
     var list = null;
@@ -2106,9 +2107,33 @@ namespace StrmAssistant.Web.Helper
             });
         });
 
+        var settingsLink = document.createElement('a');
+        settingsLink.id = 'strmAssistantIntroSettingsLink';
+        settingsLink.href = '#';
+        settingsLink.textContent = labels.settings;
+        settingsLink.style.cssText = 'display:block;margin-top:.5em;color:#6fc3ff;' +
+            'text-decoration:none;font-size:.95em';
+
+        settingsLink.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            withApiClient(function (client) {
+                var url = client.getUrl('StrmAssistant/IntroDetectionSettings');
+                var accessToken = client.accessToken ? client.accessToken() : '';
+
+                if (accessToken && url.indexOf('api_key=') === -1) {
+                    url += (url.indexOf('?') === -1 ? '?' : '&') +
+                        'api_key=' + encodeURIComponent(accessToken);
+                }
+
+                window.open(url, '_blank');
+            });
+        });
+
         panel.appendChild(header);
         panel.appendChild(list);
         panel.appendChild(button);
+        panel.appendChild(settingsLink);
         document.body.appendChild(panel);
 
         return panel;
@@ -2184,7 +2209,10 @@ namespace StrmAssistant.Web.Helper
                 .Replace("@@QUEUED@@", JsString("DashboardTasks_RebuildQueued_Search_index_rebuild_queued",
                     "Search index rebuild queued"))
                 .Replace("@@FAILED@@", JsString("DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild",
-                    "Failed to queue search index rebuild"));
+                    "Failed to queue search index rebuild"))
+                .Replace("@@SETTINGS@@", JsString(
+                    "IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length",
+                    "Per-Library Intro Detection Length"));
         }
 
         /// <summary>

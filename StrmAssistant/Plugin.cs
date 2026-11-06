@@ -91,6 +91,7 @@ namespace StrmAssistant
         internal IFfmpegManager FfmpegManager => _ffmpegManager;
 
         private bool _currentSuppressOnOptionsSaved;
+        private bool _skipOptionsSanitizeOnce;
         private int _currentMaxConcurrentCount;
         private int _currentTier2ConcurrentCount;
         private int _currentIntroDetectionMaxConcurrentCount;
@@ -599,8 +600,58 @@ namespace StrmAssistant
             SaveOptions(GetOptions());
         }
 
+        /// <summary>
+        /// Persists the per-library intro detection fingerprint overrides edited on the plugin's
+        /// own settings page. The scope sanitizing in <see cref="OnOptionsSaving"/> relies on
+        /// transient library/user lists that only exist after the generic options page has been
+        /// shown, so this targeted save skips it; the regular save pipeline (including
+        /// <see cref="FingerprintApi.UpdateLibraryIntroDetectionFingerprintLength"/>) still runs,
+        /// which makes the new values effective without a restart.
+        /// </summary>
+        public void SaveLibraryIntroDetectionFingerprintOptions(
+            IEnumerable<LibraryIntroDetectionFingerprintOption> libraryOptions)
+        {
+            var options = GetPluginOptions();
+            var collection = new LibraryIntroDetectionFingerprintOptionCollection();
+
+            foreach (var option in libraryOptions)
+            {
+                collection.Add(new LibraryIntroDetectionFingerprintOption
+                {
+                    LibraryId = option.LibraryId,
+                    LibraryName = option.LibraryName,
+                    Override = option.Override,
+                    IntroDetectionFingerprintMinutes =
+                        Math.Max(2, Math.Min(20, option.IntroDetectionFingerprintMinutes))
+                });
+            }
+
+            options.IntroSkipOptions.LibraryIntroDetectionFingerprintOptions = collection;
+
+            _skipOptionsSanitizeOnce = true;
+            // The verbose option logging in OnOptionsSaved resolves library/user names from lists
+            // that are only populated when the generic settings page is shown, so suppress it for
+            // this targeted save as well.
+            _currentSuppressOnOptionsSaved = true;
+
+            try
+            {
+                SaveOptions(options);
+            }
+            finally
+            {
+                _skipOptionsSanitizeOnce = false;
+                _currentSuppressOnOptionsSaved = false;
+            }
+        }
+
         protected override bool OnOptionsSaving(PluginOptions options)
         {
+            if (_skipOptionsSanitizeOnce)
+            {
+                return base.OnOptionsSaving(options);
+            }
+
             if (string.IsNullOrEmpty(options.GeneralOptions.CatchupTaskScope))
             {
                 options.GeneralOptions.CatchupTaskScope = CatchupTask.MediaInfo.ToString();
