@@ -44,6 +44,24 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
         public bool EnableDistributedFingerprint { get; set; } = false;
 
+        [DisplayNameL(
+            "DistributedExtractOptions_EnableDistributedHdrVivid_Enable_Distributed_HDR_Vivid_Detection",
+            typeof(Resources))]
+        [DescriptionL(
+            "DistributedExtractOptions_EnableDistributedHdrVivid_Offload_HDR_Vivid_detection_to_worker_nodes__The_worker_probes_the_first_video_frame_with_its_own_ffprobe__When_no_worker_is_reachable_or_returns_no_result_the_detection_falls_back_to_local_extraction__Default_is_False_",
+            typeof(Resources))]
+        [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
+        public bool EnableDistributedHdrVivid { get; set; } = false;
+
+        [DisplayNameL(
+            "DistributedExtractOptions_EnableDistributedDvP5_Enable_Distributed_Dolby_Vision_P5_Chapter_Images",
+            typeof(Resources))]
+        [DescriptionL(
+            "DistributedExtractOptions_EnableDistributedDvP5_Offload_Dolby_Vision_Profile_5_chapter_image_extraction_to_worker_nodes__Every_worker_must_have_a_custom_ffmpeg_with_Vulkan_and_libplacebo__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_",
+            typeof(Resources))]
+        [VisibleCondition(nameof(EnableDistributedExtract), SimpleCondition.IsTrue)]
+        public bool EnableDistributedDvP5 { get; set; } = false;
+
         [DisplayNameL("DistributedExtractOptions_WorkerNodes_Worker_Nodes", typeof(Resources))]
         [DescriptionL(
             "DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_",
