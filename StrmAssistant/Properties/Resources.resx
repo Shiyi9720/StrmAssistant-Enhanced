@@ -599,6 +599,21 @@
   <data name="RefreshPersonTask_Description_Refreshes_and_repairs_Chinese_actors" xml:space="preserve">
     <value>Refreshes and repairs Chinese actors</value>
   </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonMode_Refresh_Chinese_Actor" xml:space="preserve">
+    <value>Refresh Chinese Actor</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonMode_Automatic_only_runs_when_the_server_preferred_metadata_language_is_Chinese_and_skips_recently_refreshed_persons__Manual_always_performs_a_full_refresh_when_triggered_even_when_the_server_language_is_not_Chinese__Off_disables_the_task_" xml:space="preserve">
+    <value>Automatic only runs when the server preferred metadata language is Chinese and skips recently refreshed persons. Manual always performs a full refresh when triggered, even when the server language is not Chinese. Off disables the task.</value>
+  </data>
+  <data name="RefreshPersonModeOption_Auto_Automatic" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="RefreshPersonModeOption_Manual_Manual__Full_Refresh_" xml:space="preserve">
+    <value>Manual (Full Refresh)</value>
+  </data>
+  <data name="RefreshPersonModeOption_Off_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
   <data name="ScanExternalSubtitleTask_Name_Scan_External_Subtitles" xml:space="preserve">
     <value>Scan External Subtitles</value>
   </data>

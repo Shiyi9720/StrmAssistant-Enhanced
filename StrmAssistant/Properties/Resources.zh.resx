@@ -512,6 +512,21 @@
   <data name="RefreshPersonTask_Description_Refreshes_and_repairs_Chinese_actors" xml:space="preserve">
     <value>刷新和修复演员信息，尽可能获取中文及头像</value>
   </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonMode_Refresh_Chinese_Actor" xml:space="preserve">
+    <value>刷新演员信息</value>
+  </data>
+  <data name="MetadataEnhanceOptions_RefreshPersonMode_Automatic_only_runs_when_the_server_preferred_metadata_language_is_Chinese_and_skips_recently_refreshed_persons__Manual_always_performs_a_full_refresh_when_triggered_even_when_the_server_language_is_not_Chinese__Off_disables_the_task_" xml:space="preserve">
+    <value>自动：仅在服务器首选元数据语言为中文时执行，并跳过近期已刷新的演员。手动：触发时始终全量刷新，即使服务器语言不是中文。关闭：禁用此任务。</value>
+  </data>
+  <data name="RefreshPersonModeOption_Auto_Automatic" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="RefreshPersonModeOption_Manual_Manual__Full_Refresh_" xml:space="preserve">
+    <value>手动（全量刷新）</value>
+  </data>
+  <data name="RefreshPersonModeOption_Off_Off" xml:space="preserve">
+    <value>关闭</value>
+  </data>
   <data name="ScanExternalSubtitleTask_Name_Scan_External_Subtitles" xml:space="preserve">
     <value>扫描外挂字幕</value>
   </data>
