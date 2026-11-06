@@ -106,7 +106,8 @@
 
   <Target Name="DeployPlugin" AfterTargets="Build" Condition="'$(EmbyPluginPath)' != '' AND '$(TargetFramework)' != ''">
     <ItemGroup>
-      <DeployAssemblies Include="$(TargetDir)*.dll" />
+      <!-- 只放主程序集到顶层；依赖由 DeployPluginDependencies 落到 <AssemblyName>.deps/ -->
+      <DeployAssemblies Include="$(TargetPath)" />
       <DeployZh Include="$(TargetDir)zh/**/*" />
       <DeployZhHant Include="$(TargetDir)zh-hant/**/*" />
     </ItemGroup>
