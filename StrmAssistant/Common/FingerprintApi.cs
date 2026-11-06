@@ -101,19 +101,33 @@ namespace StrmAssistant.Common
             }
         }
 
-        public Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, IDirectoryService directoryService,
+        public async Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, IDirectoryService directoryService,
             CancellationToken cancellationToken)
         {
             if (FingerprintBlacklist.FromOptions().IsExcluded(item))
             {
                 _logger.Info("FingerprintBlacklist - Skipped: " + item.Name + " - " + item.Path);
-                return Task.FromResult<Tuple<string, bool>>(null);
+                return null;
             }
 
             var libraryOptions = _libraryManager.GetLibraryOptions(item);
 
-            return (Task<Tuple<string, bool>>)_createTitleFingerprint.Invoke(_audioFingerprintManager,
-                new object[] { item, libraryOptions, directoryService, cancellationToken });
+            // Optional distributed extraction: the worker only creates the raw fingerprint file;
+            // sequence detection and marker writes stay on this node. Every failure falls back to
+            // the local extraction below.
+            if (Plugin.DistributedExtractApi != null)
+            {
+                var distributedPath = await Plugin.DistributedExtractApi
+                    .TryCreateTitleFingerprintAsync(item, libraryOptions, cancellationToken).ConfigureAwait(false);
+
+                if (!string.IsNullOrEmpty(distributedPath))
+                {
+                    return new Tuple<string, bool>(distributedPath, true);
+                }
+            }
+
+            return await ((Task<Tuple<string, bool>>)_createTitleFingerprint.Invoke(_audioFingerprintManager,
+                new object[] { item, libraryOptions, directoryService, cancellationToken })).ConfigureAwait(false);
         }
 
         public Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, CancellationToken cancellationToken)
@@ -401,6 +415,34 @@ namespace StrmAssistant.Common
             }
         }
 
+        private async Task TryDistributeSeasonFingerprintsAsync(IEnumerable<Episode> episodes,
+            LibraryOptions libraryOptions, CancellationToken cancellationToken)
+        {
+            if (Plugin.DistributedExtractApi is null ||
+                !DistributedExtractApi.IsFingerprintDistributionEnabled) return;
+
+            foreach (var episode in episodes)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    await Plugin.DistributedExtractApi
+                        .TryCreateTitleFingerprintAsync(episode, libraryOptions, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    _logger?.Debug("IntroFingerprintDistributed - Failed: " + episode.Name + " - " +
+                                   episode.Path + " - " + e.Message);
+                }
+            }
+        }
+
 #nullable enable
         /// <summary>
         /// Re-detects the intro and credits markers of one season on demand. The markers that were
@@ -504,6 +546,12 @@ namespace StrmAssistant.Common
 
             episodeQuery.WithoutChapterMarkers = new[] { MarkerType.IntroStart };
             var episodesWithoutMarkers = season.GetEpisodes(episodeQuery).Items.OfType<Episode>().ToList();
+
+            // Emby's season pipeline below creates the missing fingerprints itself. Pre-create
+            // them through worker nodes so the local chromaprint work is skipped; the result is
+            // the same .fp file Emby would have written, so the pipeline is otherwise unchanged.
+            await TryDistributeSeasonFingerprintsAsync(allEpisodes, libraryOptions, cancellationToken)
+                .ConfigureAwait(false);
 
             var seasonFingerprintInfo = await GetAllFingerprintFilesForSeason(season,
                 allEpisodes, libraryOptions, directoryService, cancellationToken).ConfigureAwait(false);
