@@ -1193,4 +1193,10 @@
   <data name="DoubanRecommendations_SearchInLibrary_Search_in_library" xml:space="preserve">
     <value>在媒體庫中搜尋</value>
   </data>
+  <data name="RecursiveRefresh_Series_Refresh_Seasons_and_Episodes" xml:space="preserve">
+    <value>遞迴重新整理季和集</value>
+  </data>
+  <data name="RecursiveRefresh_Season_Refresh_Season_Episodes" xml:space="preserve">
+    <value>遞迴重新整理本季劇集</value>
+  </data>
 </root>
