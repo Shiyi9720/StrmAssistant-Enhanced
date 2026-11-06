@@ -1,3 +1,4 @@
+using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Model.Logging;
 using System;
@@ -5,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -31,9 +33,49 @@ namespace StrmAssistant.Common
 
         public static bool IsIsoPath(string path)
         {
-            return !string.IsNullOrEmpty(path) &&
-                   (path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) ||
-                    path.EndsWith(".img", StringComparison.OrdinalIgnoreCase));
+            if (string.IsNullOrEmpty(path)) return false;
+
+            var end = path.IndexOfAny(new[] { '?', '#' });
+
+            if (end >= 0) path = path.Substring(0, end);
+
+            return path.EndsWith(".iso", StringComparison.OrdinalIgnoreCase) ||
+                   path.EndsWith(".img", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// True for sources that can be opened as a seekable stream. Remote images are read with
+        /// HTTP range requests; smb is not implemented by the range reader.
+        /// </summary>
+        public static bool CanReadSource(string source)
+        {
+            if (string.IsNullOrEmpty(source)) return false;
+
+            if (CustomFfprobeApi.IsHttpUrl(source)) return true;
+
+            return File.Exists(source);
+        }
+
+        /// <summary>
+        /// Size of a local or http(s) image, or 0 when it cannot be determined.
+        /// </summary>
+        public static long GetSourceLength(string source)
+        {
+            try
+            {
+                if (CustomFfprobeApi.IsHttpUrl(source))
+                {
+                    return HttpRangeStream.TryGetLength(source) ?? 0;
+                }
+
+                var info = new FileInfo(source);
+
+                return info.Exists ? info.Length : 0;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         /// <summary>
@@ -45,7 +87,7 @@ namespace StrmAssistant.Common
         {
             var result = new List<byte[]>();
 
-            if (!File.Exists(isoPath)) return result;
+            if (!CanReadSource(isoPath)) return result;
 
             try
             {
@@ -70,7 +112,7 @@ namespace StrmAssistant.Common
         {
             var result = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
 
-            if (string.IsNullOrEmpty(isoPath) || !File.Exists(isoPath)) return result;
+            if (!CanReadSource(isoPath)) return result;
 
             try
             {
@@ -135,7 +177,7 @@ namespace StrmAssistant.Common
         public static async Task<string> ExtractAsync(string isoPath, IProgress<double> progress,
             CancellationToken cancellationToken)
         {
-            if (!File.Exists(isoPath)) return null;
+            if (!CanReadSource(isoPath)) return null;
 
             var job = Jobs.GetOrAdd(isoPath, path => new ExtractionJob(path));
 
@@ -185,8 +227,28 @@ namespace StrmAssistant.Common
 
         private static string ExtractCore(string isoPath)
         {
-            var fileInfo = new FileInfo(isoPath);
-            var cacheKey = ComputeCacheKey(isoPath, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks);
+            var remote = CustomFfprobeApi.IsHttpUrl(isoPath);
+            var length = GetSourceLength(isoPath);
+            var lastWriteTicks = 0L;
+
+            if (!remote)
+            {
+                var fileInfo = new FileInfo(isoPath);
+
+                if (!fileInfo.Exists) return null;
+
+                length = fileInfo.Length;
+                lastWriteTicks = fileInfo.LastWriteTimeUtc.Ticks;
+            }
+
+            if (length <= 0)
+            {
+                Logger.Info("IsoExtract - Unable to determine image size: " + isoPath);
+
+                return null;
+            }
+
+            var cacheKey = ComputeCacheKey(isoPath, length, lastWriteTicks);
             var cacheFolder = Path.Combine(GetCacheFolder(), cacheKey);
 
             var manifestPath = Path.Combine(cacheFolder, "source.txt");
@@ -198,7 +260,7 @@ namespace StrmAssistant.Common
 
             Directory.CreateDirectory(cacheFolder);
 
-            using var reader = new IsoImageReader(isoPath);
+            using var reader = new IsoImageReader(isoPath, length);
             var mainVideo = reader.FindMainVideo();
 
             if (mainVideo is null)
@@ -269,15 +331,303 @@ namespace StrmAssistant.Common
             public bool IsRecorded { get; set; } = true;
         }
 
+        /// <summary>
+        /// Seekable read-only stream over an http(s) ISO image, backed by range requests. Small
+        /// random reads (UDF/ISO9660 metadata) go through a 64 KB block cache; sequential reads
+        /// issued by the extractor are served with one range request per read.
+        /// </summary>
+        private sealed class HttpRangeStream : Stream
+        {
+            private const int BlockSize = 1 << 16;
+            private const int MaxCachedBlocks = 256;
+
+            private readonly string _url;
+            private readonly IHttpClient _httpClient;
+            private readonly Dictionary<long, byte[]> _blocks = new Dictionary<long, byte[]>();
+            private readonly Queue<long> _blockOrder = new Queue<long>();
+            private long _length;
+            private long _position;
+
+            public HttpRangeStream(string url, long length)
+            {
+                _url = url;
+                _httpClient = Plugin.Instance?.HttpClient;
+
+                if (_httpClient is null) throw new IOException("HttpClient is not available");
+
+                _length = length > 0 ? length : TryGetLength(url) ?? -1;
+
+                if (_length <= 0) throw new IOException("Unable to determine image size: " + url);
+            }
+
+            public override bool CanRead => true;
+
+            public override bool CanSeek => true;
+
+            public override bool CanWrite => false;
+
+            public override long Length => _length;
+
+            public override long Position
+            {
+                get => _position;
+                set
+                {
+                    if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+
+                    _position = value;
+                }
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                if (_position >= _length) return 0;
+
+                count = (int)Math.Min(count, _length - _position);
+
+                if (count <= 0) return 0;
+
+                var written = 0;
+
+                // Sequential extraction passes a large buffer; avoid one request per 64 KB.
+                if (count >= BlockSize)
+                {
+                    var data = Fetch(_position, count);
+                    var toCopy = Math.Min(count, data.Length);
+                    Buffer.BlockCopy(data, 0, buffer, offset, toCopy);
+                    _position += toCopy;
+
+                    return toCopy;
+                }
+
+                while (written < count)
+                {
+                    var blockIndex = _position / BlockSize;
+                    var block = GetBlock(blockIndex);
+                    var inBlock = (int)(_position - blockIndex * BlockSize);
+
+                    if (block is null || inBlock >= block.Length) break;
+
+                    var toCopy = Math.Min(count - written, block.Length - inBlock);
+                    Buffer.BlockCopy(block, inBlock, buffer, offset + written, toCopy);
+                    _position += toCopy;
+                    written += toCopy;
+                }
+
+                return written;
+            }
+
+            public override long Seek(long offset, SeekOrigin origin)
+            {
+                var target = origin == SeekOrigin.Begin
+                    ? offset
+                    : origin == SeekOrigin.Current
+                        ? _position + offset
+                        : _length + offset;
+
+                if (target < 0) throw new IOException("Seek before start of stream");
+
+                _position = target;
+
+                return _position;
+            }
+
+            public override void Flush()
+            {
+            }
+
+            public override void SetLength(long value)
+            {
+                throw new NotSupportedException();
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                throw new NotSupportedException();
+            }
+
+            private byte[] GetBlock(long blockIndex)
+            {
+                lock (_blocks)
+                {
+                    if (_blocks.TryGetValue(blockIndex, out var cached)) return cached;
+                }
+
+                var offset = blockIndex * BlockSize;
+                var count = (int)Math.Min(BlockSize, _length - offset);
+
+                if (count <= 0) return null;
+
+                var data = Fetch(offset, count);
+
+                lock (_blocks)
+                {
+                    _blocks[blockIndex] = data;
+                    _blockOrder.Enqueue(blockIndex);
+
+                    while (_blockOrder.Count > MaxCachedBlocks)
+                    {
+                        _blocks.Remove(_blockOrder.Dequeue());
+                    }
+                }
+
+                return data;
+            }
+
+            private byte[] Fetch(long offset, int count)
+            {
+                var options = new HttpRequestOptions
+                {
+                    Url = _url,
+                    BufferContent = false,
+                    EnableHttpCompression = false,
+                    TimeoutMs = 120000,
+                    ThrowOnErrorResponse = false,
+                    LogRequest = false,
+                    LogResponse = false,
+                    LogErrors = false,
+                    UserAgent = Plugin.Instance?.UserAgent
+                };
+
+                options.RequestHeaders["Range"] = "bytes=" + offset + "-" + (offset + count - 1);
+
+                using var response = _httpClient.SendAsync(options, "GET").GetAwaiter().GetResult();
+
+                var status = (int)response.StatusCode;
+
+                if (status == (int)HttpStatusCode.PartialContent ||
+                    (status == (int)HttpStatusCode.OK && offset == 0))
+                {
+                    // A server that ignores the Range header replies 200 with the whole image;
+                    // never buffer more than the caller asked for.
+                    var output = new MemoryStream(count);
+                    var buffer = new byte[Math.Min(count, 1 << 16)];
+
+                    while (output.Length < count)
+                    {
+                        var read = response.Content.Read(buffer, 0,
+                            (int)Math.Min(buffer.Length, count - output.Length));
+
+                        if (read <= 0) break;
+
+                        output.Write(buffer, 0, read);
+                    }
+
+                    return output.ToArray();
+                }
+
+                throw new IOException("HTTP " + status + " for range request: " + _url);
+            }
+
+            internal static long? TryGetLength(string url)
+            {
+                var httpClient = Plugin.Instance?.HttpClient;
+
+                if (httpClient is null) return null;
+
+                try
+                {
+                    using var response = httpClient.SendAsync(new HttpRequestOptions
+                    {
+                        Url = url,
+                        BufferContent = false,
+                        EnableHttpCompression = false,
+                        TimeoutMs = 30000,
+                        ThrowOnErrorResponse = false,
+                        LogRequest = false,
+                        LogResponse = false,
+                        LogErrors = false,
+                        UserAgent = Plugin.Instance?.UserAgent
+                    }, "HEAD").GetAwaiter().GetResult();
+
+                    if (response.StatusCode == HttpStatusCode.OK && response.ContentLength > 0)
+                    {
+                        return response.ContentLength;
+                    }
+
+                    if (response.Headers != null &&
+                        response.Headers.TryGetValue("Content-Range", out var contentRange) &&
+                        contentRange != null)
+                    {
+                        var slash = contentRange.LastIndexOf('/');
+
+                        if (slash >= 0 && long.TryParse(contentRange.Substring(slash + 1), out var total) &&
+                            total > 0)
+                        {
+                            return total;
+                        }
+                    }
+
+                    if (response.StatusCode == HttpStatusCode.OK) return response.ContentLength;
+                }
+                catch
+                {
+                    // ignored: fall back to a one byte range request
+                }
+
+                try
+                {
+                    var options = new HttpRequestOptions
+                    {
+                        Url = url,
+                        BufferContent = false,
+                        EnableHttpCompression = false,
+                        TimeoutMs = 30000,
+                        ThrowOnErrorResponse = false,
+                        LogRequest = false,
+                        LogResponse = false,
+                        LogErrors = false,
+                        UserAgent = Plugin.Instance?.UserAgent
+                    };
+
+                    options.RequestHeaders["Range"] = "bytes=0-0";
+
+                    using var response = httpClient.SendAsync(options, "GET").GetAwaiter().GetResult();
+
+                    if (response.Headers != null &&
+                        response.Headers.TryGetValue("Content-Range", out var contentRange) &&
+                        contentRange != null)
+                    {
+                        var slash = contentRange.LastIndexOf('/');
+
+                        if (slash >= 0 && long.TryParse(contentRange.Substring(slash + 1), out var total) &&
+                            total > 0)
+                        {
+                            return total;
+                        }
+                    }
+
+                    if (response.StatusCode == HttpStatusCode.OK && response.ContentLength > 0)
+                    {
+                        return response.ContentLength;
+                    }
+                }
+                catch
+                {
+                    // ignored
+                }
+
+                return null;
+            }
+        }
+
         private sealed class IsoImageReader : IDisposable
         {
-            private readonly FileStream _stream;
+            private readonly Stream _stream;
             private readonly long _sectorCount;
 
-            public IsoImageReader(string path)
+            public IsoImageReader(string source, long length = 0)
             {
-                _stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20,
-                    FileOptions.RandomAccess);
+                if (CustomFfprobeApi.IsHttpUrl(source))
+                {
+                    _stream = new HttpRangeStream(source, length);
+                }
+                else
+                {
+                    _stream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read,
+                        1 << 20, FileOptions.RandomAccess);
+                }
+
                 _sectorCount = _stream.Length / SectorSize;
             }
 
@@ -322,7 +672,8 @@ namespace StrmAssistant.Common
                     return;
                 }
 
-                var buffer = new byte[1 << 20];
+                // A larger buffer keeps the number of range requests low for remote images.
+                var buffer = new byte[4 << 20];
                 long written = 0;
                 var total = Math.Max(1, file.Size);
 

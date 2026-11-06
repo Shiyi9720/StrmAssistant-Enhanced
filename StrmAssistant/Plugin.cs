@@ -89,8 +89,15 @@ namespace StrmAssistant
         private readonly ITaskManager _taskManager;
         private readonly IFfmpegManager _ffmpegManager;
         private readonly ISessionManager _sessionManager;
+        private readonly IJsonSerializer _jsonSerializer;
+        private readonly IHttpClient _httpClient;
+        private readonly ILocalizationManager _localizationManager;
 
         internal IFfmpegManager FfmpegManager => _ffmpegManager;
+        internal IFileSystem FileSystem => _fileSystem;
+        internal IJsonSerializer JsonSerializer => _jsonSerializer;
+        internal IHttpClient HttpClient => _httpClient;
+        internal ILocalizationManager LocalizationManager => _localizationManager;
 
         private bool _currentSuppressOnOptionsSaved;
         private bool _skipOptionsSanitizeOnce;
@@ -202,6 +209,9 @@ namespace StrmAssistant
             _taskManager = taskManager;
             _ffmpegManager = ffmpegManager;
             _sessionManager = sessionManager;
+            _jsonSerializer = jsonSerializer;
+            _httpClient = httpClient;
+            _localizationManager = localizationManager;
 
             _currentMaxConcurrentCount = GetOptions().GeneralOptions.MaxConcurrentCount;
             _currentIntroDetectionMaxConcurrentCount = GetOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
