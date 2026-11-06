@@ -1364,4 +1364,13 @@
   <data name="MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview" xml:space="preserve">
     <value>Refresh metadata for movies missing overview, image or Chinese overview.</value>
   </data>
+  <data name="VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites" xml:space="preserve">
+    <value>Cross-Library Favorites</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites" xml:space="preserve">
+    <value>Separate Cross-Library Favorites</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
+    <value>Record movie favorites per library, so favoriting a movie in one library does not affect the same movie in another library. Unfavoriting only affects the current library. Applies to movies in the web client. A restart is required after changing. Default is OFF.</value>
+  </data>
 </root>

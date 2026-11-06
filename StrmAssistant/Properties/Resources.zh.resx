@@ -1277,4 +1277,13 @@
   <data name="MovieRefreshTask_Description_Refresh_metadata_for_movies_missing_overview_image_or_Chinese_overview" xml:space="preserve">
     <value>刷新缺少简介、图片或中文简介的电影元数据。</value>
   </data>
+  <data name="VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites" xml:space="preserve">
+    <value>跨库收藏</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites" xml:space="preserve">
+    <value>跨库收藏分离</value>
+  </data>
+  <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
+    <value>按媒体库分别记录电影收藏，在 A 库收藏不会影响 B 库的同一影片，取消收藏也只影响当前库。仅对网页客户端中的电影生效。更改后需重启 Emby。默认关闭。</value>
+  </data>
 </root>

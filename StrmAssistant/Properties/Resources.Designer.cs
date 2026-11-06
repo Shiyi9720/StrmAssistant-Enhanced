@@ -3843,6 +3843,33 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites.
+        /// </summary>
+        public static string VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites {
+            get {
+                return ResourceManager.GetString("VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites.
+        /// </summary>
+        public static string VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites {
+            get {
+                return ResourceManager.GetString("VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_.
+        /// </summary>
+        public static string VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Wiki_Link.
         /// </summary>
         public static string Wiki_Link {

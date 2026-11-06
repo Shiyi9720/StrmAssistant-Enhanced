@@ -30,9 +30,12 @@ namespace StrmAssistant.Web.Helper
             var logNewestFirst = options?.ExperienceEnhanceOptions.LogNewestFirst ?? false;
             var multiSelectActions = options?.ExperienceEnhanceOptions.MultiSelectActions ?? false;
             var doubanRecommendations = options?.MetadataEnhanceOptions.EnableDoubanRecommendations ?? false;
+            var versionFavorites = options?.ExperienceEnhanceOptions.VersionFavoriteOptions
+                ?.EnableCrossLibraryFavoriteSeparation ?? false;
 
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" +
                    GetVersionNamesScript(multiVersionFriendlyNames) + "\n" + GetPlaybackScript() +
+                   "\n" + GetVersionFavoriteScript(versionFavorites) +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
                    GetCollectionMembershipScript() + "\n" +
                    GetDashboardTasksScript() + "\n" + GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
@@ -1352,6 +1355,218 @@ namespace StrmAssistant.Web.Helper
         } catch (e) { }
         if (playbackAttempts > 60) clearInterval(playbackTimer);
     }, 3000);
+})();
+";
+        }
+
+        /// <summary>
+        /// Per-library favorites. Emby's user data is keyed by provider id, so the same movie in
+        /// two libraries shares one favorite. The plugin records favorites per item; this wrapper
+        /// replaces the favorite flag in item payloads with the plugin's value and drops
+        /// cross-library copies from favorite query results.
+        /// </summary>
+        private static string GetVersionFavoriteScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    var patched = false;
+    var cache = {};
+    var resolved = {};
+    var pending = {};
+    var maxBatch = 100;
+
+    function isItem(node) {
+        return node && typeof node === 'object' && !Array.isArray(node) &&
+            node.Id && node.UserData && typeof node.UserData.IsFavorite === 'boolean';
+    }
+
+    function walk(node, visit, depth) {
+        if (!node || typeof node !== 'object' || depth > 4) return;
+        if (Array.isArray(node)) {
+            for (var i = 0; i < node.length; i++) walk(node[i], visit, depth + 1);
+            return;
+        }
+        visit(node);
+        for (var key in node) {
+            if (!Object.prototype.hasOwnProperty.call(node, key)) continue;
+            if (key === 'UserData' || key === 'MediaSources' || key === 'MediaStreams' ||
+                key === 'People' || key === 'Studios' || key === 'Genres') continue;
+            walk(node[key], visit, depth + 1);
+        }
+    }
+
+    function collect(node, ids) {
+        walk(node, function (item) {
+            if (!isItem(item)) return;
+            var id = item.Id;
+            if (Object.prototype.hasOwnProperty.call(cache, id)) return;
+            if (Object.prototype.hasOwnProperty.call(resolved, id)) return;
+            if (Object.prototype.hasOwnProperty.call(pending, id)) return;
+            ids.push(id);
+        }, 0);
+    }
+
+    function apply(node) {
+        walk(node, function (item) {
+            if (!isItem(item)) return;
+            if (Object.prototype.hasOwnProperty.call(cache, item.Id)) {
+                item.UserData.IsFavorite = cache[item.Id];
+            }
+        }, 0);
+    }
+
+    function isFavoriteQuery(url) {
+        var value = String(url || '');
+        return /[?&]IsFavorite=true/i.test(value) ||
+            /[?&]Filters=[^&]*IsFavorite/i.test(value);
+    }
+
+    function filterFavorites(data) {
+        if (!data || !data.Items || !data.Items.length) return;
+        data.Items = data.Items.filter(function (item) {
+            if (!item || !item.Id) return true;
+            if (!Object.prototype.hasOwnProperty.call(cache, item.Id)) return true;
+            return cache[item.Id] === true;
+        });
+    }
+
+    function fetchMissing(apiClient, ids, originalGetJSON) {
+        if (!ids.length) return Promise.resolve();
+
+        var chunk = ids.slice(0, maxBatch);
+        for (var i = 0; i < chunk.length; i++) pending[chunk[i]] = true;
+
+        var url = apiClient.getUrl('StrmAssistant/VersionFavorites/Query', { Ids: chunk.join(',') });
+
+        return originalGetJSON.call(apiClient, url).then(function (response) {
+            var items = (response && response.Items) || [];
+            for (var j = 0; j < items.length; j++) {
+                if (items[j] && items[j].ItemId) cache[items[j].ItemId] = !!items[j].IsFavorite;
+            }
+            for (var k = 0; k < chunk.length; k++) {
+                if (!Object.prototype.hasOwnProperty.call(cache, chunk[k])) resolved[chunk[k]] = true;
+                delete pending[chunk[k]];
+            }
+            if (ids.length > chunk.length) return fetchMissing(apiClient, ids.slice(chunk.length), originalGetJSON);
+        }, function () {
+            for (var k = 0; k < chunk.length; k++) {
+                resolved[chunk[k]] = true;
+                delete pending[chunk[k]];
+            }
+        });
+    }
+
+    function invalidate(itemId) {
+        if (!itemId) return;
+        delete cache[itemId];
+        delete resolved[itemId];
+    }
+
+    function favoriteItemId(url) {
+        var match = /\/FavoriteItems\/([^\/?#]+)/i.exec(String(url || ''));
+        if (!match) return null;
+        try {
+            return decodeURIComponent(match[1]);
+        } catch (e) {
+            return match[1];
+        }
+    }
+
+    function patchApiClient(connectionManager) {
+        if (patched) return true;
+        if (!connectionManager || !connectionManager.currentApiClient) return false;
+
+        var apiClient = connectionManager.currentApiClient();
+        if (!apiClient) return false;
+
+        var proto = Object.getPrototypeOf(apiClient);
+        if (!proto || typeof proto.getJSON !== 'function') return false;
+
+        if (proto.__strmAssistantVersionFavoritePatched) {
+            patched = true;
+            return true;
+        }
+
+        var originalGetJSON = proto.getJSON;
+        proto.getJSON = function (url) {
+            var self = this;
+            var args = arguments;
+            var result = originalGetJSON.apply(this, args);
+
+            if (!result || typeof result.then !== 'function') {
+                try { apply(result); if (isFavoriteQuery(url)) filterFavorites(result); } catch (e) { }
+                return result;
+            }
+
+            return result.then(function (data) {
+                var ids = [];
+                try { collect(data, ids); } catch (e) { }
+
+                if (!ids.length) {
+                    try { apply(data); if (isFavoriteQuery(url)) filterFavorites(data); } catch (e) { }
+                    return data;
+                }
+
+                return fetchMissing(self, ids, originalGetJSON).then(function () {
+                    try { apply(data); if (isFavoriteQuery(url)) filterFavorites(data); } catch (e) { }
+                    return data;
+                });
+            });
+        };
+
+        if (typeof proto.ajax === 'function') {
+            var originalAjax = proto.ajax;
+            proto.ajax = function (request) {
+                var url = typeof request === 'string' ? request : (request && request.url);
+                var itemId = favoriteItemId(url);
+                if (itemId) invalidate(itemId);
+
+                var result = originalAjax.apply(this, arguments);
+
+                if (itemId && result && typeof result.then === 'function') {
+                    result.then(function () { invalidate(itemId); }, function () { invalidate(itemId); });
+                }
+
+                return result;
+            };
+        }
+
+        var favoriteMethods = ['updateFavorite', 'markFavorite', 'unmarkFavorite'];
+        for (var i = 0; i < favoriteMethods.length; i++) {
+            (function (name) {
+                if (typeof proto[name] !== 'function') return;
+                var original = proto[name];
+                proto[name] = function () {
+                    var itemId = arguments[0];
+                    if (itemId) invalidate(itemId);
+                    var result = original.apply(this, arguments);
+                    if (itemId && result && typeof result.then === 'function') {
+                        result.then(function () { invalidate(itemId); }, function () { invalidate(itemId); });
+                    }
+                    return result;
+                };
+            })(favoriteMethods[i]);
+        }
+
+        proto.__strmAssistantVersionFavoritePatched = true;
+        patched = true;
+        return true;
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        try {
+            require(['connectionManager']).then(function (modules) {
+                if (patchApiClient(modules && modules[0])) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
 })();
 ";
         }

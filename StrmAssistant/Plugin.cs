@@ -66,6 +66,7 @@ namespace StrmAssistant
         public static MetadataApi MetadataApi { get; private set; }
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
         public static VersionPlaybackApi VersionPlaybackApi { get; private set; }
+        public static VersionFavoriteApi VersionFavoriteApi { get; private set; }
         public static BoxSetHomeVisibilityStore BoxSetHomeVisibilityStore { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
         public static IntroDbApi IntroDbApi { get; private set; }
@@ -107,6 +108,7 @@ namespace StrmAssistant
         private bool _currentDistinguishChinesePosters;
         private bool _currentPreferOriginalPoster;
         private string _currentLocalDiscoveryAddress;
+        private bool _currentCrossLibraryFavoriteSeparation;
         private ChineseMetadataOrderOption _currentChineseMetadataOrder;
         private bool _currentConvertSimplifiedToTraditional;
 
@@ -214,6 +216,8 @@ namespace StrmAssistant
             _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
             _currentPreferOriginalPoster = GetOptions().MetadataEnhanceOptions.PreferOriginalPoster;
             _currentLocalDiscoveryAddress = GetOptions().NetworkOptions.LocalDiscoveryAddress;
+            _currentCrossLibraryFavoriteSeparation = GetOptions().ExperienceEnhanceOptions.VersionFavoriteOptions
+                .EnableCrossLibraryFavoriteSeparation;
             _currentChineseMetadataOrder = GetOptions().MetadataEnhanceOptions.ChineseMetadataOrder;
             _currentConvertSimplifiedToTraditional =
                 GetOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional;
@@ -253,6 +257,7 @@ namespace StrmAssistant
                 serverApplicationHost);
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
+            VersionFavoriteApi = new VersionFavoriteApi(jsonSerializer);
             BoxSetHomeVisibilityStore = new BoxSetHomeVisibilityStore(jsonSerializer);
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
             IntroDbApi = new IntroDbApi(libraryManager, itemRepository, jsonSerializer, httpClient);
@@ -690,6 +695,15 @@ namespace StrmAssistant
                 {
                     _currentLocalDiscoveryAddress = options.NetworkOptions.LocalDiscoveryAddress;
                     Logger.Info("LocalDiscoveryAddress changed. Restart Emby to apply it.");
+                }
+
+                var crossLibraryFavoriteSeparation = options.ExperienceEnhanceOptions.VersionFavoriteOptions
+                    .EnableCrossLibraryFavoriteSeparation;
+                Logger.Info("EnableCrossLibraryFavoriteSeparation is set to {0}", crossLibraryFavoriteSeparation);
+                if (_currentCrossLibraryFavoriteSeparation != crossLibraryFavoriteSeparation)
+                {
+                    _currentCrossLibraryFavoriteSeparation = crossLibraryFavoriteSeparation;
+                    Logger.Info("EnableCrossLibraryFavoriteSeparation changed. Restart Emby to apply it.");
                 }
             }
 
