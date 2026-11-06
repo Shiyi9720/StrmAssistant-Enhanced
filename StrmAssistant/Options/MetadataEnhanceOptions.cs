@@ -161,6 +161,16 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableDoubanSupplement), SimpleCondition.IsTrue)]
         public int DoubanRequestIntervalSeconds { get; set; } = 3;
 
+        [DisplayNameL("MetadataEnhanceOptions_EnableDoubanCast_Enable_Douban_Cast_Supplement", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableDoubanCast_Append_missing_main_cast_and_directors_from_Douban__Existing_people_are_kept_and_deduplicated_by_name__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableDoubanSupplement), SimpleCondition.IsTrue)]
+        public bool EnableDoubanCast { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_EnableDoubanSeason_Enable_Douban_Season_Supplement", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableDoubanSupplement), SimpleCondition.IsTrue)]
+        public bool EnableDoubanSeason { get; set; } = false;
+
         [DisplayNameL("MetadataEnhanceOptions_EnableDoubanRecommendations_Douban_Recommendation_Channel", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_", typeof(Resources))]
         public bool EnableDoubanRecommendations { get; set; } = false;
