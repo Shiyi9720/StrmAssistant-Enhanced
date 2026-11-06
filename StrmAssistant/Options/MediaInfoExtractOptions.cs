@@ -1,5 +1,6 @@
 using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Common;
+using Emby.Web.GenericEdit.Elements;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using MediaBrowser.Model.MediaInfo;
@@ -19,6 +20,52 @@ namespace StrmAssistant.Options
         [Required]
         public bool IncludeExtra { get; set; } = false;
 
+        [Browsable(false)]
+        public bool IsModSupported => Plugin.Instance?.IsModSupported == true;
+
+        [DisplayNameL("ModOptions_ExclusiveExtract_Exclusive_Extract", typeof(Resources))]
+        [DescriptionL("ModOptions_ExclusiveExtract_Only_allow_this_plugin_to_extract_media_info__ffprobe__and_capture_image__ffmpeg___Default_is_OFF_", typeof(Resources))]
+        [Required]
+        [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
+        public bool ExclusiveExtract { get; set; } = false;
+
+        [Browsable(false)]
+        public bool IsExclusiveExtractUnavailable => !IsModSupported;
+
+        [VisibleCondition(nameof(IsExclusiveExtractUnavailable), SimpleCondition.IsTrue)]
+        public StatusItem ExclusiveExtractUnavailableStatus { get; set; } = new StatusItem();
+
+        public enum ExclusiveControl
+        {
+            [DescriptionL("ExclusiveControl_IgnoreFileChange_IgnoreFileChange", typeof(Resources))]
+            IgnoreFileChange,
+            [DescriptionL("ExclusiveControl_ExtractOnFileChange_ExtractOnFileChange", typeof(Resources))]
+            ExtractOnFileChange,
+            [DescriptionL("ExclusiveControl_CatchAllAllow_CatchAllAllow", typeof(Resources))]
+            CatchAllAllow,
+            [DescriptionL("ExclusiveControl_CatchAllBlock_CatchAllBlock", typeof(Resources))]
+            CatchAllBlock,
+            [DescriptionL("ExclusiveControl_IgnoreExtSubChange_IgnoreExtSubChange", typeof(Resources))]
+            IgnoreExtSubChange,
+            [DescriptionL("ExclusiveControl_NoPersistIntegration_NoPersistIntegration", typeof(Resources))]
+            NoPersistIntegration,
+            [DescriptionL("ExclusiveControl_NoIntroProtect_NoIntroProtect", typeof(Resources))]
+            NoIntroProtect,
+            [DescriptionL("ExclusiveControl_NoNfoSaverOptimization_No_Nfo_Saver_Optimization", typeof(Resources))]
+            NoNfoSaverOptimization,
+            [DescriptionL("ExclusiveControl_ExtractAlternative_ExtractAlternative", typeof(Resources))]
+            ExtractAlternative
+        }
+
+        [Browsable(false)]
+        public List<EditorSelectOption> ExclusiveControlList { get; set; } = new List<EditorSelectOption>();
+
+        [DisplayNameL("MediaInfoExtractOptions_ExclusiveExtractFeatureControl_Exclusive_Extract_Feature_Control", typeof(Resources))]
+        [EditMultilSelect]
+        [SelectItemsSource(nameof(ExclusiveControlList))]
+        [VisibleCondition(nameof(ExclusiveExtract), SimpleCondition.IsTrue)]
+        public string ExclusiveControlFeatures { get; set; } = string.Empty;
+
         [DisplayNameL("MediaInfoExtractOptions_CustomFfprobeArguments_Custom_ffprobe_Arguments", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_CustomFfprobeArguments_Extra_arguments_inserted_before_the_input_for_ffprobe_commands__Duplicate_flags_are_ignored__Default_is_EMPTY_", typeof(Resources))]
         public string CustomFfprobeArguments { get; set; } = string.Empty;
@@ -30,6 +77,10 @@ namespace StrmAssistant.Options
         [DisplayNameL("MediaInfoExtractOptions_CustomFfmpegPath_Custom_ffmpeg_Path", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_CustomFfmpegPath_Path_to_a_custom_ffmpeg_build_with_vulkan_and_libplacebo_used_for_Dolby_Vision_Profile_5_screenshots__Default_is_EMPTY_", typeof(Resources))]
         public string CustomFfmpegPath { get; set; } = string.Empty;
+
+        [DisplayNameL("MediaInfoExtractOptions_CustomFfprobePath_Custom_ffprobe_Path", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_CustomFfprobePath_Path_to_a_static_ffprobe_build_with_the_bluray_protocol_used_for_remote_ISO_and_BDMV_probing__Blank_uses_the_plugin_bin_folder_and_downloads_the_build_for_this_platform_on_first_use__Default_is_EMPTY_", typeof(Resources))]
+        public string CustomFfprobePath { get; set; } = string.Empty;
 
         [DisplayNameL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]

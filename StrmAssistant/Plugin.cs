@@ -32,6 +32,7 @@ using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
 using StrmAssistant.IntroSkip;
+using StrmAssistant.Mod;
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using StrmAssistant.ScheduledTask;
@@ -87,8 +88,16 @@ namespace StrmAssistant
         private readonly IFileSystem _fileSystem;
         private readonly ITaskManager _taskManager;
         private readonly IFfmpegManager _ffmpegManager;
+        private readonly ISessionManager _sessionManager;
+        private readonly IJsonSerializer _jsonSerializer;
+        private readonly IHttpClient _httpClient;
+        private readonly ILocalizationManager _localizationManager;
 
         internal IFfmpegManager FfmpegManager => _ffmpegManager;
+        internal IFileSystem FileSystem => _fileSystem;
+        internal IJsonSerializer JsonSerializer => _jsonSerializer;
+        internal IHttpClient HttpClient => _httpClient;
+        internal ILocalizationManager LocalizationManager => _localizationManager;
 
         private bool _currentSuppressOnOptionsSaved;
         private bool _skipOptionsSanitizeOnce;
@@ -97,6 +106,7 @@ namespace StrmAssistant
         private int _currentIntroDetectionMaxConcurrentCount;
         private bool _currentPersistMediaInfo;
         private bool _currentMediaInfoRestoreMode;
+        private bool _currentExclusiveExtract;
         private bool _currentCatchupMode;
         private bool _currentEnableFavoriteCatchupPriority;
         private bool _currentEnableIntroSkip;
@@ -198,6 +208,10 @@ namespace StrmAssistant
             _fileSystem = fileSystem;
             _taskManager = taskManager;
             _ffmpegManager = ffmpegManager;
+            _sessionManager = sessionManager;
+            _jsonSerializer = jsonSerializer;
+            _httpClient = httpClient;
+            _localizationManager = localizationManager;
 
             _currentMaxConcurrentCount = GetOptions().GeneralOptions.MaxConcurrentCount;
             _currentIntroDetectionMaxConcurrentCount = GetOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
@@ -205,6 +219,7 @@ namespace StrmAssistant
                                        PersistMediaInfoOption.None.ToString();
             _currentMediaInfoRestoreMode = GetOptions().MediaInfoExtractOptions.PersistMediaInfoMode ==
                                            PersistMediaInfoOption.Restore.ToString();
+            _currentExclusiveExtract = GetOptions().MediaInfoExtractOptions.ExclusiveExtract;
             _currentCatchupMode = GetOptions().GeneralOptions.CatchupMode;
             _currentEnableFavoriteCatchupPriority = GetOptions().GeneralOptions.EnableFavoriteCatchupPriority;
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
@@ -288,9 +303,31 @@ namespace StrmAssistant
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
             CollectionFolder.LibraryOptionsUpdated += OnLibraryOptionsUpdated;
+            _sessionManager.PlaybackStopped += OnPlaybackStopped;
+
+            // Harmony patches must be applied once every plugin service they may call is constructed.
+            // Initialize() also decides whether the mod is usable at all (Harmony self-test and the
+            // mandatory ffprobe hooks); IsModSupported reflects that result from here on.
+            PatchManager.Initialize();
 
             // Loads the persisted index or builds it in the background after startup has settled.
             SearchIndexService.Initialize();
+        }
+
+        private void OnPlaybackStopped(object sender, PlaybackStopEventArgs e)
+        {
+            if (e.Item is Video && _currentExclusiveExtract &&
+                IsExclusiveFeatureSelected(ExclusiveControl.ExtractAlternative))
+            {
+                var targetItem = MediaInfoApi.GetItemByMediaSourceId(e.Item, e.MediaSourceId);
+
+                if (targetItem != null)
+                {
+                    var refreshOptions = MediaInfoApi.GetMediaInfoRefreshOptions();
+
+                    MediaInfoApi.QueueRefreshAlternateVersions(targetItem, refreshOptions, false);
+                }
+            }
         }
 
         private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
@@ -598,7 +635,12 @@ namespace StrmAssistant
 
         public bool DebugMode;
 
-        public bool IsModSupported => false;
+        /// <summary>
+        /// True only while the Harmony mod is actually operational. When Harmony cannot install
+        /// its hooks (or the mandatory ffprobe patches fail) every exclusive feature must be
+        /// presented as unavailable instead of pretending to run.
+        /// </summary>
+        public bool IsModSupported => PatchManager.IsModOperational;
 
         public Stream GetThumbImage()
         {
@@ -687,6 +729,26 @@ namespace StrmAssistant
                     ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Where(v => options.MediaInfoExtractOptions.LibraryList.Any(option => option.Value == v)) ??
                 Enumerable.Empty<string>());
+
+            var exclusiveControlFeatures = options.MediaInfoExtractOptions.ExclusiveControlFeatures;
+            if (!string.IsNullOrEmpty(exclusiveControlFeatures))
+            {
+                var selected = exclusiveControlFeatures
+                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+                if (selected.Contains(ExclusiveControl.CatchAllBlock.ToString()))
+                {
+                    selected.RemoveAll(f => f == ExclusiveControl.CatchAllAllow.ToString() ||
+                                            f == ExclusiveControl.ExtractOnFileChange.ToString());
+                }
+
+                if (selected.Contains(ExclusiveControl.IgnoreFileChange.ToString()))
+                {
+                    selected.RemoveAll(f => f == ExclusiveControl.ExtractOnFileChange.ToString());
+                }
+
+                options.MediaInfoExtractOptions.ExclusiveControlFeatures = string.Join(",", selected);
+            }
 
             options.IntroSkipOptions.LibraryScope = string.Join(",",
                 options.IntroSkipOptions.LibraryScope
@@ -1064,6 +1126,38 @@ namespace StrmAssistant
                 Logger.Info("TmdbAliasSearch is set to {0}", options.SearchOptions.TmdbAliasSearch);
             }
 
+            if (!IsModSupported && options.MediaInfoExtractOptions.ExclusiveExtract)
+            {
+                // The mod is not running; never let the saved options claim that it is.
+                options.MediaInfoExtractOptions.ExclusiveExtract = false;
+                Logger.Warn("ExclusiveExtract is unavailable ({0}); the option was turned off",
+                    PatchManager.ModFailureReason);
+            }
+
+            UpdateExclusiveControlFeatures(options.MediaInfoExtractOptions);
+
+            if (!suppress)
+            {
+                Logger.Info("ExclusiveExtract is set to {0}", options.MediaInfoExtractOptions.ExclusiveExtract);
+                var controlFeatures = GetSelectedExclusiveFeatureDescription();
+                Logger.Info("ExclusiveExtract - ControlFeatures is set to {0}",
+                    string.IsNullOrEmpty(controlFeatures) ? "EMPTY" : controlFeatures);
+            }
+
+            if (_currentExclusiveExtract != options.MediaInfoExtractOptions.ExclusiveExtract)
+            {
+                _currentExclusiveExtract = options.MediaInfoExtractOptions.ExclusiveExtract;
+
+                if (_currentExclusiveExtract)
+                {
+                    PatchManager.ExclusiveExtract?.Patch();
+                }
+                else
+                {
+                    PatchManager.ExclusiveExtract?.Unpatch();
+                }
+            }
+
             SearchIndexService.OnOptionsSaved();
 
             if (suppress) _currentSuppressOnOptionsSaved = false;
@@ -1095,6 +1189,26 @@ namespace StrmAssistant
                 options.ConflictPluginLoadedStatus.Caption = string.Empty;
                 options.ConflictPluginLoadedStatus.StatusText = string.Empty;
                 options.ConflictPluginLoadedStatus.Status = ItemStatus.None;
+            }
+
+            var extractOptions = options.MediaInfoExtractOptions;
+
+            if (!IsModSupported)
+            {
+                // The toggle itself is disabled by EnabledCondition; turning it off here makes
+                // the state unambiguous and the status item says why it is not available.
+                extractOptions.ExclusiveExtract = false;
+                extractOptions.ExclusiveExtractUnavailableStatus.Caption = string.Format(
+                    Resources.ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_,
+                    string.IsNullOrEmpty(PatchManager.ModFailureReason) ? "unknown" : PatchManager.ModFailureReason);
+                extractOptions.ExclusiveExtractUnavailableStatus.StatusText = string.Empty;
+                extractOptions.ExclusiveExtractUnavailableStatus.Status = ItemStatus.Warning;
+            }
+            else
+            {
+                extractOptions.ExclusiveExtractUnavailableStatus.Caption = string.Empty;
+                extractOptions.ExclusiveExtractUnavailableStatus.StatusText = string.Empty;
+                extractOptions.ExclusiveExtractUnavailableStatus.Status = ItemStatus.None;
             }
 
             var libraries = _libraryManager.GetVirtualFolders();
@@ -1145,6 +1259,18 @@ namespace StrmAssistant
             }
 
             options.MediaInfoExtractOptions.LibraryList = list;
+
+            options.MediaInfoExtractOptions.ExclusiveControlList.Clear();
+            foreach (Enum control in Enum.GetValues(typeof(ExclusiveControl)))
+            {
+                options.MediaInfoExtractOptions.ExclusiveControlList.Add(new EditorSelectOption
+                {
+                    Value = control.ToString(),
+                    Name = Emby.Media.Common.Extensions.EnumExtensions.GetDescription(control),
+                    IsEnabled = true,
+                });
+            }
+
             if (options.ExperienceEnhanceOptions.PinyinSortOptions != null)
             {
                 options.ExperienceEnhanceOptions.PinyinSortOptions.LibraryList =
