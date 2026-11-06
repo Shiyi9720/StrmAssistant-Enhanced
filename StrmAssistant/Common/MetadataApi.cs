@@ -1,6 +1,7 @@
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -10,6 +11,7 @@ using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
+using StrmAssistant.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,6 +77,56 @@ namespace StrmAssistant.Common
                 EnableThumbnailImageExtraction = false,
                 EnableSubtitleDownloading = false
             };
+        }
+
+        /// <summary>
+        /// Refresh options for an existing movie. FullRefresh keeps the historical behaviour;
+        /// the two narrower modes leave replace-all disabled so that provider data only fills
+        /// values Emby does not already have.
+        /// </summary>
+        public MetadataRefreshOptions GetMovieMetadataRefreshOptions()
+        {
+            var mode = GetMovieMetadataRefreshMode();
+
+            if (mode == MovieMetadataRefreshMode.FullRefresh)
+            {
+                return GetMetadataFullRefreshOptions();
+            }
+
+            return new MetadataRefreshOptions(new DirectoryService(_logger, _fileSystem))
+            {
+                EnableRemoteContentProbe = false,
+                MetadataRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllMetadata = false,
+                ImageRefreshMode = MetadataRefreshMode.FullRefresh,
+                ReplaceAllImages = false,
+                EnableThumbnailImageExtraction = false,
+                EnableSubtitleDownloading = false
+            };
+        }
+
+        public MovieMetadataRefreshMode GetMovieMetadataRefreshMode()
+        {
+            return Plugin.Instance?.GetPluginOptions()?.MetadataEnhanceOptions?.MovieRefreshMode ??
+                   MovieMetadataRefreshMode.FullRefresh;
+        }
+
+        /// <summary>
+        /// Missing-fields mode only processes movies that still lack one of the core fields a
+        /// MovieDb refresh can fill. The other modes always process the item.
+        /// </summary>
+        public bool MovieMetadataNeedsRefresh(Movie movie)
+        {
+            if (movie is null) return false;
+
+            if (GetMovieMetadataRefreshMode() != MovieMetadataRefreshMode.MissingFieldsOnly) return true;
+
+            return string.IsNullOrWhiteSpace(movie.Overview) ||
+                   movie.GetImageInfo(ImageType.Primary, 0) is null ||
+                   movie.Genres is null || movie.Genres.Length == 0 ||
+                   !movie.ProductionYear.HasValue ||
+                   (!movie.HasProviderId(MetadataProviders.Tmdb) &&
+                    !movie.HasProviderId(MetadataProviders.Imdb));
         }
 
         public string GetPreferredMetadataLanguage(BaseItem item)

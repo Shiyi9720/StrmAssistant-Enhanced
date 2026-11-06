@@ -1343,4 +1343,25 @@
   <data name="NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_" xml:space="preserve">
     <value>Address advertised to LAN clients through UDP discovery and the public system info endpoint. Set it to the local reverse proxy URL, or enter BLOCKED to disable the UDP reply. A restart is required. Default is EMPTY.</value>
   </data>
+  <data name="MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode" xml:space="preserve">
+    <value>Movie Metadata Refresh Mode</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_" xml:space="preserve">
+    <value>Choose how existing movies are refreshed. Full Refresh replaces everything as before. Missing Fields Only skips complete movies and fills gaps. Never Overwrite Existing queries the provider but keeps current values. Default is Full Refresh.</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_FullRefresh_Full_Refresh" xml:space="preserve">
+    <value>Full Refresh</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_MissingFieldsOnly_Missing_Fields_Only" xml:space="preserve">
+    <value>Missing Fields Only</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_NeverOverwriteExisting_Never_Overwrite_Existing" xml:space="preserve">
+    <value>Never Overwrite Existing</value>
+  </data>
+  <data name="RefreshMovieMetadataTask_Description_Refresh_existing_movies_using_the_configured_movie_metadata_refresh_mode" xml:space="preserve">
+    <value>Refresh existing movies using the configured movie metadata refresh mode.</value>
+  </data>
+  <data name="RefreshMovieMetadataTask_Refresh_Movie_Metadata" xml:space="preserve">
+    <value>Refresh Movie Metadata</value>
+  </data>
 </root>
