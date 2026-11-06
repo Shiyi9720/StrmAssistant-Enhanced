@@ -1,8 +1,8 @@
 # DV P7 真盘试点 · 执行记录
 
 - 日期：2026-11-06
-- 批次：第二十三批（第一步 + 第二步试点）
-- 结论：**真盘试点仍被 NAS 凭据挡住（升级后重试结果相同）；按 Hermes 建议，已用 FATE 公开样例完成检测逻辑与 BL 标记的实现，并通过正向/反向验证。尚未在真实零售盘上验证，EL 展示标签与 MEL/FEL 区分未做。**
+- 批次：第二十三批（第一步 + 第二步试点 + 收尾）
+- 结论：**真盘试点已通过。2026-11-06 在 NAS 上用静态 ffprobe 9.0.2 对三张真实零售 ISO 验证：寄生虫、变形金刚4 判定为 DV P7 双层（正例 2/2），你的名字。判定为非 P7（负例 1/1，不误判）。检测与 BL 标记实现已完成，待合入。EL 展示标签与 MEL/FEL 区分未做。**
 
 ## 一、目标
 
@@ -288,13 +288,59 @@ EL 流上的 DOVI 记录：`dv_profile=7, dv_level=4, rpu_present_flag=1, el_pre
 ### 7.4 结论与限制
 
 - 检测规则在 FATE 单轨 MKV、规范 TS、UHD BD 布局三种形态上都返回 True，在 H.264 和非 DV HEVC 上返回 False。
-- **未在真实零售盘上验证**：UHD BD 布局仍是“由 FATE 样例改 PMT 派生”的文件，不是零售盘抓取；
-  寄生虫/变形金刚4/你的名字。三张 ISO 等 NAS 挂载后补做。
+- **已在真实零售盘上验证**（2026-11-06，见第八节）：寄生虫、变形金刚4 命中 P7，你的名字。未误判；
+  第七节里的 UHD BD 布局派生文件只作补充样例，不再作为唯一的 UHD BD 证据。
+- UHD BD 布局下两条 video stream 的 `side_data_list` 都没有 DOVI 记录，只能靠 `-show_stream_groups`
+  的流组判定；`dv_profile == 7 && el_present_flag == 1` 的回退路径在真盘上拿不到数据，实际只对单轨
+  MKV/TS 有效（如 `dovi-p7-hvce.mkv`）。
 - 不区分 MEL/FEL；本批只标记 BL，不做 EL 展示标签。
 
-## 八、本批状态
+## 八、真实原盘试点（2026-11-06）
 
-- 已改 3 个生产文件：`CustomFfprobeApi.cs`、`DiscMediaInfoApi.cs`，新建 `DvP7Api.cs`；
-- `dotnet build -c Release`：0 错误；
-- 未在真实零售盘上验证，第二十二批评估里的真盘限制仍然成立；
+NAS 凭据问题之后，由 Hermes 在 NAS 本机用与插件同款静态 ffprobe **9.0.2（Linux x64）** 直接对 ISO 探测：
+
+```bash
+ffprobe -v error -show_stream_groups -show_streams -of json "bluray:<iso>"
+```
+
+### 8.1 三张盘汇总（验收记录）
+
+| 用途 | 盘 | 流组 | 流 | 判定 |
+| --- | --- | --- | --- | --- |
+| 正例 | 寄生虫 (2019) - 2160p.DV.BluRay.iso（92.6G） | 1 个，type = `Dolby Vision (Split base and enhancement layer)` | idx0 id=0x1011 hevc 3840×2160（BL），idx1 id=0x1015 hevc 1920×1080（EL） | **P7 ✓** |
+| 正例 | 变形金刚4：绝迹重生 (2014) - 2160p.DV.BluRay.iso（94.5G） | 与寄生虫完全同构：1 个同名流组 | 0x1011 2160p（BL）+ 0x1015 1080p（EL） | **P7 ✓** |
+| 负例 | 你的名字。(2016) [tmdbid=372058] - .iso（65,747,812,352 B，`拾忆/动漫电影/日韩/`） | **0 个** | 仅 1 条：idx0 id=0x1011 hevc 3840×2160 profile=Main 10，无 EL 流 | **非 P7 ✓** |
+
+**验收结果：正例 2/2 命中，负例 1/1 不误判。**
+
+### 8.2 与实现规则的对应
+
+1. 流组 `type` 字符串就是 `Dolby Vision (Split base and enhancement layer)`，`DvP7Api` 里
+   “type 含 `Dolby Vision`”的匹配（忽略大小写）在真盘上成立。
+2. 两条流 id 精确是 `0x1011`（BL）/ `0x1015`（EL），与映射完全一致，不需要走分辨率降序兜底。
+3. **两个 video stream 的 `side_data_list` 都没有 DOVI 记录**（`dovi_side_data: none`）。
+   这说明在真实 UHD BD 布局下只能靠 `-show_stream_groups` 的流组判定；
+   `dv_profile == 7 && el_present_flag == 1 && bl_present_flag == 1` 的配置记录回退路径在这里
+   拿不到任何数据，它实际只在单轨 MKV/TS（如 `dovi-p7-hvce.mkv`）上有效。
+   这与第二十二批评估里的判断一致。
+4. stderr 仅有 `bdj.c: BD-J check: Failed to load JVM library` 和
+   `bluray.c: 00001.m2ts: no timestamp for SPN 0` 两条警告，不影响探测结果。
+
+### 8.3 环境坑：CD2 FUSE 句柄失效
+
+试点中途读取 90GB ISO 时报 `State not recoverable`，原因是 CloudDrive2（CD2）的 FUSE 句柄失效，
+不是盘或 ffprobe 的问题。处理办法：
+
+```bash
+docker restart clouddrive2
+```
+
+容器重启后重新挂载/重试即恢复正常。以后再遇到大 ISO 读取突然报这个错，先重启 CD2 再排其它原因。
+
+## 九、本批状态
+
+- 已改 3 个生产文件：`CustomFfprobeApi.cs`、`DiscMediaInfoApi.cs`，新建 `DvP7Api.cs`；`docs/dv-p7-pilot.md` 为记录文档；
+- `dotnet build -c Release`：0 错误（本次收尾只改文档，已复跑确认）；
+- **真盘试点已通过**（2026-11-06）：正例 2/2、负例 1/1；
+- 实现已完成，**待合入**（当前在功能分支，未推送/未合并/未部署）；
 - EL 展示标签、MEL/FEL 区分未做。
