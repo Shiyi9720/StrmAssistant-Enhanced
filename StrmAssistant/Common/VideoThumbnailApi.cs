@@ -101,6 +101,51 @@ namespace StrmAssistant.Common
                 ? item.GetMediaSources(false, false, libraryOptions).FirstOrDefault()
                 : null;
 
+            // Distributed extraction only replaces the chapter image path. Libraries that use
+            // BIF thumbnail sets, or items that already carry a local thumbnail set, keep using
+            // Emby's generator. Any distributed failure silently falls through to it as well.
+            if (extractImages && saveChapters && libraryOptions != null &&
+                libraryOptions.EnableChapterImageExtraction &&
+                libraryOptions.ThumbnailImagesIntervalSeconds == -1 &&
+                Video.GetLocalThumbnailSetInfos(item.Path, item.Id, false, directoryService).Length == 0 &&
+                Plugin.DistributedExtractApi != null &&
+                DistributedExtractApi.IsThumbnailDistributionEnabled)
+            {
+                var distributedMediaPath = mediaSource?.Path;
+
+                if (string.IsNullOrEmpty(distributedMediaPath))
+                {
+                    distributedMediaPath = item.Path;
+
+                    if (item.IsShortcut)
+                    {
+                        try
+                        {
+                            distributedMediaPath = await Plugin.LibraryApi
+                                .GetStrmMountPath(distributedMediaPath).ConfigureAwait(false);
+                        }
+                        catch (Exception e)
+                        {
+                            _logger?.Debug(
+                                "VideoThumbnailDistributed - Failed to resolve shortcut: " + item.Path + " - " +
+                                e.Message);
+                            distributedMediaPath = null;
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(distributedMediaPath) &&
+                    await Plugin.DistributedExtractApi
+                        .TryExtractChapterImagesAsync(item, distributedMediaPath, chapters, cancellationToken)
+                        .ConfigureAwait(false))
+                {
+                    await PostProcessChapterImages(item, mediaSource, chapters, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    return true;
+                }
+            }
+
             var parameters = AppVer >= Ver4936
                 ? new object[]
                 {

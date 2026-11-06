@@ -443,6 +443,42 @@
             }, function () { });
         },
 
+        redetect_intro: function (itemId, itemName) {
+            const texts = window.strmAssistantIntroRedetect || {};
+            const commandName = texts.name || 'Re-detect Intro';
+            confirm({
+                text: globalize.translate('AreYouSureToContinue'),
+                title: commandName,
+                confirmText: globalize.translate('Yes'),
+                primary: 'cancel'
+            })
+            .then(function () {
+                loading.show();
+                const apiClient = connectionManager.currentApiClient();
+                apiClient.ajax({
+                    type: 'POST',
+                    url: apiClient.getUrl('StrmAssistant/Items/' + itemId + '/RedetectIntro'),
+                    data: {},
+                    contentType: 'application/json'
+                }).then(function (result) {
+                    if (typeof result === 'string') {
+                        try { result = JSON.parse(result); } catch (e) { }
+                    }
+                    if (result && result.Queued) {
+                        toast(texts.started || 'Intro re-detection started');
+                    } else if (result && result.AlreadyRunning) {
+                        toast(texts.running || 'Intro re-detection is already running');
+                    } else {
+                        toast(texts.failed || 'Failed to start intro re-detection');
+                    }
+                }, function () {
+                    toast(texts.failed || 'Failed to start intro re-detection');
+                }).finally(function () {
+                    loading.hide();
+                });
+            }, function () { });
+        },
+
         clear_intro: function (itemId) {
             const locale = globalize.getCurrentLocale().toLowerCase();
             const commandName = locale === 'zh-cn' ? '\u6E05\u9664\u7247\u5934\u6807\u8BB0' : 
