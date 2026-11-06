@@ -1504,5 +1504,41 @@
   </data>
   <data name="MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_" xml:space="preserve">
     <value>TMDB 请求之间的最小间隔（毫秒），必须在 0 到 10000 之间。默认 250。</value>
+  <data name="DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>豆瓣缓存预构建</value>
+  </data>
+  <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>启用豆瓣缓存预构建</value>
+  </data>
+  <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_" xml:space="preserve">
+    <value>在后台预取豆瓣评分，使详情页徽标无需等待首次豆瓣请求即可显示；只请求尚未缓存评分的条目。默认关闭。</value>
+  </data>
+  <data name="DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_" xml:space="preserve">
+    <value>执行间隔（小时）</value>
+  </data>
+  <data name="DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_" xml:space="preserve">
+    <value>预构建任务的默认触发间隔。该间隔仅在 Emby 创建默认触发器时生效，之后可在计划任务设置中修改。默认 24。</value>
+  </data>
+  <data name="DoubanCacheOptions_BatchSize_Batch_Size" xml:space="preserve">
+    <value>批量大小</value>
+  </data>
+  <data name="DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_" xml:space="preserve">
+    <value>每批处理多少条目后更新一次进度；批量越小，进度更新越频繁。默认 50。</value>
+  </data>
+  <data name="DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_" xml:space="preserve">
+    <value>请求间隔（秒）</value>
+  </data>
+  <data name="DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_" xml:space="preserve">
+    <value>两次豆瓣请求之间的最小间隔；单个条目可能需要一次搜索和一次详情请求。必须在 2 到 30 之间。默认 3。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>豆瓣缓存预构建</value>
+  </data>
+  <data name="DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache" xml:space="preserve">
+    <value>预构建豆瓣缓存</value>
+  </data>
+  <data name="DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_" xml:space="preserve">
+    <value>为尚无缓存评分的电影和剧集获取豆瓣评分；请求有限速，任务可随时取消。</value>
+  </data>
   </data>
 </root>

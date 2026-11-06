@@ -70,6 +70,7 @@ namespace StrmAssistant
         public static VersionFavoriteApi VersionFavoriteApi { get; private set; }
         public static BoxSetHomeVisibilityStore BoxSetHomeVisibilityStore { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
+        public static DoubanCacheApi DoubanCacheApi { get; private set; }
         public static IntroDbApi IntroDbApi { get; private set; }
         public static DiscMediaInfoApi DiscMediaInfoApi { get; private set; }
         public static DistributedExtractApi DistributedExtractApi { get; private set; }
@@ -308,6 +309,7 @@ namespace StrmAssistant
             VersionFavoriteApi = new VersionFavoriteApi(jsonSerializer);
             BoxSetHomeVisibilityStore = new BoxSetHomeVisibilityStore(jsonSerializer);
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
+            DoubanCacheApi = new DoubanCacheApi(jsonSerializer, httpClient);
             IntroDbApi = new IntroDbApi(libraryManager, itemRepository, jsonSerializer, httpClient);
             FingerprintLibraryApi = new FingerprintLibraryApi(libraryManager, jsonSerializer);
             SearchIndexService = new SearchIndexService(libraryManager, jsonSerializer, httpClient);
