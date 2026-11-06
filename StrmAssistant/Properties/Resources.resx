@@ -140,6 +140,18 @@
   <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
     <value>Comma separated subtitle codecs or wildcards, for example subrip, ass, hdmv_pgs_subtitle. Matching subtitle streams are removed when media info is processed. Default is EMPTY.</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Enable_External_Audio_Scan" xml:space="preserve">
+    <value>Enable External Audio Scan</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_" xml:space="preserve">
+    <value>Scan audio tracks stored next to strm or disc videos and merge them as external streams. Audio scanning only completes the plugin's own media stream data; it does not take over Emby transcoding selection. Default is OFF.</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions" xml:space="preserve">
+    <value>External Audio Extensions</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ExternalAudioExtensions_Comma_separated_audio_file_extensions_to_scan__Default_is_flac_ac3_dts_dtshd_mka_aac_mp3_truehd_thd_" xml:space="preserve">
+    <value>Comma separated audio file extensions to scan, for example flac, ac3, mka, truehd. Default is flac,ac3,dts,dtshd,mka,aac,mp3,truehd,thd.</value>
+  </data>
   <data name="MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords" xml:space="preserve">
     <value>Media Info Exclude Keywords</value>
   </data>

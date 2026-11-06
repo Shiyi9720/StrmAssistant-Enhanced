@@ -56,6 +56,18 @@
   <data name="MediaInfoExtractOptions_SubtitleBlacklistCodecs_Comma_separated_codecs_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_" xml:space="preserve">
     <value>以逗號分隔的字幕編碼或萬用字元，例如 subrip, ass, hdmv_pgs_subtitle。處理媒體資訊時，符合的字幕流將被移除。預設為空。</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Enable_External_Audio_Scan" xml:space="preserve">
+    <value>啟用外掛音軌掃描</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_" xml:space="preserve">
+    <value>掃描與 strm 或原盤視訊放在同一目錄的音軌檔案，並作為外掛流合併。音軌掃描只補全本外掛自身的媒體流資料，不接管 Emby 的轉碼選擇。預設關閉。</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions" xml:space="preserve">
+    <value>外掛音軌副檔名</value>
+  </data>
+  <data name="MediaInfoExtractOptions_ExternalAudioExtensions_Comma_separated_audio_file_extensions_to_scan__Default_is_flac_ac3_dts_dtshd_mka_aac_mp3_truehd_thd_" xml:space="preserve">
+    <value>以逗號分隔的音軌檔案副檔名，例如 flac, ac3, mka, truehd。預設 flac,ac3,dts,dtshd,mka,aac,mp3,truehd,thd。</value>
+  </data>
   <data name="MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords" xml:space="preserve">
     <value>媒體資訊黑名單（關鍵字）</value>
   </data>
