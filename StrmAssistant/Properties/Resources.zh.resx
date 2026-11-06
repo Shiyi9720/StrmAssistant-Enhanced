@@ -255,7 +255,7 @@
     <value>原语言海报</value>
   </data>
   <data name="ModOptions_OriginalPoster_Show_original_poster_based_on_original_language__Default_is_OFF_" xml:space="preserve">
-    <value>优先使用原语言海报，支持 TMDB, TVDB, Fanart，默认关闭。</value>
+    <value>按原始标题语言请求并优先使用 TMDB 原语言海报，默认关闭。</value>
   </data>
   <data name="IntroSkipOptions_UnlockIntroSkip_Built_in_Intro_Skip_Enhanced" xml:space="preserve">
     <value>原生片头探测增强</value>

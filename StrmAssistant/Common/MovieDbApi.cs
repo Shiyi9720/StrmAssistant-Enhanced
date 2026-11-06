@@ -33,6 +33,9 @@ namespace StrmAssistant.Common
         private static readonly Regex ImageLanguageParamRegex =
             new Regex(@"([?&]include_image_language=)([^&]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex OriginalLanguageRegex =
+            new Regex(@"""original_language""\s*:\s*""([a-zA-Z_-]+)""", RegexOptions.Compiled);
+
         private static readonly Regex ApiKeyParamRegex =
             new Regex(@"([?&]api_key=)([^&]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -46,6 +49,7 @@ namespace StrmAssistant.Common
         private static string _appliedImageBaseUrl;
         private static string _defaultApiKey;
         private static LruCache _itemLanguageCache = new LruCache(200);
+        private static LruCache _originalLanguageCache = new LruCache(300);
 
         public MovieDbApi(ILibraryManager libraryManager)
         {
@@ -78,6 +82,7 @@ namespace StrmAssistant.Common
                 }
 
                 _itemLanguageCache = new LruCache(200);
+                _originalLanguageCache = new LruCache(300);
                 ApplyAlternativeImageBaseUrl();
             }
             catch (Exception e)
@@ -307,35 +312,32 @@ namespace StrmAssistant.Common
             return language.Trim();
         }
 
-        private static string SetImageLanguageParam(string url, string chineseImageLanguages)
+        private static string SetImageLanguageParam(string url, string preferredImageLanguages)
         {
             if (ImageLanguageParamRegex.IsMatch(url))
             {
                 return ImageLanguageParamRegex.Replace(url, match =>
-                    match.Groups[1].Value + MergeImageLanguages(match.Groups[2].Value, chineseImageLanguages));
+                    match.Groups[1].Value + MergeImageLanguages(match.Groups[2].Value, preferredImageLanguages));
             }
 
             return url + (url.IndexOf('?') >= 0 ? "&" : "?") + "include_image_language=" +
-                   chineseImageLanguages + ",null";
+                   preferredImageLanguages + ",null";
         }
 
-        private static string MergeImageLanguages(string existing, string chineseImageLanguages)
+        private static string MergeImageLanguages(string existing, string preferredImageLanguages)
         {
-            var parts = (existing ?? string.Empty).Split(',')
+            var existingParts = (existing ?? string.Empty).Split(',')
                 .Select(part => part.Trim())
                 .Where(part => !string.IsNullOrEmpty(part))
                 .ToList();
 
-            var hasNull = parts.Any(part => string.Equals(part, "null", StringComparison.OrdinalIgnoreCase));
-            var nonChinese = parts.Where(part =>
-                !string.Equals(part, "null", StringComparison.OrdinalIgnoreCase) &&
-                !LanguageUtility.IsChineseLanguageCode(part));
-
             var merged = new List<string>();
 
-            merged.AddRange(chineseImageLanguages.Split(',').Select(part => part.Trim())
+            merged.AddRange((preferredImageLanguages ?? string.Empty).Split(',')
+                .Select(part => part.Trim())
                 .Where(part => !string.IsNullOrEmpty(part)));
-            merged.AddRange(nonChinese);
+            merged.AddRange(existingParts.Where(part =>
+                !string.Equals(part, "null", StringComparison.OrdinalIgnoreCase)));
             merged.Add("null");
 
             return string.Join(",", merged
@@ -413,6 +415,64 @@ namespace StrmAssistant.Common
             }
         }
 
+        /// <summary>
+        /// Resolves the original language of the TMDB item behind an image request. The
+        /// original_language value captured from a previous detail response is preferred; when it
+        /// is not available yet the original title is used as a best-effort fallback.
+        /// </summary>
+        private static string ResolveItemOriginalLanguage(Uri uri)
+        {
+            if (_libraryManager is null) return null;
+
+            var match = TmdbApiTargetRegex.Match(uri.AbsolutePath);
+
+            if (!match.Success) return null;
+
+            var kind = match.Groups[1].Value.ToLowerInvariant();
+
+            if (kind != "movie" && kind != "tv") return null;
+
+            var tmdbId = match.Groups[2].Value;
+            var cacheKey = kind + ":" + tmdbId;
+
+            if (_originalLanguageCache.TryGetFromCache<string>(cacheKey, out var cached) &&
+                !string.IsNullOrEmpty(cached))
+            {
+                return cached;
+            }
+
+            try
+            {
+                var itemType = kind == "movie" ? nameof(Movie) : nameof(Series);
+                var item = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    Recursive = true,
+                    Limit = 1,
+                    IncludeItemTypes = new[] { itemType },
+                    AnyProviderIdEquals = new[]
+                    {
+                        new KeyValuePair<string, string>("Tmdb", tmdbId)
+                    }
+                }).FirstOrDefault();
+
+                if (item is null) return null;
+
+                var language = LanguageUtility.GetLanguageByTitle(item.OriginalTitle) ??
+                               LanguageUtility.GetLanguageByTitle(item.Name);
+
+                if (string.IsNullOrEmpty(language)) return null;
+
+                _originalLanguageCache.AddOrUpdateCache(cacheKey, language);
+
+                return language;
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance.Logger.Debug("MovieDbApi ResolveItemOriginalLanguage - " + e.Message);
+                return null;
+            }
+        }
+
         private static UrlRewriteResult RewriteUrl(string url)
         {
             var result = new UrlRewriteResult { Url = url };
@@ -463,6 +523,27 @@ namespace StrmAssistant.Common
                     effectiveLanguage = targetLanguage ?? language;
                 }
 
+                var preferredImageLanguages = new List<string>();
+
+                if (options.PreferOriginalPoster)
+                {
+                    var originalLanguage = ResolveItemOriginalLanguage(uri);
+
+                    if (!string.IsNullOrEmpty(originalLanguage))
+                    {
+                        preferredImageLanguages.Add(originalLanguage);
+                    }
+
+                    // Keep the requested language available as well; original-language images
+                    // normally have a language tag that the default request would exclude.
+                    if (!string.IsNullOrEmpty(effectiveLanguage))
+                    {
+                        preferredImageLanguages.Add(effectiveLanguage);
+                    }
+                }
+
+                var chineseImageLanguages = (string)null;
+
                 if (options.DistinguishChinesePosters)
                 {
                     var imageLanguage = LanguageUtility.IsChineseLanguageCode(effectiveLanguage)
@@ -470,23 +551,30 @@ namespace StrmAssistant.Common
                         : string.IsNullOrEmpty(effectiveLanguage)
                             ? ResolveItemLanguage(uri)
                             : null;
-                    var chineseImageLanguages = LanguageUtility.GetChineseImageLanguages(imageLanguage);
-
-                    if (!string.IsNullOrEmpty(chineseImageLanguages))
-                    {
-                        rewrittenUrl = SetImageLanguageParam(rewrittenUrl, chineseImageLanguages);
-                    }
+                    chineseImageLanguages = LanguageUtility.GetChineseImageLanguages(imageLanguage);
                 }
                 else if (order != ChineseMetadataOrderOption.LibraryDefault &&
                          LanguageUtility.IsChineseLanguageCode(effectiveLanguage) &&
                          ImageLanguageParamRegex.IsMatch(rewrittenUrl))
                 {
-                    var chineseImageLanguages = LanguageUtility.GetChineseImageLanguages(effectiveLanguage);
+                    chineseImageLanguages = LanguageUtility.GetChineseImageLanguages(effectiveLanguage);
+                }
 
-                    if (!string.IsNullOrEmpty(chineseImageLanguages))
-                    {
-                        rewrittenUrl = SetImageLanguageParam(rewrittenUrl, chineseImageLanguages);
-                    }
+                if (!string.IsNullOrEmpty(chineseImageLanguages))
+                {
+                    preferredImageLanguages.AddRange(chineseImageLanguages.Split(',')
+                        .Select(part => part.Trim())
+                        .Where(part => !string.IsNullOrEmpty(part)));
+                }
+
+                if (preferredImageLanguages.Count > 0 &&
+                    (options.PreferOriginalPoster || options.DistinguishChinesePosters ||
+                     (order != ChineseMetadataOrderOption.LibraryDefault &&
+                      LanguageUtility.IsChineseLanguageCode(effectiveLanguage) &&
+                      ImageLanguageParamRegex.IsMatch(rewrittenUrl))))
+                {
+                    rewrittenUrl = SetImageLanguageParam(rewrittenUrl,
+                        string.Join(",", preferredImageLanguages));
                 }
 
                 result.RequestedSimplifiedChinese =
@@ -591,12 +679,37 @@ namespace StrmAssistant.Common
         {
             public string ResponseImageBaseUrl { get; set; }
             public bool ConvertSimplifiedToTraditional { get; set; }
+            public string OriginalLanguageCacheKey { get; set; }
+        }
+
+        private static string GetOriginalLanguageCacheKey(string url)
+        {
+            if (string.IsNullOrEmpty(url) ||
+                !Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.PreferOriginalPoster)
+            {
+                return null;
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
+
+            var match = TmdbApiTargetRegex.Match(uri.AbsolutePath);
+
+            if (!match.Success) return null;
+
+            var kind = match.Groups[1].Value.ToLowerInvariant();
+
+            if (kind != "movie" && kind != "tv") return null;
+
+            if (uri.AbsolutePath.IndexOf("/images", StringComparison.OrdinalIgnoreCase) >= 0) return null;
+
+            return kind + ":" + match.Groups[2].Value;
         }
 
         private static PreparedRequest Prepare(HttpRequestOptions options)
         {
             if (options is null) return null;
 
+            var originalLanguageCacheKey = GetOriginalLanguageCacheKey(options.Url);
             var rewrite = RewriteUrl(options.Url);
 
             options.Url = rewrite.Url;
@@ -609,7 +722,8 @@ namespace StrmAssistant.Common
                     rewrite.IsConfigurationRequest ? GetEffectiveImageBaseUrl(GetEffectiveSource()) : null,
                 ConvertSimplifiedToTraditional =
                     rewrite.RequestedSimplifiedChinese &&
-                    Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional
+                    Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional,
+                OriginalLanguageCacheKey = originalLanguageCacheKey
             };
         }
 
@@ -630,10 +744,11 @@ namespace StrmAssistant.Common
 
             var rewriteImageBaseUrl = !string.IsNullOrEmpty(prepared.ResponseImageBaseUrl);
             var convertToTraditional = prepared.ConvertSimplifiedToTraditional;
+            var captureOriginalLanguage = !string.IsNullOrEmpty(prepared.OriginalLanguageCacheKey);
 
-            if (!rewriteImageBaseUrl && !convertToTraditional) return response;
+            if (!rewriteImageBaseUrl && !convertToTraditional && !captureOriginalLanguage) return response;
 
-            if (convertToTraditional && !IsJsonResponse(response)) return response;
+            if ((convertToTraditional || captureOriginalLanguage) && !IsJsonResponse(response)) return response;
 
             try
             {
@@ -659,6 +774,17 @@ namespace StrmAssistant.Common
                 if (convertToTraditional)
                 {
                     content = LanguageUtility.ConvertSimplifiedToTraditional(content);
+                }
+
+                if (captureOriginalLanguage)
+                {
+                    var match = OriginalLanguageRegex.Match(content);
+
+                    if (match.Success)
+                    {
+                        _originalLanguageCache.AddOrUpdateCache(prepared.OriginalLanguageCacheKey,
+                            match.Groups[1].Value.ToLowerInvariant());
+                    }
                 }
 
                 var bytes = Encoding.UTF8.GetBytes(content);
