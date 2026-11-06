@@ -669,7 +669,8 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source, CancellationToken cancellationToken)
+        public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source,
+            CancellationToken cancellationToken, MediaInfoExtractionStats stats = null)
         {
             if (MediaInfoBlacklist.FromOptions().IsExcluded(taskItem))
             {
@@ -774,6 +775,8 @@ namespace StrmAssistant.Common
                             .ConfigureAwait(false);
                     }
 
+                    stats?.RecordLocal();
+
                     return true;
                 }
             }
@@ -781,12 +784,14 @@ namespace StrmAssistant.Common
             if (extractSkip) return null;
 
             // Optional distributed extraction: worker nodes probe the resolved media path. Any
-            // failure returns false silently and the local refresh below stays the fallback.
-            var distributedExtracted = await Plugin.DistributedExtractApi
-                .TryExtractAsync(taskItem, filePath, source, cancellationToken).ConfigureAwait(false);
+            // failure returns a reason silently and the local refresh below stays the fallback.
+            var distributedAttempt = await Plugin.DistributedExtractApi
+                .TryExtractWithResultAsync(taskItem, filePath, source, cancellationToken).ConfigureAwait(false);
 
-            if (distributedExtracted)
+            if (distributedAttempt.Success)
             {
+                stats?.RecordWorker();
+
                 if (taskItem is Video &&
                     Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
                 {
@@ -804,6 +809,13 @@ namespace StrmAssistant.Common
 
                 return true;
             }
+
+            if (distributedAttempt.Attempted)
+            {
+                stats?.RecordFallback(distributedAttempt.FallbackReason);
+            }
+
+            stats?.RecordLocal();
 
             taskItem.DateLastRefreshed = new DateTimeOffset();
 

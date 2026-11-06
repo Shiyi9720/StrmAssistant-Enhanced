@@ -394,7 +394,18 @@ namespace StrmAssistant.Common
                 "-show_streams -show_chapters -show_format",
                 cancellationToken).ConfigureAwait(false);
 
-            if (json is null) return null;
+            return NormalizeProbeJson(json, isAudio, inputPath, protocol);
+        }
+
+        /// <summary>
+        /// Deserializes raw ffprobe JSON and runs it through the same normalizer as an ordinary
+        /// Emby probe. The distributed media-info endpoint returns the raw JSON so that the
+        /// master, rather than the worker, owns the conversion into Emby's media model.
+        /// </summary>
+        internal static MediaInfo NormalizeProbeJson(string json, bool isAudio, string inputPath,
+            MediaProtocol protocol)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
 
             try
             {
@@ -424,8 +435,14 @@ namespace StrmAssistant.Common
         /// Returns null when the static build is unavailable or the probe fails, so callers can
         /// keep their existing behaviour.
         /// </summary>
-        internal static async Task<string> RunProbeJsonAsync(string inputPath, string outputArguments,
+        internal static Task<string> RunProbeJsonAsync(string inputPath, string outputArguments,
             CancellationToken cancellationToken)
+        {
+            return RunProbeJsonAsync(inputPath, outputArguments, 120000, cancellationToken);
+        }
+
+        internal static async Task<string> RunProbeJsonAsync(string inputPath, string outputArguments,
+            int timeoutMs, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(inputPath)) return null;
 
@@ -439,7 +456,8 @@ namespace StrmAssistant.Common
                                 " \"" + inputPath + "\"";
 
                 var output = await FfmpegApi.RunAndCaptureAsync(Plugin.Instance?.FfmpegManager, exePath, arguments,
-                    "CustomFfprobe", 120000, cancellationToken).ConfigureAwait(false);
+                    "CustomFfprobe", timeoutMs > 0 ? timeoutMs : 120000, cancellationToken)
+                    .ConfigureAwait(false);
 
                 if (string.IsNullOrWhiteSpace(output)) return null;
 
