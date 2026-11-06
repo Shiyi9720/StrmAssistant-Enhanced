@@ -2,12 +2,16 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Session;
+using MediaBrowser.Model.Dto;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace StrmAssistant.Common
 {
@@ -15,7 +19,10 @@ namespace StrmAssistant.Common
     /// Emby stores playback position on <see cref="UserItemData"/> only once per item, keyed by
     /// provider id (see <see cref="Video.GetUserDataKey"/>). All versions of a merged movie share
     /// that key, so the built-in user data cannot tell versions apart. This class keeps an extra
-    /// per-version position store on the server side, fed by session playback events.
+    /// per-version position store on the server side, fed by session playback events. Records are
+    /// grouped by provider/name content identity and then matched back to a concrete media source
+    /// by source id, file name stem, or resolution/source/codec signature, which also covers the
+    /// same movie stored separately in multiple libraries.
     /// </summary>
     public class VersionPlaybackApi
     {
@@ -23,22 +30,19 @@ namespace StrmAssistant.Common
         private static readonly TimeSpan Retention = TimeSpan.FromDays(180);
         private static readonly TimeSpan PersistInterval = TimeSpan.FromSeconds(30);
 
-        private readonly ILogger _logger;
+        private ILogger _logger => Plugin.Instance?.Logger;
         private readonly ISessionManager _sessionManager;
         private readonly IJsonSerializer _jsonSerializer;
         private readonly string _storePath;
         private readonly object _sync = new object();
         private readonly Dictionary<string, VersionPlaybackRecord> _records =
             new Dictionary<string, VersionPlaybackRecord>(StringComparer.OrdinalIgnoreCase);
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _multiVersionPlayback =
-            new System.Collections.Concurrent.ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
         private DateTime _lastPersistUtc = DateTime.MinValue;
         private bool _initialized;
 
         public VersionPlaybackApi(ISessionManager sessionManager, IJsonSerializer jsonSerializer)
         {
-            _logger = Plugin.Instance.Logger;
             _sessionManager = sessionManager;
             _jsonSerializer = jsonSerializer;
             _storePath = Path.Combine(Plugin.Instance.ApplicationPaths.PluginConfigurationsPath, StoreFileName);
@@ -72,23 +76,31 @@ namespace StrmAssistant.Common
         public List<VersionPlaybackInfo> GetVersionPlayback(long userId, BaseItem item)
         {
             var itemKey = GetItemKey(item);
-            if (string.IsNullOrEmpty(itemKey)) return new List<VersionPlaybackInfo>();
+            var nameKey = GetNameKey(item);
+            if (string.IsNullOrEmpty(itemKey) && string.IsNullOrEmpty(nameKey))
+                return new List<VersionPlaybackInfo>();
+
+            List<VersionPlaybackRecord> records;
 
             lock (_sync)
             {
-                return _records.Values
+                records = _records.Values
                     .Where(r => r.UserId == userId &&
-                                string.Equals(r.ItemKey, itemKey, StringComparison.OrdinalIgnoreCase) &&
+                                (MatchesKey(r.ItemKey, itemKey) || MatchesKey(r.NameKey, nameKey) ||
+                                 MatchesKey(r.ItemKey, item.InternalId.ToString(CultureInfo.InvariantCulture))) &&
                                 (r.PositionTicks > 0 || r.Played))
-                    .Select(r => new VersionPlaybackInfo
-                    {
-                        MediaSourceId = r.MediaSourceId,
-                        ItemId = r.MediaSourceItemId,
-                        PositionTicks = r.PositionTicks,
-                        Played = r.Played
-                    })
+                    .OrderByDescending(r => r.LastPlayedDate)
                     .ToList();
             }
+
+            var sources = GetCurrentMediaSources(item);
+
+            if (sources is null || sources.Count == 0)
+            {
+                return records.Select(ToVersionPlaybackInfo).ToList();
+            }
+
+            return MapRecordsToSources(records, sources);
         }
 
         private void OnPlaybackStart(object sender, PlaybackProgressEventArgs e)
@@ -138,24 +150,13 @@ namespace StrmAssistant.Common
             if (e.PlaybackPositionTicks is null && !playedToCompletion) return;
 
             var itemKey = GetItemKey(movie);
-            if (string.IsNullOrEmpty(itemKey)) return;
+            var nameKey = GetNameKey(movie);
+            if (string.IsNullOrEmpty(itemKey) && string.IsNullOrEmpty(nameKey)) return;
 
             var mediaSourceItemId = e.MediaSource?.ItemId;
             var mediaSourceId = e.MediaSourceId;
 
             if (string.IsNullOrEmpty(mediaSourceId) && string.IsNullOrEmpty(mediaSourceItemId)) return;
-
-            var sessionKey = GetSessionKey(e, mediaSourceItemId, mediaSourceId);
-
-            if (!_multiVersionPlayback.TryGetValue(sessionKey, out var isMultiVersion))
-            {
-                isMultiVersion = movie.GetAlternateVersionIds().Count > 0;
-                _multiVersionPlayback[sessionKey] = isMultiVersion;
-            }
-
-            if (_multiVersionPlayback.Count > 200) TrimSessionCache();
-
-            if (!isMultiVersion) return;
 
             var positionTicks = e.PlaybackPositionTicks ?? 0;
 
@@ -169,6 +170,8 @@ namespace StrmAssistant.Common
             }
 
             var now = DateTime.UtcNow;
+            var versionKey = GetVersionKey(e.MediaSource);
+            var versionSignature = GetVersionSignature(e.MediaSource);
 
             lock (_sync)
             {
@@ -181,7 +184,8 @@ namespace StrmAssistant.Common
                         record = new VersionPlaybackRecord
                         {
                             UserId = user.InternalId,
-                            ItemKey = itemKey,
+                            ItemKey = string.IsNullOrEmpty(itemKey) ? nameKey : itemKey,
+                            NameKey = nameKey,
                             MediaSourceId = mediaSourceId,
                             MediaSourceItemId = mediaSourceItemId
                         };
@@ -192,43 +196,273 @@ namespace StrmAssistant.Common
                     record.Played = playedToCompletion;
                     record.LastPlayedDate = now;
 
+                    if (string.IsNullOrEmpty(record.ItemKey)) record.ItemKey = itemKey ?? nameKey;
+                    if (string.IsNullOrEmpty(record.NameKey)) record.NameKey = nameKey;
                     if (string.IsNullOrEmpty(record.MediaSourceId)) record.MediaSourceId = mediaSourceId;
                     if (string.IsNullOrEmpty(record.MediaSourceItemId)) record.MediaSourceItemId = mediaSourceItemId;
+                    if (!string.IsNullOrEmpty(versionKey)) record.VersionKey = versionKey;
+                    if (!string.IsNullOrEmpty(versionSignature)) record.VersionSignature = versionSignature;
                 }
             }
 
             Persist(stopped);
-
-            if (stopped)
-            {
-                _multiVersionPlayback.TryRemove(sessionKey, out _);
-            }
-        }
-
-        private void TrimSessionCache()
-        {
-            foreach (var key in _multiVersionPlayback.Keys.Take(100).ToList())
-            {
-                _multiVersionPlayback.TryRemove(key, out _);
-            }
-        }
-
-        private static string GetSessionKey(PlaybackProgressEventArgs e, string mediaSourceItemId,
-            string mediaSourceId)
-        {
-            return (e.PlaySessionId ?? string.Empty) + "|" + (e.Session?.Id ?? string.Empty) + "|" +
-                   (e.Item?.InternalId.ToString() ?? string.Empty) + "|" +
-                   (mediaSourceItemId ?? mediaSourceId);
         }
 
         private static string GetItemKey(BaseItem item)
         {
             if (item is Video video)
             {
-                return Video.GetUserDataKey(video) ?? item.InternalId.ToString();
+                return Video.GetUserDataKey(video) ?? GetNameKey(item);
             }
 
-            return item.InternalId.ToString();
+            return GetNameKey(item) ?? item.InternalId.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string GetNameKey(BaseItem item)
+        {
+            var name = NormalizeIdentity(item?.Name);
+            if (string.IsNullOrEmpty(name)) return null;
+
+            return "name|" + name + "|" +
+                   (item.ProductionYear ?? 0).ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static bool MatchesKey(string left, string right)
+        {
+            return !string.IsNullOrEmpty(left) && !string.IsNullOrEmpty(right) &&
+                   string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static List<MediaSourceInfo> GetCurrentMediaSources(BaseItem item)
+        {
+            try
+            {
+                return item is Video video ? video.GetMediaSources(true, false, null) : null;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Instance?.Logger?.Debug("VersionPlayback - GetMediaSources failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        private static List<VersionPlaybackInfo> MapRecordsToSources(List<VersionPlaybackRecord> records,
+            List<MediaSourceInfo> sources)
+        {
+            var result = new List<VersionPlaybackInfo>();
+            var used = new HashSet<VersionPlaybackRecord>();
+
+            foreach (var source in sources)
+            {
+                if (source is null) continue;
+
+                var record = FindMatchingRecord(records, used,
+                                 r => MatchesSourceIds(r, source)) ??
+                             FindMatchingRecord(records, used,
+                                 r => MatchesKey(r.VersionKey, GetVersionKey(source))) ??
+                             FindMatchingRecord(records, used,
+                                 r => MatchesKey(r.VersionSignature, GetVersionSignature(source)));
+
+                if (record is null) continue;
+
+                used.Add(record);
+                result.Add(new VersionPlaybackInfo
+                {
+                    MediaSourceId = !string.IsNullOrEmpty(source.Id) ? source.Id : record.MediaSourceId,
+                    ItemId = !string.IsNullOrEmpty(source.ItemId) ? source.ItemId : record.MediaSourceItemId,
+                    PositionTicks = record.PositionTicks,
+                    Played = record.Played
+                });
+            }
+
+            return result;
+        }
+
+        private static VersionPlaybackRecord FindMatchingRecord(List<VersionPlaybackRecord> records,
+            HashSet<VersionPlaybackRecord> used, Func<VersionPlaybackRecord, bool> predicate)
+        {
+            return records.FirstOrDefault(r => !used.Contains(r) && predicate(r));
+        }
+
+        private static bool MatchesSourceIds(VersionPlaybackRecord record, MediaSourceInfo source)
+        {
+            return MatchesKey(record.MediaSourceId, source.Id) ||
+                   MatchesKey(record.MediaSourceItemId, source.ItemId);
+        }
+
+        private static VersionPlaybackInfo ToVersionPlaybackInfo(VersionPlaybackRecord record)
+        {
+            return new VersionPlaybackInfo
+            {
+                MediaSourceId = record.MediaSourceId,
+                ItemId = record.MediaSourceItemId,
+                PositionTicks = record.PositionTicks,
+                Played = record.Played
+            };
+        }
+
+        private static string GetVersionKey(MediaSourceInfo source)
+        {
+            var fileName = GetSourceFileName(source);
+            var stem = RemoveExtension(fileName);
+            var normalized = NormalizeIdentity(stem);
+            return string.IsNullOrEmpty(normalized) ? null : normalized;
+        }
+
+        private static string GetVersionSignature(MediaSourceInfo source)
+        {
+            if (source is null) return null;
+
+            var video = source.MediaStreams?.FirstOrDefault(s => s.Type == MediaStreamType.Video);
+            var fileName = (GetSourceFileName(source) ?? string.Empty).ToLowerInvariant();
+
+            var resolution = GetResolutionLabel(video?.Height, fileName);
+            var codec = NormalizeCodec(video?.Codec);
+            var mediaSource = GetSourceLabel(fileName);
+
+            if (string.IsNullOrEmpty(resolution) && string.IsNullOrEmpty(codec) &&
+                string.IsNullOrEmpty(mediaSource))
+            {
+                return null;
+            }
+
+            return resolution + "|" + codec + "|" + mediaSource;
+        }
+
+        private static string GetResolutionLabel(int? height, string fileName)
+        {
+            if (height.HasValue && height.Value > 0)
+            {
+                if (height.Value >= 2000) return "2160p";
+                if (height.Value >= 1000) return "1080p";
+                if (height.Value >= 700) return "720p";
+                if (height.Value >= 500) return "576p";
+                return "480p";
+            }
+
+            if (ContainsToken(fileName, "2160p", "4k", "uhd")) return "2160p";
+            if (ContainsToken(fileName, "1080p")) return "1080p";
+            if (ContainsToken(fileName, "720p")) return "720p";
+            if (ContainsToken(fileName, "576p")) return "576p";
+            if (ContainsToken(fileName, "480p")) return "480p";
+
+            return null;
+        }
+
+        private static string NormalizeCodec(string codec)
+        {
+            var value = NormalizeIdentity(codec);
+            if (string.IsNullOrEmpty(value)) return null;
+            if (value == "h265" || value == "hevc") return "hevc";
+            if (value == "h264" || value == "avc") return "h264";
+            if (value == "av1") return "av1";
+            if (value == "vp9") return "vp9";
+            return value;
+        }
+
+        private static string GetSourceLabel(string fileName)
+        {
+            if (ContainsToken(fileName, "remux")) return "remux";
+            if (ContainsToken(fileName, "webdl", "web-dl")) return "webdl";
+            if (ContainsToken(fileName, "webrip")) return "webrip";
+            if (ContainsToken(fileName, "bluray", "blu-ray", "bdrip", "brrip")) return "bluray";
+            if (ContainsToken(fileName, "hdtv")) return "hdtv";
+            if (ContainsToken(fileName, "dvdrip", "dvd")) return "dvd";
+            return null;
+        }
+
+        private static bool ContainsToken(string value, params string[] tokens)
+        {
+            return !string.IsNullOrEmpty(value) &&
+                   tokens.Any(token => value.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private static string GetSourceFileName(MediaSourceInfo source)
+        {
+            if (source is null) return null;
+
+            var path = source.Path;
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                var queryMarker = path.LastIndexOf("?/", StringComparison.Ordinal);
+                var isUrl = path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+                if (queryMarker >= 0)
+                {
+                    path = path.Substring(queryMarker + 2);
+                }
+                else if (isUrl && !string.IsNullOrWhiteSpace(source.Name))
+                {
+                    return source.Name;
+                }
+                else
+                {
+                    var queryIndex = path.IndexOf('?');
+                    if (queryIndex >= 0) path = path.Substring(0, queryIndex);
+
+                    var slash = path.LastIndexOfAny(new[] { '/', '\\' });
+                    if (slash >= 0) path = path.Substring(slash + 1);
+                }
+
+                try
+                {
+                    path = Uri.UnescapeDataString(path);
+                }
+                catch (UriFormatException)
+                {
+                }
+
+                if (!string.IsNullOrWhiteSpace(path)) return path;
+            }
+
+            return source.Name;
+        }
+
+        private static string RemoveExtension(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName)) return fileName;
+
+            var dot = fileName.LastIndexOf('.');
+            if (dot <= 0 || dot == fileName.Length - 1) return fileName;
+
+            var extension = fileName.Substring(dot + 1);
+            if (extension.Length > 8 || extension.Any(char.IsWhiteSpace)) return fileName;
+
+            if (KnownVideoExtensions.Contains(extension)) return fileName.Substring(0, dot);
+
+            return fileName;
+        }
+
+        private static readonly HashSet<string> KnownVideoExtensions =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "mkv", "mp4", "avi", "ts", "m2ts", "iso", "strm", "mov", "wmv", "flv", "webm",
+                "rmvb", "m4v", "mpg", "mpeg"
+            };
+
+        private static string NormalizeIdentity(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+
+            var builder = new StringBuilder(value.Length);
+            var pendingSpace = false;
+
+            foreach (var character in value)
+            {
+                if (char.IsLetterOrDigit(character))
+                {
+                    if (pendingSpace && builder.Length > 0) builder.Append(' ');
+                    builder.Append(char.ToLowerInvariant(character));
+                    pendingSpace = false;
+                }
+                else
+                {
+                    pendingSpace = true;
+                }
+            }
+
+            return builder.ToString();
         }
 
         private static string RecordKey(long userId, string itemKey, string mediaSourceItemId,
@@ -306,8 +540,11 @@ namespace StrmAssistant.Common
         {
             public long UserId { get; set; }
             public string ItemKey { get; set; }
+            public string NameKey { get; set; }
             public string MediaSourceId { get; set; }
             public string MediaSourceItemId { get; set; }
+            public string VersionKey { get; set; }
+            public string VersionSignature { get; set; }
             public long PositionTicks { get; set; }
             public bool Played { get; set; }
             public DateTime LastPlayedDate { get; set; }

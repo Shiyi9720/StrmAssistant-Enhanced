@@ -209,6 +209,12 @@
   <data name="GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_" xml:space="preserve">
     <value>詳情頁多版本按畫質優先展示：解析度、編碼、檔案大小。預設為開啟。</value>
   </data>
+  <data name="GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names" xml:space="preserve">
+    <value>多版本檔案名稱美化</value>
+  </data>
+  <data name="GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_" xml:space="preserve">
+    <value>在多版本列表中顯示美化後的檔案名稱，並突顯解析度、來源和編碼等關鍵資訊。預設為開啟。</value>
+  </data>
   <data name="EpisodeStats_Total_In_Library" xml:space="preserve">
     <value>總集數 {0} / 已入庫 {1}</value>
   </data>

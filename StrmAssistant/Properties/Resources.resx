@@ -296,6 +296,12 @@
   <data name="GeneralOptions_MultiVersionSort_Sort_versions_by_quality__resolution__codec__size___Default_is_ON_" xml:space="preserve">
     <value>Sort multiple versions on the detail page by quality: resolution, then codec, then file size. Default is ON.</value>
   </data>
+  <data name="GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names" xml:space="preserve">
+    <value>Multi-Version Friendly File Names</value>
+  </data>
+  <data name="GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_" xml:space="preserve">
+    <value>Show beautified file names with highlighted resolution, source and codec in the multi-version list. Default is ON.</value>
+  </data>
   <data name="EpisodeStats_Total_In_Library" xml:space="preserve">
     <value>Total Episodes {0} / In Library {1}</value>
   </data>
