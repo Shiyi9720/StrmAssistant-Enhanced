@@ -98,6 +98,7 @@ namespace StrmAssistant
         private bool _currentPersistMediaInfo;
         private bool _currentMediaInfoRestoreMode;
         private bool _currentCatchupMode;
+        private bool _currentEnableFavoriteCatchupPriority;
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
         private bool _currentAutoMarkPreviousEpisodesPlayed;
@@ -205,6 +206,7 @@ namespace StrmAssistant
             _currentMediaInfoRestoreMode = GetOptions().MediaInfoExtractOptions.PersistMediaInfoMode ==
                                            PersistMediaInfoOption.Restore.ToString();
             _currentCatchupMode = GetOptions().GeneralOptions.CatchupMode;
+            _currentEnableFavoriteCatchupPriority = GetOptions().GeneralOptions.EnableFavoriteCatchupPriority;
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
             _currentAutoMarkPreviousEpisodesPlayed =
@@ -557,11 +559,25 @@ namespace StrmAssistant
                 if (_currentUnlockIntroSkip && _currentCatchupMode && IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
                     FingerprintApi.IsLibraryInScope(e.Item) && (e.Item is Episode || e.Item is Series))
                 {
-                    QueueManager.FavoriteFingerprintItemQueue.Enqueue(e.Item);
+                    if (_currentEnableFavoriteCatchupPriority)
+                    {
+                        QueueManager.FavoriteFingerprintItemQueue.Enqueue(e.Item);
+                    }
+                    else
+                    {
+                        QueueManager.FingerprintItemQueue.Enqueue(e.Item);
+                    }
                 }
                 else if (_currentCatchupMode && IsCatchupTaskSelected(CatchupTask.MediaInfo))
                 {
-                    QueueManager.FavoriteMediaInfoExtractItemQueue.Enqueue(e.Item);
+                    if (_currentEnableFavoriteCatchupPriority)
+                    {
+                        QueueManager.FavoriteMediaInfoExtractItemQueue.Enqueue(e.Item);
+                    }
+                    else
+                    {
+                        QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                    }
                 }
             }
         }
@@ -727,10 +743,13 @@ namespace StrmAssistant
                 }
             }
             UpdateCatchupScope();
+            _currentEnableFavoriteCatchupPriority = options.GeneralOptions.EnableFavoriteCatchupPriority;
 
             if (!suppress)
             {
                 Logger.Info("CatchupMode is set to {0}", options.GeneralOptions.CatchupMode);
+                Logger.Info("EnableFavoriteCatchupPriority is set to {0}",
+                    options.GeneralOptions.EnableFavoriteCatchupPriority);
                 var catchupTaskScope = GetSelectedCatchupTaskDescription();
                 Logger.Info("CatchupTaskScope is set to {0}", string.IsNullOrEmpty(catchupTaskScope) ? "EMPTY" : catchupTaskScope);
             }
