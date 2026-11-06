@@ -1178,4 +1178,37 @@
   <data name="IntroDbOptions_CacheExpiryDays_How_long_lookup_results_are_reused_before_querying_IntroDb_again__Default_is_30_" xml:space="preserve">
     <value>查詢結果在重新請求 IntroDb 之前的重複使用天數。預設 30。</value>
   </data>
+  <data name="DistributedExtractOptions_EditorTitle_Distributed_Extract" xml:space="preserve">
+    <value>分散式媒體資訊擷取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Enable_Distributed_Extraction" xml:space="preserve">
+    <value>啟用分散式擷取</value>
+  </data>
+  <data name="DistributedExtractOptions_EnableDistributedExtract_Offload_media_info_extraction_to_worker_nodes__Every_node_must_use_the_same_shared_key__When_no_worker_is_reachable_the_task_falls_back_to_local_extraction__Default_is_False_" xml:space="preserve">
+    <value>把媒體資訊擷取分發到工作節點。請在每台節點上啟用並填寫相同的共用金鑰。工作節點不可用時自動回落到本機擷取。預設關閉。</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Worker_Nodes" xml:space="preserve">
+    <value>工作節點</value>
+  </data>
+  <data name="DistributedExtractOptions_WorkerNodes_Comma_separated_HTTP_URLs_of_worker_nodes__for_example_http_192_168_1_10_8096__Default_is_EMPTY_" xml:space="preserve">
+    <value>工作節點的 HTTP 位址，以逗號分隔，例如 http://192.168.1.10:8096。預設空白。</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Shared_API_Key" xml:space="preserve">
+    <value>共用金鑰</value>
+  </data>
+  <data name="DistributedExtractOptions_SharedApiKey_Secret_used_to_authenticate_requests_between_nodes__It_must_be_the_same_on_every_node__Default_is_EMPTY_" xml:space="preserve">
+    <value>節點之間請求驗證用的金鑰，所有節點必須一致。預設空白。</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Path_Mapping" xml:space="preserve">
+    <value>路徑對應</value>
+  </data>
+  <data name="DistributedExtractOptions_PathMapping_Comma_separated_mappings_in_the_form_local_prefix_worker_prefix__Use_it_when_workers_mount_the_same_media_at_a_different_path__Default_is_EMPTY_" xml:space="preserve">
+    <value>路徑對應，格式為 本機前綴=&gt;工作節點前綴，以逗號分隔。工作節點掛載路徑不同時使用。預設空白。</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Timeout_Seconds" xml:space="preserve">
+    <value>逾時時間（秒）</value>
+  </data>
+  <data name="DistributedExtractOptions_TimeoutSeconds_Total_time_the_task_waits_for_worker_nodes_before_falling_back_to_local_extraction__It_must_be_between_10_and_600__Default_is_120_" xml:space="preserve">
+    <value>等待工作節點的總時長，逾時後回落到本機擷取。取值範圍 10-600，預設 120。</value>
+  </data>
 </root>
