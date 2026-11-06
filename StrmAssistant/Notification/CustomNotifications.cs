@@ -38,6 +38,20 @@ namespace StrmAssistant.Notification
                 },
                 new NotificationTypeInfo
                 {
+                    Id = "collection.items.added",
+                    Name = Resources.Notification_CollectionItemsAdded_EventName,
+                    CategoryId = "strm.assistant",
+                    CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
+                },
+                new NotificationTypeInfo
+                {
+                    Id = "collection.items.removed",
+                    Name = Resources.Notification_CollectionItemsRemoved_EventName,
+                    CategoryId = "strm.assistant",
+                    CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
+                },
+                new NotificationTypeInfo
+                {
                     Id = "metadata.update",
                     Name = Resources.Notification_MetadataUpdate_EventName,
                     CategoryId = "strm.assistant",

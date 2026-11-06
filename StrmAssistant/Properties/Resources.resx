@@ -953,6 +953,12 @@
   <data name="Notification_CollectionUpdate_EventName" xml:space="preserve">
     <value>Collection Updated</value>
   </data>
+  <data name="Notification_CollectionItemsAdded_EventName" xml:space="preserve">
+    <value>Collection Item Added</value>
+  </data>
+  <data name="Notification_CollectionItemsRemoved_EventName" xml:space="preserve">
+    <value>Collection Item Removed</value>
+  </data>
   <data name="Notification_MetadataUpdate_EventName" xml:space="preserve">
     <value>Metadata Updated</value>
   </data>
