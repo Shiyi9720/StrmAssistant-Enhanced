@@ -248,6 +248,9 @@
   <data name="ModOptions_ExclusiveExtract_Only_allow_this_plugin_to_extract_media_info__ffprobe__and_capture_image__ffmpeg___Default_is_OFF_" xml:space="preserve">
     <value>接管媒体信息提取 (ffprobe) 以及视频截图 (ffmpeg)，全媒体库生效，默认关闭。</value>
   </data>
+  <data name="ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_" xml:space="preserve">
+    <value>独占媒体信息提取不可用：{0}。该选项已禁用，将继续使用 Emby 原生提取。</value>
+  </data>
   <data name="Repo_Link" xml:space="preserve">
     <value>项目链接</value>
   </data>

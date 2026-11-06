@@ -335,6 +335,9 @@
   <data name="ModOptions_ExclusiveExtract_Only_allow_this_plugin_to_extract_media_info__ffprobe__and_capture_image__ffmpeg___Default_is_OFF_" xml:space="preserve">
     <value>Take over media info extract (ffprobe) and image capture (ffmpeg) for all libraries. Default is OFF.</value>
   </data>
+  <data name="ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_" xml:space="preserve">
+    <value>Exclusive MediaInfo Extract is unavailable: {0}. The option is disabled and Emby's native extraction is used instead.</value>
+  </data>
   <data name="Repo_Link" xml:space="preserve">
     <value>Repo Link</value>
   </data>

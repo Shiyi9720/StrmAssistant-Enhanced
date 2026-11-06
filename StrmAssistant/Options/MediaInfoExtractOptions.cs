@@ -1,5 +1,6 @@
 using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Common;
+using Emby.Web.GenericEdit.Elements;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using MediaBrowser.Model.MediaInfo;
@@ -27,6 +28,12 @@ namespace StrmAssistant.Options
         [Required]
         [EnabledCondition(nameof(IsModSupported), SimpleCondition.IsTrue)]
         public bool ExclusiveExtract { get; set; } = false;
+
+        [Browsable(false)]
+        public bool IsExclusiveExtractUnavailable => !IsModSupported;
+
+        [VisibleCondition(nameof(IsExclusiveExtractUnavailable), SimpleCondition.IsTrue)]
+        public StatusItem ExclusiveExtractUnavailableStatus { get; set; } = new StatusItem();
 
         public enum ExclusiveControl
         {

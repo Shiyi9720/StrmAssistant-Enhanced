@@ -306,7 +306,9 @@ namespace StrmAssistant
             _sessionManager.PlaybackStopped += OnPlaybackStopped;
 
             // Harmony patches must be applied once every plugin service they may call is constructed.
-            if (IsModSupported) PatchManager.Initialize();
+            // Initialize() also decides whether the mod is usable at all (Harmony self-test and the
+            // mandatory ffprobe hooks); IsModSupported reflects that result from here on.
+            PatchManager.Initialize();
 
             // Loads the persisted index or builds it in the background after startup has settled.
             SearchIndexService.Initialize();
@@ -633,7 +635,12 @@ namespace StrmAssistant
 
         public bool DebugMode;
 
-        public bool IsModSupported => true;
+        /// <summary>
+        /// True only while the Harmony mod is actually operational. When Harmony cannot install
+        /// its hooks (or the mandatory ffprobe patches fail) every exclusive feature must be
+        /// presented as unavailable instead of pretending to run.
+        /// </summary>
+        public bool IsModSupported => PatchManager.IsModOperational;
 
         public Stream GetThumbImage()
         {
@@ -1119,6 +1126,14 @@ namespace StrmAssistant
                 Logger.Info("TmdbAliasSearch is set to {0}", options.SearchOptions.TmdbAliasSearch);
             }
 
+            if (!IsModSupported && options.MediaInfoExtractOptions.ExclusiveExtract)
+            {
+                // The mod is not running; never let the saved options claim that it is.
+                options.MediaInfoExtractOptions.ExclusiveExtract = false;
+                Logger.Warn("ExclusiveExtract is unavailable ({0}); the option was turned off",
+                    PatchManager.ModFailureReason);
+            }
+
             UpdateExclusiveControlFeatures(options.MediaInfoExtractOptions);
 
             if (!suppress)
@@ -1174,6 +1189,26 @@ namespace StrmAssistant
                 options.ConflictPluginLoadedStatus.Caption = string.Empty;
                 options.ConflictPluginLoadedStatus.StatusText = string.Empty;
                 options.ConflictPluginLoadedStatus.Status = ItemStatus.None;
+            }
+
+            var extractOptions = options.MediaInfoExtractOptions;
+
+            if (!IsModSupported)
+            {
+                // The toggle itself is disabled by EnabledCondition; turning it off here makes
+                // the state unambiguous and the status item says why it is not available.
+                extractOptions.ExclusiveExtract = false;
+                extractOptions.ExclusiveExtractUnavailableStatus.Caption = string.Format(
+                    Resources.ModOptions_ExclusiveExtractUnavailable_Exclusive_Extract_is_unavailable__0___The_option_is_disabled_and_Emby_s_native_extraction_is_used_instead_,
+                    string.IsNullOrEmpty(PatchManager.ModFailureReason) ? "unknown" : PatchManager.ModFailureReason);
+                extractOptions.ExclusiveExtractUnavailableStatus.StatusText = string.Empty;
+                extractOptions.ExclusiveExtractUnavailableStatus.Status = ItemStatus.Warning;
+            }
+            else
+            {
+                extractOptions.ExclusiveExtractUnavailableStatus.Caption = string.Empty;
+                extractOptions.ExclusiveExtractUnavailableStatus.StatusText = string.Empty;
+                extractOptions.ExclusiveExtractUnavailableStatus.Status = ItemStatus.None;
             }
 
             var libraries = _libraryManager.GetVirtualFolders();

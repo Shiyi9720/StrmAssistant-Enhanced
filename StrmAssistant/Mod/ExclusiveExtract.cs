@@ -70,6 +70,17 @@ namespace StrmAssistant.Mod
         {
             Initialize();
 
+            if (PatchTracker.FallbackPatchApproach != PatchApproach.Harmony)
+            {
+                PatchManager.MarkUnavailable("the Emby methods to patch could not be located" +
+                                             (string.IsNullOrEmpty(PatchTracker.FailureReason)
+                                                 ? string.Empty
+                                                 : ": " + PatchTracker.FailureReason));
+                Plugin.Instance.Logger.Warn("ExclusiveExtract - unavailable: " + PatchManager.ModFailureReason);
+
+                return;
+            }
+
             PatchFfProbeProcess();
 
             if (Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.ExclusiveExtract)
@@ -134,28 +145,67 @@ namespace StrmAssistant.Mod
 
         protected override void Prepare(bool apply)
         {
-            PatchUnpatch(PatchTracker, apply, _canRefreshImage, prefix: nameof(CanRefreshImagePrefix));
-            PatchUnpatch(PatchTracker, apply, _canRefreshMetadata, prefix: nameof(CanRefreshMetadataPrefix),
-                postfix: nameof(CanRefreshMetadataPostfix));
-            PatchUnpatch(PatchTracker, apply, _clearImages, prefix: nameof(ClearImagesPrefix));
-            PatchUnpatch(PatchTracker, apply, _isSaverEnabledForItem, prefix: nameof(IsSaverEnabledForItemPrefix));
-            PatchUnpatch(PatchTracker, apply, _afterMetadataRefresh, prefix: nameof(AfterMetadataRefreshPrefix));
-            PatchUnpatch(PatchTracker, apply, _addVirtualFolder, prefix: nameof(RefreshLibraryPrefix));
-            PatchUnpatch(PatchTracker, apply, _removeVirtualFolder, prefix: nameof(RefreshLibraryPrefix));
-            PatchUnpatch(PatchTracker, apply, _addMediaPath, prefix: nameof(RefreshLibraryPrefix));
-            PatchUnpatch(PatchTracker, apply, _removeMediaPath, prefix: nameof(RefreshLibraryPrefix));
-            PatchUnpatch(PatchTracker, apply, _saveChapters, prefix: nameof(SaveChaptersPrefix));
-            PatchUnpatch(PatchTracker, apply, _deleteChapters, prefix: nameof(DeleteChaptersPrefix));
-            PatchUnpatch(PatchTracker, apply, _getRefreshOptions, postfix: nameof(GetRefreshOptionsPostfix));
+            var specs = GetExclusiveSpecs();
+
+            if (apply)
+            {
+                PatchAll(PatchTracker, specs);
+                return;
+            }
+
+            foreach (var spec in specs)
+            {
+                if (spec.Target is null) continue;
+
+                PatchUnpatch(PatchTracker, false, spec.Target, spec.Prefix, spec.Postfix, spec.Transpiler,
+                    spec.Finalizer, true);
+            }
         }
 
+        private static PatchSpec[] GetExclusiveSpecs()
+        {
+            return new[]
+            {
+                new PatchSpec("CanRefreshImage", _canRefreshImage, prefix: nameof(CanRefreshImagePrefix)),
+                new PatchSpec("CanRefreshMetadata", _canRefreshMetadata,
+                    prefix: nameof(CanRefreshMetadataPrefix), postfix: nameof(CanRefreshMetadataPostfix)),
+                new PatchSpec("ClearImages", _clearImages, prefix: nameof(ClearImagesPrefix)),
+                new PatchSpec("IsSaverEnabledForItem", _isSaverEnabledForItem,
+                    prefix: nameof(IsSaverEnabledForItemPrefix)),
+                new PatchSpec("AfterMetadataRefresh", _afterMetadataRefresh,
+                    prefix: nameof(AfterMetadataRefreshPrefix)),
+                new PatchSpec("AddVirtualFolder", _addVirtualFolder, prefix: nameof(RefreshLibraryPrefix)),
+                new PatchSpec("RemoveVirtualFolder", _removeVirtualFolder, prefix: nameof(RefreshLibraryPrefix)),
+                new PatchSpec("AddMediaPath", _addMediaPath, prefix: nameof(RefreshLibraryPrefix)),
+                new PatchSpec("RemoveMediaPath", _removeMediaPath, prefix: nameof(RefreshLibraryPrefix)),
+                new PatchSpec("SaveChapters", _saveChapters, prefix: nameof(SaveChaptersPrefix)),
+                new PatchSpec("DeleteChapters", _deleteChapters, prefix: nameof(DeleteChaptersPrefix)),
+                new PatchSpec("GetRefreshOptions", _getRefreshOptions, postfix: nameof(GetRefreshOptionsPostfix))
+            };
+        }
+
+        /// <summary>
+        /// The ffprobe hooks are the prerequisite for every exclusive feature. They are
+        /// applied as one unit: if a single one of them cannot be installed, the whole mod
+        /// is marked unavailable instead of leaving a partially patched Emby behind.
+        /// </summary>
         private void PatchFfProbeProcess()
         {
-            PatchUnpatch(PatchTracker, true, _runFfProcess, prefix: nameof(RunFfProcessPrefix),
-                finalizer: nameof(RunFfProcessFinalizer));
-            PatchUnpatch(PatchTracker, true, _getInputArgument, prefix: nameof(GetInputArgumentPrefix));
-            PatchUnpatch(PatchTracker, true, _isProbingAllowed, prefix: nameof(IsProbingAllowedPrefix));
-            PatchUnpatch(PatchTracker, true, _getMediaInfo, postfix: nameof(GetMediaInfoPostfix));
+            var specs = new[]
+            {
+                new PatchSpec("RunFfProcess", _runFfProcess, prefix: nameof(RunFfProcessPrefix),
+                    finalizer: nameof(RunFfProcessFinalizer)),
+                new PatchSpec("GetInputArgument", _getInputArgument, prefix: nameof(GetInputArgumentPrefix)),
+                new PatchSpec("IsProbingAllowed", _isProbingAllowed, prefix: nameof(IsProbingAllowedPrefix)),
+                new PatchSpec("GetMediaInfo", _getMediaInfo, postfix: nameof(GetMediaInfoPostfix))
+            };
+
+            if (PatchAll(PatchTracker, specs)) return;
+
+            PatchTracker.FallbackPatchApproach = PatchApproach.None;
+            PatchManager.MarkUnavailable("the ffprobe hooks could not be installed: " +
+                                        PatchTracker.FailureReason);
+            Plugin.Instance.Logger.Warn("ExclusiveExtract - unavailable: " + PatchManager.ModFailureReason);
         }
 
         public static void AllowExtractInstance(BaseItem item)
