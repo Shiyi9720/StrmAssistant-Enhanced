@@ -1355,4 +1355,25 @@
   <data name="IntroRedetect_Failed_Failed_to_start_intro_re_detection" xml:space="preserve">
     <value>启动重新探测片头失败</value>
   </data>
+  <data name="PinyinSortOptions_EditorTitle_Pinyin_Sort_Title" xml:space="preserve">
+    <value>拼音首字母排序</value>
+  </data>
+  <data name="PinyinSortOptions_EnablePinyinSortName_Enable_Pinyin_Sort_Title" xml:space="preserve">
+    <value>启用拼音首字母排序</value>
+  </data>
+  <data name="PinyinSortOptions_EnablePinyinSortName_Write_pinyin_initials_of_Chinese_titles_to_the_sort_title_Only_untouched_sort_titles_are_rewritten_Default_is_OFF" xml:space="preserve">
+    <value>把中文标题的拼音首字母写入排序标题。只会改写未被自定义的排序标题，排序标题字段已锁定的条目会跳过。标题变更后需要重新运行任务。默认关闭。</value>
+  </data>
+  <data name="PinyinSortOptions_LibraryScope_Library_Scope" xml:space="preserve">
+    <value>媒体库范围</value>
+  </data>
+  <data name="PinyinSortOptions_LibraryScope_Library_scope_to_generate_pinyin_sort_titles_for_Blank_includes_all" xml:space="preserve">
+    <value>生成拼音排序标题的媒体库范围，留空表示全部媒体库。</value>
+  </data>
+  <data name="PinyinSortNameTask_Name_Generate_Pinyin_Sort_Titles" xml:space="preserve">
+    <value>生成拼音排序标题</value>
+  </data>
+  <data name="PinyinSortNameTask_Description_Convert_Chinese_titles_of_movies_series_seasons_and_episodes_to_pinyin_initials_and_write_them_to_the_sort_title" xml:space="preserve">
+    <value>把电影、剧集、季、集的中文标题转换为拼音首字母并写入排序标题。</value>
+  </data>
 </root>
