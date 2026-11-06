@@ -33,7 +33,8 @@ namespace StrmAssistant.Web.Helper
             var versionFavorites = options?.ExperienceEnhanceOptions.VersionFavoriteOptions
                 ?.EnableCrossLibraryFavoriteSeparation ?? false;
 
-            return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" +
+            return "\n" + GetStyleScript() + "\n" + GetDoubanRatingScript() + "\n" +
+                   GetScript(multiVersionSort) + "\n" +
                    GetVersionNamesScript(multiVersionFriendlyNames) + "\n" + GetPlaybackScript() +
                    "\n" + GetVersionFavoriteScript(versionFavorites) +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
@@ -90,8 +91,12 @@ namespace StrmAssistant.Web.Helper
         '.strmAssistantDoubanPoster img{width:100%;height:100%;object-fit:cover}' +
         '.strmAssistantDoubanTitle{margin-top:.4em;font-size:.9em;line-height:1.25;overflow:hidden;' +
         'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}' +
-        '.strmAssistantDoubanMeta{margin-top:.15em;font-size:.8em;opacity:.7} +
-        '.searchSuggestions{display:none!important}'';
+        '.strmAssistantDoubanMeta{margin-top:.15em;font-size:.8em;opacity:.7}' +
+        '.strmAssistantDoubanRating{display:inline-flex;align-items:center;gap:.25em;margin-left:.5em;' +
+        'padding:0 .45em;border-radius:.3em;background:rgba(0,181,29,.16);color:#00b51d;' +
+        'font-size:.9em;font-weight:600;line-height:1.6}' +
+        '.strmAssistantDoubanRatingLabel{font-size:.85em;font-weight:500;opacity:.9}' +
+        '.searchSuggestions{display:none!important}';
     (document.head || document.documentElement).appendChild(style);
 })();
 ";
@@ -409,6 +414,168 @@ namespace StrmAssistant.Web.Helper
                     "Open in library"))
                 .Replace("@@SEARCH@@", JsString("DoubanRecommendations_SearchInLibrary_Search_in_library",
                     "Search in library"));
+        }
+
+        /// <summary>
+        /// Shows the cached Douban rating next to the rating area on an item detail page. The
+        /// endpoint never calls Douban, so items without a cached rating simply keep the badge
+        /// hidden. The cache is filled by the Douban supplement and the scheduled tasks.
+        /// </summary>
+        private static string GetDoubanRatingScript()
+        {
+            return @"
+(function () {
+    'use strict';
+
+    var ratingClass = 'strmAssistantDoubanRating';
+    var label = '@@LABEL@@';
+    var cache = {};
+    var apiClient = null;
+    var pendingId = null;
+    var scheduled = false;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function currentItemId() {
+        var hash = location.hash || '';
+        if (hash.indexOf('item?') === -1 && hash.indexOf('/item') === -1) return null;
+        var match = /[?&]id=([^&]+)/.exec(hash);
+        return match ? match[1] : null;
+    }
+
+    function removeRating() {
+        var nodes = document.querySelectorAll('.' + ratingClass);
+        for (var i = nodes.length - 1; i >= 0; i--) {
+            if (nodes[i].parentNode) nodes[i].parentNode.removeChild(nodes[i]);
+        }
+    }
+
+    function render(id) {
+        if (currentItemId() !== id) return;
+
+        var entry = cache[id];
+        var rating = entry && typeof entry.Rating === 'number' && entry.Rating > 0
+            ? entry.Rating
+            : null;
+
+        if (rating === null) {
+            removeRating();
+            return;
+        }
+
+        var text = label + ' ' + rating.toFixed(1);
+        var existing = document.querySelectorAll('.' + ratingClass);
+        if (existing.length === 1 && existing[0].textContent === text && document.contains(existing[0])) return;
+
+        removeRating();
+
+        var page = document.querySelector('.itemDetailPage');
+        if (!page) return;
+
+        var element = document.createElement('span');
+        element.className = ratingClass;
+        element.title = text;
+
+        var labelElement = document.createElement('span');
+        labelElement.className = 'strmAssistantDoubanRatingLabel';
+        labelElement.textContent = label;
+        element.appendChild(labelElement);
+        element.appendChild(document.createTextNode(' ' + rating.toFixed(1)));
+
+        var anchor = page.querySelector('.itemMiscInfo-primary') || page.querySelector('.itemMiscInfo');
+        var ratingAnchor = anchor && (anchor.querySelector('.starRatingContainer') ||
+            anchor.querySelector('.ratingValue'));
+
+        if (ratingAnchor && ratingAnchor.parentNode) {
+            ratingAnchor.parentNode.insertBefore(element, ratingAnchor.nextSibling);
+            return;
+        }
+
+        if (anchor) {
+            anchor.appendChild(element);
+            return;
+        }
+
+        var name = page.querySelector('.itemName');
+        if (name && name.parentNode) {
+            name.parentNode.insertBefore(element, name.nextSibling);
+            return;
+        }
+
+        var primary = page.querySelector('.detailPagePrimaryContent');
+        if (primary) primary.appendChild(element);
+    }
+
+    function refresh() {
+        var id = currentItemId();
+
+        if (!id) {
+            removeRating();
+            return;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(cache, id)) {
+            render(id);
+            return;
+        }
+
+        if (pendingId === id) return;
+        pendingId = id;
+
+        withApiClient(function (client) {
+            client.getJSON(client.getUrl('StrmAssistant/Items/' + encodeURIComponent(id) +
+                '/DoubanRating')).then(function (result) {
+                if (pendingId === id) pendingId = null;
+                cache[id] = result || {};
+                render(id);
+            }, function () {
+                if (pendingId === id) pendingId = null;
+                cache[id] = {};
+                render(id);
+            });
+        });
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            refresh();
+        }, 300);
+    }
+
+    window.addEventListener('hashchange', schedule);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    startObserving();
+})();
+".Replace("@@LABEL@@", JsString("DoubanRating_Label_Douban", "Douban"));
         }
 
         /// <summary>

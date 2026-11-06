@@ -423,6 +423,15 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to DoubanRating_Label_Douban.
+        /// </summary>
+        public static string DoubanRating_Label_Douban {
+            get {
+                return ResourceManager.GetString("DoubanRating_Label_Douban", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles.
         /// </summary>
         public static string DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles {
