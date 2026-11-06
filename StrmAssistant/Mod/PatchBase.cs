@@ -23,14 +23,18 @@ namespace StrmAssistant.Mod
             }
             catch (Exception e)
             {
+                // Locating the target methods is the first thing that can go wrong after an Emby
+                // update; report the exception even outside DebugMode so the reason is in the log.
+                var reason = e.GetType().Name + (string.IsNullOrEmpty(e.Message) ? string.Empty : ": " + e.Message);
+                PatchTracker.FailureReason = reason;
+                PatchTracker.FallbackPatchApproach = PatchApproach.None;
+
+                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed: {reason}");
+
                 if (Plugin.Instance.DebugMode)
                 {
-                    Plugin.Instance.Logger.Debug(e.Message);
                     Plugin.Instance.Logger.Debug(e.StackTrace);
                 }
-
-                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed");
-                PatchTracker.FallbackPatchApproach = PatchApproach.None;
             }
 
             if (PatchTracker.FallbackPatchApproach == PatchApproach.None) return;
@@ -46,13 +50,26 @@ namespace StrmAssistant.Mod
         {
             if (PatchTracker.FallbackPatchApproach != PatchApproach.Harmony) return;
 
+            if (!IsModOperational)
+            {
+                Plugin.Instance.Logger.Warn(
+                    $"{PatchTracker.PatchType.Name} Patch skipped: {ModFailureReason}");
+                return;
+            }
+
             Prepare(true);
 
-            // A patch failure halfway leaves the earlier patches installed. Roll them back so
-            // Emby keeps its native extraction path instead of running with a partial takeover.
+            // Prepare() applies the whole set atomically and already rolled back the
+            // patches that were installed before the failure; this is a second, harmless
+            // pass that makes sure nothing is left behind.
             if (PatchTracker.FallbackPatchApproach != PatchApproach.Harmony)
             {
-                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Patch Failed, rolled back");
+                // A rolled back patch set means the exclusive feature is not running. Report it
+                // as unavailable so the settings page disables it instead of showing it as ON.
+                MarkUnavailable($"{PatchTracker.PatchType.Name} patch set failed: " +
+                                PatchTracker.FailureReason);
+                Plugin.Instance.Logger.Warn(
+                    $"{PatchTracker.PatchType.Name} Patch Failed ({PatchTracker.FailureReason}), rolled back");
                 Prepare(false);
             }
         }
