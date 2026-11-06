@@ -1256,4 +1256,25 @@
   <data name="NetworkOptions_LocalDiscoveryAddress_Address_advertised_to_LAN_clients_through_UDP_discovery_and_the_public_system_info_endpoint__Set_it_to_the_local_reverse_proxy_URL__or_enter_BLOCKED_to_disable_the_UDP_reply__A_restart_is_required__Default_is_EMPTY_" xml:space="preserve">
     <value>通过 UDP 发现和系统公开信息接口向局域网客户端公布的地址。可填写本地反代地址；填写 BLOCKED 可禁用 UDP 应答。修改后需重启生效。默认为空。</value>
   </data>
+  <data name="MetadataEnhanceOptions_MovieRefreshMode_Movie_Metadata_Refresh_Mode" xml:space="preserve">
+    <value>电影元数据刷新模式</value>
+  </data>
+  <data name="MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_" xml:space="preserve">
+    <value>选择已入库电影的刷新方式。全量刷新与原来一致，会替换全部字段；仅缺失字段会跳过信息完整的电影并补齐缺口；从不覆盖已有字段会请求数据源但保留现有值。默认是全量刷新。</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_FullRefresh_Full_Refresh" xml:space="preserve">
+    <value>全量刷新</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_MissingFieldsOnly_Missing_Fields_Only" xml:space="preserve">
+    <value>仅缺失字段</value>
+  </data>
+  <data name="MovieMetadataRefreshMode_NeverOverwriteExisting_Never_Overwrite_Existing" xml:space="preserve">
+    <value>从不覆盖已有字段</value>
+  </data>
+  <data name="RefreshMovieMetadataTask_Description_Refresh_existing_movies_using_the_configured_movie_metadata_refresh_mode" xml:space="preserve">
+    <value>按已配置的电影元数据刷新模式刷新已入库电影。</value>
+  </data>
+  <data name="RefreshMovieMetadataTask_Refresh_Movie_Metadata" xml:space="preserve">
+    <value>刷新电影元数据</value>
+  </data>
 </root>

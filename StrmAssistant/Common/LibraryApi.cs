@@ -1137,6 +1137,39 @@ namespace StrmAssistant.Common
                     cancellationToken).ConfigureAwait(false);
         }
 
+        public async Task RefreshMovieMetadata(Movie taskItem, CancellationToken cancellationToken)
+        {
+            if (!Plugin.MetadataApi.MovieMetadataNeedsRefresh(taskItem))
+            {
+                _logger?.Info("MovieMetadataRefresh - Skipped complete item: " + taskItem.Name);
+                return;
+            }
+
+            var collectionFolders = (BaseItem[])_libraryManager.GetCollectionFolders(taskItem);
+            var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
+            var dummyLibraryOptions = CopyLibraryOptions(libraryOptions);
+            var typeOption = dummyLibraryOptions.TypeOptions.FirstOrDefault(o => o.Type == nameof(Movie));
+
+            if (typeOption != null)
+            {
+                if (typeOption.MetadataFetchers.Length == 0)
+                {
+                    typeOption.MetadataFetchers = new[] { "TheMovieDb" };
+                }
+
+                if (typeOption.ImageFetchers.Length == 0)
+                {
+                    typeOption.ImageFetchers = new[] { "TheMovieDb" };
+                }
+            }
+
+            var refreshOptions = Plugin.MetadataApi.GetMovieMetadataRefreshOptions();
+
+            await _providerManager
+                .RefreshSingleItem(taskItem, refreshOptions, collectionFolders, dummyLibraryOptions,
+                    cancellationToken).ConfigureAwait(false);
+        }
+
         private bool EpisodeNeedsRefresh(Episode item, DateTimeOffset lookBackTime,
             HashSet<EpisodeRefreshOption> episodeRefreshOptions, bool includeNoPrem)
         {
@@ -1186,6 +1219,26 @@ namespace StrmAssistant.Common
                 .ToList();
 
             _logger?.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
+
+            return itemsToRefresh;
+        }
+
+        public List<Movie> FetchMovieMetadataRefreshTaskItems()
+        {
+            var mode = Plugin.MetadataApi.GetMovieMetadataRefreshMode();
+            _logger?.Info("MovieMetadataRefresh - Mode: " + mode);
+
+            var itemsToRefresh = _libraryManager
+                .GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { nameof(Movie) }, IsVirtualItem = false, IsLocked = false
+                })
+                .OfType<Movie>()
+                .Where(Plugin.MetadataApi.MovieMetadataNeedsRefresh)
+                .OrderByDescending(m => m.DateCreated)
+                .ToList();
+
+            _logger?.Info("MovieMetadataRefresh - Number of items: " + itemsToRefresh.Count);
 
             return itemsToRefresh;
         }
