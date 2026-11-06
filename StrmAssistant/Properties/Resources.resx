@@ -1532,4 +1532,40 @@
   <data name="AudioEffect_Label_Audio_effect" xml:space="preserve">
     <value>Audio effect</value>
   </data>
+  <data name="DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>Douban Cache Prebuild</value>
+  </data>
+  <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>Enable Douban Cache Prebuild</value>
+  </data>
+  <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_" xml:space="preserve">
+    <value>Prefetch Douban ratings in the background so the detail page badge appears without waiting for the first Douban request. Only items without a cached rating are requested. Default is OFF.</value>
+  </data>
+  <data name="DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_" xml:space="preserve">
+    <value>Execution Interval (Hours)</value>
+  </data>
+  <data name="DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_" xml:space="preserve">
+    <value>Default trigger interval of the prebuild task. The interval is only applied when Emby creates the default trigger; it can be changed afterwards in the scheduled task settings. Default is 24.</value>
+  </data>
+  <data name="DoubanCacheOptions_BatchSize_Batch_Size" xml:space="preserve">
+    <value>Batch Size</value>
+  </data>
+  <data name="DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_" xml:space="preserve">
+    <value>Number of items processed between progress updates. Smaller batches report progress more often. Default is 50.</value>
+  </data>
+  <data name="DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_" xml:space="preserve">
+    <value>Request Interval (Seconds)</value>
+  </data>
+  <data name="DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_" xml:space="preserve">
+    <value>Minimum interval between Douban requests. One item may need a search and a detail request. It must be between 2 and 30. Default is 3.</value>
+  </data>
+  <data name="MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>Douban Cache Prebuild</value>
+  </data>
+  <data name="DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache" xml:space="preserve">
+    <value>Prebuild Douban Cache</value>
+  </data>
+  <data name="DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_" xml:space="preserve">
+    <value>Fetch Douban ratings for movies and series that do not have a cached rating yet. Requests are rate limited and the task can be cancelled at any time.</value>
+  </data>
 </root>
