@@ -71,6 +71,10 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_CustomFfmpegPath_Path_to_a_custom_ffmpeg_build_with_vulkan_and_libplacebo_used_for_Dolby_Vision_Profile_5_screenshots__Default_is_EMPTY_", typeof(Resources))]
         public string CustomFfmpegPath { get; set; } = string.Empty;
 
+        [DisplayNameL("MediaInfoExtractOptions_CustomFfprobePath_Custom_ffprobe_Path", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_CustomFfprobePath_Path_to_a_static_ffprobe_build_with_the_bluray_protocol_used_for_remote_ISO_and_BDMV_probing__Blank_uses_the_plugin_bin_folder_and_downloads_the_build_for_this_platform_on_first_use__Default_is_EMPTY_", typeof(Resources))]
+        public string CustomFfprobePath { get; set; } = string.Empty;
+
         [DisplayNameL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Subtitle_Blacklist_Languages", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_SubtitleBlacklistLanguages_Comma_separated_languages_or_wildcards__Matching_subtitle_streams_are_removed__Default_is_EMPTY_", typeof(Resources))]
         public string SubtitleBlacklistLanguages { get; set; } = string.Empty;

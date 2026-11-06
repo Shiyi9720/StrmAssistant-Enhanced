@@ -101,6 +101,12 @@
   <data name="MediaInfoExtractOptions_CustomFfmpegPath_Path_to_a_custom_ffmpeg_build_with_vulkan_and_libplacebo_used_for_Dolby_Vision_Profile_5_screenshots__Default_is_EMPTY_" xml:space="preserve">
     <value>支持 Vulkan 与 libplacebo 的自定义 ffmpeg 完整路径，用于提取杜比视界 Profile 5 章节截图以避免发绿。保存时会自动检测该程序。留空则继续使用 Emby 的 ffmpeg。默认为空。</value>
   </data>
+  <data name="MediaInfoExtractOptions_CustomFfprobePath_Custom_ffprobe_Path" xml:space="preserve">
+    <value>自定义 ffprobe 路径</value>
+  </data>
+  <data name="MediaInfoExtractOptions_CustomFfprobePath_Path_to_a_static_ffprobe_build_with_the_bluray_protocol_used_for_remote_ISO_and_BDMV_probing__Blank_uses_the_plugin_bin_folder_and_downloads_the_build_for_this_platform_on_first_use__Default_is_EMPTY_" xml:space="preserve">
+    <value>带 bluray 协议的静态 ffprobe 完整路径，用于通过 http/smb 快捷方式读取 ISO/BDMV 媒体信息；本地文件仍使用 Emby 的 ffprobe。留空时插件会查找自身的 bin 目录和 config/bin，并在首次使用时下载当前平台的构建。默认为空。</value>
+  </data>
   <data name="MediaInfoExtractOptions_CropUltraWideScreenshots_Crop_Ultra_Wide_Screenshots" xml:space="preserve">
     <value>裁剪超宽截图</value>
   </data>

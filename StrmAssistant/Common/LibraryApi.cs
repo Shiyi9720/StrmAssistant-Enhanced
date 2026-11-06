@@ -750,24 +750,32 @@ namespace StrmAssistant.Common
                 var discExtracted = await Plugin.DiscMediaInfoApi
                     .ExtractAsync(taskItem, cancellationToken).ConfigureAwait(false);
 
-                if (!discExtracted) return null;
-
-                if (taskItem is Video &&
-                    Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                if (!discExtracted)
                 {
-                    await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, refreshOptions, false, false)
-                        .ConfigureAwait(false);
+                    // A remote disc that could not be probed must not leave the item without any
+                    // data; continue with the regular refresh path below.
+                    if (!Plugin.DiscMediaInfoApi.IsRemoteSource(taskItem)) return null;
                 }
-
-                Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(taskItem, source);
-
-                if (persistMediaInfo)
+                else
                 {
-                    await Plugin.MediaInfoApi.SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
-                        .ConfigureAwait(false);
-                }
+                    if (taskItem is Video &&
+                        Plugin.SubtitleApi.HasExternalSubtitleChanged(taskItem, directoryService, true))
+                    {
+                        await Plugin.SubtitleApi.UpdateExternalSubtitles(taskItem, refreshOptions, false, false)
+                            .ConfigureAwait(false);
+                    }
 
-                return true;
+                    Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(taskItem, source);
+
+                    if (persistMediaInfo)
+                    {
+                        await Plugin.MediaInfoApi
+                            .SerializeMediaInfo(taskItem.InternalId, directoryService, true, source)
+                            .ConfigureAwait(false);
+                    }
+
+                    return true;
+                }
             }
 
             if (extractSkip) return null;
