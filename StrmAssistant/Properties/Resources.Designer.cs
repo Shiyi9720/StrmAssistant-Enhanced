@@ -4309,5 +4309,14 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("RefreshMovieMetadataTask_Refresh_Movie_Metadata", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to AudioEffect_Label_Audio_effect.
+        /// </summary>
+        public static string AudioEffect_Label_Audio_effect {
+            get {
+                return ResourceManager.GetString("AudioEffect_Label_Audio_effect", resourceCulture);
+            }
+        }
     }
 }

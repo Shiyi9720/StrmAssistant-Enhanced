@@ -47,7 +47,8 @@ namespace StrmAssistant.Web.Helper
                    GetEnforceLibraryOrderScript(enforceLibraryOrder) + "\n" +
                    GetLogNewestFirstScript(logNewestFirst) + "\n" +
                    GetHiddenBoxSetsScript() + "\n" +
-                   GetDoubanRecommendationsScript(doubanRecommendations) + "\n";
+                   GetDoubanRecommendationsScript(doubanRecommendations) + "\n" +
+                   GetAudioEffectScript() + "\n";
         }
 
         private static string GetStyleScript()
@@ -2649,6 +2650,106 @@ namespace StrmAssistant.Web.Helper
         } catch (e) { }
         if (attempts > 60) clearInterval(timer);
     }, 2000);
+})();
+";
+        }
+
+        /// <summary>
+        /// Shows the audio effect of a track (Dolby Atmos, DTS:X) on the audio stream cards of
+        /// the item detail page. Emby renders one card per stream through
+        /// modules/mediainfo/mediainfo.js, so the renderer is wrapped instead of touching the
+        /// stream data. The marker is derived only from the profile ffprobe reported for the
+        /// track; streams without that signal are rendered exactly as before.
+        /// </summary>
+        private static string GetAudioEffectScript()
+        {
+            var label = JsString("AudioEffect_Label_Audio_effect", "Audio effect");
+
+            return @"
+(function () {
+    'use strict';
+
+    if (window.__strmAssistantAudioEffectPatched) return;
+
+    var label = '" + label + @"';
+
+    function escapeHtml(value) {
+        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function detectEffect(stream) {
+        if (!stream) return '';
+
+        // mediainfo.js receives normalized copies whose Type is 'MediaStream' and whose
+        // original type is kept in StreamType; other callers pass the raw stream.
+        var type = stream.StreamType || stream.Type;
+        if (type !== 'Audio') return '';
+
+        var profile = String(stream.Profile || '').toLowerCase();
+        if (!profile) return '';
+
+        var codec = String(stream.Codec || '').toLowerCase();
+
+        // ffprobe reports Atmos in the profile of the codec that carries it:
+        // 'Dolby TrueHD + Dolby Atmos' and 'Dolby Digital Plus + Dolby Atmos' (E-AC-3 JOC).
+        if ((codec === 'truehd' || codec === 'eac3' || codec === 'ac3') &&
+            profile.indexOf('atmos') !== -1) {
+            return 'Dolby Atmos';
+        }
+
+        // ffprobe reports DTS:X in the DTS-HD MA profile ('DTS-HD MA + DTS:X').
+        if (codec === 'dts' && /dts[\s:_-]*x/.test(profile)) {
+            return 'DTS:X';
+        }
+
+        return '';
+    }
+
+    function patch(mod) {
+        var mediainfo = mod && (mod.default || mod);
+        if (!mediainfo || typeof mediainfo.pushMediaStreamLines !== 'function') return false;
+        if (mediainfo.pushMediaStreamLines.__strmAssistantAudioEffectPatched) return true;
+
+        var original = mediainfo.pushMediaStreamLines;
+
+        mediainfo.pushMediaStreamLines = function (stream, options, lines, icon) {
+            var result = original.apply(this, arguments);
+
+            try {
+                var effect = detectEffect(stream);
+                if (effect && lines && lines.push) {
+                    lines.push('<div class=""flex mediaStreamAttribute""><span class=""mediaInfoAttributeLabel"">' +
+                        escapeHtml(label) + '</span><span class=""mediaInfoAttributeValue secondaryText"">' +
+                        effect + '</span></div>');
+                }
+            } catch (e) { }
+
+            return result;
+        };
+
+        mediainfo.pushMediaStreamLines.__strmAssistantAudioEffectPatched = true;
+        window.__strmAssistantAudioEffectPatched = true;
+        return true;
+    }
+
+    var timer = null;
+
+    function start() {
+        try {
+            require(['modules/mediainfo/mediainfo.js']).then(function (modules) {
+                if (patch(modules && modules[0]) && timer) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+    }
+
+    var attempts = 0;
+    timer = setInterval(function () {
+        attempts++;
+        start();
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+
+    start();
 })();
 ";
         }
