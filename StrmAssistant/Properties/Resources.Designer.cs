@@ -1969,7 +1969,25 @@ namespace StrmAssistant.Properties {
                 return ResourceManager.GetString("Notification_CollectionUpdate_EventName", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Collection Item Added.
+        /// </summary>
+        public static string Notification_CollectionItemsAdded_EventName {
+            get {
+                return ResourceManager.GetString("Notification_CollectionItemsAdded_EventName", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Collection Item Removed.
+        /// </summary>
+        public static string Notification_CollectionItemsRemoved_EventName {
+            get {
+                return ResourceManager.GetString("Notification_CollectionItemsRemoved_EventName", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Metadata Updated.
         /// </summary>
