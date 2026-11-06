@@ -70,6 +70,34 @@ namespace StrmAssistant.Web.Service
             return response;
         }
 
+        /// <summary>
+        /// Returns the cached Douban rating for an item. It never queries Douban, so the
+        /// detail page can call it for every item and simply hide the badge when no rating
+        /// has been cached yet.
+        /// </summary>
+        public object Get(GetDoubanRating request)
+        {
+            var response = new DoubanRatingResponse();
+
+            try
+            {
+                var item = _libraryManager.GetItemById(request.Id);
+                var entry = item is null ? null : Plugin.DoubanApi?.GetCachedRating(item.InternalId);
+
+                if (entry is null || !entry.Rating.HasValue || entry.Rating.Value <= 0) return response;
+
+                response.Rating = entry.Rating;
+                response.RatingCount = entry.RatingCount;
+                response.DoubanId = entry.DoubanId;
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance.Logger?.Debug("DoubanRating - Lookup failed: " + e.Message);
+            }
+
+            return response;
+        }
+
         private CachedMatch FindMatch(DoubanRecommendation recommendation)
         {
             var cacheKey = recommendation.DoubanId + "|" + recommendation.Title + "|" + recommendation.Year;
