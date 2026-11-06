@@ -66,6 +66,7 @@ namespace StrmAssistant
         public static MetadataApi MetadataApi { get; private set; }
         public static VideoThumbnailApi VideoThumbnailApi { get; private set; }
         public static VersionPlaybackApi VersionPlaybackApi { get; private set; }
+        public static BoxSetHomeVisibilityStore BoxSetHomeVisibilityStore { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
         public static IntroDbApi IntroDbApi { get; private set; }
         public static SearchIndexService SearchIndexService { get; private set; }
@@ -245,6 +246,7 @@ namespace StrmAssistant
                 serverApplicationHost);
             VersionPlaybackApi = new VersionPlaybackApi(sessionManager, jsonSerializer);
             VersionPlaybackApi.Initialize();
+            BoxSetHomeVisibilityStore = new BoxSetHomeVisibilityStore(jsonSerializer);
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
             IntroDbApi = new IntroDbApi(libraryManager, itemRepository, jsonSerializer, httpClient);
             FingerprintLibraryApi = new FingerprintLibraryApi(libraryManager, jsonSerializer);

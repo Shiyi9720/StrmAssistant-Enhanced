@@ -27,6 +27,7 @@ namespace StrmAssistant.Web.Helper
             var enforceLibraryOrder = options?.ExperienceEnhanceOptions.EnforceLibraryOrder ?? false;
             var logNewestFirst = options?.ExperienceEnhanceOptions.LogNewestFirst ?? false;
             var multiSelectActions = options?.ExperienceEnhanceOptions.MultiSelectActions ?? false;
+            var doubanRecommendations = options?.MetadataEnhanceOptions.EnableDoubanRecommendations ?? false;
 
             return "\n" + GetStyleScript() + "\n" + GetScript(multiVersionSort) + "\n" + GetPlaybackScript() +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
@@ -37,7 +38,9 @@ namespace StrmAssistant.Web.Helper
                    GetMultiSelectActionsScript(multiSelectActions) + "\n" +
                    GetNaturalSortScript(naturalSort) + "\n" +
                    GetEnforceLibraryOrderScript(enforceLibraryOrder) + "\n" +
-                   GetLogNewestFirstScript(logNewestFirst) + "\n";
+                   GetLogNewestFirstScript(logNewestFirst) + "\n" +
+                   GetHiddenBoxSetsScript() + "\n" +
+                   GetDoubanRecommendationsScript(doubanRecommendations) + "\n";
         }
 
         private static string GetStyleScript()
@@ -56,8 +59,82 @@ namespace StrmAssistant.Web.Helper
         'font-size:.75em;line-height:1.5;font-weight:600;pointer-events:none;' +
         'box-shadow:0 1px 3px rgba(0,0,0,.4)}' +
         '.strmAssistantEpisodeStats{display:inline-block;margin:.35em 0;padding:.25em .6em;' +
-        'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}';
+        'border-radius:.3em;background:rgba(0,0,0,.35);font-size:.95em}' +
+        '.strmAssistantHiddenBoxSet{display:none!important}';
     (document.head || document.documentElement).appendChild(style);
+})();
+";
+        }
+
+        /// <summary>
+        /// Hides collection libraries configured through the library shortcut menu from the home
+        /// screen only. The library itself, its detail page and the "more" views stay available.
+        /// </summary>
+        private static string GetHiddenBoxSetsScript()
+        {
+            return @"
+(function () {
+    'use strict';
+
+    if (window.__strmAssistantBoxSetHomePatched) return;
+    window.__strmAssistantBoxSetHomePatched = true;
+
+    var hiddenClass = 'strmAssistantHiddenBoxSet';
+    var scheduled = false;
+
+    function isHome() {
+        var hash = (location.hash || '').toLowerCase();
+        return hash === '' || hash === '#/' || hash === '#/home' ||
+            hash.indexOf('#/home?') === 0 || hash.indexOf('#/home/') === 0;
+    }
+
+    function restore() {
+        var nodes = document.querySelectorAll('.' + hiddenClass);
+        for (var i = 0; i < nodes.length; i++) {
+            nodes[i].classList.remove(hiddenClass);
+        }
+    }
+
+    function apply() {
+        restore();
+        if (!isHome()) return;
+
+        var ids = window.strmAssistantHiddenBoxSets || {};
+
+        Object.keys(ids).forEach(function (id) {
+            var nodes = document.querySelectorAll('[data-id=""' + id + '""], [data-itemid=""' + id + '""]');
+            for (var i = 0; i < nodes.length; i++) {
+                var card = nodes[i].classList && nodes[i].classList.contains('card')
+                    ? nodes[i]
+                    : nodes[i].closest && nodes[i].closest('.card');
+                if (card) card.classList.add(hiddenClass);
+            }
+        });
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            apply();
+        }, 250);
+    }
+
+    window.addEventListener('hashchange', schedule);
+    window.addEventListener('strmAssistantBoxSetVisibilityChanged', schedule);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    startObserving();
 })();
 ";
         }
@@ -1541,7 +1618,7 @@ namespace StrmAssistant.Web.Helper
 ";
         }
 
-        private static string JsString(string resourceName, string fallback)
+        internal static string JsString(string resourceName, string fallback)
         {
             var value = Resources.ResourceManager.GetString(resourceName);
 
