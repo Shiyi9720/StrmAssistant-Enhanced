@@ -860,7 +860,9 @@ namespace StrmAssistant.Web.Helper
         /// <summary>
         /// Per-version playback progress. Emby's UserData keeps a single PlaybackPositionTicks per
         /// item key shared by every version, so the wrapper asks the plugin for the position that
-        /// belongs to the media source being played and passes it to the playback manager.
+        /// belongs to the media source being played and passes it to the playback manager. Movies
+        /// are checked even with a single source because the same movie can be split across
+        /// libraries while still sharing Emby's provider-based user-data key.
         /// </summary>
         private static string GetPlaybackScript()
         {
@@ -909,7 +911,7 @@ namespace StrmAssistant.Web.Helper
                 if (options && options.items && options.items.length === 1 && options.startPositionTicks !== 0) {
                     var item = options.items[0];
                     var sources = (item && item.MediaSources) || [];
-                    if (sources.length > 1) {
+                    if (sources.length && (sources.length > 1 || item.Type === 'Movie')) {
                         var source = findSource(item, options.mediaSourceId);
                         var apiClient = connectionManager.currentApiClient && connectionManager.currentApiClient();
                         if (source && apiClient) {
