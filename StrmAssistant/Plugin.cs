@@ -148,6 +148,18 @@ namespace StrmAssistant
                     Plugin.Instance?.Logger.Info("[AssemblyResolve] {0} ui={1}", args.Name,
                         CultureInfo.CurrentUICulture?.Name);
                     var an = new AssemblyName(args.Name);
+
+                    // 已经加载过（例如 Emby 自己按插件目录加载了 0Harmony）就绝不重复加载：
+                    // 同一程序集两份会带来类型标识冲突（Harmony/MonoMod 的泛型约束异常就是它）
+                    foreach (var loadedAssembly in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        if (string.Equals(loadedAssembly.GetName().Name, an.Name,
+                                StringComparison.OrdinalIgnoreCase))
+                        {
+                            return loadedAssembly;
+                        }
+                    }
+
                     if (string.IsNullOrEmpty(_satelliteRoot))
                     {
                         return null;
