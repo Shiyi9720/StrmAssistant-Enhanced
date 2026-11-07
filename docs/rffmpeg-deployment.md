@@ -74,7 +74,7 @@ docker exec emby sh -c "cp -a /bin/ffprobe /config/bin/ffprobe.orig; ln -sf /con
 2. `raw.githubusercontent.com` 直下 12.7MB 二进制在 NAS 上会截断（得到 6.7MB，`file` 报 `too large section header offset`、执行段错误）——**先下到 Mac 再 scp**。
 3. worker 必须挂载与 master 一致的媒体路径，rffmpeg 不做路径映射。
 4. 目前 worker 与 Emby 同主机（NAS）——链路通了但无性能收益；要真正分载，把 worker 容器放到另一台机器（改 `rffmpeg add <另一台IP>`）。
-5. 只换 `ffprobe` 不换 `ffmpeg`：媒体信息/探测走 worker，转码仍在本地，风险最小；若要完全对齐 PRO 可同样 `ln -sf` ffmpeg，但需自行评估转码稳定性。
+5. 只换 `ffprobe` 不换 `ffmpeg`：媒体信息/探测走 worker，转码仍在本地，风险最小；若需要也可同样 `ln -sf` ffmpeg，但需自行评估转码稳定性。
 
 ## 跨机 worker 可行性实测（2026-11-07 补测）
 
