@@ -1727,4 +1727,10 @@
   <data name="Update_Failed" xml:space="preserve">
     <value>檢查失敗</value>
   </data>
+  <data name="Update_Downloading" xml:space="preserve">
+    <value>發現新版本，正在下載…</value>
+  </data>
+  <data name="Update_NeedRestart" xml:space="preserve">
+    <value>已下載新版本，請重啟 Emby 生效</value>
+  </data>
 </root>

@@ -1814,4 +1814,10 @@
   <data name="Update_Failed" xml:space="preserve">
     <value>Update check failed</value>
   </data>
+  <data name="Update_Downloading" xml:space="preserve">
+    <value>A new version found, downloading...</value>
+  </data>
+  <data name="Update_NeedRestart" xml:space="preserve">
+    <value>New version downloaded. Restart Emby to apply.</value>
+  </data>
 </root>
