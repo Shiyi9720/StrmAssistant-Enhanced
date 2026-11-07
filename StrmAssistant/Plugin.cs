@@ -661,11 +661,15 @@ namespace StrmAssistant
 
         public ImageFormat ThumbImageFormat => ImageFormat.Png;
 
-        public override string Description => "Extract MediaInfo and Enable IntroSkip";
+        public override string Description =>
+            Properties.Resources.ResourceManager.GetString("Plugin_Description", DefaultUICulture) ??
+            "Extract MediaInfo and Enable IntroSkip";
 
         public override Guid Id => _id;
 
-        public sealed override string Name => "Strm Assistant";
+        public sealed override string Name =>
+            Properties.Resources.ResourceManager.GetString("Plugin_Name", DefaultUICulture) ?? "Strm Assistant";
+
 
         public string CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString();
 

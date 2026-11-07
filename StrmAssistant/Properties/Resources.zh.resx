@@ -1564,9 +1564,6 @@
   </data>
   <data name="MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_" xml:space="preserve">
     <value>TMDB 请求之间的最小间隔（毫秒），必须在 0 到 10000 之间。默认 250。</value>
-  <data name="DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild" xml:space="preserve">
-    <value>豆瓣缓存预构建</value>
-  </data>
   <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild" xml:space="preserve">
     <value>启用豆瓣缓存预构建</value>
   </data>
@@ -1630,5 +1627,14 @@
   </data>
   <data name="MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_" xml:space="preserve">
     <value>从豆瓣补充剧集缺失的季/集信息。不覆盖已有值。默认关闭。</value>
+  </data>
+  <data name="Plugin_Name" xml:space="preserve">
+    <value>神医助手</value>
+  </data>
+  <data name="Plugin_Description" xml:space="preserve">
+    <value>媒体信息提取、片头跳过与元数据增强</value>
+  </data>
+  <data name="DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild" xml:space="preserve">
+    <value>豆瓣缓存预构建</value>
   </data>
 </root>
