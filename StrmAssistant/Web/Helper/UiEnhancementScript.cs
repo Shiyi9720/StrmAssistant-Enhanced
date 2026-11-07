@@ -51,7 +51,131 @@ namespace StrmAssistant.Web.Helper
                    GetHiddenBoxSetsScript() + "\n" +
                    GetDoubanRecommendationsScript(doubanRecommendations, doubanTrailers) + "\n" +
                    GetDoubanTrailerScript(doubanTrailers) + "\n" +
-                   GetMediaBadgeScript() + "\n";
+                   GetMediaBadgeScript() + "\n" +
+                   GetPluginUpdateScript() + "\n";
+        }
+
+        /// <summary>
+        /// 插件设置页右下角的「检查更新」按钮：直接触发内置的 UpdatePluginTask 并展示结果。
+        /// </summary>
+        private static string GetPluginUpdateScript()
+        {
+            string E(string v) => (v ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
+
+            var check = E(Resources.Update_Check_Button ?? "检查更新");
+            var checking = E(Resources.Update_Checking ?? "正在检查…");
+            var upToDate = E(Resources.Update_UpToDate ?? "已是最新版本");
+            var done = E(Resources.Update_Done ?? "已更新，请重启 Emby 生效");
+            var failed = E(Resources.Update_Failed ?? "检查失败");
+
+            return @"
+(function () {
+    'use strict';
+    var labels = { check: '@@CHECK@@', checking: '@@CHECKING@@', upToDate: '@@UPTODATE@@', done: '@@DONE@@', failed: '@@FAILED@@' };
+    var box = null, btn = null, status = null, apiClient = null, busy = false;
+
+    function withApiClient(cb) {
+        if (apiClient) { cb(apiClient); return; }
+        try {
+            require(['connectionManager']).then(function (m) {
+                var cm = m && m[0];
+                var c = cm && cm.currentApiClient && cm.currentApiClient();
+                if (c) { apiClient = c; cb(c); }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function onSettingsPage() {
+        var h = (location.hash || '').toLowerCase();
+        return h.indexOf('genericui') >= 0 && h.indexOf('63c322') >= 0;
+    }
+
+    function setStatus(text, color) {
+        if (!status) return;
+        status.textContent = text || '';
+        status.style.color = color || '#bbb';
+    }
+
+    function findTask(cb) {
+        withApiClient(function (c) {
+            c.getJSON(c.getUrl('ScheduledTasks')).then(function (tasks) {
+                var t = (tasks || []).filter(function (x) { return x.Key === 'UpdatePluginTask'; })[0];
+                cb(c, t);
+            }, function () { cb(c, null); });
+        });
+    }
+
+    function poll(c, id, tries) {
+        if (tries <= 0) { setStatus(labels.failed, '#e57373'); busy = false; if (btn) btn.disabled = false; return; }
+        c.getJSON(c.getUrl('ScheduledTasks/' + id)).then(function (t) {
+            var state = t && t.State;
+            if (state === 'Running' || state === 'Queued') {
+                setTimeout(function () { poll(c, id, tries - 1); }, 2000);
+                return;
+            }
+            var res = (t && t.LastExecutionResult) || {};
+            var err = res.ErrorMessage || '';
+            c.getJSON(c.getUrl('Plugins')).then(function (plugins) {
+                var p = (plugins || []).filter(function (x) { return x.Name && x.Name.indexOf('Strm') === 0; })[0] || {};
+                var ver = p.Version || '';
+                if (err) { setStatus(labels.failed + ': ' + err, '#e57373'); }
+                else if (res.Status === 'Completed') { setStatus(labels.upToDate + ' (' + ver + ')', '#81c784'); }
+                else { setStatus(labels.failed, '#e57373'); }
+                busy = false; if (btn) btn.disabled = false;
+            }, function () {
+                setStatus(err ? (labels.failed + ': ' + err) : labels.done, err ? '#e57373' : '#81c784');
+                busy = false; if (btn) btn.disabled = false;
+            });
+        }, function () { setStatus(labels.failed, '#e57373'); busy = false; if (btn) btn.disabled = false; });
+    }
+
+    function run() {
+        if (busy) return;
+        busy = true; if (btn) btn.disabled = true;
+        setStatus(labels.checking, '#ffb74d');
+        findTask(function (c, t) {
+            if (!t) { setStatus(labels.failed + ' (task not found)', '#e57373'); busy = false; if (btn) btn.disabled = false; return; }
+            c.ajax({ type: 'POST', url: c.getUrl('ScheduledTasks/Running/' + t.Id) }).then(function () {
+                setTimeout(function () { poll(c, t.Id, 60); }, 1500);
+            }, function () { setStatus(labels.failed, '#e57373'); busy = false; if (btn) btn.disabled = false; });
+        });
+    }
+
+    function ensure() {
+        if (!onSettingsPage()) { if (box) { box.remove(); box = null; } return; }
+        if (box) return;
+        box = document.createElement('div');
+        box.id = 'strmAssistantUpdateBox';
+        box.style.cssText = 'position:fixed;left:1.5em;bottom:1.5em;z-index:1000;background:rgba(16,16,16,.92);' +
+            'color:#fff;border-radius:.5em;padding:.6em .8em;font-size:.85em;box-shadow:0 4px 16px rgba(0,0,0,.5)';
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = labels.check;
+        btn.style.cssText = 'padding:.4em .9em;border:0;border-radius:.3em;background:#00c8aa;color:#05261f;font-weight:600;cursor:pointer';
+        btn.addEventListener('click', run);
+        status = document.createElement('div');
+        status.style.cssText = 'margin-top:.45em;font-size:.8em;color:#bbb;max-width:16em';
+        box.appendChild(btn); box.appendChild(status);
+        document.body.appendChild(box);
+    }
+
+    var scheduled = false;
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () { scheduled = false; ensure(); }, 300);
+    }
+
+    window.addEventListener('hashchange', schedule);
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    schedule();
+})();
+"
+                .Replace("@@CHECK@@", check)
+                .Replace("@@CHECKING@@", checking)
+                .Replace("@@UPTODATE@@", upToDate)
+                .Replace("@@DONE@@", done)
+                .Replace("@@FAILED@@", failed);
         }
 
         private static string GetStyleScript()

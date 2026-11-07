@@ -1712,4 +1712,19 @@
   <data name="PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_" xml:space="preserve">
     <value>将覆盖或缓存目录中 specials.json 的 air_order 应用到特别篇（第 0 季）。文件或对应项缺失时保持默认顺序。默认关闭。</value>
   </data>
+  <data name="Update_Check_Button" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="Update_Checking" xml:space="preserve">
+    <value>正在检查…</value>
+  </data>
+  <data name="Update_UpToDate" xml:space="preserve">
+    <value>已是最新版本</value>
+  </data>
+  <data name="Update_Done" xml:space="preserve">
+    <value>已更新，请重启 Emby 生效</value>
+  </data>
+  <data name="Update_Failed" xml:space="preserve">
+    <value>检查失败</value>
+  </data>
 </root>
