@@ -698,7 +698,8 @@ namespace StrmAssistant
 
         public string CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString();
 
-        public string UserAgent => $"{Name}/{CurrentVersion}";
+        // HTTP 头只能是 ASCII；Name 已本地化为中文，不能直接拼进 User-Agent
+        public string UserAgent => $"StrmAssistantLite/{CurrentVersion}";
 
         public CultureInfo DefaultUICulture => new CultureInfo("zh-CN");
 
