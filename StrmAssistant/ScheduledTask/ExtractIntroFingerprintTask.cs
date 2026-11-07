@@ -78,6 +78,7 @@ namespace StrmAssistant.ScheduledTask
             var processedSeasons = 0;
             var episodeSkipCount = 0;
             var seasonSkipCount = 0;
+            var distributionStats = new DistributionStats();
             var episodeWeight = !mediaInfoRestoreMode ? 0.8 : 1.0;
             var seasonWeight = !mediaInfoRestoreMode ? 0.2 : 0.0;
             var seasonProgressMap = new ConcurrentDictionary<Season, double>();
@@ -87,6 +88,8 @@ namespace StrmAssistant.ScheduledTask
                 if (cancellationToken.IsCancellationRequested)
                 {
                     _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                    _logger?.Info("IntroFingerprintExtract - Distribution Summary - " +
+                                  distributionStats.ToLogMessage());
                     return;
                 }
 
@@ -159,7 +162,8 @@ namespace StrmAssistant.ScheduledTask
                                 if (!mediaInfoRestoreMode)
                                 {
                                     result2 = await Plugin.FingerprintApi
-                                        .CreateTitleFingerprint(taskEpisode, directoryService, cancellationToken)
+                                        .CreateTitleFingerprint(taskEpisode, directoryService, cancellationToken,
+                                            distributionStats)
                                         .ConfigureAwait(false);
                                 }
                                 else
@@ -308,6 +312,8 @@ namespace StrmAssistant.ScheduledTask
             progress.Report(100.0);
             _logger?.Info($"IntroFingerprintExtract - Number of seasons skipped: {seasonSkipCount}");
             _logger?.Info($"IntroFingerprintExtract - Number of episodes skipped: {episodeSkipCount}");
+            _logger?.Info("IntroFingerprintExtract - Distribution Summary - " +
+                          distributionStats.ToLogMessage());
             _logger?.Info("IntroFingerprintExtract - Scheduled Task Complete");
         }
 

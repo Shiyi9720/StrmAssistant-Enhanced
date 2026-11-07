@@ -41,9 +41,9 @@ namespace StrmAssistant.Common
     {
         private const int MaxNodeBackoffSeconds = 600;
         private const int MinRequestTimeoutSeconds = 10;
-        private const int FingerprintSampleRate = 16000;
         private const int MaxDvP5FrameCount = 100;
         private const int MaxDvP5FrameBytes = 20 * 1024 * 1024;
+        private const int MaxFingerprintBytes = 20 * 1024 * 1024;
         private const int MaxThumbnailBytes = 10 * 1024 * 1024;
         private const int MaxThumbnailWidth = 7680;
         private const int MaxExtractionTimeSeconds = 24 * 60 * 60;
@@ -414,9 +414,9 @@ namespace StrmAssistant.Common
         /// local extraction). Emby's own pipeline reads the same .fp file afterwards.
         /// </summary>
         public async Task<string> TryCreateTitleFingerprintAsync(Episode item, LibraryOptions libraryOptions,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, DistributionStats stats = null)
         {
-            if (!IsFingerprintEnabled || _ffmpegManager is null || _mediaEncoder is null) return null;
+            if (!Options.EnableDistributedFingerprint) return null;
 
             if (item is null) return null;
 
@@ -432,11 +432,26 @@ namespace StrmAssistant.Common
                 {
                     _logger?.Debug("DistributedExtract - Failed to resolve shortcut: " + item.Path + " - " +
                                    e.Message);
+                    stats?.RecordFallback(MediaInfoFallbackReason.PathNotAllowed);
+                    LogDistributionFallback("Intro fingerprint", item, MediaInfoFallbackReason.PathNotAllowed);
                     return null;
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath)) return null;
+            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath) ||
+                !IsLocalDistributablePath(mediaPath))
+            {
+                stats?.RecordFallback(MediaInfoFallbackReason.PathNotAllowed);
+                LogDistributionFallback("Intro fingerprint", item, MediaInfoFallbackReason.PathNotAllowed);
+                return null;
+            }
+
+            if (!IsEnabled)
+            {
+                stats?.RecordFallback(MediaInfoFallbackReason.NoWorker);
+                LogDistributionFallback("Intro fingerprint", item, MediaInfoFallbackReason.NoWorker);
+                return null;
+            }
 
             var minutes = GetTitleFingerprintDurationMinutes(libraryOptions);
 
@@ -446,31 +461,44 @@ namespace StrmAssistant.Common
 
             if (File.Exists(targetPath)) return null;
 
-            var mappedMediaPath = mediaPath;
+            var durationSeconds = TimeSpan.FromMinutes(minutes).TotalSeconds;
 
-            var success = await TryWorkersAsync<DistributedFingerprintRequest, DistributedFingerprintResponse>(
-                "IntroFingerprint", item.Name + " - " + item.Path, "/StrmAssistant/DistributedExtract/Fingerprint",
-                remaining =>
-                {
-                    var options = Options;
-                    var mappedPath = MapPath(mappedMediaPath, options.PathMapping);
-
-                    return new DistributedFingerprintRequest
+            var attempt = await TryWorkersWithResultAsync<DistributedFingerprintRequest,
+                    DistributedFingerprintResponse>(
+                    "IntroFingerprint", item.Name + " - " + item.Path,
+                    "/StrmAssistant/DistributedExtract/Fingerprint",
+                    remaining =>
                     {
-                        ApiKey = options.SharedApiKey,
-                        Path = mappedPath,
-                        Protocol = GetProtocol(mappedPath).ToString(),
-                        Name = item.Name,
-                        Minutes = minutes,
-                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
-                    };
-                },
-                response => response?.Success == true && !string.IsNullOrWhiteSpace(response.Data),
-                response => response?.Error,
-                response => TryApplyTitleFingerprint(targetPath, response),
-                cancellationToken).ConfigureAwait(false);
+                        var options = Options;
 
-            return success ? targetPath : null;
+                        return new DistributedFingerprintRequest
+                        {
+                            ApiKey = options.SharedApiKey,
+                            Path = MapPath(mediaPath, options.PathMapping),
+                            StartSeconds = 0,
+                            DurationSeconds = durationSeconds,
+                            TimeoutSeconds = ClampTimeoutSeconds((int)remaining.TotalSeconds)
+                        };
+                    },
+                    response => response?.Success == true && !string.IsNullOrWhiteSpace(response.Data),
+                    response => response?.Error,
+                    response => response?.ErrorCode,
+                    response => TryApplyTitleFingerprint(targetPath, response),
+                    cancellationToken).ConfigureAwait(false);
+
+            if (!attempt.Success)
+            {
+                var reason = attempt.FallbackReason == MediaInfoFallbackReason.None
+                    ? MediaInfoFallbackReason.WorkerError
+                    : attempt.FallbackReason;
+
+                stats?.RecordFallback(reason);
+                LogDistributionFallback("Intro fingerprint", item, reason);
+                return null;
+            }
+
+            stats?.RecordWorker();
+            return targetPath;
         }
 
         /// <summary>
@@ -1018,6 +1046,10 @@ namespace StrmAssistant.Common
             {
                 return FailThumbnail("Extraction timed out after " + timeoutSeconds + " seconds", "timeout");
             }
+            catch (TimeoutException)
+            {
+                return FailThumbnail("Extraction timed out after " + timeoutSeconds + " seconds", "timeout");
+            }
             catch (Exception e)
             {
                 _logger?.Info("DistributedExtract - Worker thumbnail extraction failed: " + request.Path +
@@ -1340,91 +1372,50 @@ namespace StrmAssistant.Common
                 return FailFingerprint("Invalid API key");
             }
 
-            if (string.IsNullOrWhiteSpace(request.Path))
+            if (request is null || !TryResolveAllowedMediaFile(request.Path, out var fullPath))
             {
-                return FailFingerprint("Path is required");
+                return FailFingerprint("Path is outside the media library or not a supported file",
+                    "path_not_allowed");
             }
 
-            if (request.Minutes < 1 || request.Minutes > 30)
+            if (double.IsNaN(request.StartSeconds) || double.IsInfinity(request.StartSeconds) ||
+                request.StartSeconds < 0 || request.StartSeconds > MaxExtractionTimeSeconds ||
+                double.IsNaN(request.DurationSeconds) || double.IsInfinity(request.DurationSeconds) ||
+                request.DurationSeconds <= 0 || request.DurationSeconds > MaxExtractionTimeSeconds)
             {
-                return FailFingerprint("Invalid fingerprint duration: " + request.Minutes);
+                return FailFingerprint("Invalid fingerprint range: " + request.StartSeconds + "s + " +
+                                       request.DurationSeconds + "s");
             }
 
-            if (_ffmpegManager is null || _mediaEncoder is null)
+            if (Plugin.FingerprintApi is null)
             {
-                return FailFingerprint("Ffmpeg is unavailable");
-            }
-
-            if (_ffmpegManager.FfmpegCapabilities?.SupportsChromaprint != true)
-            {
-                return FailFingerprint("Chromaprint is not supported by ffmpeg on this node");
-            }
-
-            var protocol = ParseProtocol(request.Protocol, request.Path);
-
-            if (protocol == MediaProtocol.File && !File.Exists(request.Path))
-            {
-                return FailFingerprint("File not found: " + request.Path);
-            }
-
-            if (protocol != MediaProtocol.File && !IsHttpProtocol(protocol))
-            {
-                return FailFingerprint("Unsupported protocol: " + protocol);
+                return FailFingerprint("Fingerprint extraction is unavailable");
             }
 
             var timeoutSeconds = request.TimeoutSeconds > 0
-                ? Math.Max(MinRequestTimeoutSeconds, Math.Min(600, request.TimeoutSeconds))
-                : Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+                ? ClampTimeoutSeconds(request.TimeoutSeconds)
+                : ClampTimeoutSeconds(options.TimeoutSeconds);
 
             var started = DateTime.UtcNow;
-            var tempPath = Path.Combine(_applicationPaths.TempDirectory, Guid.NewGuid().ToString("N"));
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
             try
             {
-                var duration = TimeSpan.FromMinutes(request.Minutes);
-                var inputArgument = _mediaEncoder.GetInputArgument(request.Path.AsSpan(), protocol);
+                var bytes = await Plugin.FingerprintApi.CreateRawFingerprintAsync(fullPath,
+                        TimeSpan.FromSeconds(request.StartSeconds), TimeSpan.FromSeconds(request.DurationSeconds),
+                        timeoutSeconds, cts.Token)
+                    .ConfigureAwait(false);
 
-                var arguments = string.Join(" ", new[]
+                if (bytes is null || bytes.Length == 0 || bytes.Length % 4 != 0 ||
+                    bytes.Length > MaxFingerprintBytes)
                 {
-                    "-i " + inputArgument,
-                    "-t " + _mediaEncoder.GetTimeParameter(duration.Ticks),
-                    "-ac 1",
-                    "-acodec pcm_s16le",
-                    "-ar " + FingerprintSampleRate.ToString(CultureInfo.InvariantCulture),
-                    "-vn",
-                    "-sn",
-                    "-f chromaprint",
-                    "-fp_format raw",
-                    "\"" + tempPath + "\""
-                });
-
-                using var runner = _ffmpegManager.CreateFfMpegRunner("CreateTitleFingerprint", null);
-                runner.Start(arguments);
-
-                if (!await runner.WaitForExitAsync((int)TimeSpan.FromSeconds(timeoutSeconds).TotalMilliseconds,
-                        cts.Token).ConfigureAwait(false))
-                {
-                    throw new TimeoutException("Operation timed out after " + timeoutSeconds + " seconds");
-                }
-
-                if (runner.LastExitCode.GetValueOrDefault() == -1 || !File.Exists(tempPath))
-                {
-                    runner.LogOutput(LogSeverity.Error);
-                    return FailFingerprint("Fingerprint extraction failed");
-                }
-
-                var bytes = await _fileSystem.ReadAllBytesAsync(tempPath, cts.Token).ConfigureAwait(false);
-
-                if (bytes.Length == 0 || bytes.Length % 4 != 0)
-                {
-                    return FailFingerprint("Fingerprint output is empty or invalid");
+                    return FailFingerprint("Fingerprint output is empty, invalid or too large");
                 }
 
                 _logger?.Debug("DistributedExtract - Worker created fingerprint (" + bytes.Length +
-                               " bytes) for " + request.Path);
+                               " bytes) for " + fullPath);
 
                 return new DistributedFingerprintResponse
                 {
@@ -1436,7 +1427,13 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
-                return FailFingerprint("Fingerprint extraction timed out after " + timeoutSeconds + " seconds");
+                return FailFingerprint("Fingerprint extraction timed out after " + timeoutSeconds + " seconds",
+                    "timeout");
+            }
+            catch (TimeoutException)
+            {
+                return FailFingerprint("Fingerprint extraction timed out after " + timeoutSeconds + " seconds",
+                    "timeout");
             }
             catch (Exception e)
             {
@@ -1444,17 +1441,6 @@ namespace StrmAssistant.Common
                               " - " + e.Message);
                 _logger?.Debug(e.StackTrace);
                 return FailFingerprint(e.Message);
-            }
-            finally
-            {
-                try
-                {
-                    if (File.Exists(tempPath)) File.Delete(tempPath);
-                }
-                catch
-                {
-                    // ignored
-                }
             }
         }
 
@@ -1723,7 +1709,7 @@ namespace StrmAssistant.Common
                 return false;
             }
 
-            if (data.Length == 0 || data.Length % 4 != 0) return false;
+            if (data.Length == 0 || data.Length % 4 != 0 || data.Length > MaxFingerprintBytes) return false;
 
             var directory = Path.GetDirectoryName(targetPath);
 
@@ -2118,9 +2104,10 @@ namespace StrmAssistant.Common
             return new DistributedThumbnailResponse { Success = false, Error = error, ErrorCode = errorCode };
         }
 
-        private static DistributedFingerprintResponse FailFingerprint(string error)
+        private static DistributedFingerprintResponse FailFingerprint(string error,
+            string errorCode = "worker_error")
         {
-            return new DistributedFingerprintResponse { Success = false, Error = error };
+            return new DistributedFingerprintResponse { Success = false, Error = error, ErrorCode = errorCode };
         }
 
         private static DistributedHdrVividResponse FailHdrVivid(string error)

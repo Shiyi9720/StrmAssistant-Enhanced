@@ -10,11 +10,13 @@ using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.MediaInfo;
 using MediaBrowser.Model.Serialization;
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -29,6 +31,9 @@ namespace StrmAssistant.Common
         private readonly ILibraryManager _libraryManager;
         private readonly IFileSystem _fileSystem;
         private readonly IItemRepository _itemRepository;
+        private readonly IFfmpegManager _ffmpegManager;
+        private readonly IMediaEncoder _mediaEncoder;
+        private readonly IApplicationPaths _applicationPaths;
         private readonly ILogger _logger;
 
         private readonly object _audioFingerprintManager;
@@ -36,6 +41,8 @@ namespace StrmAssistant.Common
         private readonly MethodInfo _getAllFingerprintFilesForSeason;
         private readonly MethodInfo _updateSequencesForSeason;
         private readonly FieldInfo _timeoutMs;
+
+        private const int RawFingerprintSampleRate = 16000;
 
         private static readonly object MarkerWriteLock = ChapterApi.MarkerWriteLock;
 
@@ -50,6 +57,9 @@ namespace StrmAssistant.Common
             _libraryManager = libraryManager;
             _fileSystem = fileSystem;
             _itemRepository = itemRepository;
+            _ffmpegManager = ffmpegManager;
+            _mediaEncoder = mediaEncoder;
+            _applicationPaths = applicationPaths;
 
             UpdateLibraryPathsInScope();
 
@@ -102,7 +112,7 @@ namespace StrmAssistant.Common
         }
 
         public async Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, IDirectoryService directoryService,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, DistributionStats distributionStats = null)
         {
             if (FingerprintBlacklist.FromOptions().IsExcluded(item))
             {
@@ -115,10 +125,11 @@ namespace StrmAssistant.Common
             // Optional distributed extraction: the worker only creates the raw fingerprint file;
             // sequence detection and marker writes stay on this node. Every failure falls back to
             // the local extraction below.
-            if (Plugin.DistributedExtractApi != null)
+            if (Plugin.DistributedExtractApi != null && DistributedExtractApi.IsFingerprintOptionEnabled)
             {
                 var distributedPath = await Plugin.DistributedExtractApi
-                    .TryCreateTitleFingerprintAsync(item, libraryOptions, cancellationToken).ConfigureAwait(false);
+                    .TryCreateTitleFingerprintAsync(item, libraryOptions, cancellationToken, distributionStats)
+                    .ConfigureAwait(false);
 
                 if (!string.IsNullOrEmpty(distributedPath))
                 {
@@ -135,6 +146,75 @@ namespace StrmAssistant.Common
             var directoryService = new DirectoryService(_logger, _fileSystem);
 
             return CreateTitleFingerprint(item, directoryService, cancellationToken);
+        }
+
+        /// <summary>
+        /// Creates raw chromaprint data for a local file. This is the same ffmpeg pipeline Emby's
+        /// AudioFingerprintManager uses for title fingerprints; the caller owns the start position
+        /// and duration. Returns null when ffmpeg or chromaprint is unavailable.
+        /// </summary>
+        public async Task<byte[]> CreateRawFingerprintAsync(string inputPath, TimeSpan start, TimeSpan duration,
+            int timeoutSeconds, CancellationToken cancellationToken)
+        {
+            if (_ffmpegManager is null || _mediaEncoder is null) return null;
+
+            if (_ffmpegManager.FfmpegCapabilities?.SupportsChromaprint != true) return null;
+
+            var tempPath = Path.Combine(_applicationPaths.TempDirectory, Guid.NewGuid().ToString("N"));
+            var inputArgument = _mediaEncoder.GetInputArgument(inputPath.AsSpan(), MediaProtocol.File);
+            var startArgument = start > TimeSpan.Zero
+                ? "-t " + _mediaEncoder.GetTimeParameter(start.Ticks)
+                : string.Empty;
+
+            var arguments = string.Join(" ", new[]
+            {
+                startArgument,
+                "-i " + inputArgument,
+                "-t " + _mediaEncoder.GetTimeParameter(duration.Ticks),
+                "-ac 1",
+                "-acodec pcm_s16le",
+                "-ar " + RawFingerprintSampleRate.ToString(CultureInfo.InvariantCulture),
+                "-vn",
+                "-sn",
+                "-f chromaprint",
+                "-fp_format raw",
+                "\"" + tempPath + "\""
+            });
+
+            try
+            {
+                using var runner = _ffmpegManager.CreateFfMpegRunner("CreateTitleFingerprint", null);
+                runner.Start(arguments);
+
+                if (!await runner.WaitForExitAsync(timeoutSeconds * 1000, cancellationToken)
+                        .ConfigureAwait(false))
+                {
+                    throw new TimeoutException("Fingerprint extraction timed out after " + timeoutSeconds +
+                                               " seconds");
+                }
+
+                if (runner.LastExitCode.GetValueOrDefault() == -1 || !File.Exists(tempPath))
+                {
+                    runner.LogOutput(LogSeverity.Error);
+                    return null;
+                }
+
+                var bytes = await _fileSystem.ReadAllBytesAsync(tempPath, cancellationToken)
+                    .ConfigureAwait(false);
+
+                return bytes.Length > 0 && bytes.Length % 4 == 0 ? bytes : null;
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
         }
 
         private Task<object> GetAllFingerprintFilesForSeason(Season season, Episode[] episodes,
