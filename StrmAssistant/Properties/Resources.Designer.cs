@@ -4623,5 +4623,23 @@ namespace StrmAssistant.Properties
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to Update_Downloading.
+        /// </summary>
+        public static string Update_Downloading {
+            get {
+                return ResourceManager.GetString("Update_Downloading", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update_NeedRestart.
+        /// </summary>
+        public static string Update_NeedRestart {
+            get {
+                return ResourceManager.GetString("Update_NeedRestart", resourceCulture);
+            }
+        }
+
     }
 }

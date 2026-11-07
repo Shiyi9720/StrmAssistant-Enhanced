@@ -56,8 +56,9 @@ namespace StrmAssistant.Web.Helper
         }
 
         /// <summary>
-        /// 插件设置页的「检查更新」入口：优先插入到 Save 按钮上方（随页面滚动，移动端也能看到），
-        /// 找不到再回退为左下角浮动按钮。点击后触发内置 UpdatePluginTask 并展示结果。
+        /// 插件设置页的「检查更新」入口：先查 GitHub 最新 Release 判断有没有新版本，
+        /// 有新版本才触发内置 UpdatePluginTask 下载，并如实提示「需要重启才生效」。
+        /// 优先内联到 Save 按钮上方，找不到再回退为浮动按钮。
         /// </summary>
         private static string GetPluginUpdateScript()
         {
@@ -66,14 +67,19 @@ namespace StrmAssistant.Web.Helper
             var check = E(Resources.Update_Check_Button ?? "检查更新");
             var checking = E(Resources.Update_Checking ?? "正在检查…");
             var upToDate = E(Resources.Update_UpToDate ?? "已是最新版本");
-            var done = E(Resources.Update_Done ?? "已更新，请重启 Emby 生效");
+            var downloading = E(Resources.Update_Downloading ?? "发现新版本，正在下载…");
+            var needRestart = E(Resources.Update_NeedRestart ?? "已下载新版本，请重启 Emby 生效");
             var failed = E(Resources.Update_Failed ?? "检查失败");
 
             return @"
 (function () {
     'use strict';
-    var labels = { check: '@@CHECK@@', checking: '@@CHECKING@@', upToDate: '@@UPTODATE@@', done: '@@DONE@@', failed: '@@FAILED@@' };
+    var labels = {
+        check: '@@CHECK@@', checking: '@@CHECKING@@', upToDate: '@@UPTODATE@@',
+        downloading: '@@DOWNLOADING@@', needRestart: '@@NEEDRESTART@@', failed: '@@FAILED@@'
+    };
     var box = null, btn = null, status = null, apiClient = null, busy = false, fallbackTimer = null;
+    var REPO = 'Shiyi9720/StrmAssistant-Enhanced';
 
     function withApiClient(cb) {
         if (apiClient) { cb(apiClient); return; }
@@ -89,7 +95,6 @@ namespace StrmAssistant.Web.Helper
     function onSettingsPage() {
         var h = (location.hash || '').toLowerCase();
         var href = (location.href || '').toLowerCase();
-        // 插件页 id 是 63c322，路由形态在不同客户端/版本里不一样，按 id 判断即可
         return h.indexOf('63c322') >= 0 || href.indexOf('63c322') >= 0;
     }
 
@@ -99,48 +104,92 @@ namespace StrmAssistant.Web.Helper
         status.style.color = color || '#999';
     }
 
-    function findTask(cb) {
-        withApiClient(function (c) {
-            c.getJSON(c.getUrl('ScheduledTasks')).then(function (tasks) {
-                var t = (tasks || []).filter(function (x) { return x.Key === 'UpdatePluginTask'; })[0];
-                cb(c, t);
-            }, function () { cb(c, null); });
-        });
-    }
-
     function finish(text, color) {
         setStatus(text, color);
         busy = false;
         if (btn) btn.disabled = false;
     }
 
-    function poll(c, id, tries) {
-        if (tries <= 0) { finish(labels.failed, '#e57373'); return; }
-        c.getJSON(c.getUrl('ScheduledTasks/' + id)).then(function (t) {
-            var state = t && t.State;
-            if (state === 'Running' || state === 'Queued') { setTimeout(function () { poll(c, id, tries - 1); }, 2000); return; }
-            var res = (t && t.LastExecutionResult) || {};
-            var err = res.ErrorMessage || '';
-            c.getJSON(c.getUrl('Plugins')).then(function (plugins) {
-                var p = (plugins || []).filter(function (x) { return x.Name && x.Name.indexOf('Strm') === 0; })[0] || {};
-                var ver = p.Version || '';
-                // 任务完成只代表「检查并可能下载完成」，版本号要重启 Emby 才会变，不能直接说「已是最新」
-                if (err) finish(labels.failed + ': ' + err, '#e57373');
-                else if (res.Status === 'Completed') finish(labels.done + ' (' + ver + ')', '#4caf50');
-                else finish(labels.failed, '#e57373');
-            }, function () { finish(err ? (labels.failed + ': ' + err) : labels.done, err ? '#e57373' : '#4caf50'); });
-        }, function () { finish(labels.failed, '#e57373'); });
+    function currentVersion() {
+        return new Promise(function (resolve) {
+            withApiClient(function (c) {
+                c.getJSON(c.getUrl('Plugins')).then(function (list) {
+                    var p = (list || []).filter(function (x) { return x.Name && x.Name.indexOf('Strm') === 0; })[0] || {};
+                    resolve(p.Version || '');
+                }, function () { resolve(''); });
+            });
+        });
+    }
+
+    function latestTag() {
+        return fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {
+            headers: { 'Accept': 'application/vnd.github+json' }
+        }).then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { return j && j.tag_name ? String(j.tag_name).replace(/^v/i, '') : null; })
+          .catch(function () { return null; });
+    }
+
+    function parse(v) {
+        if (!v) return null;
+        var m = String(v).match(/\d+(?:\.\d+)*/);
+        if (!m) return null;
+        return m[0].split('.').map(function (x) { return parseInt(x, 10) || 0; });
+    }
+
+    function isNewer(latest, current) {
+        var a = parse(latest), b = parse(current);
+        if (!a || !b) return false;
+        for (var i = 0; i < Math.max(a.length, b.length); i++) {
+            var x = a[i] || 0, y = b[i] || 0;
+            if (x > y) return true;
+            if (x < y) return false;
+        }
+        return false;
+    }
+
+    function runTask(cb) {
+        withApiClient(function (c) {
+            c.getJSON(c.getUrl('ScheduledTasks')).then(function (tasks) {
+                var t = (tasks || []).filter(function (x) { return x.Key === 'UpdatePluginTask'; })[0];
+                if (!t) { cb(c, null); return; }
+                c.ajax({ type: 'POST', url: c.getUrl('ScheduledTasks/Running/' + t.Id) })
+                    .then(function () { cb(c, t); }, function () { cb(c, null); });
+            }, function () { cb(c, null); });
+        });
+    }
+
+    function pollTask(c, id, tries, done) {
+        if (tries <= 0) { done(false, ''); return; }
+        setTimeout(function () {
+            c.getJSON(c.getUrl('ScheduledTasks/' + id)).then(function (t) {
+                var state = t && t.State;
+                if (state === 'Running' || state === 'Queued') { pollTask(c, id, tries - 1, done); return; }
+                var res = (t && t.LastExecutionResult) || {};
+                done(!res.ErrorMessage && res.Status === 'Completed', res.ErrorMessage || '');
+            }, function () { done(false, ''); });
+        }, 2000);
     }
 
     function run() {
         if (busy) return;
-        busy = true; if (btn) btn.disabled = true;
+        busy = true;
+        if (btn) btn.disabled = true;
         setStatus(labels.checking, '#ff9800');
-        findTask(function (c, t) {
-            if (!t) { finish(labels.failed + ' (task not found)', '#e57373'); return; }
-            c.ajax({ type: 'POST', url: c.getUrl('ScheduledTasks/Running/' + t.Id) }).then(function () {
-                setTimeout(function () { poll(c, t.Id, 60); }, 1500);
-            }, function () { finish(labels.failed, '#e57373'); });
+
+        currentVersion().then(function (cur) {
+            latestTag().then(function (latest) {
+                if (!latest) { finish(labels.failed + ' (GitHub 不可达)', '#e57373'); return; }
+                if (!isNewer(latest, cur)) { finish(labels.upToDate + ' (' + cur + ')', '#4caf50'); return; }
+
+                setStatus(labels.downloading + ' ' + latest, '#ff9800');
+                runTask(function (c, t) {
+                    if (!t) { finish(labels.failed + ' (task not found)', '#e57373'); return; }
+                    pollTask(c, t.Id, 45, function (ok, err) {
+                        if (ok) finish(labels.needRestart + ' (' + latest + ')', '#4caf50');
+                        else finish(labels.failed + (err ? ': ' + err : ''), '#e57373');
+                    });
+                });
+            });
         });
     }
 
@@ -218,7 +267,8 @@ namespace StrmAssistant.Web.Helper
                 .Replace("@@CHECK@@", check)
                 .Replace("@@CHECKING@@", checking)
                 .Replace("@@UPTODATE@@", upToDate)
-                .Replace("@@DONE@@", done)
+                .Replace("@@DOWNLOADING@@", downloading)
+                .Replace("@@NEEDRESTART@@", needRestart)
                 .Replace("@@FAILED@@", failed);
         }
 
