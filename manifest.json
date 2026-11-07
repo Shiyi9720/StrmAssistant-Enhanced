@@ -9,6 +9,15 @@
     "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
     "versions": [
       {
+        "version": "1.0.3",
+        "changelog": "**修复**\n\n- 「检查更新」按钮的提示与实际行为不一致：原来任务执行完就显示「已是最新版本」，但实际可能刚下载了新版本（需重启才生效）。现在先查 GitHub 最新版本再决定动作：\n  - 无新版本 → 「已是最新版本 (x.y.z)」，不触发下载\n  - 有新版本 → 「发现新版本，正在下载…」→ 完成后提示「已下载新版本，请重启 Emby 生效」",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.3/StrmAssistant-1.0.3.zip",
+        "checksum": "C8035A1DBD10DC2B29EBCAF27A6DB578",
+        "timestamp": "2026-11-07T10:01:31Z",
+        "dependencies": []
+      },
+      {
         "version": "1.0.2",
         "changelog": "**新增**\n\n- 插件设置页左下角新增「检查更新」按钮：点击后直接触发内置的 `Update Plugin` 任务，轮询任务状态并显示结果（已是最新版本 / 已更新请重启 / 失败原因），不必再去「计划任务」里手动找\n\n- 关于区版本行只显示版本号（如 `v1.0.2`），两处入口文案缩短为「GitHub」「功能说明」，避免窄屏被截断\n- 版本显示简化为 `v1.0.1 · Emby 4.10.2`，不再输出内部构建标记与提交哈希\n\n**说明**\n\n- 仅在「设置 → 高级 → Strm 助手」页面显示，不影响其他页面\n- 按钮调用的是同一个更新任务，逻辑与自动检查一致（比较仓库 Release，下载主 DLL）\n\n\n\n版本号即插件在「设置 → 插件」中显示的版本；升级可用插件内置的计划任务 `Update Plugin`，或手动替换 DLL。",
         "targetAbi": "4.10.2.0",
