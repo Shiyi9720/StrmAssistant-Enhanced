@@ -357,10 +357,10 @@
     <value>Exclusive MediaInfo Extract is unavailable: {0}. The option is disabled and Emby's native extraction is used instead.</value>
   </data>
   <data name="Repo_Link" xml:space="preserve">
-    <value>Repo Link</value>
+    <value>GitHub</value>
   </data>
   <data name="Wiki_Link" xml:space="preserve">
-    <value>Wiki Link</value>
+    <value>Features</value>
   </data>
   <data name="AboutOptions_EditorTitle_About" xml:space="preserve">
     <value>About</value>

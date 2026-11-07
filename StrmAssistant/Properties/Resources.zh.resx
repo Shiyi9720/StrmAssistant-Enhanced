@@ -270,10 +270,10 @@
     <value>独占媒体信息提取不可用：{0}。该选项已禁用，将继续使用 Emby 原生提取。</value>
   </data>
   <data name="Repo_Link" xml:space="preserve">
-    <value>项目链接</value>
+    <value>GitHub</value>
   </data>
   <data name="Wiki_Link" xml:space="preserve">
-    <value>功能介绍</value>
+    <value>功能说明</value>
   </data>
   <data name="AboutOptions_EditorTitle_About" xml:space="preserve">
     <value>关于</value>
