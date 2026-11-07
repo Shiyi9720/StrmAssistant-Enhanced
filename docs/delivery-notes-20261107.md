@@ -5,7 +5,7 @@ sjtuross/StrmAssistant PRO 版公开 Wiki 上的功能清单（不复制、不�
 
 - 目标运行时：Emby 4.10.2 稳定版，程序集 `4.10.2.0`（生产实测）
 - 主分支：`port/emby-4.10-stable`
-- 生产部署：NAS `192.168.31.51`，容器 `emby`，插件目录 `/vol2/1000/docker/emby/config/plugins`
+- 生产部署：NAS `<emby-host>`，容器 `emby`，插件目录 `<emby-config>/plugins`
 - 部署布局：主 DLL 在 `plugins/` 顶层；全部依赖在 `plugins/StrmAssistantLite.deps/`（由插件 AssemblyResolve 按需加载，避免 Emby 启动扫描期的 LoaderException）
 
 ## 一、部署与回滚
@@ -94,8 +94,8 @@ sjtuross/StrmAssistant PRO 版公开 Wiki 上的功能清单（不复制、不�
 
 ## 四、运维要点
 
-- 插件配置：`/vol2/1000/docker/emby/config/plugins/configurations/Strm Assistant.json`
-- 插件数据目录：`/vol2/1000/docker/emby/config/plugins/StrmAssistantLite/`（搜索索引、豆瓣评分缓存、IntroDb、电影片尾等）
+- 插件配置：`<emby-config>/plugins/configurations/Strm Assistant.json`
+- 插件数据目录：`<emby-config>/plugins/StrmAssistantLite/`（搜索索引、豆瓣评分缓存、IntroDb、电影片尾等）
 - 管理员 API 令牌：容器重启后失效，需重新登录获取（`/emby/Users/{adminId}`）
 - 大文件读取若报 `State not recoverable`：`docker restart clouddrive2` 后重试（CD2 FUSE 句柄失效）
 - 服务端 ffprobe 9.0.2（碟片 DV P7 检测用）：NAS `~/tools/ffprobe9/ffprobe`

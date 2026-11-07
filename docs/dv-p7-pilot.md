@@ -93,36 +93,36 @@ configuration: ... --enable-libbluray --enable-libdvdread --enable-libdvdnav ...
 
 | 用途 | 文件名 | 大小 / 用户说明 |
 | --- | --- | --- |
-| DV P7 双层 | `寄生虫 (2019) - 2160p.DV.BluRay.iso`（`/vol1/1000/CloudDrive/115open/拾忆/电影/日韩/寄生虫 (2019) [tmdbid=496243]/`） | 92.6G；用户已实测 0x1011 3840×2160 + 0x1015 1920×1080，判断为 P7 双层 FEL |
+| DV P7 双层 | `寄生虫 (2019) - 2160p.DV.BluRay.iso`（`<clouddrive-root>/115open/拾忆/电影/日韩/寄生虫 (2019) [tmdbid=496243]/`） | 92.6G；用户已实测 0x1011 3840×2160 + 0x1015 1920×1080，判断为 P7 双层 FEL |
 | 另一张 P7 | `变形金刚4：绝迹重生 (2014) - 2160p.DV.BluRay.iso`（`/拾忆/电影/` 下） | 94.5G；用户称同样 2 条流 |
 | 非 DV 对照 | `你的名字。(2016) - .iso`（`/拾忆/电影/` 下） | 61.2G；用户称 1 条 HEVC 2160p |
 
 ### 6.1 连通性
 
 ```
-$ ping -c 2 192.168.31.51
+$ ping -c 2 <emby-host>
 2 packets transmitted, 2 packets received, 0.0% packet loss
 
-$ nc -z 192.168.31.51 445   → succeeded
-$ nc -z 192.168.31.51 139   → succeeded
+$ nc -z <emby-host> 445   → succeeded
+$ nc -z <emby-host> 139   → succeeded
 ```
 
 Bonjour 广播确认主机名：`SHIYIFNOS`（`dns-sd -B _smb._tcp local`）。
-ARP 表里 192.168.31.51 对应 `38:5:25:35:8b:7d`，是局域网内设备。
+ARP 表里 <emby-host> 对应 `<host-mac>`，是局域网内设备。
 
 ### 6.2 共享枚举（全部被服务器拒绝）
 
 ```
-$ smbutil view //192.168.31.51
+$ smbutil view //<emby-host>
 smbutil: server rejected the authentication: Authentication error
 
-$ smbutil view -N //192.168.31.51          # 不提示密码
+$ smbutil view -N //<emby-host>          # 不提示密码
 smbutil: server connection failed: Operation timed out
 
-$ smbutil view -G //192.168.31.51          # 允许 guest
+$ smbutil view -G //<emby-host>          # 允许 guest
 smbutil: server rejected the authentication: Authentication error
 
-$ smbutil view -g //192.168.31.51          # 仅 guest
+$ smbutil view -g //<emby-host>          # 仅 guest
 smbutil: server rejected the authentication: Authentication error
 
 $ smbutil view -N //shiyi@SHIYIFNOS        # 当前用户名
@@ -134,7 +134,7 @@ smbutil: server connection failed: Operation timed out
 ### 6.3 钥匙串检查（只读，不打印密码）
 
 ```
-$ security find-internet-password -s 192.168.31.51        → 未找到
+$ security find-internet-password -s <emby-host>        → 未找到
 $ security find-internet-password -s SHIYIFNOS            → 未找到
 $ security find-internet-password -s shiyifnos            → 未找到
 $ security find-internet-password -s SHIYIFNOS.local      → 未找到
@@ -149,7 +149,7 @@ $ ls ~/Library/Preferences/nsmb.conf                       → 不存在
 
 ```
 $ mkdir -p /tmp/nasmount
-$ mount_smbfs -N -o nopassprompt,nobrowse //192.168.31.51/CloudDrive /tmp/nasmount
+$ mount_smbfs -N -o nopassprompt,nobrowse //<emby-host>/CloudDrive /tmp/nasmount
 mount_smbfs: server rejected the connection: Authentication error   (exit 77)
 ```
 
@@ -167,7 +167,7 @@ mount_smbfs: server rejected the connection: Authentication error   (exit 77)
 
 由用户在 Mac 上手动完成一次（我们不做）：
 
-1. Finder →「前往」→「连接服务器」→ `smb://192.168.31.51`；
+1. Finder →「前往」→「连接服务器」→ `smb://<emby-host>`；
 2. 输入账号密码，勾选「在我的钥匙串中记住此密码」；
 3. 挂载 `CloudDrive` 共享（或包含 `CloudDrive/115open` 的那一个共享）；
 4. 告诉本会话挂载点，或直接告诉三张 ISO 的绝对路径。
@@ -179,21 +179,21 @@ mount_smbfs: server rejected the connection: Authentication error   (exit 77)
 用户告知 NAS 刚完成升级，可能是上次认证失败的原因。升级完成后重新检查：
 
 ```
-$ ping -c 2 192.168.31.51                 → 2/2 通，约 5.5ms
-$ nc -z 192.168.31.51 445                 → succeeded
-$ nc -z 192.168.31.51 139                 → succeeded
+$ ping -c 2 <emby-host>                 → 2/2 通，约 5.5ms
+$ nc -z <emby-host> 445                 → succeeded
+$ nc -z <emby-host> 139                 → succeeded
 $ dns-sd -B _smb._tcp local               → SHIYIFNOS
 
-$ smbutil view //192.168.31.51
+$ smbutil view //<emby-host>
 smbutil: server rejected the authentication: Authentication error
 
-$ smbutil view -G //192.168.31.51         # 允许 guest
+$ smbutil view -G //<emby-host>         # 允许 guest
 smbutil: server rejected the authentication: Authentication error
 
-$ mount_smbfs -N -o nopassprompt,nobrowse //192.168.31.51/CloudDrive /tmp/nasmount
+$ mount_smbfs -N -o nopassprompt,nobrowse //<emby-host>/CloudDrive /tmp/nasmount
 mount_smbfs: server rejected the connection: Authentication error   (exit 77)
 
-$ mount_smbfs -N -o nopassprompt,nobrowse //guest@192.168.31.51/CloudDrive /tmp/nasmount
+$ mount_smbfs -N -o nopassprompt,nobrowse //guest@<emby-host>/CloudDrive /tmp/nasmount
 mount_smbfs: server rejected the connection: Authentication error   (exit 77)
 ```
 
