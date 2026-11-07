@@ -43,7 +43,7 @@ namespace StrmAssistant.ScheduledTask
         }
 
         private static string PluginAssemblyFilename => Assembly.GetExecutingAssembly().GetName().Name + ".dll";
-        private static string RepoReleaseUrl => "https://api.github.com/repos/sjtuross/StrmAssistant/releases/latest";
+        private static string RepoReleaseUrl => "https://api.github.com/repos/Shiyi9720/StrmAssistant-Enhanced/releases/latest";
 
         public string Key => "UpdatePluginTask";
 
@@ -98,6 +98,13 @@ namespace StrmAssistant.ScheduledTask
 
                 var currentVersion = ParseVersion(Plugin.Instance.CurrentVersion);
                 var remoteVersion = ParseVersion(apiResult?.tag_name);
+
+                if (currentVersion == null || remoteVersion == null)
+                {
+                    _logger?.Info("Skip auto update: version is not comparable ({0} -> {1})",
+                        Plugin.Instance.CurrentVersion, apiResult?.tag_name);
+                    return;
+                }
 
                 if (currentVersion.CompareTo(remoteVersion) < 0)
                 {
@@ -186,7 +193,10 @@ namespace StrmAssistant.ScheduledTask
 
         private static Version ParseVersion(string v)
         {
-            return new Version(v.StartsWith("v") ? v.Substring(1) : v);
+            if (string.IsNullOrWhiteSpace(v)) return null;
+            var text = v.StartsWith("v") ? v.Substring(1) : v;
+            // 版本标记形如 public-ip-xxxx 时无法比较，返回 null 由调用方跳过自动更新
+            return Version.TryParse(text, out var parsed) ? parsed : null;
         }
 
         internal class ApiResponseInfo
