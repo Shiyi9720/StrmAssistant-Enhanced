@@ -1145,6 +1145,12 @@ namespace StrmAssistant.Common
                 !Plugin.MetadataApi.MovieMetadataNeedsRefresh(taskItem))
             {
                 _logger?.Info("MovieMetadataRefresh - Skipped complete item: " + taskItem.Name);
+
+                if (Plugin.IntroDbApi != null)
+                {
+                    await Plugin.IntroDbApi.ApplyToMovieAsync(taskItem, cancellationToken).ConfigureAwait(false);
+                }
+
                 return;
             }
 
