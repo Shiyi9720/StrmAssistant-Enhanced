@@ -1564,6 +1564,7 @@
   </data>
   <data name="MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_" xml:space="preserve">
     <value>TMDB 请求之间的最小间隔（毫秒），必须在 0 到 10000 之间。默认 250。</value>
+  </data>
   <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild" xml:space="preserve">
     <value>启用豆瓣缓存预构建</value>
   </data>
@@ -1596,7 +1597,6 @@
   </data>
   <data name="DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_" xml:space="preserve">
     <value>为尚无缓存评分的电影和剧集获取豆瓣评分；请求有限速，任务可随时取消。</value>
-  </data>
   </data>
   <data name="MetadataEnhanceOptions_EnableMovieDbCache_Enable_TMDB_Disk_Cache" xml:space="preserve">
     <value>启用 TMDB 磁盘缓存</value>
