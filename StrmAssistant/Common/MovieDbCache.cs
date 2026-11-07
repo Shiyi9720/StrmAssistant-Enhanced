@@ -166,7 +166,8 @@ namespace StrmAssistant.Common
             }
         }
 
-        public void Store(string key, string url, string body, string contentType)
+        public void Store(string key, string url, string body, string contentType,
+            MovieDbCacheMeta metadata = null)
         {
             if (!IsEnabled || string.IsNullOrEmpty(key) || string.IsNullOrEmpty(body) ||
                 _jsonSerializer is null)
@@ -187,7 +188,8 @@ namespace StrmAssistant.Common
                     Url = SanitizeUrl(url),
                     CachedAtUtc = DateTime.UtcNow,
                     ContentType = contentType,
-                    Body = body
+                    Body = body,
+                    _meta = metadata
                 };
 
                 var json = _jsonSerializer.SerializeToString(entry);
@@ -527,5 +529,17 @@ namespace StrmAssistant.Common
         public DateTime CachedAtUtc { get; set; }
         public string ContentType { get; set; }
         public string Body { get; set; }
+        public MovieDbCacheMeta _meta { get; set; }
+    }
+
+    public sealed class MovieDbCacheMeta
+    {
+        public string source { get; set; }
+        public string request { get; set; }
+        public string url { get; set; }
+        public string language { get; set; }
+        public bool converted { get; set; }
+        public bool rewritten { get; set; }
+        public DateTime capturedAtUtc { get; set; }
     }
 }

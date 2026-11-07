@@ -112,6 +112,61 @@ namespace StrmAssistant.Common
             }
         }
 
+        /// <summary>
+        /// Resolves the TMDB season/episode numbers for an item that uses the local library
+        /// numbering. Returns false when the episode group is disabled or has no unambiguous
+        /// mapping for the requested numbers.
+        /// </summary>
+        public static bool TryGetTmdbNumbers(string seriesId, int localSeason, int? localEpisode,
+            out int tmdbSeason, out int? tmdbEpisode)
+        {
+            tmdbSeason = localSeason;
+            tmdbEpisode = localEpisode;
+
+            if (string.IsNullOrWhiteSpace(seriesId) || _jsonSerializer is null) return false;
+
+            try
+            {
+                var options = Plugin.Instance?.GetPluginOptions();
+
+                if (options is null || !options.EnableLocalEpisodeGroup) return false;
+
+                var document = LoadDocument(seriesId);
+                var group = document?.groups?.FirstOrDefault(item => item?.order == localSeason);
+
+                if (group?.episodes is null) return false;
+
+                if (localEpisode.HasValue)
+                {
+                    var episode = group.episodes.FirstOrDefault(item =>
+                        item != null && item.order == localEpisode.Value - 1);
+
+                    if (episode is null) return false;
+
+                    tmdbSeason = episode.season_number;
+                    tmdbEpisode = episode.episode_number;
+                    return true;
+                }
+
+                var tmdbSeasons = group.episodes
+                    .Where(item => item != null)
+                    .Select(item => item.season_number)
+                    .Distinct()
+                    .ToList();
+
+                if (tmdbSeasons.Count != 1) return false;
+
+                tmdbSeason = tmdbSeasons[0];
+                tmdbEpisode = null;
+                return true;
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance?.Logger?.Debug("Local episode group - Reverse mapping failed: " + e.Message);
+                return false;
+            }
+        }
+
         private static string GetPath(string url)
         {
             if (Uri.TryCreate(url, UriKind.Absolute, out var uri)) return uri.AbsolutePath;

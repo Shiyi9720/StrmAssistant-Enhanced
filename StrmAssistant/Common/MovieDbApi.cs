@@ -295,6 +295,8 @@ namespace StrmAssistant.Common
             public bool IsCacheable { get; set; }
             public bool IsConfigurationRequest { get; set; }
             public bool RequestedSimplifiedChinese { get; set; }
+            public string EffectiveLanguage { get; set; }
+            public bool Rewritten { get; set; }
         }
 
         private static bool IsCacheableApiPath(string path)
@@ -607,6 +609,7 @@ namespace StrmAssistant.Common
 
                 result.RequestedSimplifiedChinese =
                     LanguageUtility.IsSimplifiedChineseLanguageCode(effectiveLanguage);
+                result.EffectiveLanguage = effectiveLanguage;
 
                 if (!string.IsNullOrEmpty(source?.ApiRoot))
                 {
@@ -625,6 +628,7 @@ namespace StrmAssistant.Common
             }
 
             result.Url = rewrittenUrl;
+            result.Rewritten = !string.Equals(rewrittenUrl, url, StringComparison.Ordinal);
 
             return result;
         }
@@ -709,8 +713,41 @@ namespace StrmAssistant.Common
             public bool ConvertSimplifiedToTraditional { get; set; }
             public string OriginalLanguageCacheKey { get; set; }
             public string CacheableUrl { get; set; }
+            public string EffectiveLanguage { get; set; }
+            public bool Rewritten { get; set; }
             public LocalMetadataSource.LocalMetadataTarget LocalMetadataTarget { get; set; }
             public LocalEpisodeGroupMapping LocalEpisodeGroupMapping { get; set; }
+
+            public LocalMetadataSource.LocalMetadataCaptureContext CreateCaptureContext()
+            {
+                return new LocalMetadataSource.LocalMetadataCaptureContext
+                {
+                    source = "online",
+                    request = LocalMetadataTarget is null
+                        ? CacheableUrl
+                        : LocalMetadataTarget.Kind + ":" + LocalMetadataTarget.TmdbId,
+                    url = MovieDbCache.SanitizeUrl(CacheableUrl),
+                    language = EffectiveLanguage,
+                    converted = ConvertSimplifiedToTraditional || LocalEpisodeGroupMapping != null,
+                    rewritten = Rewritten
+                };
+            }
+
+            public MovieDbCacheMeta CreateCacheMetadata()
+            {
+                return new MovieDbCacheMeta
+                {
+                    source = "online",
+                    request = LocalMetadataTarget is null
+                        ? CacheableUrl
+                        : LocalMetadataTarget.Kind + ":" + LocalMetadataTarget.TmdbId,
+                    url = MovieDbCache.SanitizeUrl(CacheableUrl),
+                    language = EffectiveLanguage,
+                    converted = ConvertSimplifiedToTraditional || LocalEpisodeGroupMapping != null,
+                    rewritten = Rewritten,
+                    capturedAtUtc = DateTime.UtcNow
+                };
+            }
         }
 
         private static string GetOriginalLanguageCacheKey(string url)
@@ -748,6 +785,13 @@ namespace StrmAssistant.Common
             }
 
             var localMetadataTarget = LocalMetadataSource.TryParseTarget(options.Url);
+
+            if (localMetadataTarget != null && episodeGroupMapping != null)
+            {
+                localMetadataTarget.LocalSeasonNumber = episodeGroupMapping.LocalSeasonNumber;
+                localMetadataTarget.LocalEpisodeNumber = episodeGroupMapping.LocalEpisodeNumber;
+            }
+
             var originalLanguageCacheKey = GetOriginalLanguageCacheKey(options.Url);
             var rewrite = RewriteUrl(options.Url);
 
@@ -764,6 +808,8 @@ namespace StrmAssistant.Common
                     Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional,
                 OriginalLanguageCacheKey = originalLanguageCacheKey,
                 CacheableUrl = rewrite.IsCacheable ? rewrite.Url : null,
+                EffectiveLanguage = rewrite.EffectiveLanguage,
+                Rewritten = rewrite.Rewritten || episodeGroupMapping != null,
                 LocalMetadataTarget = localMetadataTarget,
                 LocalEpisodeGroupMapping = episodeGroupMapping
             };
@@ -939,29 +985,29 @@ namespace StrmAssistant.Common
                         .ConfigureAwait(false);
                 }
 
-                if (!string.IsNullOrEmpty(cacheKey) && IsSuccessful(response) && IsJsonResponse(response))
+                return await FinalizeAsync(prepared, response, isGet, cacheKey).ConfigureAwait(false);
+            }
+
+            private static async Task<HttpResponseInfo> FinalizeAsync(PreparedRequest prepared,
+                HttpResponseInfo response, bool capture, string cacheKey = null)
+            {
+                var processed = await PostProcessAsync(prepared, response).ConfigureAwait(false);
+
+                if (!string.IsNullOrEmpty(cacheKey) && IsSuccessful(processed) && IsJsonResponse(processed))
                 {
-                    var body = await ReadBodyAsync(response).ConfigureAwait(false);
+                    var body = await ReadBodyAsync(processed).ConfigureAwait(false);
 
                     if (!string.IsNullOrEmpty(body))
                     {
                         MovieDbCache.Instance.Store(cacheKey, prepared.CacheableUrl, body,
-                            response.ContentType);
+                            processed.ContentType, prepared.CreateCacheMetadata());
                     }
                 }
 
-                return await FinalizeAsync(prepared, response, isGet).ConfigureAwait(false);
-            }
-
-            private static async Task<HttpResponseInfo> FinalizeAsync(PreparedRequest prepared,
-                HttpResponseInfo response, bool capture)
-            {
-                var processed = await PostProcessAsync(prepared, response).ConfigureAwait(false);
-
                 if (capture)
                 {
-                    await LocalMetadataSource.CaptureAsync(prepared?.LocalMetadataTarget, processed)
-                        .ConfigureAwait(false);
+                    await LocalMetadataSource.CaptureAsync(prepared?.LocalMetadataTarget, processed,
+                        prepared?.CreateCaptureContext()).ConfigureAwait(false);
                 }
 
                 return processed;

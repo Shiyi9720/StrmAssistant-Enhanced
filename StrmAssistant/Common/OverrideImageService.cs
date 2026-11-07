@@ -34,6 +34,9 @@ namespace StrmAssistant.Common
         private static readonly Regex TmdbIdRegex = new Regex(@"^\d+$", RegexOptions.Compiled);
         private static readonly Regex ImageTypeRegex = new Regex(@"^(?<type>[a-z]+)\.[a-z0-9]+$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex SeasonEpisodeImageRegex = new Regex(
+            @"^(?:season-(?<season>\d+)|episode-(?<episodeSeason>\d+)-(?<episode>\d+))\.(?<extension>jpg|jpeg|png|webp)$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly ConcurrentDictionary<long, byte> InFlight =
             new ConcurrentDictionary<long, byte>();
         private static readonly object StateSync = new object();
@@ -149,47 +152,179 @@ namespace StrmAssistant.Common
 
             if (string.IsNullOrWhiteSpace(tmdbId) || !TmdbIdRegex.IsMatch(tmdbId)) return result;
 
-            var imageDirectories = new List<string>();
-
             if (item is Movie)
             {
+                var imageDirectories = new List<string>();
                 AddDirectories(imageDirectories, fullRoot, MoviesFolderName, tmdbId);
-            }
-            else if (item is Series)
-            {
-                AddDirectories(imageDirectories, fullRoot, TvFolderName, tmdbId);
-            }
-            else if (item is BoxSet)
-            {
-                AddDirectories(imageDirectories, fullRoot, CollectionsFolderName, tmdbId);
-            }
-            else if (item is Season season)
-            {
-                if (season.IndexNumber.HasValue)
-                {
-                    AddDirectories(imageDirectories, fullRoot, TvFolderName, tmdbId,
-                        "season-" + season.IndexNumber.Value);
-                }
-            }
-            else if (item is Episode episode)
-            {
-                if (episode.ParentIndexNumber.HasValue && episode.IndexNumber.HasValue)
-                {
-                    var seasonNumber = episode.ParentIndexNumber.Value;
-                    var episodeNumber = episode.IndexNumber.Value;
 
-                    AddDirectories(imageDirectories, fullRoot, TvFolderName, tmdbId,
-                        "season-" + seasonNumber + "-episode-" + episodeNumber);
-                    AddDirectories(imageDirectories, fullRoot, TvFolderName, tmdbId,
-                        "episode-" + seasonNumber + "-" + episodeNumber);
-                }
+                return ScanDirectories(imageDirectories, item);
             }
-            else
+
+            if (item is Series)
             {
+                var imageDirectories = new List<string>();
+                AddDirectories(imageDirectories, fullRoot, TvFolderName, tmdbId);
+
+                return ScanDirectories(imageDirectories, item);
+            }
+
+            if (item is BoxSet)
+            {
+                var imageDirectories = new List<string>();
+                AddDirectories(imageDirectories, fullRoot, CollectionsFolderName, tmdbId);
+
+                return ScanDirectories(imageDirectories, item);
+            }
+
+            if (item is Season season)
+            {
+                if (!season.IndexNumber.HasValue) return result;
+
+                var localSeason = season.IndexNumber.Value;
+                var localImages = GetSeasonEpisodeImages(fullRoot, tmdbId, localSeason, null);
+
+                if (localImages.Count > 0) return localImages;
+
+                if (LocalEpisodeGroup.TryGetTmdbNumbers(tmdbId, localSeason, null,
+                        out var tmdbSeason, out _) && tmdbSeason != localSeason)
+                {
+                    var fallbackImages = GetSeasonEpisodeImages(fullRoot, tmdbId, tmdbSeason, null);
+
+                    if (fallbackImages.Count > 0)
+                    {
+                        Plugin.Instance?.Logger?.Debug(
+                            "Override image matched TMDB default season naming - {0} (library S{1} -> TMDB S{2})",
+                            fallbackImages[0].Path, localSeason, tmdbSeason);
+                    }
+
+                    return fallbackImages;
+                }
+
                 return result;
             }
 
-            var allowedTypes = item is Episode || item is Season
+            if (item is Episode episode)
+            {
+                if (!episode.ParentIndexNumber.HasValue || !episode.IndexNumber.HasValue) return result;
+
+                var localSeason = episode.ParentIndexNumber.Value;
+                var localEpisode = episode.IndexNumber.Value;
+                var localImages = GetSeasonEpisodeImages(fullRoot, tmdbId, localSeason, localEpisode);
+
+                if (localImages.Count > 0) return localImages;
+
+                if (LocalEpisodeGroup.TryGetTmdbNumbers(tmdbId, localSeason, localEpisode,
+                        out var tmdbSeason, out var tmdbEpisode) &&
+                    (tmdbSeason != localSeason || tmdbEpisode != localEpisode))
+                {
+                    var fallbackImages = GetSeasonEpisodeImages(fullRoot, tmdbId, tmdbSeason, tmdbEpisode);
+
+                    if (fallbackImages.Count > 0)
+                    {
+                        Plugin.Instance?.Logger?.Debug(
+                            "Override image matched TMDB default episode naming - " + fallbackImages[0].Path +
+                            " (library S" + localSeason + "E" + localEpisode + " -> TMDB S" + tmdbSeason +
+                            "E" + tmdbEpisode + ")");
+                    }
+
+                    return fallbackImages;
+                }
+
+                return result;
+            }
+
+            return result;
+        }
+
+        private static List<OverrideImageFile> GetSeasonEpisodeImages(string root, string tmdbId,
+            int season, int? episode)
+        {
+            var files = new List<OverrideImageFile>();
+
+            if (episode.HasValue)
+            {
+                AddFlatImages(files, root, tmdbId, season, episode.Value);
+            }
+            else
+            {
+                AddFlatImages(files, root, tmdbId, season, null);
+            }
+
+            var directories = new List<string>();
+
+            if (episode.HasValue)
+            {
+                AddDirectories(directories, root, TvFolderName, tmdbId,
+                    "season-" + season + "-episode-" + episode.Value);
+                AddDirectories(directories, root, TvFolderName, tmdbId,
+                    "episode-" + season + "-" + episode.Value);
+            }
+            else
+            {
+                AddDirectories(directories, root, TvFolderName, tmdbId, "season-" + season);
+            }
+
+            files.AddRange(ScanDirectories(directories, null, true));
+
+            return files
+                .GroupBy(file => file.ImageType)
+                .Select(group => group.First())
+                .ToList();
+        }
+
+        private static void AddFlatImages(List<OverrideImageFile> files, string root, string tmdbId,
+            int season, int? episode)
+        {
+            foreach (var directory in new[]
+                     {
+                         Path.Combine(root, OverrideFolderName, TvFolderName, tmdbId, ImagesFolderName),
+                         Path.Combine(root, OverrideFolderName, tmdbId, ImagesFolderName)
+                     }.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (!Directory.Exists(directory)) continue;
+
+                foreach (var path in Directory.GetFiles(directory))
+                {
+                    var match = SeasonEpisodeImageRegex.Match(Path.GetFileName(path));
+
+                    if (!match.Success) continue;
+
+                    if (episode.HasValue)
+                    {
+                        if (!match.Groups["episode"].Success ||
+                            !int.TryParse(match.Groups["episodeSeason"].Value, out var imageSeason) ||
+                            !int.TryParse(match.Groups["episode"].Value, out var imageEpisode) ||
+                            imageSeason != season || imageEpisode != episode.Value)
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        if (match.Groups["episode"].Success ||
+                            !int.TryParse(match.Groups["season"].Value, out var imageSeason) ||
+                            imageSeason != season)
+                        {
+                            continue;
+                        }
+                    }
+
+                    files.Add(new OverrideImageFile
+                    {
+                        Path = path,
+                        ImageType = ImageType.Primary,
+                        ImageIndex = null
+                    });
+                }
+            }
+        }
+
+        private static List<OverrideImageFile> ScanDirectories(List<string> imageDirectories, BaseItem item,
+            bool seasonEpisodeOnly = false)
+        {
+            var result = new List<OverrideImageFile>();
+
+            var allowedTypes = seasonEpisodeOnly || item is Episode || item is Season
                 ? new[] { "poster" }
                 : new[] { "poster", "fanart", "backdrop", "clearlogo", "logo", "landscape", "thumb",
                     "banner", "discart", "disc", "clearart", "art" };
