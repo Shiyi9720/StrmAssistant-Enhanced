@@ -9,6 +9,15 @@
     "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
     "versions": [
       {
+        "version": "1.0.2",
+        "changelog": "**新增**\n\n- 插件设置页左下角新增「检查更新」按钮：点击后直接触发内置的 `Update Plugin` 任务，轮询任务状态并显示结果（已是最新版本 / 已更新请重启 / 失败原因），不必再去「计划任务」里手动找\n\n- 关于区版本行只显示版本号（如 `v1.0.2`），两处入口文案缩短为「GitHub」「功能说明」，避免窄屏被截断\n- 版本显示简化为 `v1.0.1 · Emby 4.10.2`，不再输出内部构建标记与提交哈希\n\n**说明**\n\n- 仅在「设置 → 高级 → Strm 助手」页面显示，不影响其他页面\n- 按钮调用的是同一个更新任务，逻辑与自动检查一致（比较仓库 Release，下载主 DLL）\n\n\n\n版本号即插件在「设置 → 插件」中显示的版本；升级可用插件内置的计划任务 `Update Plugin`，或手动替换 DLL。",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/sjtuross/StrmAssistant/releases/download/v1.0.2/StrmAssistant-1.0.2.zip",
+        "checksum": "D65C2144B00CE31AB93147D933FCD9F2",
+        "timestamp": "2026-11-07T09:52:18Z",
+        "dependencies": []
+      },
+      {
         "version": "1.0.1",
         "changelog": "首个公开构建。\n\n- Emby 4.10.2 适配（程序集 4.10.2.0）\n- 中文本地化（简体/繁体），插件列表与设置页显示中文名\n- 中文搜索：拼音全拼/首字母、繁简互搜、别名与演员检索、分级排序、索引重建任务\n- 本地 TMDB 元数据源：cache/override 四模式、episodegroup.json、override 图片自动刷入、tags.json 自定义标签、统一内容分级、自定义特别篇顺序\n- 豆瓣辅助：简介/海报/演员导演/季集补全、推荐频道、预告片、评分角标、缓存预构建\n- 多版本：智能排序、跨库版本进度与收藏分离、库条目角标、剧集总集数\n- 媒体信息：ISO/BDMV 提取、DVD IFO 章节、DV P7 双层检测（MEL/FEL）、HDR Vivid、Atmos/DTS:X、截图比例矫正、自定义 ffmpeg\n- 片头片尾、字幕与外挂音轨扫描、通知与体验增强若干项\n- 修复：插件显示名为中文后 User-Agent 非 ASCII 导致外部 HTTP 请求失败",
         "targetAbi": "4.10.2.0",
