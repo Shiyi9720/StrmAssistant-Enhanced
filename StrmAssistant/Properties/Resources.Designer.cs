@@ -4386,5 +4386,21 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("LocalMetadataMode_Off_Off", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group.
+        /// </summary>
+        public static string PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_.
+        /// </summary>
+        public static string PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_", resourceCulture);
+            }
+        }
     }
 }
