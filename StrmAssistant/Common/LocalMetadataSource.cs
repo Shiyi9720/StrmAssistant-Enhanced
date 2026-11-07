@@ -270,7 +270,8 @@ namespace StrmAssistant.Common
             ScheduleSummary();
         }
 
-        public static async Task CaptureAsync(LocalMetadataTarget target, HttpResponseInfo response)
+        public static async Task CaptureAsync(LocalMetadataTarget target, HttpResponseInfo response,
+            LocalMetadataCaptureContext context = null)
         {
             if (target is null || response?.Content is null || !IsSuccessful(response)) return;
 
@@ -289,9 +290,10 @@ namespace StrmAssistant.Common
 
                 if (string.IsNullOrWhiteSpace(body)) return;
 
+                var capturedBody = AttachMetadata(body, target, context);
                 var relativePath = target.RelativePaths[0];
                 var path = Combine(config.Root, CacheFolderName, relativePath);
-                var metadataChanged = WriteTextFile(path, body);
+                var metadataChanged = WriteTextFile(path, capturedBody);
 
                 if (metadataChanged)
                 {
@@ -302,7 +304,7 @@ namespace StrmAssistant.Common
 
                 if (config.AutoRefreshImages)
                 {
-                    await CaptureImagesAsync(config, target, body).ConfigureAwait(false);
+                    await CaptureImagesAsync(config, target, capturedBody).ConfigureAwait(false);
                 }
             }
             catch (Exception e)
@@ -498,6 +500,33 @@ namespace StrmAssistant.Common
         private static bool WriteTextFile(string path, string content)
         {
             return WriteBytesFile(path, Utf8NoBom.GetBytes(content));
+        }
+
+        private static string AttachMetadata(string body, LocalMetadataTarget target,
+            LocalMetadataCaptureContext context)
+        {
+            if (_jsonSerializer is null || string.IsNullOrWhiteSpace(body)) return body;
+
+            try
+            {
+                var document = _jsonSerializer.DeserializeFromString<Dictionary<string, object>>(body);
+
+                if (document is null) return body;
+
+                document["_meta"] = context ?? new LocalMetadataCaptureContext
+                {
+                    source = "online",
+                    request = target.Kind + ":" + target.TmdbId,
+                    url = target.RequestUrl
+                };
+
+                return _jsonSerializer.SerializeToString(document);
+            }
+            catch (Exception e)
+            {
+                LogDebug("Local metadata source - Metadata annotation failed", e);
+                return body;
+            }
         }
 
         private static bool WriteBytesFile(string path, byte[] bytes)
@@ -843,6 +872,16 @@ namespace StrmAssistant.Common
         public sealed class LocalMetadataImageEntry
         {
             public string file_path { get; set; }
+        }
+
+        public sealed class LocalMetadataCaptureContext
+        {
+            public string source { get; set; }
+            public string request { get; set; }
+            public string url { get; set; }
+            public string language { get; set; }
+            public bool converted { get; set; }
+            public bool rewritten { get; set; }
         }
     }
 }
