@@ -56,7 +56,8 @@ namespace StrmAssistant.Web.Helper
         }
 
         /// <summary>
-        /// 插件设置页右下角的「检查更新」按钮：直接触发内置的 UpdatePluginTask 并展示结果。
+        /// 插件设置页的「检查更新」入口：优先插入到 Save 按钮上方（随页面滚动，移动端也能看到），
+        /// 找不到再回退为左下角浮动按钮。点击后触发内置 UpdatePluginTask 并展示结果。
         /// </summary>
         private static string GetPluginUpdateScript()
         {
@@ -72,7 +73,7 @@ namespace StrmAssistant.Web.Helper
 (function () {
     'use strict';
     var labels = { check: '@@CHECK@@', checking: '@@CHECKING@@', upToDate: '@@UPTODATE@@', done: '@@DONE@@', failed: '@@FAILED@@' };
-    var box = null, btn = null, status = null, apiClient = null, busy = false;
+    var box = null, btn = null, status = null, apiClient = null, busy = false, fallbackTimer = null;
 
     function withApiClient(cb) {
         if (apiClient) { cb(apiClient); return; }
@@ -87,13 +88,15 @@ namespace StrmAssistant.Web.Helper
 
     function onSettingsPage() {
         var h = (location.hash || '').toLowerCase();
-        return h.indexOf('genericui') >= 0 && h.indexOf('63c322') >= 0;
+        var href = (location.href || '').toLowerCase();
+        // 插件页 id 是 63c322，路由形态在不同客户端/版本里不一样，按 id 判断即可
+        return h.indexOf('63c322') >= 0 || href.indexOf('63c322') >= 0;
     }
 
     function setStatus(text, color) {
         if (!status) return;
         status.textContent = text || '';
-        status.style.color = color || '#bbb';
+        status.style.color = color || '#999';
     }
 
     function findTask(cb) {
@@ -105,65 +108,105 @@ namespace StrmAssistant.Web.Helper
         });
     }
 
+    function finish(text, color) {
+        setStatus(text, color);
+        busy = false;
+        if (btn) btn.disabled = false;
+    }
+
     function poll(c, id, tries) {
-        if (tries <= 0) { setStatus(labels.failed, '#e57373'); busy = false; if (btn) btn.disabled = false; return; }
+        if (tries <= 0) { finish(labels.failed, '#e57373'); return; }
         c.getJSON(c.getUrl('ScheduledTasks/' + id)).then(function (t) {
             var state = t && t.State;
-            if (state === 'Running' || state === 'Queued') {
-                setTimeout(function () { poll(c, id, tries - 1); }, 2000);
-                return;
-            }
+            if (state === 'Running' || state === 'Queued') { setTimeout(function () { poll(c, id, tries - 1); }, 2000); return; }
             var res = (t && t.LastExecutionResult) || {};
             var err = res.ErrorMessage || '';
             c.getJSON(c.getUrl('Plugins')).then(function (plugins) {
                 var p = (plugins || []).filter(function (x) { return x.Name && x.Name.indexOf('Strm') === 0; })[0] || {};
                 var ver = p.Version || '';
-                if (err) { setStatus(labels.failed + ': ' + err, '#e57373'); }
-                else if (res.Status === 'Completed') { setStatus(labels.upToDate + ' (' + ver + ')', '#81c784'); }
-                else { setStatus(labels.failed, '#e57373'); }
-                busy = false; if (btn) btn.disabled = false;
-            }, function () {
-                setStatus(err ? (labels.failed + ': ' + err) : labels.done, err ? '#e57373' : '#81c784');
-                busy = false; if (btn) btn.disabled = false;
-            });
-        }, function () { setStatus(labels.failed, '#e57373'); busy = false; if (btn) btn.disabled = false; });
+                if (err) finish(labels.failed + ': ' + err, '#e57373');
+                else if (res.Status === 'Completed') finish(labels.upToDate + ' (' + ver + ')', '#4caf50');
+                else finish(labels.failed, '#e57373');
+            }, function () { finish(err ? (labels.failed + ': ' + err) : labels.done, err ? '#e57373' : '#4caf50'); });
+        }, function () { finish(labels.failed, '#e57373'); });
     }
 
     function run() {
         if (busy) return;
         busy = true; if (btn) btn.disabled = true;
-        setStatus(labels.checking, '#ffb74d');
+        setStatus(labels.checking, '#ff9800');
         findTask(function (c, t) {
-            if (!t) { setStatus(labels.failed + ' (task not found)', '#e57373'); busy = false; if (btn) btn.disabled = false; return; }
+            if (!t) { finish(labels.failed + ' (task not found)', '#e57373'); return; }
             c.ajax({ type: 'POST', url: c.getUrl('ScheduledTasks/Running/' + t.Id) }).then(function () {
                 setTimeout(function () { poll(c, t.Id, 60); }, 1500);
-            }, function () { setStatus(labels.failed, '#e57373'); busy = false; if (btn) btn.disabled = false; });
+            }, function () { finish(labels.failed, '#e57373'); });
         });
     }
 
-    function ensure() {
-        if (!onSettingsPage()) { if (box) { box.remove(); box = null; } return; }
+    function buildBox() {
+        var el = document.createElement('div');
+        el.id = 'strmAssistantUpdateBox';
+        el.style.cssText = 'margin:.8em 0;padding:.7em .9em;border-radius:.4em;background:rgba(0,0,0,.04);' +
+            'display:flex;flex-wrap:wrap;align-items:center;gap:.6em';
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'raised button-submit';
+        b.textContent = labels.check;
+        b.style.cssText = 'padding:.45em 1.1em;border:0;border-radius:.3em;background:#00a4dc;color:#fff;font-weight:600;cursor:pointer';
+        b.addEventListener('click', run);
+        var st = document.createElement('span');
+        st.style.cssText = 'font-size:.85em;color:#999';
+        el.appendChild(b); el.appendChild(st);
+        btn = b; status = st;
+        return el;
+    }
+
+    function findSaveAnchor() {
+        var buttons = document.querySelectorAll('button');
+        for (var i = 0; i < buttons.length; i++) {
+            var txt = (buttons[i].textContent || '').trim();
+            if (txt === '保存' || txt === 'Save' || txt === '儲存' || txt === '保存设置') return buttons[i];
+        }
+        return null;
+    }
+
+    function attachInline() {
+        if (box) return true;
+        var save = findSaveAnchor();
+        if (!save || !save.parentElement) return false;
+        box = buildBox();
+        save.parentElement.insertBefore(box, save);
+        return true;
+    }
+
+    function attachFloating() {
         if (box) return;
-        box = document.createElement('div');
-        box.id = 'strmAssistantUpdateBox';
-        box.style.cssText = 'position:fixed;left:1.5em;bottom:1.5em;z-index:1000;background:rgba(16,16,16,.92);' +
-            'color:#fff;border-radius:.5em;padding:.6em .8em;font-size:.85em;box-shadow:0 4px 16px rgba(0,0,0,.5)';
-        btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = labels.check;
-        btn.style.cssText = 'padding:.4em .9em;border:0;border-radius:.3em;background:#00c8aa;color:#05261f;font-weight:600;cursor:pointer';
-        btn.addEventListener('click', run);
-        status = document.createElement('div');
-        status.style.cssText = 'margin-top:.45em;font-size:.8em;color:#bbb;max-width:16em';
-        box.appendChild(btn); box.appendChild(status);
+        box = buildBox();
+        box.style.cssText = 'position:fixed;left:1em;bottom:5em;z-index:1500;background:rgba(16,16,16,.94);' +
+            'color:#fff;border-radius:.5em;padding:.6em .8em;box-shadow:0 4px 16px rgba(0,0,0,.5)';
         document.body.appendChild(box);
+    }
+
+    function ensure() {
+        if (!onSettingsPage()) {
+            if (box) { box.remove(); box = null; btn = null; status = null; }
+            return;
+        }
+        if (box && document.body.contains(box)) return;
+        if (attachInline()) return;
+        if (!fallbackTimer) {
+            fallbackTimer = setTimeout(function () {
+                fallbackTimer = null;
+                if (!box && onSettingsPage()) attachFloating();
+            }, 8000);
+        }
     }
 
     var scheduled = false;
     function schedule() {
         if (scheduled) return;
         scheduled = true;
-        setTimeout(function () { scheduled = false; ensure(); }, 300);
+        setTimeout(function () { scheduled = false; ensure(); }, 250);
     }
 
     window.addEventListener('hashchange', schedule);
