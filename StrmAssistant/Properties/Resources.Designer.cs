@@ -2043,6 +2043,22 @@ namespace StrmAssistant.Properties
             }
         }
         /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_Dolby_Vision_P7_Layer_Type.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_Dolby_Vision_P7_Layer_Type {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_Dolby_Vision_P7_Layer_Type", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_the_Dolby_Vision_P7_enhancement_layer_type__MEL__FEL_or_unknown__as_an_item_tag__Default_is_False_.
+        /// </summary>
+        public static string MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_the_Dolby_Vision_P7_enhancement_layer_type__MEL__FEL_or_unknown__as_an_item_tag__Default_is_False_ {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_the_Dolby_Vision_P7_enhancement_layer_type__MEL__FEL_or_unknown__as_an_item_tag__Default_is_False_", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Looks up a localized string similar to MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction.
         /// </summary>
         public static string MediaInfoExtractOptions_EnableDiscMediaInfoExtraction_Disc_Media_Info_Extraction {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -20,6 +21,12 @@ namespace StrmAssistant.Common
         private const string DoviConfigurationRecord = "DOVI configuration record";
         private const int BaseLayerPid = 0x1011;
         private const int EnhancementLayerPid = 0x1015;
+
+        // A MEL carries a very small residual stream (around 2% of the base layer), while a
+        // FEL carries a substantial one. Values between the two bands are left Unknown on
+        // purpose: guessing from a borderline ratio would be worse than showing no suffix.
+        private const double MelMaxRatio = 0.04;
+        private const double FelMinRatio = 0.08;
 
         /// <summary>
         /// Runs the static ffprobe against the main title (an extracted/local m2ts or a
@@ -50,7 +57,77 @@ namespace StrmAssistant.Common
                 return null;
             }
 
-            return document is null ? null : Evaluate(document);
+            var result = document is null ? null : Evaluate(document);
+
+            // Retail UHD Blu-ray streams normally have no per-stream bit_rate or size tags.
+            // When the layer type is still Unknown and the badge option is enabled, measure a
+            // small packet window so the MEL/FEL heuristic can work on real discs too.
+            if (result?.IsDvP7 == true &&
+                result.EnhancementLayerType == DvP7EnhancementLayer.Unknown &&
+                result.BaseLayerIndex.HasValue && result.EnhancementLayerIndex.HasValue &&
+                Plugin.Instance?.GetPluginOptions()?.MediaInfoExtractOptions
+                    ?.EnableDvP7LayerBadge == true)
+            {
+                var sampleJson = await CustomFfprobeApi.RunProbeJsonAsync(inputPath,
+                    "-show_entries packet=stream_index,size -read_intervals %+#300",
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!string.IsNullOrWhiteSpace(sampleJson))
+                {
+                    try
+                    {
+                        var sample = Plugin.Instance?.JsonSerializer?
+                            .DeserializeFromString<DvProbeDocument>(sampleJson);
+
+                        ApplyPacketSample(result, sample);
+                    }
+                    catch (Exception e)
+                    {
+                        Plugin.Instance?.Logger?.Debug("DvP7 - Packet sample parse failed: " + e.Message);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Applies the EL/BL byte ratio from a short packet sample. This is the fallback for
+        /// retail discs, whose streams rarely expose bit_rate or NUMBER_OF_BYTES metadata.
+        /// </summary>
+        internal static void ApplyPacketSample(DvP7Info result, DvProbeDocument sample)
+        {
+            if (result?.IsDvP7 != true ||
+                result.EnhancementLayerType != DvP7EnhancementLayer.Unknown ||
+                !result.BaseLayerIndex.HasValue || !result.EnhancementLayerIndex.HasValue ||
+                sample?.packets is null || sample.packets.Length == 0)
+            {
+                return;
+            }
+
+            long baseBytes = 0;
+            long enhancementBytes = 0;
+
+            foreach (var packet in sample.packets)
+            {
+                if (packet is null || !TryParseLong(packet.size, out var size) || size <= 0) continue;
+
+                if (packet.stream_index == result.BaseLayerIndex.Value)
+                {
+                    baseBytes += size;
+                }
+                else if (packet.stream_index == result.EnhancementLayerIndex.Value)
+                {
+                    enhancementBytes += size;
+                }
+            }
+
+            if (baseBytes <= 0 || enhancementBytes <= 0) return;
+
+            result.EnhancementLayerBitrateRatio = (double)enhancementBytes / baseBytes;
+            result.EnhancementLayerEvidence = "stream_groups/packet_sample";
+            ClassifyByRatio(result);
+            TraceClassification(result);
         }
 
         /// <summary>
@@ -98,6 +175,7 @@ namespace StrmAssistant.Common
                     result.EnhancementLayerId = enhancementLayer.id;
 
                     ReadSideData(result, enhancementLayer);
+                    ClassifyEnhancementLayer(result, baseLayer, enhancementLayer, "stream_groups");
 
                     return result;
                 }
@@ -123,11 +201,214 @@ namespace StrmAssistant.Common
                 result.BaseLayerId = stream.id;
 
                 ReadSideData(result, stream);
+                ClassifyEnhancementLayer(result, stream, null, "dovi_config_record");
 
                 return result;
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Classifies the enhancement layer as MEL or FEL. FFmpeg 9 stream groups prove that a
+        /// second HEVC layer exists, but do not carry a MEL/FEL flag on retail UHD Blu-ray
+        /// discs. An explicit MEL/FEL token in the EL profile or tags is used first; otherwise
+        /// the EL bitrate (or byte count) relative to the BL is used as a conservative
+        /// heuristic. No conclusive signal means Unknown.
+        /// </summary>
+        private static void ClassifyEnhancementLayer(DvP7Info result, DvProbeStream baseLayer,
+            DvProbeStream enhancementLayer, string source)
+        {
+            result.EnhancementLayerProfile = enhancementLayer?.profile;
+
+            var profileHint = ReadLayerHint(enhancementLayer);
+
+            if (profileHint != DvP7EnhancementLayer.Unknown)
+            {
+                result.EnhancementLayerType = profileHint;
+                result.EnhancementLayerEvidence = source + "/profile";
+                TraceClassification(result);
+                return;
+            }
+
+            if (enhancementLayer is null)
+            {
+                result.EnhancementLayerType = DvP7EnhancementLayer.Unknown;
+                result.EnhancementLayerEvidence = source + "/unknown";
+                TraceClassification(result);
+                return;
+            }
+
+            if (TryGetRate(baseLayer, out var baseRate, out var baseRateSource) &&
+                TryGetRate(enhancementLayer, out var enhancementRate, out _) &&
+                baseRate > 0 && enhancementRate > 0)
+            {
+                result.EnhancementLayerBitrateRatio = (double)enhancementRate / baseRate;
+                result.EnhancementLayerEvidence = source + "/" + baseRateSource;
+            }
+            else if (TryGetByteCount(baseLayer, out var baseBytes) &&
+                     TryGetByteCount(enhancementLayer, out var enhancementBytes) &&
+                     baseBytes > 0 && enhancementBytes > 0)
+            {
+                result.EnhancementLayerBitrateRatio = (double)enhancementBytes / baseBytes;
+                result.EnhancementLayerEvidence = source + "/size";
+            }
+            else
+            {
+                result.EnhancementLayerType = DvP7EnhancementLayer.Unknown;
+                result.EnhancementLayerEvidence = source + "/unknown";
+                TraceClassification(result);
+                return;
+            }
+
+            ClassifyByRatio(result);
+
+            TraceClassification(result);
+        }
+
+        private static void ClassifyByRatio(DvP7Info result)
+        {
+            if (!result.EnhancementLayerBitrateRatio.HasValue) return;
+
+            if (result.EnhancementLayerBitrateRatio <= MelMaxRatio)
+            {
+                result.EnhancementLayerType = DvP7EnhancementLayer.Mel;
+            }
+            else if (result.EnhancementLayerBitrateRatio >= FelMinRatio)
+            {
+                result.EnhancementLayerType = DvP7EnhancementLayer.Fel;
+            }
+            else
+            {
+                result.EnhancementLayerType = DvP7EnhancementLayer.Unknown;
+            }
+        }
+
+        private static DvP7EnhancementLayer ReadLayerHint(DvProbeStream stream)
+        {
+            if (stream is null) return DvP7EnhancementLayer.Unknown;
+
+            var values = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(stream.profile)) values.Add(stream.profile);
+            if (!string.IsNullOrWhiteSpace(stream.codec_tag_string)) values.Add(stream.codec_tag_string);
+
+            if (stream.tags != null)
+            {
+                foreach (var tag in stream.tags)
+                {
+                    if (string.IsNullOrEmpty(tag.Key) || string.IsNullOrEmpty(tag.Value)) continue;
+                    if (!IsLayerHintTag(tag.Key)) continue;
+
+                    values.Add(tag.Value);
+                }
+            }
+
+            foreach (var value in values)
+            {
+                if (value is null) continue;
+
+                if (value.IndexOf("full enhancement", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    ContainsLayerToken(value, "fel"))
+                {
+                    return DvP7EnhancementLayer.Fel;
+                }
+
+                if (value.IndexOf("minimum enhancement", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    ContainsLayerToken(value, "mel"))
+                {
+                    return DvP7EnhancementLayer.Mel;
+                }
+            }
+
+            return DvP7EnhancementLayer.Unknown;
+        }
+
+        private static bool IsLayerHintTag(string key)
+        {
+            return string.Equals(key, "title", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(key, "comment", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(key, "handler_name", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(key, "description", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(key, "profile", StringComparison.OrdinalIgnoreCase) ||
+                   key.IndexOf("layer", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool ContainsLayerToken(string value, string token)
+        {
+            var parts = value.Split(new[] { ' ', '_', '-', '/', '(', ')', '[', ']', ':', ';', ',', '.' },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            return parts.Any(part => string.Equals(part, token, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool TryGetRate(DvProbeStream stream, out long rate, out string source)
+        {
+            rate = 0;
+            source = null;
+
+            if (TryParseLong(stream?.bit_rate, out var bitRate) && bitRate > 0)
+            {
+                rate = bitRate;
+                source = "bitrate";
+                return true;
+            }
+
+            if (stream?.tags is null) return false;
+
+            foreach (var tag in stream.tags)
+            {
+                if (!IsTagKey(tag.Key, "BPS")) continue;
+                if (!TryParseLong(tag.Value, out var bps) || bps <= 0) continue;
+
+                rate = bps;
+                source = "bitrate";
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetByteCount(DvProbeStream stream, out long bytes)
+        {
+            bytes = 0;
+
+            if (stream?.tags is null) return false;
+
+            foreach (var tag in stream.tags)
+            {
+                if (!IsTagKey(tag.Key, "NUMBER_OF_BYTES")) continue;
+                if (!TryParseLong(tag.Value, out var value) || value <= 0) continue;
+
+                bytes = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsTagKey(string key, string name)
+        {
+            return !string.IsNullOrEmpty(key) &&
+                   (string.Equals(key, name, StringComparison.OrdinalIgnoreCase) ||
+                    key.StartsWith(name + "-", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool TryParseLong(string value, out long result)
+        {
+            return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
+        }
+
+        private static void TraceClassification(DvP7Info result)
+        {
+            var ratio = result.EnhancementLayerBitrateRatio.HasValue
+                ? result.EnhancementLayerBitrateRatio.Value.ToString("P2", CultureInfo.InvariantCulture)
+                : "n/a";
+
+            Plugin.Instance?.Logger?.Debug("DvP7 - TRACE layer=" + result.EnhancementLayerType +
+                                           ", evidence=" + result.EnhancementLayerEvidence +
+                                           ", EL profile=" + (result.EnhancementLayerProfile ?? "unknown") +
+                                           ", EL/BL ratio=" + ratio);
         }
 
         private static void ReadSideData(DvP7Info result, DvProbeStream stream)
@@ -191,6 +472,30 @@ namespace StrmAssistant.Common
         public bool? ElPresent { get; set; }
         public bool? BlPresent { get; set; }
         public bool? RpuPresent { get; set; }
+        public DvP7EnhancementLayer EnhancementLayerType { get; set; } = DvP7EnhancementLayer.Unknown;
+        public string EnhancementLayerEvidence { get; set; }
+        public string EnhancementLayerProfile { get; set; }
+        public double? EnhancementLayerBitrateRatio { get; set; }
+
+        public string GetEnhancementLayerBadge()
+        {
+            switch (EnhancementLayerType)
+            {
+                case DvP7EnhancementLayer.Fel:
+                    return "Dolby Vision P7 (FEL)";
+                case DvP7EnhancementLayer.Mel:
+                    return "Dolby Vision P7 (MEL)";
+                default:
+                    return "Dolby Vision P7";
+            }
+        }
+    }
+
+    internal enum DvP7EnhancementLayer
+    {
+        Unknown,
+        Mel,
+        Fel
     }
 
     /// <summary>
@@ -202,6 +507,13 @@ namespace StrmAssistant.Common
     {
         public DvStreamGroup[] stream_groups { get; set; }
         public DvProbeStream[] streams { get; set; }
+        public DvProbePacket[] packets { get; set; }
+    }
+
+    internal sealed class DvProbePacket
+    {
+        public int stream_index { get; set; }
+        public string size { get; set; }
     }
 
     internal sealed class DvStreamGroup
@@ -219,8 +531,12 @@ namespace StrmAssistant.Common
         public string id { get; set; }
         public string codec_name { get; set; }
         public string codec_type { get; set; }
+        public string codec_tag_string { get; set; }
+        public string profile { get; set; }
+        public string bit_rate { get; set; }
         public int width { get; set; }
         public int height { get; set; }
+        public Dictionary<string, string> tags { get; set; }
         public DvSideData[] side_data_list { get; set; }
     }
 

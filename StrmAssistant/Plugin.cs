@@ -955,6 +955,8 @@ namespace StrmAssistant
                 Logger.Info("CropPortraitScreenshots is set to {0}",
                     options.MediaInfoExtractOptions.CropPortraitScreenshots);
                 Logger.Info("DetectHdrVivid is set to {0}", options.MediaInfoExtractOptions.DetectHdrVivid);
+                Logger.Info("EnableDvP7LayerBadge is set to {0}",
+                    options.MediaInfoExtractOptions.EnableDvP7LayerBadge);
                 Logger.Info("ScreenshotQuality is set to {0}", options.MediaInfoExtractOptions.ScreenshotQuality);
                 Logger.Info("ScreenshotMaxWidth is set to {0}", options.MediaInfoExtractOptions.ScreenshotMaxWidth);
                 Logger.Info("ScreenshotMaxHeight is set to {0}", options.MediaInfoExtractOptions.ScreenshotMaxHeight);
