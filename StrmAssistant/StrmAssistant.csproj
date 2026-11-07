@@ -3,6 +3,7 @@
     <TargetFrameworks>netstandard2.1</TargetFrameworks>
     <AssemblyVersion>3.0.0.57</AssemblyVersion>
     <FileVersion>3.0.0.57</FileVersion>
+    <InformationalVersion>3.0.0.57-fork.1</InformationalVersion>
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>$(MSBuildProjectName)Lite</AssemblyName>
