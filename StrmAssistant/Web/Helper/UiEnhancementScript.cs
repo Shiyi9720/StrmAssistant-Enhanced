@@ -51,7 +51,7 @@ namespace StrmAssistant.Web.Helper
                    GetHiddenBoxSetsScript() + "\n" +
                    GetDoubanRecommendationsScript(doubanRecommendations, doubanTrailers) + "\n" +
                    GetDoubanTrailerScript(doubanTrailers) + "\n" +
-                   GetAudioEffectScript() + "\n";
+                   GetMediaBadgeScript() + "\n";
         }
 
         private static string GetStyleScript()
@@ -2971,29 +2971,82 @@ namespace StrmAssistant.Web.Helper
         }
 
         /// <summary>
-        /// Shows the audio effect of a track (Dolby Atmos, DTS:X) on the audio stream cards of
-        /// the item detail page. Emby renders one card per stream through
-        /// modules/mediainfo/mediainfo.js, so the renderer is wrapped instead of touching the
-        /// stream data. The marker is derived only from the profile ffprobe reported for the
-        /// track; streams without that signal are rendered exactly as before.
+        /// Renders one ordered, deduplicated badge list in the media info header. Dynamic range
+        /// labels come first, then audio formats, then remaining tags (fingerprints and other
+        /// user tags). The list is rebuilt from item tags and media streams on every render, so
+        /// the same label is emitted only once even when several sources describe it.
         /// </summary>
-        private static string GetAudioEffectScript()
+        private static string GetMediaBadgeScript()
         {
-            var label = JsString("AudioEffect_Label_Audio_effect", "Audio effect");
-
             return @"
 (function () {
     'use strict';
 
-    if (window.__strmAssistantAudioEffectPatched) return;
+    if (window.__strmAssistantMediaBadgePatched) return;
 
-    var label = '" + label + @"';
-
-    function escapeHtml(value) {
-        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    function normalize(value) {
+        return String(value == null ? '' : value).replace(/^\s+|\s+$/g, '').toLowerCase();
     }
 
-    function detectEffect(stream) {
+    function addBadge(badges, seen, value) {
+        var text = String(value == null ? '' : value).replace(/^\s+|\s+$/g, '');
+        if (!text) return;
+
+        var key = normalize(text);
+        if (seen[key]) return;
+
+        seen[key] = true;
+        badges.push(text);
+    }
+
+    function isP7LayerTag(value) {
+        return /^dolby vision p7(?: \((?:fel|mel)\))?$/i.test(String(value == null ? '' : value).trim());
+    }
+
+    function getP7LayerTag(tags) {
+        for (var i = 0; i < tags.length; i++) {
+            var value = String(tags[i] == null ? '' : tags[i]).trim();
+            if (/^dolby vision p7 \((?:fel|mel)\)$/i.test(value)) return value;
+        }
+
+        return '';
+    }
+
+    function isDynamicRangeTag(value) {
+        return /^(?:hdr vivid|hdr10\+|hdr10|hlg|dolby vision(?: p[0-9]+(?: \((?:fel|mel)\))?)?)$/i
+            .test(String(value == null ? '' : value).trim());
+    }
+
+    function getVideoRangeLabel(stream, p7LayerTag) {
+        if (!stream) return '';
+
+        var videoType = String(stream.ExtendedVideoType == null ? '' : stream.ExtendedVideoType);
+        var videoRange = String(stream.VideoRange == null ? '' : stream.VideoRange);
+        var subtype = String(stream.ExtendedVideoSubType == null ? '' : stream.ExtendedVideoSubType);
+        var description = String(stream.ExtendedVideoSubTypeDescription == null
+            ? ''
+            : stream.ExtendedVideoSubTypeDescription);
+
+        if (videoType === 'DolbyVision' || videoType === '130' || videoRange === 'DolbyVision') {
+            if (subtype === 'DoviProfile50' || subtype === '13050' || /profile\s*5(?:\.0)?/i.test(description)) {
+                return 'Dolby Vision P5';
+            }
+
+            if (subtype === 'DoviProfile76' || subtype === '13076' || /profile\s*7(?:\.6)?/i.test(description)) {
+                return p7LayerTag || 'Dolby Vision P7';
+            }
+
+            return 'Dolby Vision';
+        }
+
+        if (videoType === 'Hdr10Plus' || videoType === '110') return 'HDR10+';
+        if (videoType === 'Hdr10' || videoType === '100') return 'HDR10';
+        if (videoType === 'HyperLogGamma' || videoType === '120') return 'HLG';
+
+        return '';
+    }
+
+    function getAudioBadge(stream) {
         if (!stream) return '';
 
         // mediainfo.js receives normalized copies whose Type is 'MediaStream' and whose
@@ -3021,30 +3074,87 @@ namespace StrmAssistant.Web.Helper
         return '';
     }
 
+    function buildMediaBadges(item, options) {
+        var badges = [];
+        var seen = {};
+        var streams = (options && options.mediaSource && options.mediaSource.MediaStreams) ||
+            (item && item.MediaStreams) || [];
+        var tags = (item && item.Tags) || [];
+        var p7LayerTag = getP7LayerTag(tags);
+        var i;
+
+        // 1. Dynamic range.
+        for (i = 0; i < tags.length; i++) {
+            var tagText = String(tags[i] == null ? '' : tags[i]).trim();
+
+            if (isP7LayerTag(tagText)) {
+                addBadge(badges, seen, p7LayerTag || 'Dolby Vision P7');
+                continue;
+            }
+
+            if (!isDynamicRangeTag(tagText)) continue;
+
+            addBadge(badges, seen, tagText);
+        }
+
+        for (i = 0; i < streams.length; i++) {
+            addBadge(badges, seen, getVideoRangeLabel(streams[i], p7LayerTag));
+        }
+
+        // 2. Audio formats.
+        for (i = 0; i < streams.length; i++) {
+            addBadge(badges, seen, getAudioBadge(streams[i]));
+        }
+
+        // 3. Fingerprints and any other item tags.
+        for (i = 0; i < tags.length; i++) {
+            var tag = String(tags[i] == null ? '' : tags[i]).trim();
+            if (!tag || isDynamicRangeTag(tag) || isP7LayerTag(tag)) continue;
+
+            addBadge(badges, seen, tag);
+        }
+
+        return badges;
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/""/g, '&quot;');
+    }
+
+    function renderBadges(badges) {
+        var html = '<div class=""mediaInfoItems mediaInfoItems-condensed align-self-center"">';
+
+        for (var i = 0; i < badges.length; i++) {
+            html += '<div class=""mediaInfoItem mediaInfoItem-border""><span class="""">' +
+                escapeHtml(badges[i]) + '</span></div>';
+        }
+
+        return html + '</div>';
+    }
+
     function patch(mod) {
         var mediainfo = mod && (mod.default || mod);
-        if (!mediainfo || typeof mediainfo.pushMediaStreamLines !== 'function') return false;
-        if (mediainfo.pushMediaStreamLines.__strmAssistantAudioEffectPatched) return true;
+        if (!mediainfo || typeof mediainfo.getPrimaryMediaInfoHtml !== 'function') return false;
+        if (mediainfo.getPrimaryMediaInfoHtml.__strmAssistantMediaBadgePatched) return true;
 
-        var original = mediainfo.pushMediaStreamLines;
+        var original = mediainfo.getPrimaryMediaInfoHtml;
 
-        mediainfo.pushMediaStreamLines = function (stream, options, lines, icon) {
-            var result = original.apply(this, arguments);
+        mediainfo.getPrimaryMediaInfoHtml = function (item, options) {
+            var html = original.apply(this, arguments) || '';
 
             try {
-                var effect = detectEffect(stream);
-                if (effect && lines && lines.push) {
-                    lines.push('<div class=""flex mediaStreamAttribute""><span class=""mediaInfoAttributeLabel"">' +
-                        escapeHtml(label) + '</span><span class=""mediaInfoAttributeValue secondaryText"">' +
-                        effect + '</span></div>');
-                }
+                if (options && options.mediaInfoIcons === false) return html;
+
+                var badges = buildMediaBadges(item, options || {});
+                if (badges.length) html += renderBadges(badges);
             } catch (e) { }
 
-            return result;
+            return html;
         };
 
-        mediainfo.pushMediaStreamLines.__strmAssistantAudioEffectPatched = true;
-        window.__strmAssistantAudioEffectPatched = true;
+        mediainfo.getPrimaryMediaInfoHtml.__strmAssistantMediaBadgePatched = true;
+        window.__strmAssistantMediaBadgePatched = true;
         return true;
     }
 
