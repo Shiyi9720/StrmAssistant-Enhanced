@@ -1673,4 +1673,10 @@
   <data name="LocalMetadataMode_Off_Off" xml:space="preserve">
     <value>关闭</value>
   </data>
+  <data name="PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group" xml:space="preserve">
+    <value>启用本地剧集组</value>
+  </data>
+  <data name="PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_" xml:space="preserve">
+    <value>使用覆盖目录或剧集目录中的 episodegroup.json 映射本地季集号。未找到映射时按默认季集顺序处理。默认关闭。</value>
+  </data>
 </root>

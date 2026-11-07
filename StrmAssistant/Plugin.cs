@@ -302,6 +302,7 @@ namespace StrmAssistant
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager, libraryManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
+            LocalEpisodeGroup.Initialize(libraryManager, jsonSerializer);
             LocalMetadataSource.Initialize(Logger, _jsonSerializer, ProxyApi.Wrap(_httpClient));
             MovieDbApi = new MovieDbApi(libraryManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
@@ -1156,6 +1157,7 @@ namespace StrmAssistant
                 Logger.Info("LocalMetadataMode is set to {0}", options.LocalMetadataMode);
                 Logger.Info("LocalMetadataAutoRefreshImages is set to {0}",
                     options.LocalMetadataAutoRefreshImages);
+                Logger.Info("EnableLocalEpisodeGroup is set to {0}", options.EnableLocalEpisodeGroup);
             }
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
                 _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||
