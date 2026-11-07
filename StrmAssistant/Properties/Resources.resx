@@ -1734,7 +1734,7 @@
     <value>Enable Local Metadata Source</value>
   </data>
   <data name="PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_" xml:space="preserve">
-    <value>Build a local TMDB metadata source with passive cache and override cache. Default is OFF.</value>
+    <value>Build a local TMDB metadata source with passive cache and override cache. Custom tags from tags.json require this option to be enabled. Default is OFF.</value>
   </data>
   <data name="PluginOptions_LocalMetadataRoot_Metadata_Root_Directory" xml:space="preserve">
     <value>Metadata Root Directory</value>

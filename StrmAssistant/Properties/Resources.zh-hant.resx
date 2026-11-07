@@ -1647,7 +1647,7 @@
     <value>啟用本地中繼資料來源</value>
   </data>
   <data name="PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_" xml:space="preserve">
-    <value>使用被動快取和覆蓋快取建置本地 TMDB 中繼資料來源。預設關閉。</value>
+    <value>使用被動快取和覆蓋快取建置本地 TMDB 中繼資料來源。tags.json 自訂標籤需要啟用此選項。預設關閉。</value>
   </data>
   <data name="PluginOptions_LocalMetadataRoot_Metadata_Root_Directory" xml:space="preserve">
     <value>中繼資料根目錄</value>
