@@ -12,3 +12,6 @@ build/
 
 # Emby 服务端 DLL（专有组件，不入库）
 lib/emby/*.dll
+
+# release artifacts
+dist/
