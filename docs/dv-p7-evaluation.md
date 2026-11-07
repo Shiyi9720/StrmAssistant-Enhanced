@@ -9,7 +9,7 @@
 
 Wiki 对这条 Pro 功能的描述是：
 
-> [PRO]支持检测双层杜比P7原盘，正确显示增强层媒体信息
+> 支持检测双层杜比 P7 原盘，正确显示增强层媒体信息
 
 它可以拆成两件事：
 
@@ -253,7 +253,7 @@ Emby 的探测参数和自带 ffprobe 都拿不到它；必须由插件自己再
 
 公开 Wiki `提取-ISO-媒体信息` 明确写了这条 Pro 功能：
 
-> 3. [PRO]支持检测双层杜比P7原盘，正确显示增强层媒体信息
+> 3. 支持检测双层杜比 P7 原盘，正确显示增强层媒体信息
 
 同一页的设置步骤要求用户从
 `https://github.com/sjtuross/StrmAssistant.Releases/tree/main/static-ffprobe`
