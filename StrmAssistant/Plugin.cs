@@ -343,6 +343,15 @@ namespace StrmAssistant
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
             Properties.Resources.ResetCachedResources();
+            RefreshPageInfoDisplayName();
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                foreach (var delay in new[] { 5000, 20000 })
+                {
+                    await System.Threading.Tasks.Task.Delay(delay).ConfigureAwait(false);
+                    RefreshPageInfoDisplayName();
+                }
+            });
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
             CollectionFolder.LibraryOptionsUpdated += OnLibraryOptionsUpdated;
@@ -1524,8 +1533,11 @@ namespace StrmAssistant
             return base.OnBeforeShowUI(options);
         }
 
+        private static PluginPageInfo _pluginPageInfo;
+
         protected override void OnCreatePageInfo(PluginPageInfo pageInfo)
         {
+            _pluginPageInfo = pageInfo;
             pageInfo.Name = Name;
             pageInfo.DisplayName =
                 Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant", DefaultUICulture);
@@ -1533,6 +1545,29 @@ namespace StrmAssistant
             pageInfo.MenuIcon = "video_settings";
 
             base.OnCreatePageInfo(pageInfo);
+        }
+
+        /// <summary>
+        /// 插件加载瞬间卫星资源可能尚未就绪，侧栏显示名会被固定成中性资源（英文）。
+        /// 启动后再按当前 UI 文化重算一次，Emby 缓存的是同一个 PluginPageInfo 对象，改属性即生效。
+        /// </summary>
+        internal static void RefreshPageInfoDisplayName()
+        {
+            var info = _pluginPageInfo;
+            if (info == null) return;
+
+            try
+            {
+                Properties.Resources.ResetCachedResources();
+                var culture = Instance?.DefaultUICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
+                var text = Properties.Resources.ResourceManager.GetString(
+                    "PluginOptions_EditorTitle_Strm_Assistant", culture);
+                if (!string.IsNullOrEmpty(text)) info.DisplayName = text;
+            }
+            catch
+            {
+                // 显示名刷新失败不影响插件功能
+            }
         }
 
         private static string GetVersionHash()
