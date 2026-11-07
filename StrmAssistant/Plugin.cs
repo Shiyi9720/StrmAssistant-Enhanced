@@ -119,6 +119,7 @@ namespace StrmAssistant
         private bool _currentEnableAltMovieDbUrl;
         private bool _currentEnableLocalMovieDb;
         private bool _currentEnableMovieDbCache;
+        private bool _currentEnableLocalMetadataSource;
         private bool _currentDistinguishChinesePosters;
         private bool _currentPreferOriginalPoster;
         private string _currentLocalDiscoveryAddress;
@@ -263,6 +264,7 @@ namespace StrmAssistant
             _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
             _currentEnableLocalMovieDb = GetOptions().MetadataEnhanceOptions.EnableLocalMovieDb;
             _currentEnableMovieDbCache = GetOptions().MetadataEnhanceOptions.EnableMovieDbCache;
+            _currentEnableLocalMetadataSource = GetOptions().EnableLocalMetadataSource;
             _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
             _currentPreferOriginalPoster = GetOptions().MetadataEnhanceOptions.PreferOriginalPoster;
             _currentLocalDiscoveryAddress = GetOptions().NetworkOptions.LocalDiscoveryAddress;
@@ -300,6 +302,7 @@ namespace StrmAssistant
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager, libraryManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
+            LocalMetadataSource.Initialize(Logger, _jsonSerializer, ProxyApi.Wrap(_httpClient));
             MovieDbApi = new MovieDbApi(libraryManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
@@ -320,7 +323,7 @@ namespace StrmAssistant
             if (_currentCatchupMode) QueueManager.Initialize();
             if (_currentEnableIntroSkip || _currentAutoMarkPreviousEpisodesPlayed) PlaySessionMonitor.Initialize();
             if (_currentPreferTraditionalChinese || _currentEnableAltMovieDbUrl || _currentEnableLocalMovieDb ||
-                _currentEnableMovieDbCache ||
+                _currentEnableMovieDbCache || _currentEnableLocalMetadataSource ||
                 _currentDistinguishChinesePosters || _currentPreferOriginalPoster ||
                 _currentChineseMetadataOrder != ChineseMetadataOrderOption.LibraryDefault ||
                 _currentConvertSimplifiedToTraditional)
@@ -1146,11 +1149,19 @@ namespace StrmAssistant
                     options.MetadataEnhanceOptions.MovieDbCacheTtlDays);
                 Logger.Info("MovieDbCacheMaxSizeMb is set to {0}",
                     options.MetadataEnhanceOptions.MovieDbCacheMaxSizeMb);
+                Logger.Info("EnableLocalMetadataSource is set to {0}",
+                    options.EnableLocalMetadataSource);
+                Logger.Info("LocalMetadataRoot is set to {0}",
+                    string.IsNullOrWhiteSpace(options.LocalMetadataRoot) ? "EMPTY" : options.LocalMetadataRoot);
+                Logger.Info("LocalMetadataMode is set to {0}", options.LocalMetadataMode);
+                Logger.Info("LocalMetadataAutoRefreshImages is set to {0}",
+                    options.LocalMetadataAutoRefreshImages);
             }
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
                 _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||
                 _currentEnableLocalMovieDb != options.MetadataEnhanceOptions.EnableLocalMovieDb ||
                 _currentEnableMovieDbCache != options.MetadataEnhanceOptions.EnableMovieDbCache ||
+                _currentEnableLocalMetadataSource != options.EnableLocalMetadataSource ||
                 _currentDistinguishChinesePosters != options.MetadataEnhanceOptions.DistinguishChinesePosters ||
                 _currentPreferOriginalPoster != options.MetadataEnhanceOptions.PreferOriginalPoster ||
                 _currentChineseMetadataOrder != options.MetadataEnhanceOptions.ChineseMetadataOrder ||
@@ -1161,6 +1172,7 @@ namespace StrmAssistant
                 _currentEnableAltMovieDbUrl = options.MetadataEnhanceOptions.EnableAltMovieDbUrl;
                 _currentEnableLocalMovieDb = options.MetadataEnhanceOptions.EnableLocalMovieDb;
                 _currentEnableMovieDbCache = options.MetadataEnhanceOptions.EnableMovieDbCache;
+                _currentEnableLocalMetadataSource = options.EnableLocalMetadataSource;
                 _currentDistinguishChinesePosters = options.MetadataEnhanceOptions.DistinguishChinesePosters;
                 _currentPreferOriginalPoster = options.MetadataEnhanceOptions.PreferOriginalPoster;
                 _currentChineseMetadataOrder = options.MetadataEnhanceOptions.ChineseMetadataOrder;
@@ -1169,6 +1181,8 @@ namespace StrmAssistant
 
                 MovieDbApi.Initialize();
             }
+
+            LocalMetadataSource.ApplyOptions(options);
 
             if (!suppress)
             {

@@ -1637,4 +1637,40 @@
   <data name="DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild" xml:space="preserve">
     <value>豆瓣快取預構建</value>
   </data>
+  <data name="PluginOptions_EnableLocalMetadataSource_Enable_Local_Metadata_Source" xml:space="preserve">
+    <value>啟用本地中繼資料來源</value>
+  </data>
+  <data name="PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_" xml:space="preserve">
+    <value>使用被動快取和覆蓋快取建置本地 TMDB 中繼資料來源。預設關閉。</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataRoot_Metadata_Root_Directory" xml:space="preserve">
+    <value>中繼資料根目錄</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataRoot_Path_of_the_metadata_root_directory__cache_and_override_subdirectories_are_created_automatically__Default_is_EMPTY_" xml:space="preserve">
+    <value>中繼資料根目錄路徑。會自動建立 cache/ 和 override/ 子目錄。預設為空。</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataMode_Metadata_Source_Mode" xml:space="preserve">
+    <value>中繼資料來源模式</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataMode_Cache_First_reads_override_then_passive_cache_then_online__Online_With_Cache_reads_override_then_online_and_only_writes_the_passive_cache__Override_Only_reads_override_then_online__Off_disables_the_local_source__Default_is_Cache_First_" xml:space="preserve">
+    <value>優先使用快取：依序讀取覆蓋快取、被動快取，最後連網。線上刮削並快取：依序讀取覆蓋快取、連網，僅寫入被動快取。僅使用覆蓋快取：依序讀取覆蓋快取、連網。關閉：不使用本地來源。預設優先使用快取。</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataAutoRefreshImages_Automatically_Cache_Images" xml:space="preserve">
+    <value>自動快取圖片</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataAutoRefreshImages_Download_TMDB_images_into_the_passive_cache_images_subdirectory__Default_is_ON_" xml:space="preserve">
+    <value>將 TMDB 圖片下載到被動快取的 images/ 子目錄。預設開啟。</value>
+  </data>
+  <data name="LocalMetadataMode_CacheFirst_Cache_First" xml:space="preserve">
+    <value>優先使用快取</value>
+  </data>
+  <data name="LocalMetadataMode_OnlineWithCache_Online_Scrape_And_Cache" xml:space="preserve">
+    <value>線上刮削並快取</value>
+  </data>
+  <data name="LocalMetadataMode_OverrideOnly_Override_Cache_Only" xml:space="preserve">
+    <value>僅使用覆蓋快取</value>
+  </data>
+  <data name="LocalMetadataMode_Off_Off" xml:space="preserve">
+    <value>關閉</value>
+  </data>
 </root>
