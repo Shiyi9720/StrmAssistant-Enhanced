@@ -1334,12 +1334,6 @@
   <data name="IntroDbOptions_EnableIntroDb_Fetch_intro_and_credits_markers_from_the_public_IntroDb_database_during_intro_detection__Default_is_OFF_" xml:space="preserve">
     <value>Fetch intro and credits markers from the public IntroDb database during intro detection. Default is OFF.</value>
   </data>
-  <data name="IntroDbOptions_EnableMovieIntroDb_Enable_Movie_IntroDb" xml:space="preserve">
-    <value>Enable Movie IntroDb</value>
-  </data>
-  <data name="IntroDbOptions_EnableMovieIntroDb_Look_up_credits_for_movies_and_record_the_range_in_the_plugin_store__Emby_has_no_movie_skip_button__Default_is_OFF_" xml:space="preserve">
-    <value>Look up credits for movies and record the range in the plugin store. Emby has no movie skip button, so the result is only stored and logged. Default is OFF.</value>
-  </data>
   <data name="IntroDbOptions_WriteIntroMarkers_Write_Intro_Markers" xml:space="preserve">
     <value>Write Intro Markers</value>
   </data>

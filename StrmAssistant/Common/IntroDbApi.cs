@@ -1,6 +1,5 @@
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Persistence;
@@ -71,8 +70,6 @@ namespace StrmAssistant.Common
         private readonly object _sync = new object();
         private readonly Dictionary<string, IntroDbCacheEntry> _cache =
             new Dictionary<string, IntroDbCacheEntry>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, IntroDbMovieOutroEntry> _movieEntries =
-            new Dictionary<string, IntroDbMovieOutroEntry>(StringComparer.OrdinalIgnoreCase);
 
         private bool _dirty;
         private DateTime _lastPersistUtc = DateTime.MinValue;
@@ -181,101 +178,6 @@ namespace StrmAssistant.Common
             }
         }
 
-        /// <summary>
-        /// Movie variant. Emby's intro skip only applies to episodes, so movie credits are not
-        /// written as chapter markers. The resolved credits range is stored in the plugin's own
-        /// JSON store instead and can be used by a future display surface.
-        /// </summary>
-        public async Task<bool> ApplyToMovieAsync(Movie movie, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var options = GetOptions();
-
-                if (!options.EnableMovieIntroDb || movie is null || movie.InternalId == 0) return false;
-
-                var imdbId = ResolveImdbId(movie);
-                if (imdbId is null)
-                {
-                    _logger?.Debug("IntroDb - Movie skipped, no IMDb id: " + movie.Name);
-                    return false;
-                }
-
-                var entry = await GetOrFetchAsync(GetMovieCacheKey(imdbId), imdbId, null, null, true,
-                    cancellationToken).ConfigureAwait(false);
-
-                PersistIfNeeded();
-
-                if (entry is null || !entry.Found || !entry.HasOutro())
-                {
-                    _logger?.Debug("IntroDb - No movie credits: " + imdbId + " - " + movie.Name);
-                    return false;
-                }
-
-                if (!PassesConfidence(entry.OutroConfidence, options))
-                {
-                    _logger?.Debug("IntroDb - Movie credits below confidence threshold: " + imdbId + " - " +
-                                   movie.Name);
-                    return false;
-                }
-
-                var startTicks = ToTicks(entry.OutroStartMs);
-                var endTicks = entry.OutroEndOpen ? movie.RunTimeTicks ?? 0 : ToTicks(entry.OutroEndMs);
-
-                if (movie.RunTimeTicks.HasValue && endTicks > movie.RunTimeTicks.Value)
-                {
-                    endTicks = movie.RunTimeTicks.Value;
-                }
-
-                if (startTicks <= 0 || endTicks <= startTicks ||
-                    TimeSpan.FromTicks(endTicks - startTicks) < TimeSpan.FromSeconds(5) ||
-                    movie.RunTimeTicks.HasValue && startTicks >= movie.RunTimeTicks.Value)
-                {
-                    _logger?.Debug("IntroDb - Movie credits ignored, invalid range: " + imdbId + " - " +
-                                   movie.Name);
-                    return false;
-                }
-
-                var endMilliseconds = endTicks / TimeSpan.TicksPerMillisecond;
-
-                var record = new IntroDbMovieOutroEntry
-                {
-                    ItemId = movie.InternalId,
-                    ImdbId = imdbId,
-                    Name = movie.Name,
-                    Path = movie.Path,
-                    OutroStartMs = entry.OutroStartMs,
-                    OutroEndMs = endMilliseconds > int.MaxValue ? int.MaxValue : (int) endMilliseconds,
-                    OutroEndOpen = entry.OutroEndOpen,
-                    OutroConfidence = entry.OutroConfidence,
-                    UpdatedAtUtc = DateTime.UtcNow
-                };
-
-                lock (_sync)
-                {
-                    _movieEntries[movie.InternalId.ToString()] = record;
-                    _dirty = true;
-                }
-
-                PersistIfNeeded(true);
-
-                _logger?.Info("IntroDb - Movie credits recorded: " + movie.Name + " (" + imdbId + ") " +
-                              TimeSpan.FromTicks(startTicks).ToString(@"hh\:mm\:ss\.fff") + " - " +
-                              TimeSpan.FromTicks(endTicks).ToString(@"hh\:mm\:ss\.fff"));
-
-                return true;
-            }
-            catch (OperationCanceledException)
-            {
-                return false;
-            }
-            catch (Exception e)
-            {
-                _logger?.Debug("IntroDb - Movie lookup skipped: " + e.Message);
-                return false;
-            }
-        }
-
         private static IntroDbOptions GetOptions()
         {
             return Plugin.Instance?.GetPluginOptions()?.IntroSkipOptions?.IntroDbOptions ?? new IntroDbOptions();
@@ -284,22 +186,6 @@ namespace StrmAssistant.Common
         private static string GetEpisodeCacheKey(string imdbId, int season, int episode)
         {
             return "tv|" + imdbId + "|" + season + "|" + episode;
-        }
-
-        private static string GetMovieCacheKey(string imdbId)
-        {
-            return "movie|" + imdbId;
-        }
-
-        /// <summary>
-        /// Returns the recorded movie credits for an item, or null when no valid range was stored.
-        /// </summary>
-        public IntroDbMovieOutroEntry GetMovieOutro(long itemId)
-        {
-            lock (_sync)
-            {
-                return _movieEntries.TryGetValue(itemId.ToString(), out var entry) ? entry : null;
-            }
         }
 
         private string ResolveImdbId(BaseItem item)
@@ -800,29 +686,22 @@ namespace StrmAssistant.Common
             return milliseconds * TimeSpan.TicksPerMillisecond;
         }
 
-        private void PersistIfNeeded(bool force = false)
+        private void PersistIfNeeded()
         {
             Dictionary<string, IntroDbCacheEntry> snapshot;
-            Dictionary<string, IntroDbMovieOutroEntry> movieSnapshot;
 
             lock (_sync)
             {
-                if (!_dirty || (!force && DateTime.UtcNow - _lastPersistUtc < PersistInterval)) return;
+                if (!_dirty || DateTime.UtcNow - _lastPersistUtc < PersistInterval) return;
 
                 snapshot = new Dictionary<string, IntroDbCacheEntry>(_cache, StringComparer.OrdinalIgnoreCase);
-                movieSnapshot =
-                    new Dictionary<string, IntroDbMovieOutroEntry>(_movieEntries, StringComparer.OrdinalIgnoreCase);
                 _dirty = false;
                 _lastPersistUtc = DateTime.UtcNow;
             }
 
             try
             {
-                _jsonSerializer.SerializeToFile(new IntroDbCacheStore
-                {
-                    Entries = snapshot,
-                    MovieOutros = movieSnapshot
-                }, _storePath);
+                _jsonSerializer.SerializeToFile(new IntroDbCacheStore { Entries = snapshot }, _storePath);
             }
             catch (Exception e)
             {
@@ -842,32 +721,18 @@ namespace StrmAssistant.Common
                 if (!File.Exists(_storePath)) return;
 
                 var store = _jsonSerializer.DeserializeFromFile<IntroDbCacheStore>(_storePath);
-                if (store is null) return;
+                if (store?.Entries is null) return;
 
                 var expiry = TimeSpan.FromDays(GetOptions().CacheExpiryDays);
 
                 lock (_sync)
                 {
-                    if (store.Entries != null)
+                    foreach (var pair in store.Entries)
                     {
-                        foreach (var pair in store.Entries)
-                        {
-                            if (pair.Value is null) continue;
-                            if (DateTime.UtcNow - pair.Value.FetchedAtUtc > expiry) continue;
+                        if (pair.Value is null) continue;
+                        if (DateTime.UtcNow - pair.Value.FetchedAtUtc > expiry) continue;
 
-                            _cache[pair.Key] = pair.Value;
-                        }
-                    }
-
-                    if (store.MovieOutros != null)
-                    {
-                        foreach (var pair in store.MovieOutros)
-                        {
-                            if (!string.IsNullOrEmpty(pair.Key) && pair.Value != null)
-                            {
-                                _movieEntries[pair.Key] = pair.Value;
-                            }
-                        }
+                        _cache[pair.Key] = pair.Value;
                     }
                 }
             }
@@ -915,24 +780,6 @@ namespace StrmAssistant.Common
         {
             public Dictionary<string, IntroDbCacheEntry> Entries { get; set; } =
                 new Dictionary<string, IntroDbCacheEntry>(StringComparer.OrdinalIgnoreCase);
-
-            // Item level movie credits are kept beside the query cache so that they survive the
-            // cache expiry and do not depend on any Emby field that movies do not support.
-            public Dictionary<string, IntroDbMovieOutroEntry> MovieOutros { get; set; } =
-                new Dictionary<string, IntroDbMovieOutroEntry>(StringComparer.OrdinalIgnoreCase);
-        }
-
-        public class IntroDbMovieOutroEntry
-        {
-            public long ItemId { get; set; }
-            public string ImdbId { get; set; }
-            public string Name { get; set; }
-            public string Path { get; set; }
-            public int OutroStartMs { get; set; }
-            public int OutroEndMs { get; set; }
-            public bool OutroEndOpen { get; set; }
-            public double OutroConfidence { get; set; }
-            public DateTime UpdatedAtUtc { get; set; }
         }
 
         // theintrodb.org (v4 /media) returns one object per title with an array per segment type;
