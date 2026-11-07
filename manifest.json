@@ -1,0 +1,22 @@
+[
+  {
+    "guid": "63c322b7-a371-41a3-b11f-04f8418b37d8",
+    "name": "Strm 助手（社区版增强）",
+    "description": "面向 STRM 媒体库与中文环境的 Emby 增强插件：媒体信息提取与持久化、中文搜索（拼音/繁简）、本地 TMDB 元数据源、豆瓣补全、多版本管理、片头片尾、字幕与体验增强。非官方构建，仅支持 Emby 4.10.2（4.10.2.0）。",
+    "overview": "STRM 媒体库与中文环境增强：媒体信息、中文搜索、本地元数据源、豆瓣、多版本、片头片尾。",
+    "owner": "Shiyi9720",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
+    "versions": [
+      {
+        "version": "1.0.1",
+        "changelog": "首个公开构建。\n\n- Emby 4.10.2 适配（程序集 4.10.2.0）\n- 中文本地化（简体/繁体），插件列表与设置页显示中文名\n- 中文搜索：拼音全拼/首字母、繁简互搜、别名与演员检索、分级排序、索引重建任务\n- 本地 TMDB 元数据源：cache/override 四模式、episodegroup.json、override 图片自动刷入、tags.json 自定义标签、统一内容分级、自定义特别篇顺序\n- 豆瓣辅助：简介/海报/演员导演/季集补全、推荐频道、预告片、评分角标、缓存预构建\n- 多版本：智能排序、跨库版本进度与收藏分离、库条目角标、剧集总集数\n- 媒体信息：ISO/BDMV 提取、DVD IFO 章节、DV P7 双层检测（MEL/FEL）、HDR Vivid、Atmos/DTS:X、截图比例矫正、自定义 ffmpeg\n- 片头片尾、字幕与外挂音轨扫描、通知与体验增强若干项\n- 修复：插件显示名为中文后 User-Agent 非 ASCII 导致外部 HTTP 请求失败",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.1/StrmAssistant-1.0.1.zip",
+        "checksum": "16949FD91030467858612DEF0E4B75A9",
+        "timestamp": "2026-11-07T17:15:00Z",
+        "dependencies": []
+      }
+    ]
+  }
+]
