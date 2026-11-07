@@ -4402,5 +4402,61 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingMode_Unified_Content_Rating.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingMode_Unified_Content_Rating {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingMode_Unified_Content_Rating", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingTarget_Target_Content_Rating.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingTarget_Target_Content_Rating {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingTarget_Target_Content_Rating", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to UnifiedRatingMode_Off_Off.
+        /// </summary>
+        public static string UnifiedRatingMode_Off_Off {
+            get {
+                return ResourceManager.GetString("UnifiedRatingMode_Off_Off", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to UnifiedRatingMode_RecordOnly_Record_Only.
+        /// </summary>
+        public static string UnifiedRatingMode_RecordOnly_Record_Only {
+            get {
+                return ResourceManager.GetString("UnifiedRatingMode_RecordOnly_Record_Only", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to UnifiedRatingMode_Enforce_Enforce_Unified_Rating.
+        /// </summary>
+        public static string UnifiedRatingMode_Enforce_Enforce_Unified_Rating {
+            get {
+                return ResourceManager.GetString("UnifiedRatingMode_Enforce_Enforce_Unified_Rating", resourceCulture);
+            }
+        }
     }
 }
