@@ -51,6 +51,14 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
         public bool EnableLocalEpisodeGroup { get; set; } = false;
 
+        [DisplayNameL("PluginOptions_UnifiedRatingMode_Unified_Content_Rating", typeof(Resources))]
+        [DescriptionL("PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_", typeof(Resources))]
+        public UnifiedRatingMode UnifiedRatingMode { get; set; } = UnifiedRatingMode.Off;
+
+        [DisplayNameL("PluginOptions_UnifiedRatingTarget_Target_Content_Rating", typeof(Resources))]
+        [DescriptionL("PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_", typeof(Resources))]
+        public string UnifiedRatingTarget { get; set; } = "US:TV-MA";
+
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
 

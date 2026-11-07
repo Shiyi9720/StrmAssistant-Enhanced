@@ -1679,4 +1679,25 @@
   <data name="PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_" xml:space="preserve">
     <value>使用覆蓋目錄或劇集目錄中的 episodegroup.json 映射本地季集號。找不到映射時依預設季集順序處理。預設關閉。</value>
   </data>
+  <data name="PluginOptions_UnifiedRatingMode_Unified_Content_Rating" xml:space="preserve">
+    <value>統一內容分級</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_" xml:space="preserve">
+    <value>使用外掛資料目錄中的 StrmAssistant.UnifiedRatings.json 將各來源分級映射到統一目標分級。僅記錄：只記錄命中項；強制統一：在 OfficialRating 儲存前改寫。預設關閉。</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingTarget_Target_Content_Rating" xml:space="preserve">
+    <value>目標內容分級</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_" xml:space="preserve">
+    <value>映射表中目標留空時使用的分級。預設 US:TV-MA。</value>
+  </data>
+  <data name="UnifiedRatingMode_Off_Off" xml:space="preserve">
+    <value>關閉</value>
+  </data>
+  <data name="UnifiedRatingMode_RecordOnly_Record_Only" xml:space="preserve">
+    <value>僅記錄</value>
+  </data>
+  <data name="UnifiedRatingMode_Enforce_Enforce_Unified_Rating" xml:space="preserve">
+    <value>強制統一</value>
+  </data>
 </root>

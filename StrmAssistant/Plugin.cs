@@ -305,6 +305,8 @@ namespace StrmAssistant
             LocalEpisodeGroup.Initialize(libraryManager, jsonSerializer);
             LocalMetadataSource.Initialize(Logger, _jsonSerializer, ProxyApi.Wrap(_httpClient));
             OverrideImageService.Initialize(libraryManager, providerManager, jsonSerializer);
+            UnifiedRatingService.Initialize(jsonSerializer);
+            UnifiedRatingService.ApplyOptions(GetOptions());
             MovieDbApi = new MovieDbApi(libraryManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
@@ -1161,6 +1163,9 @@ namespace StrmAssistant
                 Logger.Info("LocalMetadataAutoRefreshImages is set to {0}",
                     options.LocalMetadataAutoRefreshImages);
                 Logger.Info("EnableLocalEpisodeGroup is set to {0}", options.EnableLocalEpisodeGroup);
+                Logger.Info("UnifiedRatingMode is set to {0}", options.UnifiedRatingMode);
+                Logger.Info("UnifiedRatingTarget is set to {0}",
+                    string.IsNullOrWhiteSpace(options.UnifiedRatingTarget) ? "EMPTY" : options.UnifiedRatingTarget);
             }
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
                 _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||
@@ -1188,6 +1193,7 @@ namespace StrmAssistant
             }
 
             LocalMetadataSource.ApplyOptions(options);
+            UnifiedRatingService.ApplyOptions(options);
 
             if (!suppress)
             {
