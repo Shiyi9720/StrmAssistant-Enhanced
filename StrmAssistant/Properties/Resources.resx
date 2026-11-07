@@ -1809,7 +1809,7 @@
     <value>Already up to date</value>
   </data>
   <data name="Update_Done" xml:space="preserve">
-    <value>Updated. Restart Emby to apply.</value>
+    <value>Check finished (current %s). Restart Emby if a new version was downloaded.</value>
   </data>
   <data name="Update_Failed" xml:space="preserve">
     <value>Update check failed</value>
