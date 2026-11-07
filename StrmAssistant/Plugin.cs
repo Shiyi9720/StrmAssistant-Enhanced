@@ -228,6 +228,8 @@ namespace StrmAssistant
             IImageProcessor imageProcessor) : base(applicationHost)
         {
             Instance = this;
+            // 尽早记录插件目录：后续任何服务（如需要 0Harmony 的 UnifiedRatingService）都可能触发依赖解析
+            _satelliteRoot = applicationPaths.PluginsPath;
             Logger = logManager.GetLogger(Name);
             Logger.Info("Plugin is getting loaded.");
             ApplicationHost = applicationHost;
@@ -340,7 +342,6 @@ namespace StrmAssistant
             _providerManager.RefreshCompleted += OnRefreshCompleted;
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
-            _satelliteRoot = applicationPaths.PluginsPath;
             Properties.Resources.ResetCachedResources();
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
             _userDataManager.UserDataSaved += OnUserDataSaved;
