@@ -785,6 +785,13 @@ namespace StrmAssistant.Common
             }
 
             var localMetadataTarget = LocalMetadataSource.TryParseTarget(options.Url);
+
+            if (localMetadataTarget != null && episodeGroupMapping != null)
+            {
+                localMetadataTarget.LocalSeasonNumber = episodeGroupMapping.LocalSeasonNumber;
+                localMetadataTarget.LocalEpisodeNumber = episodeGroupMapping.LocalEpisodeNumber;
+            }
+
             var originalLanguageCacheKey = GetOriginalLanguageCacheKey(options.Url);
             var rewrite = RewriteUrl(options.Url);
 
