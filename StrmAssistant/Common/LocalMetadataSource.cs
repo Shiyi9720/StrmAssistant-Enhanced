@@ -138,6 +138,10 @@ namespace StrmAssistant.Common
                         Kind = LocalMetadataTargetKind.Episode,
                         TmdbId = seriesId,
                         RequestUrl = url,
+                        SeasonNumber = int.Parse(season),
+                        EpisodeNumber = int.Parse(episode),
+                        LocalSeasonNumber = int.Parse(season),
+                        LocalEpisodeNumber = int.Parse(episode),
                         RelativePaths = new[]
                         {
                             $"{TvFolderName}/{seriesId}/season-{season}-episode-{episode}.json",
@@ -158,6 +162,8 @@ namespace StrmAssistant.Common
                         Kind = LocalMetadataTargetKind.Season,
                         TmdbId = seriesId,
                         RequestUrl = url,
+                        SeasonNumber = int.Parse(season),
+                        LocalSeasonNumber = int.Parse(season),
                         RelativePaths = new[] { $"{TvFolderName}/{seriesId}/season-{season}.json" }
                     };
                 }
@@ -626,7 +632,8 @@ namespace StrmAssistant.Common
 
             foreach (var image in images)
             {
-                var path = Path.Combine(imagesDirectory, image.Type + GetImageExtension(image.FilePath));
+                var path = Path.Combine(imagesDirectory,
+                    GetImageFileName(target, image.Type) + GetImageExtension(image.FilePath));
 
                 if (File.Exists(path)) continue;
 
@@ -683,6 +690,28 @@ namespace StrmAssistant.Common
             Add("clearart", FirstImagePath(document.images?.cleararts));
 
             return images;
+        }
+
+        private static string GetImageFileName(LocalMetadataTarget target, string imageType)
+        {
+            if (target.Kind == LocalMetadataTargetKind.Season)
+            {
+                var season = target.LocalSeasonNumber ?? target.SeasonNumber;
+
+                return season.HasValue ? "season-" + season.Value : imageType;
+            }
+
+            if (target.Kind == LocalMetadataTargetKind.Episode)
+            {
+                var season = target.LocalSeasonNumber ?? target.SeasonNumber;
+                var episode = target.LocalEpisodeNumber ?? target.EpisodeNumber;
+
+                return season.HasValue && episode.HasValue
+                    ? "episode-" + season.Value + "-" + episode.Value
+                    : imageType;
+            }
+
+            return imageType;
         }
 
         private static string FirstImagePath(List<LocalMetadataImageEntry> entries)
@@ -817,6 +846,10 @@ namespace StrmAssistant.Common
             public string TmdbId { get; set; }
             public string RequestUrl { get; set; }
             public string[] RelativePaths { get; set; }
+            public int? SeasonNumber { get; set; }
+            public int? EpisodeNumber { get; set; }
+            public int? LocalSeasonNumber { get; set; }
+            public int? LocalEpisodeNumber { get; set; }
         }
 
         internal enum LocalMetadataTargetKind
