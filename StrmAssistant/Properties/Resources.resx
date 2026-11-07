@@ -1787,4 +1787,10 @@
   <data name="UnifiedRatingMode_Enforce_Enforce_Unified_Rating" xml:space="preserve">
     <value>Enforce Unified Rating</value>
   </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order" xml:space="preserve">
+    <value>Custom Specials Order</value>
+  </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_" xml:space="preserve">
+    <value>Apply specials.json air_order values to season 0 episodes from override or cache. Missing files or entries leave the normal order unchanged. Default is OFF.</value>
+  </data>
 </root>

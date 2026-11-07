@@ -4546,5 +4546,21 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("UnifiedRatingMode_Enforce_Enforce_Unified_Rating", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order.
+        /// </summary>
+        public static string PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_.
+        /// </summary>
+        public static string PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_", resourceCulture);
+            }
+        }
     }
 }

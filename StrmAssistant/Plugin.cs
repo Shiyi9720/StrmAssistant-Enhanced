@@ -307,6 +307,7 @@ namespace StrmAssistant
             OverrideImageService.Initialize(libraryManager, providerManager, jsonSerializer);
             UnifiedRatingService.Initialize(jsonSerializer);
             UnifiedRatingService.ApplyOptions(GetOptions());
+            CustomSpecialsOrderService.Initialize(libraryManager, jsonSerializer);
             MovieDbApi = new MovieDbApi(libraryManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
@@ -454,6 +455,7 @@ namespace StrmAssistant
         {
             SearchIndexService.NotifyItemChanged(e.Item);
             _ = OverrideImageService.ApplyAsync(e.Item);
+            CustomSpecialsOrderService.Apply(e.Item);
 
             try
             {
@@ -596,6 +598,7 @@ namespace StrmAssistant
         {
             SearchIndexService.NotifyItemChanged(e.Item);
             _ = OverrideImageService.ApplyAsync(e.Item);
+            CustomSpecialsOrderService.Apply(e.Item);
 
             try
             {
@@ -1166,6 +1169,7 @@ namespace StrmAssistant
                 Logger.Info("UnifiedRatingMode is set to {0}", options.UnifiedRatingMode);
                 Logger.Info("UnifiedRatingTarget is set to {0}",
                     string.IsNullOrWhiteSpace(options.UnifiedRatingTarget) ? "EMPTY" : options.UnifiedRatingTarget);
+                Logger.Info("EnableCustomSpecialsOrder is set to {0}", options.EnableCustomSpecialsOrder);
             }
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
                 _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||

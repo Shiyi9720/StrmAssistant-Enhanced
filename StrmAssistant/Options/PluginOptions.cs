@@ -59,6 +59,11 @@ namespace StrmAssistant.Options
         [DescriptionL("PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_", typeof(Resources))]
         public string UnifiedRatingTarget { get; set; } = "US:TV-MA";
 
+        [DisplayNameL("PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order", typeof(Resources))]
+        [DescriptionL("PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool EnableCustomSpecialsOrder { get; set; } = false;
+
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
 
