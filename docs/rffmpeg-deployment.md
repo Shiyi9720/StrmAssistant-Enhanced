@@ -75,3 +75,10 @@ docker exec emby sh -c "cp -a /bin/ffprobe /config/bin/ffprobe.orig; ln -sf /con
 3. worker 必须挂载与 master 一致的媒体路径，rffmpeg 不做路径映射。
 4. 目前 worker 与 Emby 同主机（NAS）——链路通了但无性能收益；要真正分载，把 worker 容器放到另一台机器（改 `rffmpeg add <另一台IP>`）。
 5. 只换 `ffprobe` 不换 `ffmpeg`：媒体信息/探测走 worker，转码仍在本地，风险最小；若要完全对齐 PRO 可同样 `ln -sf` ffmpeg，但需自行评估转码稳定性。
+
+## 跨机 worker 可行性实测（2026-11-07 补测）
+
+- Mac 经局域网 SMB 读 NAS 上 115 云盘的 ISO：**正常**，偏移 32KB 处 2KB 的 md5 与 NAS 本地一致，拖动中间 64MB 实测约 10 MB/s（早前"Permission denied"未能复现，属当时状态）
+- 但把 SMB 挂载点 bind 进 Docker Desktop 容器会**挂死**（`docker run -v /Volumes/CloudDrive:/cd:ro` 两次 4 分钟无响应）——Docker Desktop 的 virtiofs 不支持跨网络文件系统，这是产品限制，不是网络/NAS 问题
+- 结论：跨机 worker 只能走**原生进程**（开 macOS 远程登录 + 静态 ffprobe + 路径软链 `/vol1/1000/CloudDrive`），且 SMB 读速比 NAS 本地低一个数量级，只适合分摊少量探测
+- 生产决定：保持 NAS 单 worker（同机同存储，最快路径）；多 worker 分发逻辑不做实测，无可读同一份媒体的第二台机器
