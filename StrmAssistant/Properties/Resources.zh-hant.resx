@@ -1700,4 +1700,10 @@
   <data name="UnifiedRatingMode_Enforce_Enforce_Unified_Rating" xml:space="preserve">
     <value>強制統一</value>
   </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order" xml:space="preserve">
+    <value>自訂特別篇播出順序</value>
+  </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_" xml:space="preserve">
+    <value>將覆蓋或快取目錄中 specials.json 的 air_order 套用到特別篇（第 0 季）。檔案或對應項缺失時保持預設順序。預設關閉。</value>
+  </data>
 </root>
