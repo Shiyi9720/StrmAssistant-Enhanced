@@ -1,3 +1,34 @@
+# Strm Assistant（社区版增强 · 非官方构建）
+
+> **本仓库是什么**
+> 基于 [sjtuross/StrmAssistant](https://github.com/sjtuross/StrmAssistant)（社区版，GPL-3.0）继续开发的个人增强分支，针对 **Emby 4.10.2 稳定版**（程序集 `4.10.2.0`）适配与功能补齐。
+>
+> **与官方 PRO 的关系**：本仓库中社区版之外的功能，均**按官方公开 Wiki 文档与界面行为独立实现**，未使用、未包含、未反编译 PRO 版本的代码或二进制，也不提供、不涉及任何授权机制。本项目**非官方**，与原作者无隶属关系；需要完整体验与官方支持请购买官方 PRO 授权。
+>
+> **许可证**：GPL-3.0（沿用上游）。分发二进制时请同时提供本仓库源码与许可证副本。
+>
+> **状态**：个人维护，按需更新，不承诺及时跟进上游或修复所有问题。
+
+## 本分支已实现的功能补充（相对社区版）
+
+- 中文搜索增强：拼音全拼/首字母、繁简互搜、别名与演员检索、分级排序、索引重建任务
+- 本地 TMDB 元数据刮削源：`cache/` + `override/`（四模式优先级）、`episodegroup.json` 本地剧集组、override 图片自动刷入、`tags.json` 自定义标签、统一内容分级、自定义特别篇顺序
+- 豆瓣辅助：中文简介/海报补全、演员导演、季集、推荐频道、预告片、评分角标、缓存预构建
+- 多版本：智能排序、跨媒体库版本进度与收藏分离、库角标、总集数
+- 媒体信息：ISO/BDMV 提取、DVD IFO 章节、DV P7 双层检测（MEL/FEL 徽标）、HDR Vivid、Atmos/DTS:X 标识、截图比例矫正、自定义 ffmpeg
+- 片头/字幕/通知/体验增强若干项，完整清单见 `docs/final-parity-20261107.md`
+- 可选 rffmpeg sidecar（`ffprobe` 远程分发），部署说明见 `docs/rffmpeg-deployment.md`
+
+## 安装
+
+1. 备份现有插件目录
+2. 将发布包内 `plugins/` 全部内容拷入 Emby 插件目录（保持 `StrmAssistantLite.deps/`、`zh/`、`zh-hant/` 结构）
+3. 重启 Emby
+
+配置文件仍为 `Strm Assistant.json`，从旧版升级不会丢设置。
+
+---
+
 # Emby神医助手
 
 ![logo](StrmAssistant/Properties/thumb.png "logo")
