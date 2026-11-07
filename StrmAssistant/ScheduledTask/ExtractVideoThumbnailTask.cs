@@ -56,6 +56,7 @@ namespace StrmAssistant.ScheduledTask
             var index = 0;
             var current = 0;
             var skip = 0;
+            var distributionStats = new DistributionStats();
 
             var tasks = new List<Task>();
 
@@ -67,6 +68,8 @@ namespace StrmAssistant.ScheduledTask
                 }
                 catch
                 {
+                    _logger?.Info("VideoThumbnailExtract - Distribution Summary - " +
+                                  distributionStats.ToLogMessage());
                     return;
                 }
 
@@ -74,6 +77,8 @@ namespace StrmAssistant.ScheduledTask
                 {
                     QueueManager.MasterSemaphore.Release();
                     _logger?.Info("VideoThumbnailExtract - Scheduled Task Cancelled");
+                    _logger?.Info("VideoThumbnailExtract - Distribution Summary - " +
+                                  distributionStats.ToLogMessage());
                     return;
                 }
 
@@ -108,7 +113,7 @@ namespace StrmAssistant.ScheduledTask
                                 var libraryOptions = _libraryManager.GetLibraryOptions(taskItem);
                                 result = await Plugin.VideoThumbnailApi
                                     .RefreshThumbnailImages(taskItem, libraryOptions, directoryService, chapters, true,
-                                        true, cancellationToken).ConfigureAwait(false);
+                                        true, cancellationToken, distributionStats).ConfigureAwait(false);
                             }
                             else
                             {
@@ -160,6 +165,7 @@ namespace StrmAssistant.ScheduledTask
 
             progress.Report(100.0);
             _logger?.Info($"VideoThumbnailExtract - Number of items skipped: {skip}");
+            _logger?.Info("VideoThumbnailExtract - Distribution Summary - " + distributionStats.ToLogMessage());
             _logger?.Info("VideoThumbnailExtract - Scheduled Task Complete");
         }
 
