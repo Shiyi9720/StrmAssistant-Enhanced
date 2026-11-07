@@ -710,6 +710,7 @@ namespace StrmAssistant.Common
             public string OriginalLanguageCacheKey { get; set; }
             public string CacheableUrl { get; set; }
             public LocalMetadataSource.LocalMetadataTarget LocalMetadataTarget { get; set; }
+            public LocalEpisodeGroupMapping LocalEpisodeGroupMapping { get; set; }
         }
 
         private static string GetOriginalLanguageCacheKey(string url)
@@ -739,6 +740,13 @@ namespace StrmAssistant.Common
         {
             if (options is null) return null;
 
+            var episodeGroupMapping = LocalEpisodeGroup.TryMapRequest(options.Url);
+
+            if (episodeGroupMapping != null)
+            {
+                options.Url = episodeGroupMapping.Url;
+            }
+
             var localMetadataTarget = LocalMetadataSource.TryParseTarget(options.Url);
             var originalLanguageCacheKey = GetOriginalLanguageCacheKey(options.Url);
             var rewrite = RewriteUrl(options.Url);
@@ -756,7 +764,8 @@ namespace StrmAssistant.Common
                     Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional,
                 OriginalLanguageCacheKey = originalLanguageCacheKey,
                 CacheableUrl = rewrite.IsCacheable ? rewrite.Url : null,
-                LocalMetadataTarget = localMetadataTarget
+                LocalMetadataTarget = localMetadataTarget,
+                LocalEpisodeGroupMapping = episodeGroupMapping
             };
         }
 
@@ -778,10 +787,13 @@ namespace StrmAssistant.Common
             var rewriteImageBaseUrl = !string.IsNullOrEmpty(prepared.ResponseImageBaseUrl);
             var convertToTraditional = prepared.ConvertSimplifiedToTraditional;
             var captureOriginalLanguage = !string.IsNullOrEmpty(prepared.OriginalLanguageCacheKey);
+            var restoreLocalEpisodeGroup = prepared.LocalEpisodeGroupMapping != null;
 
-            if (!rewriteImageBaseUrl && !convertToTraditional && !captureOriginalLanguage) return response;
+            if (!rewriteImageBaseUrl && !convertToTraditional && !captureOriginalLanguage &&
+                !restoreLocalEpisodeGroup) return response;
 
-            if ((convertToTraditional || captureOriginalLanguage) && !IsJsonResponse(response)) return response;
+            if ((convertToTraditional || captureOriginalLanguage || restoreLocalEpisodeGroup) &&
+                !IsJsonResponse(response)) return response;
 
             try
             {
@@ -817,6 +829,22 @@ namespace StrmAssistant.Common
                     {
                         _originalLanguageCache.AddOrUpdateCache(prepared.OriginalLanguageCacheKey,
                             match.Groups[1].Value.ToLowerInvariant());
+                    }
+                }
+
+                if (restoreLocalEpisodeGroup)
+                {
+                    var mapping = prepared.LocalEpisodeGroupMapping;
+
+                    content = Regex.Replace(content, @"(""season_number""\s*:\s*)\d+",
+                        match => match.Groups[1].Value + mapping.LocalSeasonNumber,
+                        RegexOptions.IgnoreCase);
+
+                    if (mapping.IsEpisodeRequest && mapping.LocalEpisodeNumber.HasValue)
+                    {
+                        content = Regex.Replace(content, @"(""episode_number""\s*:\s*)\d+",
+                            match => match.Groups[1].Value + mapping.LocalEpisodeNumber.Value,
+                            RegexOptions.IgnoreCase);
                     }
                 }
 

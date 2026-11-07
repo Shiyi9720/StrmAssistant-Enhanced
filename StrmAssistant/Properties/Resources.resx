@@ -1651,6 +1651,7 @@
   </data>
   <data name="MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_" xml:space="preserve">
     <value>Minimum interval between TMDB requests in milliseconds. It must be between 0 and 10000. Default is 250.</value>
+  </data>
   <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild" xml:space="preserve">
     <value>Enable Douban Cache Prebuild</value>
   </data>
@@ -1683,7 +1684,6 @@
   </data>
   <data name="DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_" xml:space="preserve">
     <value>Fetch Douban ratings for movies and series that do not have a cached rating yet. Requests are rate limited and the task can be cancelled at any time.</value>
-  </data>
   </data>
   <data name="MetadataEnhanceOptions_EnableMovieDbCache_Enable_TMDB_Disk_Cache" xml:space="preserve">
     <value>Enable TMDB Disk Cache</value>
@@ -1759,5 +1759,38 @@
   </data>
   <data name="LocalMetadataMode_Off_Off" xml:space="preserve">
     <value>Off</value>
+  </data>
+  <data name="PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group" xml:space="preserve">
+    <value>Enable Local Episode Group</value>
+  </data>
+  <data name="PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_" xml:space="preserve">
+    <value>Map local season and episode numbers with episodegroup.json from the override directory or the series directory. Missing entries fall back to the normal order. Default is OFF.</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingMode_Unified_Content_Rating" xml:space="preserve">
+    <value>Unified Content Rating</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_" xml:space="preserve">
+    <value>Map source ratings to one target rating using StrmAssistant.UnifiedRatings.json in the plugin data directory. Record Only logs matches. Enforce Unified Rating rewrites OfficialRating before it is saved. Default is Off.</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingTarget_Target_Content_Rating" xml:space="preserve">
+    <value>Target Content Rating</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_" xml:space="preserve">
+    <value>Rating used by mapping entries with an empty target. Default is US:TV-MA.</value>
+  </data>
+  <data name="UnifiedRatingMode_Off_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="UnifiedRatingMode_RecordOnly_Record_Only" xml:space="preserve">
+    <value>Record Only</value>
+  </data>
+  <data name="UnifiedRatingMode_Enforce_Enforce_Unified_Rating" xml:space="preserve">
+    <value>Enforce Unified Rating</value>
+  </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order" xml:space="preserve">
+    <value>Custom Specials Order</value>
+  </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_" xml:space="preserve">
+    <value>Apply specials.json air_order values to season 0 episodes from override or cache. Missing files or entries leave the normal order unchanged. Default is OFF.</value>
   </data>
 </root>
