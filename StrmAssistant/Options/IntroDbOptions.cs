@@ -20,10 +20,6 @@ namespace StrmAssistant.Options
         [Required]
         public bool EnableIntroDb { get; set; } = false;
 
-        [DisplayNameL("IntroDbOptions_EnableMovieIntroDb_Enable_Movie_IntroDb", typeof(Resources))]
-        [DescriptionL("IntroDbOptions_EnableMovieIntroDb_Look_up_credits_for_movies_and_record_the_range_in_the_plugin_store__Emby_has_no_movie_skip_button__Default_is_OFF_", typeof(Resources))]
-        public bool EnableMovieIntroDb { get; set; } = false;
-
         [DisplayNameL("IntroDbOptions_WriteIntroMarkers_Write_Intro_Markers", typeof(Resources))]
         [DescriptionL("IntroDbOptions_WriteIntroMarkers_Write_intro_start_and_end_markers_when_IntroDb_has_them__Default_is_True_", typeof(Resources))]
         [VisibleCondition(nameof(EnableIntroDb), SimpleCondition.IsTrue)]
