@@ -1,0 +1,72 @@
+name: 问题反馈
+description: 报告插件异常、崩溃、功能不生效
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先确认：装的是 **Emby 4.10.2**（程序集 `4.10.2.0`），且已重启过 Emby。
+        缺少下面几项信息的问题很难定位，请尽量填全。
+  - type: input
+    id: emby-version
+    attributes:
+      label: Emby 版本
+      description: 设置 → 关于，或运行 `curl -s http://你的地址:8096/emby/System/Info | grep -o '"Version":"[^"]*"'`
+      placeholder: 例如 4.10.2.0 / 4.10.2.0
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: 插件版本
+      description: 设置 → 插件 里「Strm 助手」显示的版本号
+      placeholder: 例如 1.0.1
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 出问题的模块
+      options:
+        - 安装 / 加载失败
+        - 设置页打不开
+        - 中文搜索
+        - 本地 TMDB 元数据源
+        - 豆瓣相关
+        - 多版本 / 播放进度
+        - 媒体信息 / ISO / DV
+        - 片头片尾
+        - 字幕 / 外挂音轨
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 具体点了什么、在哪个页面、什么时间
+      placeholder: |
+        1. 打开 设置 → 高级 → Strm 助手
+        2. 开启 xxx
+        3. 保存后……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果 / 实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志（重要）
+      description: |
+        容器部署可运行：
+        `docker logs emby 2>&1 | grep -iE "strm|error creating|exception" | tail -50`
+      render: shell
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他信息
+      description: 设置页截图、是否开了代理、库的类型（STRM/本地）等
