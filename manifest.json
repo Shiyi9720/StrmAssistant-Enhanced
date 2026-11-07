@@ -12,9 +12,9 @@
         "version": "1.0.2",
         "changelog": "**新增**\n\n- 插件设置页左下角新增「检查更新」按钮：点击后直接触发内置的 `Update Plugin` 任务，轮询任务状态并显示结果（已是最新版本 / 已更新请重启 / 失败原因），不必再去「计划任务」里手动找\n\n- 关于区版本行只显示版本号（如 `v1.0.2`），两处入口文案缩短为「GitHub」「功能说明」，避免窄屏被截断\n- 版本显示简化为 `v1.0.1 · Emby 4.10.2`，不再输出内部构建标记与提交哈希\n\n**说明**\n\n- 仅在「设置 → 高级 → Strm 助手」页面显示，不影响其他页面\n- 按钮调用的是同一个更新任务，逻辑与自动检查一致（比较仓库 Release，下载主 DLL）\n\n\n\n版本号即插件在「设置 → 插件」中显示的版本；升级可用插件内置的计划任务 `Update Plugin`，或手动替换 DLL。",
         "targetAbi": "4.10.2.0",
-        "sourceUrl": "https://github.com/sjtuross/StrmAssistant/releases/download/v1.0.2/StrmAssistant-1.0.2.zip",
-        "checksum": "3CAAF7984EB717860B4AEFFCD2230B5A",
-        "timestamp": "2026-11-07T09:52:31Z",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.2/StrmAssistant-1.0.2.zip",
+        "checksum": "7B50CDAC7E005759EFDAD93C3C9BCB7E",
+        "timestamp": "2026-11-07T09:52:47Z",
         "dependencies": []
       },
       {
