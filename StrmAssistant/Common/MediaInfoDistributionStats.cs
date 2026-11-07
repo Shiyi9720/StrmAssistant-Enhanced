@@ -21,10 +21,10 @@ namespace StrmAssistant.Common
     }
 
     /// <summary>
-    /// Per-task counters for distributed media-info extraction. Counters are updated from the
-    /// master's item workers and are safe to read after Task.WhenAll completes.
+    /// Per-task counters shared by distributed extraction operations. Counters are updated from
+    /// the master's item workers and are safe to read after Task.WhenAll completes.
     /// </summary>
-    public sealed class MediaInfoExtractionStats
+    public class DistributionStats
     {
         private int _localCount;
         private int _workerCount;
@@ -82,5 +82,12 @@ namespace StrmAssistant.Common
                    " (no_worker: " + NoWorkerCount + ", timeout: " + TimeoutCount +
                    ", worker_error: " + WorkerErrorCount + ", path_not_allowed: " + PathNotAllowedCount + ")";
         }
+    }
+
+    /// <summary>
+    /// Historical media-info stats name. Kept so callers and log strings do not change.
+    /// </summary>
+    public sealed class MediaInfoExtractionStats : DistributionStats
+    {
     }
 }
