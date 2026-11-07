@@ -304,6 +304,7 @@ namespace StrmAssistant
                 itemRepository);
             LocalEpisodeGroup.Initialize(libraryManager, jsonSerializer);
             LocalMetadataSource.Initialize(Logger, _jsonSerializer, ProxyApi.Wrap(_httpClient));
+            OverrideImageService.Initialize(libraryManager, providerManager, jsonSerializer);
             MovieDbApi = new MovieDbApi(libraryManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
@@ -450,6 +451,7 @@ namespace StrmAssistant
         private async void OnItemAdded(object sender, ItemChangeEventArgs e)
         {
             SearchIndexService.NotifyItemChanged(e.Item);
+            _ = OverrideImageService.ApplyAsync(e.Item);
 
             try
             {
@@ -591,6 +593,7 @@ namespace StrmAssistant
         private void OnItemUpdated(object sender, ItemChangeEventArgs e)
         {
             SearchIndexService.NotifyItemChanged(e.Item);
+            _ = OverrideImageService.ApplyAsync(e.Item);
 
             try
             {
