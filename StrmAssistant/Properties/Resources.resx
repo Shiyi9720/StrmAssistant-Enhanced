@@ -1799,4 +1799,19 @@
   <data name="PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_" xml:space="preserve">
     <value>Apply specials.json air_order values to season 0 episodes from override or cache. Missing files or entries leave the normal order unchanged. Default is OFF.</value>
   </data>
+  <data name="Update_Check_Button" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="Update_Checking" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="Update_UpToDate" xml:space="preserve">
+    <value>Already up to date</value>
+  </data>
+  <data name="Update_Done" xml:space="preserve">
+    <value>Updated. Restart Emby to apply.</value>
+  </data>
+  <data name="Update_Failed" xml:space="preserve">
+    <value>Update check failed</value>
+  </data>
 </root>
