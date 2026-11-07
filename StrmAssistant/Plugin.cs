@@ -302,7 +302,12 @@ namespace StrmAssistant
             NotificationApi = new NotificationApi(notificationManager, userManager, sessionManager, libraryManager);
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
+            LocalEpisodeGroup.Initialize(libraryManager, jsonSerializer);
             LocalMetadataSource.Initialize(Logger, _jsonSerializer, ProxyApi.Wrap(_httpClient));
+            OverrideImageService.Initialize(libraryManager, providerManager, jsonSerializer);
+            UnifiedRatingService.Initialize(jsonSerializer);
+            UnifiedRatingService.ApplyOptions(GetOptions());
+            CustomSpecialsOrderService.Initialize(libraryManager, jsonSerializer);
             MovieDbApi = new MovieDbApi(libraryManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
@@ -449,6 +454,8 @@ namespace StrmAssistant
         private async void OnItemAdded(object sender, ItemChangeEventArgs e)
         {
             SearchIndexService.NotifyItemChanged(e.Item);
+            _ = OverrideImageService.ApplyAsync(e.Item);
+            CustomSpecialsOrderService.Apply(e.Item);
 
             try
             {
@@ -590,6 +597,8 @@ namespace StrmAssistant
         private void OnItemUpdated(object sender, ItemChangeEventArgs e)
         {
             SearchIndexService.NotifyItemChanged(e.Item);
+            _ = OverrideImageService.ApplyAsync(e.Item);
+            CustomSpecialsOrderService.Apply(e.Item);
 
             try
             {
@@ -1156,6 +1165,11 @@ namespace StrmAssistant
                 Logger.Info("LocalMetadataMode is set to {0}", options.LocalMetadataMode);
                 Logger.Info("LocalMetadataAutoRefreshImages is set to {0}",
                     options.LocalMetadataAutoRefreshImages);
+                Logger.Info("EnableLocalEpisodeGroup is set to {0}", options.EnableLocalEpisodeGroup);
+                Logger.Info("UnifiedRatingMode is set to {0}", options.UnifiedRatingMode);
+                Logger.Info("UnifiedRatingTarget is set to {0}",
+                    string.IsNullOrWhiteSpace(options.UnifiedRatingTarget) ? "EMPTY" : options.UnifiedRatingTarget);
+                Logger.Info("EnableCustomSpecialsOrder is set to {0}", options.EnableCustomSpecialsOrder);
             }
             if (_currentPreferTraditionalChinese != options.MetadataEnhanceOptions.PreferTraditionalChinese ||
                 _currentEnableAltMovieDbUrl != options.MetadataEnhanceOptions.EnableAltMovieDbUrl ||
@@ -1183,6 +1197,7 @@ namespace StrmAssistant
             }
 
             LocalMetadataSource.ApplyOptions(options);
+            UnifiedRatingService.ApplyOptions(options);
 
             if (!suppress)
             {

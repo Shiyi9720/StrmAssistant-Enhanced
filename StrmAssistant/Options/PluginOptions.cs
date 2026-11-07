@@ -46,6 +46,24 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
         public bool LocalMetadataAutoRefreshImages { get; set; } = true;
 
+        [DisplayNameL("PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group", typeof(Resources))]
+        [DescriptionL("PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool EnableLocalEpisodeGroup { get; set; } = false;
+
+        [DisplayNameL("PluginOptions_UnifiedRatingMode_Unified_Content_Rating", typeof(Resources))]
+        [DescriptionL("PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_", typeof(Resources))]
+        public UnifiedRatingMode UnifiedRatingMode { get; set; } = UnifiedRatingMode.Off;
+
+        [DisplayNameL("PluginOptions_UnifiedRatingTarget_Target_Content_Rating", typeof(Resources))]
+        [DescriptionL("PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_", typeof(Resources))]
+        public string UnifiedRatingTarget { get; set; } = "US:TV-MA";
+
+        [DisplayNameL("PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order", typeof(Resources))]
+        [DescriptionL("PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool EnableCustomSpecialsOrder { get; set; } = false;
+
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
 

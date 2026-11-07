@@ -1564,6 +1564,7 @@
   </data>
   <data name="MetadataEnhanceOptions_RefreshPersonRequestIntervalMs_Minimum_interval_between_TMDB_requests_in_milliseconds__It_must_be_between_0_and_10000__Default_is_250_" xml:space="preserve">
     <value>TMDB 請求之間的最小間隔（毫秒），必須介於 0 到 10000 之間。預設 250。</value>
+  </data>
   <data name="DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild" xml:space="preserve">
     <value>啟用豆瓣快取預構建</value>
   </data>
@@ -1596,7 +1597,6 @@
   </data>
   <data name="DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_" xml:space="preserve">
     <value>為尚無快取評分的電影和劇集取得豆瓣評分；請求有限速，任務可隨時取消。</value>
-  </data>
   </data>
   <data name="MetadataEnhanceOptions_EnableMovieDbCache_Enable_TMDB_Disk_Cache" xml:space="preserve">
     <value>啟用 TMDB 磁碟快取</value>
@@ -1672,5 +1672,38 @@
   </data>
   <data name="LocalMetadataMode_Off_Off" xml:space="preserve">
     <value>關閉</value>
+  </data>
+  <data name="PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group" xml:space="preserve">
+    <value>啟用本地劇集組</value>
+  </data>
+  <data name="PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_" xml:space="preserve">
+    <value>使用覆蓋目錄或劇集目錄中的 episodegroup.json 映射本地季集號。找不到映射時依預設季集順序處理。預設關閉。</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingMode_Unified_Content_Rating" xml:space="preserve">
+    <value>統一內容分級</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_" xml:space="preserve">
+    <value>使用外掛資料目錄中的 StrmAssistant.UnifiedRatings.json 將各來源分級映射到統一目標分級。僅記錄：只記錄命中項；強制統一：在 OfficialRating 儲存前改寫。預設關閉。</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingTarget_Target_Content_Rating" xml:space="preserve">
+    <value>目標內容分級</value>
+  </data>
+  <data name="PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_" xml:space="preserve">
+    <value>映射表中目標留空時使用的分級。預設 US:TV-MA。</value>
+  </data>
+  <data name="UnifiedRatingMode_Off_Off" xml:space="preserve">
+    <value>關閉</value>
+  </data>
+  <data name="UnifiedRatingMode_RecordOnly_Record_Only" xml:space="preserve">
+    <value>僅記錄</value>
+  </data>
+  <data name="UnifiedRatingMode_Enforce_Enforce_Unified_Rating" xml:space="preserve">
+    <value>強制統一</value>
+  </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order" xml:space="preserve">
+    <value>自訂特別篇播出順序</value>
+  </data>
+  <data name="PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_" xml:space="preserve">
+    <value>將覆蓋或快取目錄中 specials.json 的 air_order 套用到特別篇（第 0 季）。檔案或對應項缺失時保持預設順序。預設關閉。</value>
   </data>
 </root>
