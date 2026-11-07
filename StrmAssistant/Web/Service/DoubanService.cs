@@ -53,6 +53,9 @@ namespace StrmAssistant.Web.Service
             foreach (var recommendation in recommendations)
             {
                 var match = FindMatch(recommendation);
+                var trailer = options.EnableDoubanTrailer
+                    ? Plugin.DoubanApi.GetCachedTrailer(recommendation.DoubanId, "movie")
+                    : null;
 
                 response.Items.Add(new DoubanRecommendationInfo
                 {
@@ -63,8 +66,43 @@ namespace StrmAssistant.Web.Service
                     Subtitle = recommendation.Subtitle,
                     Rating = recommendation.Rating,
                     ItemId = match.ItemId,
-                    ItemType = match.ItemType
+                    ItemType = match.ItemType,
+                    TrailerUrl = trailer?.Url,
+                    TrailerTitle = trailer?.Title,
+                    TrailerCoverUrl = trailer?.CoverUrl
                 });
+            }
+
+            return response;
+        }
+
+        /// <summary>
+        /// Resolves a trailer on demand so the home screen does not have to query Douban for
+        /// every recommendation up front. Returns an empty response when none is available.
+        /// </summary>
+        public async Task<object> Get(GetDoubanTrailer request)
+        {
+            var response = new DoubanTrailerResponse { DoubanId = request.DoubanId };
+            var options = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions;
+
+            if (!options.EnableDoubanRecommendations || !options.EnableDoubanTrailer) return response;
+
+            try
+            {
+                var trailer = await Plugin.DoubanApi
+                    .GetTrailerAsync(request.DoubanId, request.SubjectType, CancellationToken.None)
+                    .ConfigureAwait(false);
+
+                if (trailer is null) return response;
+
+                response.TrailerUrl = trailer.Url;
+                response.TrailerTitle = trailer.Title;
+                response.CoverUrl = trailer.CoverUrl;
+                response.Runtime = trailer.Runtime;
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance.Logger?.Debug("DoubanTrailer - Request failed: " + e.Message);
             }
 
             return response;
