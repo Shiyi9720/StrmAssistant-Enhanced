@@ -1588,7 +1588,7 @@ namespace StrmAssistant
             if (text.EndsWith(".0.0")) text = text.Substring(0, text.Length - 4);
             else if (text.EndsWith(".0")) text = text.Substring(0, text.Length - 2);
 
-            return $"v{text} · Emby 4.10.2";
+            return $"v{text}";
         }
     }
 }
