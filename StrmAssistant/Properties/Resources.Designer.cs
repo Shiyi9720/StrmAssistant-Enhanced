@@ -4578,5 +4578,50 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to Update_Check_Button.
+        /// </summary>
+        public static string Update_Check_Button {
+            get {
+                return ResourceManager.GetString("Update_Check_Button", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update_Checking.
+        /// </summary>
+        public static string Update_Checking {
+            get {
+                return ResourceManager.GetString("Update_Checking", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update_UpToDate.
+        /// </summary>
+        public static string Update_UpToDate {
+            get {
+                return ResourceManager.GetString("Update_UpToDate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update_Done.
+        /// </summary>
+        public static string Update_Done {
+            get {
+                return ResourceManager.GetString("Update_Done", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Update_Failed.
+        /// </summary>
+        public static string Update_Failed {
+            get {
+                return ResourceManager.GetString("Update_Failed", resourceCulture);
+            }
+        }
+
     }
 }
