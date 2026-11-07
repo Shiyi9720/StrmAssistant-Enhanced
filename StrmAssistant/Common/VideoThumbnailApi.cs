@@ -90,7 +90,7 @@ namespace StrmAssistant.Common
 
         public async Task<bool> RefreshThumbnailImages(Video item, LibraryOptions libraryOptions,
             IDirectoryService directoryService, List<ChapterInfo> chapters, bool extractImages, bool saveChapters,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, DistributionStats distributionStats = null)
         {
             if (extractImages && VideoThumbnailBlacklist.FromOptions().IsExcluded(item))
             {
@@ -110,7 +110,7 @@ namespace StrmAssistant.Common
                 libraryOptions.ThumbnailImagesIntervalSeconds == -1 &&
                 Video.GetLocalThumbnailSetInfos(item.Path, item.Id, false, directoryService).Length == 0 &&
                 Plugin.DistributedExtractApi != null &&
-                DistributedExtractApi.IsThumbnailDistributionEnabled)
+                DistributedExtractApi.IsThumbnailOptionEnabled)
             {
                 var distributedMediaPath = mediaSource?.Path;
 
@@ -137,7 +137,8 @@ namespace StrmAssistant.Common
 
                 if (!string.IsNullOrEmpty(distributedMediaPath) &&
                     await Plugin.DistributedExtractApi
-                        .TryExtractChapterImagesAsync(item, distributedMediaPath, chapters, cancellationToken)
+                        .TryExtractChapterImagesAsync(item, distributedMediaPath, chapters, cancellationToken,
+                            distributionStats)
                         .ConfigureAwait(false))
                 {
                     await PostProcessChapterImages(item, mediaSource, chapters, cancellationToken)
