@@ -433,6 +433,27 @@ namespace StrmAssistant.Common
             baseLayer.ExtendedVideoType = ExtendedVideoTypes.DolbyVision;
             baseLayer.ExtendedVideoSubType = ExtendedVideoSubTypes.DoviProfile76;
 
+            if (Plugin.Instance?.GetPluginOptions()?.MediaInfoExtractOptions
+                    ?.EnableDvP7LayerBadge == true)
+            {
+                var badge = dvP7.GetEnhancementLayerBadge();
+                var tags = (item.Tags ?? Array.Empty<string>())
+                    .Where(t => t != null &&
+                                !string.Equals(t, badge, StringComparison.OrdinalIgnoreCase) &&
+                                !t.StartsWith("Dolby Vision P7", StringComparison.OrdinalIgnoreCase))
+                    .Concat(new[] { badge })
+                    .ToArray();
+
+                item.SetTags(tags);
+            }
+
+            _logger?.Debug("DiscMediaInfo - DV P7 TRACE layer=" + dvP7.EnhancementLayerType +
+                           ", evidence=" + dvP7.EnhancementLayerEvidence +
+                           ", EL profile=" + (dvP7.EnhancementLayerProfile ?? "unknown") +
+                           ", EL/BL ratio=" + (dvP7.EnhancementLayerBitrateRatio.HasValue
+                               ? dvP7.EnhancementLayerBitrateRatio.Value.ToString("P2")
+                               : "n/a"));
+
             _logger?.Info("DiscMediaInfo - Dolby Vision Profile 7 dual-layer (" + dvP7.Evidence +
                           "): BL " + DescribeLayer(dvP7.BaseLayerId, dvP7.BaseLayerIndex) +
                           ", EL " + DescribeLayer(dvP7.EnhancementLayerId, dvP7.EnhancementLayerIndex) +

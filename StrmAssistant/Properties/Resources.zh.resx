@@ -137,6 +137,12 @@
   <data name="MediaInfoExtractOptions_DetectHdrVivid_Probes_the_first_video_frame_for_CUVA_2094_10_metadata_and_tags_matching_videos_as_HDR_Vivid__Default_is_False_" xml:space="preserve">
     <value>探测首帧中的 CUVA 2094-10（HDR Vivid）动态元数据，并给匹配的视频添加 HDR Vivid 标签。在媒体信息提取任务中执行。默认关闭。</value>
   </data>
+  <data name="MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_Dolby_Vision_P7_Layer_Type" xml:space="preserve">
+    <value>显示 Dolby Vision P7 增强层类型</value>
+  </data>
+  <data name="MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_the_Dolby_Vision_P7_enhancement_layer_type__MEL__FEL_or_unknown__as_an_item_tag__Default_is_False_" xml:space="preserve">
+    <value>把 Dolby Vision Profile 7 的增强层类型（MEL、FEL 或未知）作为标签显示。判定依据 FFmpeg 9 流组，无法确定时使用增强层码率或大小占比启发式；仍无法判定则只显示通用的 Dolby Vision P7。默认关闭。</value>
+  </data>
   <data name="PluginOptions_StrmOnly_Strm_Only" xml:space="preserve">
     <value>仅支持 STRM</value>
   </data>

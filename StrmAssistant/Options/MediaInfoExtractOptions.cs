@@ -148,6 +148,10 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_DetectHdrVivid_Probes_the_first_video_frame_for_CUVA_2094_10_metadata_and_tags_matching_videos_as_HDR_Vivid__Default_is_False_", typeof(Resources))]
         public bool DetectHdrVivid { get; set; } = false;
 
+        [DisplayNameL("MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_Dolby_Vision_P7_Layer_Type", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_EnableDvP7LayerBadge_Show_the_Dolby_Vision_P7_enhancement_layer_type__MEL__FEL_or_unknown__as_an_item_tag__Default_is_False_", typeof(Resources))]
+        public bool EnableDvP7LayerBadge { get; set; } = false;
+
         [DisplayNameL("PluginOptions_EnableImageCapture_Enable_Image_Capture", typeof(Resources))]
         [DescriptionL("PluginOptions_EnableImageCapture_Perform_image_capture_for_videos_without_primary_image__Default_is_False_", typeof(Resources))]
         [Browsable(false)]
