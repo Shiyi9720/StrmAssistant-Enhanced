@@ -504,6 +504,78 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_Button_Trailer.
+        /// </summary>
+        public static string DoubanTrailer_Button_Trailer {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_Button_Trailer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_Close_Close.
+        /// </summary>
+        public static string DoubanTrailer_Close_Close {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_Close_Close", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_Failed_Failed_to_load_trailer.
+        /// </summary>
+        public static string DoubanTrailer_Failed_Failed_to_load_trailer {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_Failed_Failed_to_load_trailer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_Loading_Loading_trailer.
+        /// </summary>
+        public static string DoubanTrailer_Loading_Loading_trailer {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_Loading_Loading_trailer", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_OpenExternal_Open_in_a_new_tab__fallback.
+        /// </summary>
+        public static string DoubanTrailer_OpenExternal_Open_in_a_new_tab__fallback {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_OpenExternal_Open_in_a_new_tab__fallback", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_PlaybackFailed_In_page_playback_failed.
+        /// </summary>
+        public static string DoubanTrailer_PlaybackFailed_In_page_playback_failed {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_PlaybackFailed_In_page_playback_failed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_Source_Trailer_source__Douban_public_API__display_only.
+        /// </summary>
+        public static string DoubanTrailer_Source_Trailer_source__Douban_public_API__display_only {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_Source_Trailer_source__Douban_public_API__display_only", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanTrailer_Unavailable_No_trailer_available.
+        /// </summary>
+        public static string DoubanTrailer_Unavailable_No_trailer_available {
+            get {
+                return ResourceManager.GetString("DoubanTrailer_Unavailable_No_trailer_available", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles.
         /// </summary>
         public static string DownloadSubtitleTask_Description_Downloads_missing_subtitles_from_OpenSubtitles {
@@ -2687,6 +2759,24 @@ namespace StrmAssistant.Properties
         public static string MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_ {
             get {
                 return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanTrailer_Douban_Trailers.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanTrailer_Douban_Trailers {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanTrailer_Douban_Trailers", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EnableDoubanTrailer_Show_a_trailer_button_on_Douban_recommendation_cards__Trailers_come_from_Douban_s_public_API_and_are_only_played__never_downloaded_or_saved__Default_is_OFF_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EnableDoubanTrailer_Show_a_trailer_button_on_Douban_recommendation_cards__Trailers_come_from_Douban_s_public_API_and_are_only_played__never_downloaded_or_saved__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EnableDoubanTrailer_Show_a_trailer_button_on_Douban_recommendation_cards__Trailers_come_from_Douban_s_public_API_and_are_only_played__never_downloaded_or_saved__Default_is_OFF_", resourceCulture);
             }
         }
 

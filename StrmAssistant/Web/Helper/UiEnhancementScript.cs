@@ -30,6 +30,8 @@ namespace StrmAssistant.Web.Helper
             var logNewestFirst = options?.ExperienceEnhanceOptions.LogNewestFirst ?? false;
             var multiSelectActions = options?.ExperienceEnhanceOptions.MultiSelectActions ?? false;
             var doubanRecommendations = options?.MetadataEnhanceOptions.EnableDoubanRecommendations ?? false;
+            var doubanTrailers = doubanRecommendations &&
+                                 (options?.MetadataEnhanceOptions.EnableDoubanTrailer ?? false);
             var versionFavorites = options?.ExperienceEnhanceOptions.VersionFavoriteOptions
                 ?.EnableCrossLibraryFavoriteSeparation ?? false;
 
@@ -47,7 +49,8 @@ namespace StrmAssistant.Web.Helper
                    GetEnforceLibraryOrderScript(enforceLibraryOrder) + "\n" +
                    GetLogNewestFirstScript(logNewestFirst) + "\n" +
                    GetHiddenBoxSetsScript() + "\n" +
-                   GetDoubanRecommendationsScript(doubanRecommendations) + "\n" +
+                   GetDoubanRecommendationsScript(doubanRecommendations, doubanTrailers) + "\n" +
+                   GetDoubanTrailerScript(doubanTrailers) + "\n" +
                    GetAudioEffectScript() + "\n";
         }
 
@@ -180,7 +183,7 @@ namespace StrmAssistant.Web.Helper
         /// Adds a Douban recommendation channel to the home screen. The endpoint only returns
         /// entries that were matched to a library item; unmatched entries link to search.
         /// </summary>
-        private static string GetDoubanRecommendationsScript(bool enabled)
+        private static string GetDoubanRecommendationsScript(bool enabled, bool trailersEnabled)
         {
             if (!enabled) return string.Empty;
 
@@ -193,8 +196,10 @@ namespace StrmAssistant.Web.Helper
         more: '@@MORE@@',
         less: '@@LESS@@',
         open: '@@OPEN@@',
-        search: '@@SEARCH@@'
+        search: '@@SEARCH@@',
+        trailer: '@@TRAILER@@'
     };
+    var trailersEnabled = @@TRAILERS_ENABLED@@;
     var apiClient = null;
     var items = [];
     var loading = false;
@@ -306,6 +311,7 @@ namespace StrmAssistant.Web.Helper
         }
 
         card.appendChild(poster);
+        addTrailerButton(card, item);
 
         var title = document.createElement('div');
         title.className = 'strmAssistantDoubanTitle';
@@ -327,6 +333,33 @@ namespace StrmAssistant.Web.Helper
         }
 
         return card;
+    }
+
+    function addTrailerButton(card, item) {
+        if (!trailersEnabled || !item || !item.DoubanId) return;
+
+        card.setAttribute('data-douban-id', item.DoubanId);
+
+        if (item.TrailerUrl) {
+            card.setAttribute('data-trailer-url', item.TrailerUrl);
+            card.setAttribute('data-trailer-title', item.TrailerTitle || '');
+            card.setAttribute('data-trailer-cover', item.TrailerCoverUrl || '');
+        }
+
+        var button = document.createElement('span');
+        button.className = 'strmAssistantDoubanTrailer';
+        button.setAttribute('role', 'button');
+        button.setAttribute('tabindex', '0');
+        button.textContent = '\u25B6 ' + labels.trailer;
+
+        button.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                button.click();
+            }
+        });
+
+        card.querySelector('.strmAssistantDoubanPoster').appendChild(button);
     }
 
     function render() {
@@ -414,7 +447,290 @@ namespace StrmAssistant.Web.Helper
                 .Replace("@@OPEN@@", JsString("DoubanRecommendations_OpenInLibrary_Open_in_library",
                     "Open in library"))
                 .Replace("@@SEARCH@@", JsString("DoubanRecommendations_SearchInLibrary_Search_in_library",
-                    "Search in library"));
+                    "Search in library"))
+                .Replace("@@TRAILER@@", trailersEnabled
+                    ? JsString("DoubanTrailer_Button_Trailer", "Trailer")
+                    : string.Empty)
+                .Replace("@@TRAILERS_ENABLED@@", trailersEnabled ? "true" : "false");
+        }
+
+        /// <summary>
+        /// Handles the trailer button on Douban recommendation cards. Douban returns direct MP4
+        /// URLs; they are played in a small in-page player. If the browser cannot play the direct
+        /// link, the player offers a clearly marked new-tab fallback.
+        /// </summary>
+        private static string GetDoubanTrailerScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    if (document.getElementById('strmAssistantTrailerStyles')) return;
+
+    var labels = {
+        trailer: '@@TRAILER@@',
+        loading: '@@LOADING@@',
+        unavailable: '@@UNAVAILABLE@@',
+        failed: '@@FAILED@@',
+        playbackFailed: '@@PLAYBACK_FAILED@@',
+        openExternal: '@@OPEN_EXTERNAL@@',
+        close: '@@CLOSE@@',
+        source: '@@SOURCE@@'
+    };
+    var apiClient = null;
+    var noticeTimer = null;
+    var overlay = null;
+
+    function addStyles() {
+        var style = document.createElement('style');
+        style.id = 'strmAssistantTrailerStyles';
+        style.textContent =
+            '.strmAssistantDoubanTrailer{position:absolute;left:.35em;bottom:.35em;z-index:5;' +
+            'display:inline-flex;align-items:center;gap:.2em;padding:.15em .5em;border-radius:.9em;' +
+            'background:rgba(0,0,0,.72);color:#fff;font-size:.72em;line-height:1.5;font-weight:600;' +
+            'cursor:pointer;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.45)}' +
+            '.strmAssistantDoubanTrailer:hover,.strmAssistantDoubanTrailer:focus{' +
+            'background:rgba(0,0,0,.9);outline:none}' +
+            '.strmAssistantTrailerNotice{position:fixed;left:50%;bottom:2em;transform:translateX(-50%);' +
+            'z-index:100000;max-width:80vw;padding:.6em 1em;border-radius:.4em;background:rgba(0,0,0,.85);' +
+            'color:#fff;font-size:.9em;display:none}' +
+            '.strmAssistantTrailerOverlay{position:fixed;left:0;top:0;right:0;bottom:0;z-index:99999;' +
+            'background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;padding:2em}' +
+            '.strmAssistantTrailerDialog{width:92vw;max-width:1100px;background:#111;color:#fff;' +
+            'border-radius:.5em;overflow:hidden;box-shadow:0 1em 3em rgba(0,0,0,.6)}' +
+            '.strmAssistantTrailerHeader{display:flex;align-items:center;gap:1em;padding:.7em 1em}' +
+            '.strmAssistantTrailerTitle{flex:1;font-size:1em;font-weight:600;overflow:hidden;' +
+            'text-overflow:ellipsis;white-space:nowrap}' +
+            '.strmAssistantTrailerClose{border:0;background:rgba(255,255,255,.14);color:#fff;' +
+            'padding:.3em .8em;border-radius:.3em;cursor:pointer;font:inherit}' +
+            '.strmAssistantTrailerClose:hover{background:rgba(255,255,255,.26)}' +
+            '.strmAssistantTrailerVideo{display:block;width:100%;max-height:72vh;background:#000}' +
+            '.strmAssistantTrailerFooter{display:flex;align-items:center;gap:1em;flex-wrap:wrap;' +
+            'padding:.6em 1em .9em;font-size:.82em}' +
+            '.strmAssistantTrailerSource{opacity:.7;flex:1}' +
+            '.strmAssistantTrailerExternal{color:#8cc8ff;text-decoration:none}' +
+            '.strmAssistantTrailerExternal:hover{text-decoration:underline}' +
+            '.strmAssistantTrailerFallback{padding:0 1em .9em;color:#ffd166;font-size:.85em}';
+        (document.head || document.documentElement).appendChild(style);
+    }
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                } else {
+                    callback(null);
+                }
+            }, function () {
+                callback(null);
+            });
+        } catch (e) {
+            callback(null);
+        }
+    }
+
+    function hideNotice() {
+        var notice = document.getElementById('strmAssistantTrailerNotice');
+        if (notice) notice.style.display = 'none';
+    }
+
+    function showNotice(text) {
+        var notice = document.getElementById('strmAssistantTrailerNotice');
+        if (!notice) {
+            notice = document.createElement('div');
+            notice.id = 'strmAssistantTrailerNotice';
+            notice.className = 'strmAssistantTrailerNotice';
+            document.body.appendChild(notice);
+        }
+        notice.textContent = text;
+        notice.style.display = 'block';
+        if (noticeTimer) clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(function () {
+            notice.style.display = 'none';
+        }, 3500);
+    }
+
+    function fetchTrailer(card, done) {
+        var cachedUrl = card.getAttribute('data-trailer-url');
+
+        if (cachedUrl) {
+            done({
+                TrailerUrl: cachedUrl,
+                TrailerTitle: card.getAttribute('data-trailer-title') || '',
+                CoverUrl: card.getAttribute('data-trailer-cover') || ''
+            }, false);
+            return;
+        }
+
+        var doubanId = card.getAttribute('data-douban-id');
+
+        if (!doubanId) {
+            done(null, false);
+            return;
+        }
+
+        showNotice(labels.loading);
+
+        withApiClient(function (client) {
+            if (!client) {
+                done(null, true);
+                return;
+            }
+
+            client.getJSON(client.getUrl('StrmAssistant/Douban/Trailer?DoubanId=' +
+                encodeURIComponent(doubanId))).then(function (result) {
+                if (result && result.TrailerUrl) {
+                    card.setAttribute('data-trailer-url', result.TrailerUrl);
+                    card.setAttribute('data-trailer-title', result.TrailerTitle || '');
+                    card.setAttribute('data-trailer-cover', result.CoverUrl || '');
+                    done(result, false);
+                } else {
+                    done(null, false);
+                }
+            }, function () {
+                done(null, true);
+            });
+        });
+    }
+
+    function buildOverlay() {
+        overlay = document.createElement('div');
+        overlay.id = 'strmAssistantTrailerOverlay';
+        overlay.className = 'strmAssistantTrailerOverlay';
+        overlay.innerHTML = '<div class=""strmAssistantTrailerDialog"" role=""dialog"" aria-modal=""true"">' +
+            '<div class=""strmAssistantTrailerHeader"">' +
+            '<span class=""strmAssistantTrailerTitle""></span>' +
+            '<button type=""button"" class=""strmAssistantTrailerClose""></button>' +
+            '</div>' +
+            '<video class=""strmAssistantTrailerVideo"" controls playsinline preload=""metadata""></video>' +
+            '<div class=""strmAssistantTrailerFooter"">' +
+            '<span class=""strmAssistantTrailerSource""></span>' +
+            '<a class=""strmAssistantTrailerExternal"" target=""_blank"" rel=""noopener noreferrer""></a>' +
+            '</div>' +
+            '<div class=""strmAssistantTrailerFallback"" hidden></div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', function (event) {
+            if (event.target === overlay) closePlayer();
+        });
+
+        overlay.querySelector('.strmAssistantTrailerClose').addEventListener('click', closePlayer);
+
+        overlay.querySelector('.strmAssistantTrailerVideo').addEventListener('error', function () {
+            if (!overlay) return;
+            overlay.querySelector('.strmAssistantTrailerFallback').hidden = false;
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') closePlayer();
+        });
+    }
+
+    function showPlayer(url, title, coverUrl) {
+        hideNotice();
+
+        if (!overlay) buildOverlay();
+
+        var video = overlay.querySelector('.strmAssistantTrailerVideo');
+        var fallback = overlay.querySelector('.strmAssistantTrailerFallback');
+        var external = overlay.querySelector('.strmAssistantTrailerExternal');
+
+        overlay.querySelector('.strmAssistantTrailerTitle').textContent = title || labels.trailer;
+        overlay.querySelector('.strmAssistantTrailerSource').textContent = labels.source;
+        overlay.querySelector('.strmAssistantTrailerClose').textContent = labels.close;
+        external.textContent = labels.openExternal;
+        external.href = url;
+        fallback.textContent = labels.playbackFailed;
+        fallback.hidden = true;
+
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        video.setAttribute('referrerpolicy', 'no-referrer');
+        if (coverUrl) video.setAttribute('poster', coverUrl);
+        else video.removeAttribute('poster');
+        video.src = url;
+
+        overlay.style.display = 'flex';
+
+        var playPromise = video.play();
+        if (playPromise && playPromise.catch) playPromise.catch(function () { });
+    }
+
+    function closePlayer() {
+        if (!overlay) return;
+
+        var video = overlay.querySelector('.strmAssistantTrailerVideo');
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        overlay.style.display = 'none';
+    }
+
+    function openTrailer(card) {
+        if (card.getAttribute('data-trailer-loading')) return;
+
+        card.setAttribute('data-trailer-loading', '1');
+
+        fetchTrailer(card, function (trailer, failed) {
+            card.removeAttribute('data-trailer-loading');
+
+            if (!trailer || !trailer.TrailerUrl) {
+                showNotice(failed ? labels.failed : labels.unavailable);
+                return;
+            }
+
+            showPlayer(trailer.TrailerUrl, trailer.TrailerTitle || labels.trailer,
+                trailer.CoverUrl || card.getAttribute('data-trailer-cover') || '');
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        var button = target && target.closest ? target.closest('.strmAssistantDoubanTrailer') : null;
+
+        if (!button) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var card = button.closest('.strmAssistantDoubanCard');
+
+        if (card) openTrailer(card);
+    }, true);
+
+    addStyles();
+})();
+"
+                .Replace("@@TRAILER@@", JsString("DoubanTrailer_Button_Trailer", "Trailer"))
+                .Replace("@@LOADING@@", JsString("DoubanTrailer_Loading_Loading_trailer",
+                    "Loading trailer..."))
+                .Replace("@@UNAVAILABLE@@", JsString("DoubanTrailer_Unavailable_No_trailer_available",
+                    "No trailer available"))
+                .Replace("@@FAILED@@", JsString("DoubanTrailer_Failed_Failed_to_load_trailer",
+                    "Failed to load the trailer"))
+                .Replace("@@PLAYBACK_FAILED@@",
+                    JsString("DoubanTrailer_PlaybackFailed_In_page_playback_failed",
+                        "In-page playback failed. Open the trailer in a new tab instead."))
+                .Replace("@@OPEN_EXTERNAL@@",
+                    JsString("DoubanTrailer_OpenExternal_Open_in_a_new_tab__fallback",
+                        "Open in a new tab (fallback)"))
+                .Replace("@@CLOSE@@", JsString("DoubanTrailer_Close_Close", "Close"))
+                .Replace("@@SOURCE@@",
+                    JsString("DoubanTrailer_Source_Trailer_source__Douban_public_API__display_only",
+                        "Trailer source: Douban public API (display only)"));
         }
 
         /// <summary>

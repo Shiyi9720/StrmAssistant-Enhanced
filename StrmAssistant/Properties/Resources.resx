@@ -1376,6 +1376,12 @@
   <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_" xml:space="preserve">
     <value>Show Douban hot movie recommendations on the home screen. Uses Douban's public mobile API and degrades silently. Default is OFF.</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanTrailer_Douban_Trailers" xml:space="preserve">
+    <value>Douban Trailers</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanTrailer_Show_a_trailer_button_on_Douban_recommendation_cards__Trailers_come_from_Douban_s_public_API_and_are_only_played__never_downloaded_or_saved__Default_is_OFF_" xml:space="preserve">
+    <value>Show a trailer button on Douban recommendation cards. Trailers come from Douban's public API and are only played, never downloaded or saved. Default is OFF.</value>
+  </data>
   <data name="DoubanRecommendations_Title_Douban_Recommendations" xml:space="preserve">
     <value>Douban Recommendations</value>
   </data>
@@ -1390,6 +1396,30 @@
   </data>
   <data name="DoubanRecommendations_SearchInLibrary_Search_in_library" xml:space="preserve">
     <value>Search in library</value>
+  </data>
+  <data name="DoubanTrailer_Button_Trailer" xml:space="preserve">
+    <value>Trailer</value>
+  </data>
+  <data name="DoubanTrailer_Loading_Loading_trailer" xml:space="preserve">
+    <value>Loading trailer...</value>
+  </data>
+  <data name="DoubanTrailer_Unavailable_No_trailer_available" xml:space="preserve">
+    <value>No trailer available</value>
+  </data>
+  <data name="DoubanTrailer_Failed_Failed_to_load_trailer" xml:space="preserve">
+    <value>Failed to load the trailer</value>
+  </data>
+  <data name="DoubanTrailer_PlaybackFailed_In_page_playback_failed" xml:space="preserve">
+    <value>In-page playback failed. Open the trailer in a new tab instead.</value>
+  </data>
+  <data name="DoubanTrailer_OpenExternal_Open_in_a_new_tab__fallback" xml:space="preserve">
+    <value>Open in a new tab (fallback)</value>
+  </data>
+  <data name="DoubanTrailer_Close_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="DoubanTrailer_Source_Trailer_source__Douban_public_API__display_only" xml:space="preserve">
+    <value>Trailer source: Douban public API (display only)</value>
   </data>
   <data name="DoubanRating_Label_Douban" xml:space="preserve">
     <value>Douban</value>

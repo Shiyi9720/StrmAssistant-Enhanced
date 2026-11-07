@@ -175,6 +175,11 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_", typeof(Resources))]
         public bool EnableDoubanRecommendations { get; set; } = false;
 
+        [DisplayNameL("MetadataEnhanceOptions_EnableDoubanTrailer_Douban_Trailers", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EnableDoubanTrailer_Show_a_trailer_button_on_Douban_recommendation_cards__Trailers_come_from_Douban_s_public_API_and_are_only_played__never_downloaded_or_saved__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableDoubanRecommendations), SimpleCondition.IsTrue)]
+        public bool EnableDoubanTrailer { get; set; } = false;
+
         [Browsable(false)]
         public List<EditorRadioOption> RefreshPersonModeList { get; set; } = new List<EditorRadioOption>();
 

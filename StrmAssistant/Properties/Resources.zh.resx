@@ -1289,6 +1289,12 @@
   <data name="MetadataEnhanceOptions_EnableDoubanRecommendations_Show_Douban_hot_movie_recommendations_on_the_home_screen__Uses_Douban_s_public_mobile_API_and_degrades_silently__Default_is_OFF_" xml:space="preserve">
     <value>在首页显示豆瓣热门电影推荐，使用豆瓣公开移动端接口，失败时静默降级。默认关闭。</value>
   </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanTrailer_Douban_Trailers" xml:space="preserve">
+    <value>豆瓣预告片</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EnableDoubanTrailer_Show_a_trailer_button_on_Douban_recommendation_cards__Trailers_come_from_Douban_s_public_API_and_are_only_played__never_downloaded_or_saved__Default_is_OFF_" xml:space="preserve">
+    <value>在豆瓣推荐卡片上显示预告片按钮。预告片来自豆瓣公开接口，仅用于播放，不下载、不入库。默认关闭。</value>
+  </data>
   <data name="DoubanRecommendations_Title_Douban_Recommendations" xml:space="preserve">
     <value>豆瓣推荐</value>
   </data>
@@ -1303,6 +1309,30 @@
   </data>
   <data name="DoubanRecommendations_SearchInLibrary_Search_in_library" xml:space="preserve">
     <value>在媒体库中搜索</value>
+  </data>
+  <data name="DoubanTrailer_Button_Trailer" xml:space="preserve">
+    <value>预告片</value>
+  </data>
+  <data name="DoubanTrailer_Loading_Loading_trailer" xml:space="preserve">
+    <value>正在加载预告片...</value>
+  </data>
+  <data name="DoubanTrailer_Unavailable_No_trailer_available" xml:space="preserve">
+    <value>暂无预告片</value>
+  </data>
+  <data name="DoubanTrailer_Failed_Failed_to_load_trailer" xml:space="preserve">
+    <value>预告片加载失败</value>
+  </data>
+  <data name="DoubanTrailer_PlaybackFailed_In_page_playback_failed" xml:space="preserve">
+    <value>页面内播放失败，请在新标签页打开预告片。</value>
+  </data>
+  <data name="DoubanTrailer_OpenExternal_Open_in_a_new_tab__fallback" xml:space="preserve">
+    <value>在新标签页打开（降级）</value>
+  </data>
+  <data name="DoubanTrailer_Close_Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="DoubanTrailer_Source_Trailer_source__Douban_public_API__display_only" xml:space="preserve">
+    <value>预告片来源：豆瓣公开接口（仅展示）</value>
   </data>
   <data name="DoubanRating_Label_Douban" xml:space="preserve">
     <value>豆瓣</value>
