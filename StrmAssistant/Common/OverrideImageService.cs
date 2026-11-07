@@ -91,9 +91,7 @@ namespace StrmAssistant.Common
 
                     lock (StateSync)
                     {
-                        if (_state.TryGetValue(key, out var existing) &&
-                            existing.Stamp == stamp &&
-                            existing.RefreshedAtTicks == item.DateLastRefreshed.UtcTicks)
+                        if (_state.TryGetValue(key, out var existing) && existing.Stamp == stamp)
                         {
                             continue;
                         }
