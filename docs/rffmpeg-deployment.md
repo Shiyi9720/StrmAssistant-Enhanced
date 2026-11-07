@@ -1,6 +1,6 @@
-# rffmpeg 负载均衡方案（对齐 PRO「分布式媒体信息提取 — 负载均衡方案」）
+# rffmpeg 负载均衡方案（分布式媒体信息提取）
 
-PRO 的做法是外置 sidecar：容器内把 `ffprobe`/`ffmpeg` 换成 rffmpeg 封装器，由它通过 SSH 把命令发到 worker 节点执行。
+做法是外置 sidecar：容器内把 `ffprobe`/`ffmpeg` 换成 rffmpeg 封装器，由它通过 SSH 把命令发到 worker 节点执行。
 本项目已在生产按同样形态部署并验证（2026-11-07）。
 
 ## 组成
@@ -57,7 +57,7 @@ cd /config/bin && ./rffmpeg add <emby-host> -n worker1 -w 1
 ./rffmpeg status
 ./rffmpeg run ffprobe -v error -show_entries format=duration -of json /test/sample.mp4
 
-# 5) 让 Emby 用上（只换 ffprobe，转码仍走本地 ffmpeg——比 PRO 双换更保守）
+# 5) 让 Emby 用上（只换 ffprobe，转码仍走本地 ffmpeg——更保守）
 docker exec emby sh -c "cp -a /bin/ffprobe /config/bin/ffprobe.orig; ln -sf /config/bin/rffmpeg /bin/ffprobe"
 ```
 
