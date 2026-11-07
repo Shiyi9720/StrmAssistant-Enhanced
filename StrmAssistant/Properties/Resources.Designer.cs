@@ -405,6 +405,86 @@ namespace StrmAssistant.Properties
         /// <summary>
         ///   Looks up a localized string similar to DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild.
         /// </summary>
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild.
+        /// </summary>
+        public static string DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_EnableDoubanCachePrebuild_Enable_Douban_Cache_Prebuild", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_.
+        /// </summary>
+        public static string DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_EnableDoubanCachePrebuild_Prefetch_Douban_ratings_in_the_background_so_the_detail_page_badge_appears_without_waiting_for_the_first_Douban_request__Only_items_without_a_cached_rating_are_requested__Default_is_OFF_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_.
+        /// </summary>
+        public static string DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_ExecutionIntervalHours_Execution_Interval__Hours_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_.
+        /// </summary>
+        public static string DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_ExecutionIntervalHours_Default_trigger_interval_of_the_prebuild_task__The_interval_is_only_applied_when_Emby_creates_the_default_trigger__It_can_be_changed_afterwards_in_the_scheduled_task_settings__Default_is_24_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_BatchSize_Batch_Size.
+        /// </summary>
+        public static string DoubanCacheOptions_BatchSize_Batch_Size {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_BatchSize_Batch_Size", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_.
+        /// </summary>
+        public static string DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_BatchSize_Number_of_items_processed_between_progress_updates__Smaller_batches_report_progress_more_often__Default_is_50_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_.
+        /// </summary>
+        public static string DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_RequestIntervalSeconds_Request_Interval__Seconds_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_.
+        /// </summary>
+        public static string DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_ {
+            get {
+                return ResourceManager.GetString("DoubanCacheOptions_RequestIntervalSeconds_Minimum_interval_between_Douban_requests__One_item_may_need_a_search_and_a_detail_request__It_must_be_between_2_and_30__Default_is_3_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache.
+        /// </summary>
+        public static string DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache {
+            get {
+                return ResourceManager.GetString("DoubanCachePrebuildTask_Name_Prebuild_Douban_Cache", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_.
+        /// </summary>
+        public static string DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_ {
+            get {
+                return ResourceManager.GetString("DoubanCachePrebuildTask_Description_Fetch_Douban_ratings_for_movies_and_series_that_do_not_have_a_cached_rating_yet__Requests_are_rate_limited_and_the_task_can_be_cancelled_at_any_time_", resourceCulture);
+            }
+        }
         public static string DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild {
             get {
                 return ResourceManager.GetString("DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild", resourceCulture);
@@ -2453,6 +2533,14 @@ namespace StrmAssistant.Properties
         /// <summary>
         ///   Looks up a localized string similar to MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_.
         /// </summary>
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild.
+        /// </summary>
+        public static string MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild", resourceCulture);
+            }
+        }
         public static string MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_ {
             get {
                 return ResourceManager.GetString("MetadataEnhanceOptions_DoubanRequestIntervalSeconds_Douban_Request_Interval__Seconds_", resourceCulture);
@@ -4384,6 +4472,94 @@ namespace StrmAssistant.Properties
         public static string LocalMetadataMode_Off_Off {
             get {
                 return ResourceManager.GetString("LocalMetadataMode_Off_Off", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group.
+        /// </summary>
+        public static string PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_.
+        /// </summary>
+        public static string PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingMode_Unified_Content_Rating.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingMode_Unified_Content_Rating {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingMode_Unified_Content_Rating", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingTarget_Target_Content_Rating.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingTarget_Target_Content_Rating {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingTarget_Target_Content_Rating", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_.
+        /// </summary>
+        public static string PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_UnifiedRatingTarget_Rating_used_by_mapping_entries_with_an_empty_target__Default_is_US_TV_MA_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to UnifiedRatingMode_Off_Off.
+        /// </summary>
+        public static string UnifiedRatingMode_Off_Off {
+            get {
+                return ResourceManager.GetString("UnifiedRatingMode_Off_Off", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to UnifiedRatingMode_RecordOnly_Record_Only.
+        /// </summary>
+        public static string UnifiedRatingMode_RecordOnly_Record_Only {
+            get {
+                return ResourceManager.GetString("UnifiedRatingMode_RecordOnly_Record_Only", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to UnifiedRatingMode_Enforce_Enforce_Unified_Rating.
+        /// </summary>
+        public static string UnifiedRatingMode_Enforce_Enforce_Unified_Rating {
+            get {
+                return ResourceManager.GetString("UnifiedRatingMode_Enforce_Enforce_Unified_Rating", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order.
+        /// </summary>
+        public static string PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableCustomSpecialsOrder_Custom_Specials_Order", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_.
+        /// </summary>
+        public static string PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_", resourceCulture);
             }
         }
     }
