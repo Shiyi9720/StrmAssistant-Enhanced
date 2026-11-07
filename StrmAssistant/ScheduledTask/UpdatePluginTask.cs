@@ -88,7 +88,7 @@ namespace StrmAssistant.ScheduledTask
                     {
                         ["Authorization"] = !string.IsNullOrWhiteSpace(githubToken)
                             ? $"token {githubToken}"
-                            : null
+                            : string.Empty
                     }
                 }, "GET").ConfigureAwait(false);
 
@@ -130,7 +130,7 @@ namespace StrmAssistant.ScheduledTask
                                          {
                                              ["Authorization"] = !string.IsNullOrWhiteSpace(githubToken)
                                                  ? $"token {githubToken}"
-                                                 : null
+                                                 : string.Empty
                                          }
                                      })
                                      .ConfigureAwait(false))
