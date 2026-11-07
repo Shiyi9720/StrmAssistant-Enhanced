@@ -1722,7 +1722,7 @@
     <value>已是最新版本</value>
   </data>
   <data name="Update_Done" xml:space="preserve">
-    <value>已更新，請重啟 Emby 生效</value>
+    <value>檢查完成（當前 %s）。如已下載新版本，請重啟 Emby 生效。</value>
   </data>
   <data name="Update_Failed" xml:space="preserve">
     <value>檢查失敗</value>

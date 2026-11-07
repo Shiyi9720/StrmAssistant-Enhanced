@@ -124,8 +124,9 @@ namespace StrmAssistant.Web.Helper
             c.getJSON(c.getUrl('Plugins')).then(function (plugins) {
                 var p = (plugins || []).filter(function (x) { return x.Name && x.Name.indexOf('Strm') === 0; })[0] || {};
                 var ver = p.Version || '';
+                // 任务完成只代表「检查并可能下载完成」，版本号要重启 Emby 才会变，不能直接说「已是最新」
                 if (err) finish(labels.failed + ': ' + err, '#e57373');
-                else if (res.Status === 'Completed') finish(labels.upToDate + ' (' + ver + ')', '#4caf50');
+                else if (res.Status === 'Completed') finish(labels.done + ' (' + ver + ')', '#4caf50');
                 else finish(labels.failed, '#e57373');
             }, function () { finish(err ? (labels.failed + ': ' + err) : labels.done, err ? '#e57373' : '#4caf50'); });
         }, function () { finish(labels.failed, '#e57373'); });
