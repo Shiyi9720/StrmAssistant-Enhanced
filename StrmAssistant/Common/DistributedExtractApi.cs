@@ -44,6 +44,9 @@ namespace StrmAssistant.Common
         private const int FingerprintSampleRate = 16000;
         private const int MaxDvP5FrameCount = 100;
         private const int MaxDvP5FrameBytes = 20 * 1024 * 1024;
+        private const int MaxThumbnailBytes = 10 * 1024 * 1024;
+        private const int MaxThumbnailWidth = 7680;
+        private const int MaxExtractionTimeSeconds = 24 * 60 * 60;
         private static readonly TimeSpan MediaRootsCacheDuration = TimeSpan.FromSeconds(300);
         private static readonly StringComparison PathComparison =
             Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
@@ -130,9 +133,13 @@ namespace StrmAssistant.Common
 
         public static bool IsThumbnailDistributionEnabled => IsThumbnailEnabled;
 
+        public static bool IsThumbnailOptionEnabled => Options.EnableDistributedThumbnail;
+
         public static bool IsMediaInfoDistributionEnabled => IsMediaInfoEnabled;
 
         public static bool IsFingerprintDistributionEnabled => IsFingerprintEnabled;
+
+        public static bool IsFingerprintOptionEnabled => Options.EnableDistributedFingerprint;
 
         public static bool IsHdrVividDistributionEnabled => IsHdrVividEnabled;
 
@@ -242,16 +249,29 @@ namespace StrmAssistant.Common
         /// failure so the caller continues with the local extraction.
         /// </summary>
         public async Task<bool> TryExtractChapterImagesAsync(Video item, string mediaPath,
-            List<ChapterInfo> chapters, CancellationToken cancellationToken)
+            List<ChapterInfo> chapters, CancellationToken cancellationToken, DistributionStats stats = null)
         {
-            if (!IsThumbnailEnabled || _imageExtractionManager is null) return false;
+            if (!Options.EnableDistributedThumbnail) return false;
 
             if (item is null || chapters is null || chapters.Count == 0) return false;
 
-            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath)) return false;
+            if (string.IsNullOrWhiteSpace(mediaPath) || !IsDistributable(item, mediaPath) ||
+                !IsLocalDistributablePath(mediaPath))
+            {
+                stats?.RecordFallback(MediaInfoFallbackReason.PathNotAllowed);
+                LogDistributionFallback("Chapter thumbnail", item, MediaInfoFallbackReason.PathNotAllowed);
+                return false;
+            }
+
+            if (!IsEnabled)
+            {
+                stats?.RecordFallback(MediaInfoFallbackReason.NoWorker);
+                LogDistributionFallback("Chapter thumbnail", item, MediaInfoFallbackReason.NoWorker);
+                return false;
+            }
 
             var runtimeTicks = item.RunTimeTicks.GetValueOrDefault();
-            var points = new List<DistributedThumbnailPoint>();
+            var points = new List<KeyValuePair<long, double>>();
 
             foreach (var chapter in chapters)
             {
@@ -266,37 +286,126 @@ namespace StrmAssistant.Common
                     ? Math.Min(FirstChapterTicks, runtimeTicks)
                     : chapter.StartPositionTicks;
 
-                points.Add(new DistributedThumbnailPoint
-                {
-                    StartPositionTicks = chapter.StartPositionTicks,
-                    OffsetSeconds = TimeSpan.FromTicks(Math.Max(0, offsetTicks)).TotalSeconds
-                });
+                points.Add(new KeyValuePair<long, double>(chapter.StartPositionTicks,
+                    TimeSpan.FromTicks(Math.Max(0, offsetTicks)).TotalSeconds));
             }
 
             if (points.Count == 0) return false;
 
-            return await TryWorkersAsync<DistributedThumbnailRequest, DistributedThumbnailResponse>(
-                "VideoThumbnail", item.Name + " - " + item.Path, "/StrmAssistant/DistributedExtract/Thumbnail",
-                remaining =>
-                {
-                    var options = Options;
-                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+            var width = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions?.ScreenshotMaxWidth ?? 0;
+            width = width > 0 ? Math.Min(MaxThumbnailWidth, width) : 0;
 
-                    return new DistributedThumbnailRequest
+            var frames = new Dictionary<long, byte[]>();
+            MediaInfoFallbackReason? fallbackReason = null;
+
+            foreach (var point in points)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var attempt = await TryWorkersWithResultAsync<DistributedThumbnailRequest,
+                        DistributedThumbnailResponse>(
+                    "VideoThumbnail",
+                    item.Name + " - " + item.Path + " @" + point.Value.ToString("0.###",
+                        CultureInfo.InvariantCulture) + "s",
+                    "/StrmAssistant/DistributedExtract/Thumbnail",
+                    remaining =>
                     {
-                        ApiKey = options.SharedApiKey,
-                        Path = mappedPath,
-                        Protocol = GetProtocol(mappedPath).ToString(),
-                        Container = Path.GetExtension(mediaPath).TrimStart('.'),
-                        Name = item.Name,
-                        Points = points,
-                        TimeoutSeconds = Math.Max(MinRequestTimeoutSeconds, (int)remaining.TotalSeconds)
-                    };
-                },
-                response => response?.Success == true && response.Images != null,
-                response => response?.Error,
-                response => TryApplyChapterImages(item, points, chapters, response),
-                cancellationToken).ConfigureAwait(false);
+                        var options = Options;
+
+                        return new DistributedThumbnailRequest
+                        {
+                            ApiKey = options.SharedApiKey,
+                            Path = MapPath(mediaPath, options.PathMapping),
+                            TimeSeconds = point.Value,
+                            Width = width,
+                            TimeoutSeconds = ClampTimeoutSeconds((int)remaining.TotalSeconds)
+                        };
+                    },
+                    response => response?.Success == true && !string.IsNullOrWhiteSpace(response.Data),
+                    response => response?.Error,
+                    response => response?.ErrorCode,
+                    response =>
+                    {
+                        if (!TryDecodeThumbnail(response.Data, out var bytes)) return false;
+
+                        frames[point.Key] = bytes;
+                        return true;
+                    },
+                    cancellationToken).ConfigureAwait(false);
+
+                if (attempt.Success) continue;
+
+                fallbackReason = attempt.FallbackReason == MediaInfoFallbackReason.None
+                    ? MediaInfoFallbackReason.WorkerError
+                    : attempt.FallbackReason;
+                break;
+            }
+
+            if (fallbackReason != null)
+            {
+                stats?.RecordFallback(fallbackReason.Value);
+                LogDistributionFallback("Chapter thumbnail", item, fallbackReason.Value);
+                return false;
+            }
+
+            bool applied;
+
+            try
+            {
+                applied = TryApplyChapterImageBytes(item, chapters, frames);
+            }
+            catch (Exception e)
+            {
+                _logger?.Info("DistributedExtract - Failed to write chapter images: " + item.Name + " - " +
+                              e.Message);
+                _logger?.Debug(e.StackTrace);
+                applied = false;
+            }
+
+            if (!applied)
+            {
+                stats?.RecordFallback(MediaInfoFallbackReason.WorkerError);
+                LogDistributionFallback("Chapter thumbnail", item, MediaInfoFallbackReason.WorkerError);
+                return false;
+            }
+
+            stats?.RecordWorker();
+            return true;
+        }
+
+        private static bool TryDecodeThumbnail(string data, out byte[] bytes)
+        {
+            bytes = null;
+
+            if (string.IsNullOrWhiteSpace(data)) return false;
+
+            try
+            {
+                bytes = Convert.FromBase64String(data);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+
+            if (!IsValidJpeg(bytes))
+            {
+                bytes = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsValidJpeg(byte[] bytes)
+        {
+            return bytes != null && bytes.Length > 4 && bytes.Length <= MaxThumbnailBytes &&
+                   bytes[0] == 0xFF && bytes[1] == 0xD8;
+        }
+
+        private static int ClampTimeoutSeconds(int timeoutSeconds)
+        {
+            return Math.Max(MinRequestTimeoutSeconds, Math.Min(600, timeoutSeconds));
         }
 
         /// <summary>
@@ -776,8 +885,8 @@ namespace StrmAssistant.Common
         }
 
         /// <summary>
-        /// Worker side: validates the shared key, probes the path and extracts the requested
-        /// frames with Emby's image extraction manager.
+        /// Worker side: validates the shared key, confines the request to a local media file
+        /// under one of this node's library roots, and extracts a single JPEG frame.
         /// </summary>
         public async Task<DistributedThumbnailResponse> HandleWorkerThumbnailRequestAsync(
             DistributedThumbnailRequest request, CancellationToken cancellationToken)
@@ -800,14 +909,15 @@ namespace StrmAssistant.Common
                 return FailThumbnail("Invalid API key");
             }
 
-            if (string.IsNullOrWhiteSpace(request.Path))
+            if (request is null || !TryResolveAllowedMediaFile(request.Path, out var fullPath))
             {
-                return FailThumbnail("Path is required");
+                return FailThumbnail("Path is outside the media library or not a supported file", "path_not_allowed");
             }
 
-            if (request.Points is null || request.Points.Count == 0)
+            if (double.IsNaN(request.TimeSeconds) || double.IsInfinity(request.TimeSeconds) ||
+                request.TimeSeconds < 0 || request.TimeSeconds > MaxExtractionTimeSeconds)
             {
-                return FailThumbnail("No extraction points");
+                return FailThumbnail("Invalid extraction time: " + request.TimeSeconds);
             }
 
             if (_imageExtractionManager is null)
@@ -815,36 +925,29 @@ namespace StrmAssistant.Common
                 return FailThumbnail("Image extraction is unavailable");
             }
 
-            var protocol = ParseProtocol(request.Protocol, request.Path);
-
-            if (protocol == MediaProtocol.File && !File.Exists(request.Path))
-            {
-                return FailThumbnail("File not found: " + request.Path);
-            }
-
-            if (protocol != MediaProtocol.File && !IsHttpProtocol(protocol))
-            {
-                return FailThumbnail("Unsupported protocol: " + protocol);
-            }
-
             var timeoutSeconds = request.TimeoutSeconds > 0
-                ? Math.Max(MinRequestTimeoutSeconds, Math.Min(600, request.TimeoutSeconds))
-                : Math.Max(MinRequestTimeoutSeconds, options.TimeoutSeconds);
+                ? ClampTimeoutSeconds(request.TimeoutSeconds)
+                : ClampTimeoutSeconds(options.TimeoutSeconds);
 
             var started = DateTime.UtcNow;
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
+            var tempDirectory = Path.Combine(_applicationPaths.TempDirectory, Guid.NewGuid().ToString("N"));
+
             try
             {
+                _fileSystem.CreateDirectory(tempDirectory);
+
+                var containerName = Path.GetExtension(fullPath).TrimStart('.');
                 var mediaSource = new MediaSourceInfo
                 {
-                    Path = request.Path,
-                    Protocol = protocol,
-                    Container = request.Container,
-                    Name = request.Name,
-                    IsRemote = protocol != MediaProtocol.File
+                    Path = fullPath,
+                    Protocol = MediaProtocol.File,
+                    Container = containerName,
+                    Name = Path.GetFileName(fullPath),
+                    IsRemote = false
                 };
 
                 var mediaInfo = await _mediaProbeManager.GetMediaInfo(new MediaInfoRequest
@@ -870,70 +973,50 @@ namespace StrmAssistant.Common
                     return FailThumbnail("No video stream found");
                 }
 
-                var container = Enum.TryParse<MediaContainers>(request.Container, true, out var parsed) &&
+                var container = Enum.TryParse<MediaContainers>(containerName, true, out var parsed) &&
                                 Enum.IsDefined(typeof(MediaContainers), parsed)
                     ? parsed
                     : (MediaContainers?)null;
 
-                var images = new List<DistributedThumbnailImage>();
+                var width = request.Width <= 0 ? (int?)null : Math.Min(MaxThumbnailWidth, request.Width);
+                var offset = TimeSpan.FromSeconds(request.TimeSeconds);
 
-                foreach (var point in request.Points)
+                await _imageExtractionManager.ExtractVideoImagesFromList2(mediaSource, fullPath, container,
+                        videoStream, MediaProtocol.File, null, new[] { offset }, tempDirectory, "img_", width,
+                        cts.Token)
+                    .ConfigureAwait(false);
+
+                var jpg = Directory.GetFiles(tempDirectory, "*.jpg")
+                    .OrderBy(f => f, StringComparer.Ordinal)
+                    .FirstOrDefault();
+
+                if (string.IsNullOrEmpty(jpg) || !File.Exists(jpg))
                 {
-                    cts.Token.ThrowIfCancellationRequested();
-
-                    var offset = TimeSpan.FromSeconds(Math.Max(0, point.OffsetSeconds));
-                    var tempPath = await _imageExtractionManager
-                        .ExtractVideoImage(mediaSource, request.Path, container, protocol, videoStream, null,
-                            offset, cts.Token).ConfigureAwait(false);
-
-                    if (string.IsNullOrEmpty(tempPath) || !File.Exists(tempPath))
-                    {
-                        return FailThumbnail("Frame extraction failed at " +
-                                             offset.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "s");
-                    }
-
-                    try
-                    {
-                        var bytes = await _fileSystem.ReadAllBytesAsync(tempPath, cts.Token).ConfigureAwait(false);
-
-                        if (bytes.Length == 0)
-                        {
-                            return FailThumbnail("Frame extraction returned an empty image");
-                        }
-
-                        images.Add(new DistributedThumbnailImage
-                        {
-                            StartPositionTicks = point.StartPositionTicks,
-                            Data = Convert.ToBase64String(bytes)
-                        });
-                    }
-                    finally
-                    {
-                        try
-                        {
-                            File.Delete(tempPath);
-                        }
-                        catch
-                        {
-                            // ignored
-                        }
-                    }
+                    return FailThumbnail("Frame extraction failed at " +
+                                         request.TimeSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "s");
                 }
 
-                _logger?.Debug("DistributedExtract - Worker extracted " + images.Count + " frame(s) from " +
-                               request.Path);
+                var bytes = await _fileSystem.ReadAllBytesAsync(jpg, cts.Token).ConfigureAwait(false);
+
+                if (!IsValidJpeg(bytes))
+                {
+                    return FailThumbnail("Frame extraction returned an invalid image");
+                }
+
+                _logger?.Debug("DistributedExtract - Worker extracted one frame (" + bytes.Length + " bytes) from " +
+                               fullPath);
 
                 return new DistributedThumbnailResponse
                 {
                     Success = true,
-                    Images = images,
+                    Data = Convert.ToBase64String(bytes),
                     NodeName = Plugin.Instance?.Name,
                     ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
                 };
             }
             catch (OperationCanceledException)
             {
-                return FailThumbnail("Extraction timed out after " + timeoutSeconds + " seconds");
+                return FailThumbnail("Extraction timed out after " + timeoutSeconds + " seconds", "timeout");
             }
             catch (Exception e)
             {
@@ -941,6 +1024,17 @@ namespace StrmAssistant.Common
                               " - " + e.Message);
                 _logger?.Debug(e.StackTrace);
                 return FailThumbnail(e.Message);
+            }
+            finally
+            {
+                try
+                {
+                    if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory, true);
+                }
+                catch
+                {
+                    // ignored
+                }
             }
         }
 
@@ -1524,37 +1618,10 @@ namespace StrmAssistant.Common
             _itemRepository.SaveChapters(item.InternalId, true, merged);
         }
 
-        private bool TryApplyChapterImages(Video item, List<DistributedThumbnailPoint> points,
-            List<ChapterInfo> chapters, DistributedThumbnailResponse response)
+        private bool TryApplyChapterImageBytes(Video item, List<ChapterInfo> chapters,
+            Dictionary<long, byte[]> frames)
         {
-            var images = response?.Images;
-
-            if (images is null || images.Count != points.Count) return false;
-
-            var decoded = new List<KeyValuePair<long, byte[]>>();
-
-            foreach (var point in points)
-            {
-                var image = images.FirstOrDefault(i =>
-                    i.StartPositionTicks == point.StartPositionTicks && !string.IsNullOrEmpty(i.Data));
-
-                if (image is null) return false;
-
-                byte[] bytes;
-
-                try
-                {
-                    bytes = Convert.FromBase64String(image.Data);
-                }
-                catch (FormatException)
-                {
-                    return false;
-                }
-
-                if (bytes.Length < 4) return false;
-
-                decoded.Add(new KeyValuePair<long, byte[]>(point.StartPositionTicks, bytes));
-            }
+            if (frames is null || frames.Count == 0) return false;
 
             var chaptersPath = Path.Combine(item.GetInternalMetadataPath(), "chapters");
             _fileSystem.CreateDirectory(chaptersPath);
@@ -1573,7 +1640,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            foreach (var pair in decoded)
+            foreach (var pair in frames)
             {
                 var imagePath = GetChapterImagePath(item, pair.Key);
                 var tempPath = imagePath + ".tmp";
@@ -1844,6 +1911,28 @@ namespace StrmAssistant.Common
             return TryNormalizeAllowedMediaPath(path, out _);
         }
 
+        private bool TryResolveAllowedMediaFile(string path, out string fullPath)
+        {
+            fullPath = null;
+
+            if (string.IsNullOrWhiteSpace(path)) return false;
+
+            if (path.IndexOf('"') >= 0 || path.IndexOf('\r') >= 0 || path.IndexOf('\n') >= 0 ||
+                path.IndexOf('\0') >= 0)
+            {
+                return false;
+            }
+
+            if (IsRejectedMediaPath(path) || !TryNormalizeAllowedMediaPath(path, out var normalized) ||
+                Directory.Exists(normalized) || IsDiscFolderPath(normalized) || !File.Exists(normalized))
+            {
+                return false;
+            }
+
+            fullPath = normalized;
+            return true;
+        }
+
         private bool TryNormalizeAllowedMediaPath(string path, out string fullPath)
         {
             fullPath = null;
@@ -1913,6 +2002,12 @@ namespace StrmAssistant.Common
         {
             _logger?.Info("DistributedExtract - Media info fallback (" + GetFallbackReasonCode(reason) + "): " +
                           item?.Name + " - " + item?.Path);
+        }
+
+        private void LogDistributionFallback(string operation, BaseItem item, MediaInfoFallbackReason reason)
+        {
+            _logger?.Info("DistributedExtract - " + operation + " fallback (" + GetFallbackReasonCode(reason) +
+                          "): " + item?.Name + " - " + item?.Path);
         }
 
         private static string GetFallbackReasonCode(MediaInfoFallbackReason reason)
@@ -2018,9 +2113,9 @@ namespace StrmAssistant.Common
             return new DistributedMediaInfoResponse { Success = false, Error = error, ErrorCode = errorCode };
         }
 
-        private static DistributedThumbnailResponse FailThumbnail(string error)
+        private static DistributedThumbnailResponse FailThumbnail(string error, string errorCode = "worker_error")
         {
-            return new DistributedThumbnailResponse { Success = false, Error = error };
+            return new DistributedThumbnailResponse { Success = false, Error = error, ErrorCode = errorCode };
         }
 
         private static DistributedFingerprintResponse FailFingerprint(string error)

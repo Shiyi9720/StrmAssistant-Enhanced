@@ -1,12 +1,12 @@
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Services;
-using System.Collections.Generic;
 
 namespace StrmAssistant.Web.Api
 {
     /// <summary>
     /// Worker node endpoint used by distributed chapter image extraction. The request carries no
-    /// Emby user token; it is authenticated with the shared key configured on every node.
+    /// Emby user token; it is authenticated with the shared key configured on every node. Only a
+    /// local media file inside one of the worker's library roots is accepted.
     /// </summary>
     [Route("/StrmAssistant/DistributedExtract/Thumbnail", "POST")]
     [Unauthenticated]
@@ -14,38 +14,17 @@ namespace StrmAssistant.Web.Api
     {
         public string ApiKey { get; set; }
 
-        /// <summary>Media path (or URL) as seen by the worker node.</summary>
+        /// <summary>Local video path as seen by the worker node.</summary>
         public string Path { get; set; }
 
-        /// <summary>File or Http (Emby also uses Http for https URLs).</summary>
-        public string Protocol { get; set; }
+        /// <summary>Frame position in the media, in seconds.</summary>
+        public double TimeSeconds { get; set; }
 
-        public string Container { get; set; }
-
-        public string Name { get; set; }
-
-        /// <summary>Frames to extract. The worker returns one JPEG per point.</summary>
-        public List<DistributedThumbnailPoint> Points { get; set; } = new List<DistributedThumbnailPoint>();
+        /// <summary>Maximum output width in pixels. 0 keeps the source width.</summary>
+        public int Width { get; set; }
 
         /// <summary>Maximum time the worker may spend extracting.</summary>
         public int TimeoutSeconds { get; set; }
-    }
-
-    public class DistributedThumbnailPoint
-    {
-        /// <summary>Chapter start position, used by the master to match the returned frame.</summary>
-        public long StartPositionTicks { get; set; }
-
-        /// <summary>Frame position in the media, already resolved by the master.</summary>
-        public double OffsetSeconds { get; set; }
-    }
-
-    public class DistributedThumbnailImage
-    {
-        public long StartPositionTicks { get; set; }
-
-        /// <summary>Base64 encoded JPEG frame.</summary>
-        public string Data { get; set; }
     }
 
     public class DistributedThumbnailResponse
@@ -54,8 +33,14 @@ namespace StrmAssistant.Web.Api
 
         public string Error { get; set; }
 
-        public List<DistributedThumbnailImage> Images { get; set; } =
-            new List<DistributedThumbnailImage>();
+        /// <summary>
+        /// Stable reason code used by the master to distinguish a timeout, a worker failure and a
+        /// path rejection. Known values include path_not_allowed, timeout and worker_error.
+        /// </summary>
+        public string ErrorCode { get; set; }
+
+        /// <summary>Base64 encoded JPEG frame.</summary>
+        public string Data { get; set; }
 
         public string NodeName { get; set; }
 
