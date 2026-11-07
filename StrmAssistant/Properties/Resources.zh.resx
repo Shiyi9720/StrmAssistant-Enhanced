@@ -1629,7 +1629,7 @@
     <value>从豆瓣补充剧集缺失的季/集信息。不覆盖已有值。默认关闭。</value>
   </data>
   <data name="Plugin_Name" xml:space="preserve">
-    <value>神医助手</value>
+    <value>Strm 助手</value>
   </data>
   <data name="Plugin_Description" xml:space="preserve">
     <value>媒体信息提取、片头跳过与元数据增强</value>
