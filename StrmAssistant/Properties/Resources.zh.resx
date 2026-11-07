@@ -1647,7 +1647,7 @@
     <value>启用本地元数据源</value>
   </data>
   <data name="PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_" xml:space="preserve">
-    <value>使用被动缓存和覆盖缓存构建本地 TMDB 元数据源。默认关闭。</value>
+    <value>使用被动缓存和覆盖缓存构建本地 TMDB 元数据源。tags.json 自定义标签需要启用此选项。默认关闭。</value>
   </data>
   <data name="PluginOptions_LocalMetadataRoot_Metadata_Root_Directory" xml:space="preserve">
     <value>元数据根目录</value>
