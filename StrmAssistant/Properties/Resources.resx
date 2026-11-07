@@ -1724,4 +1724,40 @@
   <data name="DoubanCacheOptions_EditorTitle_Douban_Cache_Prebuild" xml:space="preserve">
     <value>Douban Cache Prebuild</value>
   </data>
+  <data name="PluginOptions_EnableLocalMetadataSource_Enable_Local_Metadata_Source" xml:space="preserve">
+    <value>Enable Local Metadata Source</value>
+  </data>
+  <data name="PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_" xml:space="preserve">
+    <value>Build a local TMDB metadata source with passive cache and override cache. Default is OFF.</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataRoot_Metadata_Root_Directory" xml:space="preserve">
+    <value>Metadata Root Directory</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataRoot_Path_of_the_metadata_root_directory__cache_and_override_subdirectories_are_created_automatically__Default_is_EMPTY_" xml:space="preserve">
+    <value>Path of the metadata root directory. cache/ and override/ subdirectories are created automatically. Default is EMPTY.</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataMode_Metadata_Source_Mode" xml:space="preserve">
+    <value>Metadata Source Mode</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataMode_Cache_First_reads_override_then_passive_cache_then_online__Online_With_Cache_reads_override_then_online_and_only_writes_the_passive_cache__Override_Only_reads_override_then_online__Off_disables_the_local_source__Default_is_Cache_First_" xml:space="preserve">
+    <value>Cache First reads override, then passive cache, then online. Online With Cache reads override, then online, and only writes the passive cache. Override Only reads override, then online. Off disables the local source. Default is Cache First.</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataAutoRefreshImages_Automatically_Cache_Images" xml:space="preserve">
+    <value>Automatically Cache Images</value>
+  </data>
+  <data name="PluginOptions_LocalMetadataAutoRefreshImages_Download_TMDB_images_into_the_passive_cache_images_subdirectory__Default_is_ON_" xml:space="preserve">
+    <value>Download TMDB images into the passive cache images/ subdirectory. Default is ON.</value>
+  </data>
+  <data name="LocalMetadataMode_CacheFirst_Cache_First" xml:space="preserve">
+    <value>Cache First</value>
+  </data>
+  <data name="LocalMetadataMode_OnlineWithCache_Online_Scrape_And_Cache" xml:space="preserve">
+    <value>Online Scrape And Cache</value>
+  </data>
+  <data name="LocalMetadataMode_OverrideOnly_Override_Cache_Only" xml:space="preserve">
+    <value>Override Cache Only</value>
+  </data>
+  <data name="LocalMetadataMode_Off_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
 </root>

@@ -191,6 +191,15 @@ namespace StrmAssistant.Common
                 : source.ImageRoot.TrimEnd('/') + "/t/p/";
         }
 
+        public static string GetEffectiveImageDownloadRoot()
+        {
+            var source = GetEffectiveSource();
+
+            return string.IsNullOrEmpty(source?.ImageRoot)
+                ? DefaultMovieDbImageRoot.TrimEnd('/') + "/t/p/"
+                : source.ImageRoot.TrimEnd('/') + "/t/p/";
+        }
+
         private static string GetDefaultApiKey()
         {
             if (_defaultApiKey != null) return _defaultApiKey;
@@ -700,6 +709,7 @@ namespace StrmAssistant.Common
             public bool ConvertSimplifiedToTraditional { get; set; }
             public string OriginalLanguageCacheKey { get; set; }
             public string CacheableUrl { get; set; }
+            public LocalMetadataSource.LocalMetadataTarget LocalMetadataTarget { get; set; }
         }
 
         private static string GetOriginalLanguageCacheKey(string url)
@@ -729,6 +739,7 @@ namespace StrmAssistant.Common
         {
             if (options is null) return null;
 
+            var localMetadataTarget = LocalMetadataSource.TryParseTarget(options.Url);
             var originalLanguageCacheKey = GetOriginalLanguageCacheKey(options.Url);
             var rewrite = RewriteUrl(options.Url);
 
@@ -744,7 +755,8 @@ namespace StrmAssistant.Common
                     rewrite.RequestedSimplifiedChinese &&
                     Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions.ConvertSimplifiedToTraditional,
                 OriginalLanguageCacheKey = originalLanguageCacheKey,
-                CacheableUrl = rewrite.IsCacheable ? rewrite.Url : null
+                CacheableUrl = rewrite.IsCacheable ? rewrite.Url : null,
+                LocalMetadataTarget = localMetadataTarget
             };
         }
 
@@ -835,6 +847,15 @@ namespace StrmAssistant.Common
                 Func<Task<HttpResponseInfo>> send, bool isGet)
             {
                 var prepared = Prepare(options);
+                var localResponse = isGet
+                    ? LocalMetadataSource.TryCreateResponse(prepared?.LocalMetadataTarget)
+                    : null;
+
+                if (localResponse != null)
+                {
+                    return await PostProcessAsync(prepared, localResponse).ConfigureAwait(false);
+                }
+
                 var cacheKey = isGet && !string.IsNullOrEmpty(prepared?.CacheableUrl)
                     ? MovieDbCache.Instance.GetKey(prepared.CacheableUrl)
                     : null;
@@ -842,7 +863,7 @@ namespace StrmAssistant.Common
                 if (!string.IsNullOrEmpty(cacheKey) &&
                     MovieDbCache.Instance.TryGet(cacheKey, false, out var cached, out _))
                 {
-                    return await PostProcessAsync(prepared, CreateCachedResponse(cached, false))
+                    return await FinalizeAsync(prepared, CreateCachedResponse(cached, false), isGet)
                         .ConfigureAwait(false);
                 }
 
@@ -850,6 +871,11 @@ namespace StrmAssistant.Common
 
                 try
                 {
+                    if (prepared != null)
+                    {
+                        LocalMetadataSource.RecordOnlineRequest();
+                    }
+
                     response = await send().ConfigureAwait(false);
                 }
                 catch (Exception e)
@@ -859,7 +885,7 @@ namespace StrmAssistant.Common
                     {
                         LogStaleFallback(prepared.CacheableUrl, e.Message);
 
-                        return await PostProcessAsync(prepared, CreateCachedResponse(stale, true))
+                        return await FinalizeAsync(prepared, CreateCachedResponse(stale, true), isGet)
                             .ConfigureAwait(false);
                     }
 
@@ -881,7 +907,7 @@ namespace StrmAssistant.Common
                         // Best effort cleanup only.
                     }
 
-                    return await PostProcessAsync(prepared, CreateCachedResponse(staleResponse, true))
+                    return await FinalizeAsync(prepared, CreateCachedResponse(staleResponse, true), isGet)
                         .ConfigureAwait(false);
                 }
 
@@ -896,7 +922,21 @@ namespace StrmAssistant.Common
                     }
                 }
 
-                return await PostProcessAsync(prepared, response).ConfigureAwait(false);
+                return await FinalizeAsync(prepared, response, isGet).ConfigureAwait(false);
+            }
+
+            private static async Task<HttpResponseInfo> FinalizeAsync(PreparedRequest prepared,
+                HttpResponseInfo response, bool capture)
+            {
+                var processed = await PostProcessAsync(prepared, response).ConfigureAwait(false);
+
+                if (capture)
+                {
+                    await LocalMetadataSource.CaptureAsync(prepared?.LocalMetadataTarget, processed)
+                        .ConfigureAwait(false);
+                }
+
+                return processed;
             }
 
             private static bool IsSuccessful(HttpResponseInfo response)

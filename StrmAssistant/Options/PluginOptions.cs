@@ -27,6 +27,25 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(IsModSuccess), SimpleCondition.IsFalse)]
         public StatusItem ModStatus { get; set; } = new StatusItem();
 
+        [DisplayNameL("PluginOptions_EnableLocalMetadataSource_Enable_Local_Metadata_Source", typeof(Resources))]
+        [DescriptionL("PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_", typeof(Resources))]
+        public bool EnableLocalMetadataSource { get; set; } = false;
+
+        [DisplayNameL("PluginOptions_LocalMetadataRoot_Metadata_Root_Directory", typeof(Resources))]
+        [DescriptionL("PluginOptions_LocalMetadataRoot_Path_of_the_metadata_root_directory__cache_and_override_subdirectories_are_created_automatically__Default_is_EMPTY_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public string LocalMetadataRoot { get; set; } = string.Empty;
+
+        [DisplayNameL("PluginOptions_LocalMetadataMode_Metadata_Source_Mode", typeof(Resources))]
+        [DescriptionL("PluginOptions_LocalMetadataMode_Cache_First_reads_override_then_passive_cache_then_online__Online_With_Cache_reads_override_then_online_and_only_writes_the_passive_cache__Override_Only_reads_override_then_online__Off_disables_the_local_source__Default_is_Cache_First_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public LocalMetadataMode LocalMetadataMode { get; set; } = LocalMetadataMode.CacheFirst;
+
+        [DisplayNameL("PluginOptions_LocalMetadataAutoRefreshImages_Automatically_Cache_Images", typeof(Resources))]
+        [DescriptionL("PluginOptions_LocalMetadataAutoRefreshImages_Download_TMDB_images_into_the_passive_cache_images_subdirectory__Default_is_ON_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool LocalMetadataAutoRefreshImages { get; set; } = true;
+
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
 

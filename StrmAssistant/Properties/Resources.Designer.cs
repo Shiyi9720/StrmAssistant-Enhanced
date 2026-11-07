@@ -4290,5 +4290,101 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("Wiki_Link", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableLocalMetadataSource_Enable_Local_Metadata_Source.
+        /// </summary>
+        public static string PluginOptions_EnableLocalMetadataSource_Enable_Local_Metadata_Source {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableLocalMetadataSource_Enable_Local_Metadata_Source", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_.
+        /// </summary>
+        public static string PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_EnableLocalMetadataSource_Build_a_local_TMDB_metadata_source_with_passive_cache_and_override_cache__Default_is_OFF_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_LocalMetadataRoot_Metadata_Root_Directory.
+        /// </summary>
+        public static string PluginOptions_LocalMetadataRoot_Metadata_Root_Directory {
+            get {
+                return ResourceManager.GetString("PluginOptions_LocalMetadataRoot_Metadata_Root_Directory", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_LocalMetadataRoot_Path_of_the_metadata_root_directory__cache_and_override_subdirectories_are_created_automatically__Default_is_EMPTY_.
+        /// </summary>
+        public static string PluginOptions_LocalMetadataRoot_Path_of_the_metadata_root_directory__cache_and_override_subdirectories_are_created_automatically__Default_is_EMPTY_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_LocalMetadataRoot_Path_of_the_metadata_root_directory__cache_and_override_subdirectories_are_created_automatically__Default_is_EMPTY_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_LocalMetadataMode_Metadata_Source_Mode.
+        /// </summary>
+        public static string PluginOptions_LocalMetadataMode_Metadata_Source_Mode {
+            get {
+                return ResourceManager.GetString("PluginOptions_LocalMetadataMode_Metadata_Source_Mode", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_LocalMetadataMode_Cache_First_reads_override_then_passive_cache_then_online__Online_With_Cache_reads_override_then_online_and_only_writes_the_passive_cache__Override_Only_reads_override_then_online__Off_disables_the_local_source__Default_is_Cache_First_.
+        /// </summary>
+        public static string PluginOptions_LocalMetadataMode_Cache_First_reads_override_then_passive_cache_then_online__Online_With_Cache_reads_override_then_online_and_only_writes_the_passive_cache__Override_Only_reads_override_then_online__Off_disables_the_local_source__Default_is_Cache_First_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_LocalMetadataMode_Cache_First_reads_override_then_passive_cache_then_online__Online_With_Cache_reads_override_then_online_and_only_writes_the_passive_cache__Override_Only_reads_override_then_online__Off_disables_the_local_source__Default_is_Cache_First_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_LocalMetadataAutoRefreshImages_Automatically_Cache_Images.
+        /// </summary>
+        public static string PluginOptions_LocalMetadataAutoRefreshImages_Automatically_Cache_Images {
+            get {
+                return ResourceManager.GetString("PluginOptions_LocalMetadataAutoRefreshImages_Automatically_Cache_Images", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to PluginOptions_LocalMetadataAutoRefreshImages_Download_TMDB_images_into_the_passive_cache_images_subdirectory__Default_is_ON_.
+        /// </summary>
+        public static string PluginOptions_LocalMetadataAutoRefreshImages_Download_TMDB_images_into_the_passive_cache_images_subdirectory__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("PluginOptions_LocalMetadataAutoRefreshImages_Download_TMDB_images_into_the_passive_cache_images_subdirectory__Default_is_ON_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to LocalMetadataMode_CacheFirst_Cache_First.
+        /// </summary>
+        public static string LocalMetadataMode_CacheFirst_Cache_First {
+            get {
+                return ResourceManager.GetString("LocalMetadataMode_CacheFirst_Cache_First", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to LocalMetadataMode_OnlineWithCache_Online_Scrape_And_Cache.
+        /// </summary>
+        public static string LocalMetadataMode_OnlineWithCache_Online_Scrape_And_Cache {
+            get {
+                return ResourceManager.GetString("LocalMetadataMode_OnlineWithCache_Online_Scrape_And_Cache", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to LocalMetadataMode_OverrideOnly_Override_Cache_Only.
+        /// </summary>
+        public static string LocalMetadataMode_OverrideOnly_Override_Cache_Only {
+            get {
+                return ResourceManager.GetString("LocalMetadataMode_OverrideOnly_Override_Cache_Only", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to LocalMetadataMode_Off_Off.
+        /// </summary>
+        public static string LocalMetadataMode_Off_Off {
+            get {
+                return ResourceManager.GetString("LocalMetadataMode_Off_Off", resourceCulture);
+            }
+        }
     }
 }
