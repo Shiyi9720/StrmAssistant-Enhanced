@@ -1272,7 +1272,7 @@ namespace StrmAssistant
                     PrimaryText = Resources.DisclaimerButtonText,
                     Icon = IconNames.privacy_tip,
                     IconMode = ItemListIconMode.SmallRegular,
-                    HyperLink = "https://github.com/sjtuross/StrmAssistant#%E5%A3%B0%E6%98%8E"
+                    HyperLink = "https://github.com/Shiyi9720/StrmAssistant-Enhanced#%E5%A3%B0%E6%98%8E"
                 });
 
             if (options.ShowConflictPluginLoadedStatus)
@@ -1479,7 +1479,7 @@ namespace StrmAssistant
                     PrimaryText = Resources.Repo_Link,
                     Icon = IconNames.code,
                     IconMode = ItemListIconMode.SmallRegular,
-                    HyperLink = "https://github.com/sjtuross/StrmAssistant",
+                    HyperLink = "https://github.com/Shiyi9720/StrmAssistant-Enhanced",
                 });
 
             options.AboutOptions.VersionInfoList.Add(
@@ -1488,7 +1488,7 @@ namespace StrmAssistant
                     PrimaryText = Resources.Wiki_Link,
                     Icon = IconNames.menu_book,
                     IconMode = ItemListIconMode.SmallRegular,
-                    HyperLink = "https://github.com/sjtuross/StrmAssistant/wiki",
+                    HyperLink = "https://github.com/Shiyi9720/StrmAssistant-Enhanced#%E8%83%BD%E5%8A%9B%E6%B8%85%E5%8D%95",
                 });
 
             var allUsers = LibraryApi.AllUsers;
