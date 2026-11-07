@@ -46,6 +46,11 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
         public bool LocalMetadataAutoRefreshImages { get; set; } = true;
 
+        [DisplayNameL("PluginOptions_EnableLocalEpisodeGroup_Enable_Local_Episode_Group", typeof(Resources))]
+        [DescriptionL("PluginOptions_EnableLocalEpisodeGroup_Map_local_season_and_episode_numbers_with_episodegroup_json_from_the_override_directory_or_the_series_directory__Missing_entries_fall_back_to_the_normal_order__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool EnableLocalEpisodeGroup { get; set; } = false;
+
         [DisplayNameL("GeneralOptions_EditorTitle_General_Options", typeof(Resources))]
         public GeneralOptions GeneralOptions { get; set; } = new GeneralOptions();
 
