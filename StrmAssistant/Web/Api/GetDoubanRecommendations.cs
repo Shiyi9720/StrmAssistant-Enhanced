@@ -32,5 +32,30 @@ namespace StrmAssistant.Web.Api
         public double? Rating { get; set; }
         public string ItemId { get; set; }
         public string ItemType { get; set; }
+        public string TrailerUrl { get; set; }
+        public string TrailerTitle { get; set; }
+        public string TrailerCoverUrl { get; set; }
+    }
+
+    [Route("/StrmAssistant/Douban/Trailer", "GET")]
+    [Authenticated]
+    public class GetDoubanTrailer : IReturn<DoubanTrailerResponse>
+    {
+        [ApiMember(Name = "DoubanId", Description = "Douban subject id", IsRequired = true,
+            DataType = "string", ParameterType = "query")]
+        public string DoubanId { get; set; }
+
+        [ApiMember(Name = "SubjectType", Description = "movie or tv", IsRequired = false,
+            DataType = "string", ParameterType = "query")]
+        public string SubjectType { get; set; }
+    }
+
+    public class DoubanTrailerResponse
+    {
+        public string DoubanId { get; set; }
+        public string TrailerUrl { get; set; }
+        public string TrailerTitle { get; set; }
+        public string CoverUrl { get; set; }
+        public string Runtime { get; set; }
     }
 }
