@@ -45,7 +45,10 @@ namespace StrmAssistant.Common
         private static readonly LruCache CelebrityCache = new LruCache(200);
         private static readonly LruCache SeasonCache = new LruCache(100);
         private static readonly LruCache RecommendationCache = new LruCache(16);
+        private static readonly LruCache TrailerCache = new LruCache(300);
         private static readonly TimeSpan RecommendationCacheTime = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan TrailerCacheTime = TimeSpan.FromHours(2);
+        private static readonly TimeSpan TrailerMissCacheTime = TimeSpan.FromMinutes(10);
 
         private static DateTime _lastRequestUtc = DateTime.MinValue;
         private static DateTime _blockedUntilUtc = DateTime.MinValue;
@@ -728,6 +731,120 @@ namespace StrmAssistant.Common
         }
 
         /// <summary>
+        /// Returns a cached trailer without touching Douban. Used by the recommendation endpoint
+        /// so a card can show its trailer immediately after it was fetched once.
+        /// </summary>
+        public DoubanTrailer GetCachedTrailer(string subjectId, string subjectType)
+        {
+            var key = GetTrailerCacheKey(subjectId, subjectType);
+
+            if (key is null || !TrailerCache.TryGetFromCache<DoubanTrailerCacheEntry>(key, out var entry))
+            {
+                return null;
+            }
+
+            var cacheTime = entry.Trailer is null ? TrailerMissCacheTime : TrailerCacheTime;
+
+            return DateTime.UtcNow - entry.CachedAt < cacheTime ? entry.Trailer : null;
+        }
+
+        /// <summary>
+        /// Fetches the first playable trailer from Douban's public mobile endpoint. The URL points
+        /// to Douban's own CDN and is only used for display; nothing is downloaded or stored.
+        /// </summary>
+        public async Task<DoubanTrailer> GetTrailerAsync(string subjectId, string subjectType,
+            CancellationToken cancellationToken)
+        {
+            var key = GetTrailerCacheKey(subjectId, subjectType);
+
+            if (key is null) return null;
+
+            var cached = GetCachedTrailer(subjectId, subjectType);
+
+            if (cached != null) return cached;
+
+            if (TrailerCache.TryGetFromCache<DoubanTrailerCacheEntry>(key, out var cachedEntry) &&
+                cachedEntry.Trailer is null &&
+                DateTime.UtcNow - cachedEntry.CachedAt < TrailerMissCacheTime)
+            {
+                return null;
+            }
+
+            var type = subjectType == "tv" ? "tv" : "movie";
+            var response = await GetJsonAsync<DoubanTrailerListResponse>(
+                DoubanApiBase + "/" + type + "/" + subjectId + "/trailers", cancellationToken)
+                .ConfigureAwait(false);
+
+            var trailers = response?.trailers?
+                .Select(ConvertTrailer)
+                .Where(trailer => trailer != null)
+                .ToList() ?? new List<DoubanTrailer>();
+
+            var trailer = trailers.FirstOrDefault(item => IsMp4(item.Url)) ?? trailers.FirstOrDefault();
+
+            TrailerCache.AddOrUpdateCache(key, new DoubanTrailerCacheEntry
+            {
+                CachedAt = DateTime.UtcNow,
+                Trailer = trailer
+            });
+
+            return trailer;
+        }
+
+        private static string GetTrailerCacheKey(string subjectId, string subjectType)
+        {
+            if (string.IsNullOrWhiteSpace(subjectId)) return null;
+
+            var id = subjectId.Trim();
+
+            if (id.Length > 20 || id.Any(character => !char.IsDigit(character))) return null;
+
+            var type = subjectType == "tv" ? "tv" : "movie";
+
+            return "trailer:" + type + ":" + id;
+        }
+
+        private static DoubanTrailer ConvertTrailer(DoubanTrailerItem item)
+        {
+            if (item is null) return null;
+
+            var url = NormalizeVideoUrl(item.video_url);
+
+            if (string.IsNullOrEmpty(url)) url = NormalizeVideoUrl(item.video?.url);
+            if (string.IsNullOrEmpty(url)) url = NormalizeVideoUrl(item.video?.video_url);
+            if (string.IsNullOrEmpty(url)) return null;
+
+            return new DoubanTrailer
+            {
+                Id = item.id,
+                Title = string.IsNullOrWhiteSpace(item.title) ? null : item.title.Trim(),
+                Url = url,
+                CoverUrl = NormalizeCoverUrl(item.cover_url),
+                Runtime = item.runtime
+            };
+        }
+
+        private static string NormalizeVideoUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return null;
+
+            url = url.Trim();
+
+            if (url.StartsWith("//", StringComparison.Ordinal)) url = "https:" + url;
+
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+                   (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                ? uri.AbsoluteUri
+                : null;
+        }
+
+        private static bool IsMp4(string url)
+        {
+            return !string.IsNullOrEmpty(url) &&
+                   url.IndexOf(".mp4", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        /// <summary>
         /// Returns Douban's hot movie list. The mobile collection endpoints are public and can
         /// rate limit or disappear; callers receive an empty list instead of an exception.
         /// </summary>
@@ -1038,6 +1155,33 @@ namespace StrmAssistant.Common
             public List<DoubanEpisode> episodes { get; set; }
         }
 
+        private class DoubanTrailerListResponse
+        {
+            public List<DoubanTrailerItem> trailers { get; set; }
+        }
+
+        private class DoubanTrailerItem
+        {
+            public string id { get; set; }
+            public string title { get; set; }
+            public string video_url { get; set; }
+            public string cover_url { get; set; }
+            public string runtime { get; set; }
+            public DoubanTrailerVideo video { get; set; }
+        }
+
+        private class DoubanTrailerVideo
+        {
+            public string url { get; set; }
+            public string video_url { get; set; }
+        }
+
+        private class DoubanTrailerCacheEntry
+        {
+            public DateTime CachedAt { get; set; }
+            public DoubanTrailer Trailer { get; set; }
+        }
+
         private class DoubanCelebrities
         {
             public List<DoubanPerson> actors { get; set; }
@@ -1145,5 +1289,14 @@ namespace StrmAssistant.Common
         public string CoverUrl { get; set; }
         public string Subtitle { get; set; }
         public double? Rating { get; set; }
+    }
+
+    public class DoubanTrailer
+    {
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public string Url { get; set; }
+        public string CoverUrl { get; set; }
+        public string Runtime { get; set; }
     }
 }
