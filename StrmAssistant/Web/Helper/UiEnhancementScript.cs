@@ -74,6 +74,7 @@ namespace StrmAssistant.Web.Helper
             return @"
 (function () {
     'use strict';
+    try {
     var labels = {
         check: '@@CHECK@@', checking: '@@CHECKING@@', upToDate: '@@UPTODATE@@',
         downloading: '@@DOWNLOADING@@', needRestart: '@@NEEDRESTART@@', failed: '@@FAILED@@'
@@ -260,8 +261,15 @@ namespace StrmAssistant.Web.Helper
     }
 
     window.addEventListener('hashchange', schedule);
-    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    if (document.body) {
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    } else {
+        document.addEventListener('DOMContentLoaded', schedule);
+    }
     schedule();
+    } catch (e) {
+        if (window.console && console.warn) console.warn('[StrmAssistant] update widget skipped:', e);
+    }
 })();
 "
                 .Replace("@@CHECK@@", check)
