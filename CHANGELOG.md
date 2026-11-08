@@ -1,5 +1,18 @@
 # 更新日志
 
+## 1.0.4 — 待发布
+
+**修复（重要，1.0.3 请勿使用）**
+
+- 首页一直转圈：注入的前端脚本以 Emby 的 `shortcuts.js` 模块形式下发，模块内抛异常会让依赖它的 `emby-itemscontainer` 拿到 `undefined`（报 `Cannot read properties of undefined (reading 'default')`），整个首页渲染卡死。现整段注入代码加 try/catch 与 DOM 就绪保护，异常只输出一条 warn
+- 插件加载失败（设置页 500、插件列表消失）：片头探测的「用户范围」被写成用户 GUID（如 `612d58eb…`），而代码用 `long.Parse` 解析，抛 `FormatException` 导致插件构造失败。现改为字符串比较，且任何解析异常都不再中断插件启动
+- 顺带清空受影响的 `UserScope` 配置并关闭被意外打开的片头探测
+
+**说明**
+
+- `v1.0.3` 存在上述两个问题，已在 Release 页标注，请升级到 1.0.4
+
+
 ## 1.0.3 — 待发布
 
 **修复**
