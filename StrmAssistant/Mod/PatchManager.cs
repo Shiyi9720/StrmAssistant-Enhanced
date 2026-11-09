@@ -47,6 +47,12 @@ namespace StrmAssistant.Mod
         public static ExclusiveExtract ExclusiveExtract;
 
         /// <summary>
+        /// Lets Emby's marker pipeline treat .strm episodes inside the IntroSkip scope as intro
+        /// detection candidates; independent of the exclusive-extract ffprobe hooks.
+        /// </summary>
+        public static IntroDetectionForShortcut IntroDetectionForShortcut;
+
+        /// <summary>
         /// False when Harmony is loaded but cannot actually install detours on this runtime
         /// (or when the mandatory ffprobe patches could not be applied). Every exclusive
         /// feature is then reported as unavailable instead of silently doing nothing.
@@ -86,6 +92,10 @@ namespace StrmAssistant.Mod
             // HarmonySelfTest() records the precise failure reason (engine unavailable vs. the
             // detour silently having no effect) before returning false.
             if (!HarmonySelfTest()) return;
+
+            // Applied before ExclusiveExtract on purpose: this hook does not depend on the
+            // exclusive-extract ffprobe patches, so it must survive their failure.
+            IntroDetectionForShortcut = new IntroDetectionForShortcut();
 
             ExclusiveExtract = new ExclusiveExtract();
         }

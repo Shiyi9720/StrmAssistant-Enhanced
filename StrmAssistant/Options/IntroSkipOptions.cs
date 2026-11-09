@@ -145,12 +145,7 @@ namespace StrmAssistant.Options
         [EditMultilSelect]
         [SelectItemsSource(nameof(MarkerEnabledLibraryList))]
         [VisibleCondition(nameof(UnlockIntroSkip), SimpleCondition.IsTrue)]
-        [Browsable(false)]
-        public string MarkerEnabledLibraryScope
-        {
-            get => string.Empty;
-            set { }
-        }
+        public string MarkerEnabledLibraryScope { get; set; } = string.Empty;
 
         [DisplayNameL("PluginOptions_EnableIntroSkip_Enable_Intro_Skip__Experimental_", typeof(Resources))]
         [DescriptionL("PluginOptions_EnableIntroSkip_Enable_intro_skip_and_credits_skip_for_episodes__Default_is_False_", typeof(Resources))]
@@ -173,6 +168,27 @@ namespace StrmAssistant.Options
         [Required]
         [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
         public int MinOpeningPlotDurationSeconds { get; set; } = 60;
+
+        [DisplayNameL("IntroSkipOptions_IntroMarkerMinDurationSeconds_Intro_Marker_Min_Duration_Seconds", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_IntroMarkerMinDurationSeconds_Detected_intro_markers_shorter_than_this_are_discarded_as_false_positives__Default_is_5_", typeof(Resources))]
+        [MinValue(1), MaxValue(120)]
+        [Required]
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
+        public int IntroMarkerMinDurationSeconds { get; set; } = 5;
+
+        [DisplayNameL("IntroSkipOptions_IntroMarkerMaxDurationSeconds_Intro_Marker_Max_Duration_Seconds", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_IntroMarkerMaxDurationSeconds_Detected_intro_markers_longer_than_this_are_trimmed_to_this_length__Default_is_600_", typeof(Resources))]
+        [MinValue(10), MaxValue(1800)]
+        [Required]
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
+        public int IntroMarkerMaxDurationSeconds { get; set; } = 600;
+
+        [DisplayNameL("IntroSkipOptions_IntroMarkerPaddingSeconds_Intro_Marker_Padding_Seconds", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_IntroMarkerPaddingSeconds_Seconds_added_before_and_after_each_detected_intro_marker_as_a_safety_margin__Default_is_0_", typeof(Resources))]
+        [MinValue(0), MaxValue(60)]
+        [Required]
+        [VisibleCondition(nameof(EnableIntroSkip), SimpleCondition.IsTrue)]
+        public int IntroMarkerPaddingSeconds { get; set; } = 0;
 
         [DisplayNameL("IntroDbOptions_EditorTitle_IntroDb", typeof(Resources))]
         public IntroDbOptions IntroDbOptions { get; set; } = new IntroDbOptions();

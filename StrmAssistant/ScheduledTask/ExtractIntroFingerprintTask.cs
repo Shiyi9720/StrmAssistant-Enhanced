@@ -161,10 +161,25 @@ namespace StrmAssistant.ScheduledTask
                             {
                                 if (!mediaInfoRestoreMode)
                                 {
-                                    result2 = await Plugin.FingerprintApi
-                                        .CreateTitleFingerprint(taskEpisode, directoryService, cancellationToken,
-                                            distributionStats)
-                                        .ConfigureAwait(false);
+                                    try
+                                    {
+                                        result2 = await Plugin.FingerprintApi
+                                            .CreateTitleFingerprint(taskEpisode, directoryService, cancellationToken,
+                                                distributionStats)
+                                            .ConfigureAwait(false);
+                                    }
+                                    catch (OperationCanceledException)
+                                    {
+                                        throw;
+                                    }
+                                    catch (Exception)
+                                    {
+                                        // Emby's CreateTitleFingerprint throws when ffmpeg fails or no
+                                        // fingerprint can be produced. Record it the way Emby's
+                                        // OnFailedToFindIntro does, so later runs skip this episode.
+                                        Plugin.FingerprintApi.LogIntroDetectionFailure(taskEpisode);
+                                        throw;
+                                    }
                                 }
                                 else
                                 {
