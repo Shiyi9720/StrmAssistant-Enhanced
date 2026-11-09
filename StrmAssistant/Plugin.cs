@@ -113,7 +113,11 @@ namespace StrmAssistant
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
         private bool _currentAutoMarkPreviousEpisodesPlayed;
+        private bool _currentBeautifyMissingMetadata;
+        private bool _currentEnhanceMissingEpisodes;
+        private bool _currentNoBoxsetsAutoCreation;
         private bool _currentMergeMultiVersion;
+        private bool _currentDeepDelete;
         private bool _currentNewLibraryMovieDb;
         private bool _currentPreferTraditionalChinese;
         private bool _currentEnableAltMovieDbUrl;
@@ -260,7 +264,11 @@ namespace StrmAssistant
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
             _currentAutoMarkPreviousEpisodesPlayed =
                 GetOptions().ExperienceEnhanceOptions.AutoMarkPreviousEpisodesPlayed;
+            _currentBeautifyMissingMetadata = GetOptions().ExperienceEnhanceOptions.BeautifyMissingMetadata;
+            _currentEnhanceMissingEpisodes = GetOptions().ExperienceEnhanceOptions.EnhanceMissingEpisodes;
+            _currentNoBoxsetsAutoCreation = GetOptions().ExperienceEnhanceOptions.NoBoxsetsAutoCreation;
             _currentMergeMultiVersion = GetOptions().ExperienceEnhanceOptions.MergeMultiVersion;
+            _currentDeepDelete = GetOptions().GeneralOptions.DeepDelete;
             _currentNewLibraryMovieDb = GetOptions().MetadataEnhanceOptions.NewLibraryMovieDb;
             _currentPreferTraditionalChinese = GetOptions().MetadataEnhanceOptions.PreferTraditionalChinese;
             _currentEnableAltMovieDbUrl = GetOptions().MetadataEnhanceOptions.EnableAltMovieDbUrl;
@@ -305,6 +313,7 @@ namespace StrmAssistant
             SubtitleApi = new SubtitleApi(libraryManager, fileSystem, mediaProbeManager, localizationManager,
                 itemRepository);
             LocalEpisodeGroup.Initialize(libraryManager, jsonSerializer);
+            RemoteEpisodeGroup.Initialize(libraryManager, jsonSerializer, _httpClient, Logger);
             LocalMetadataSource.Initialize(Logger, _jsonSerializer, ProxyApi.Wrap(_httpClient));
             LocalMetadataTagService.Initialize(libraryManager, jsonSerializer);
             OverrideImageService.Initialize(libraryManager, providerManager, jsonSerializer);
@@ -362,6 +371,12 @@ namespace StrmAssistant
             // Initialize() also decides whether the mod is usable at all (Harmony self-test and the
             // mandatory ffprobe hooks); IsModSupported reflects that result from here on.
             PatchManager.Initialize();
+
+            // Optional patches are only constructed when the option is on, so a default
+            // installation performs no extra reflection lookups and installs no detours.
+            if (_currentBeautifyMissingMetadata) new BeautifyMissingMetadata();
+            if (_currentEnhanceMissingEpisodes) new EnhanceMissingEpisodes();
+            if (_currentNoBoxsetsAutoCreation) new NoBoxsetsAutoCreation();
 
             // Loads the persisted index or builds it in the background after startup has settled.
             SearchIndexService.Initialize();
@@ -794,6 +809,14 @@ namespace StrmAssistant
                 options.GeneralOptions.CatchupTaskScope = string.Join(",", selectedTasks);
             }
 
+            var mergeSeriesPreference = options.ExperienceEnhanceOptions.MergeSeriesPreference;
+
+            if (!Enum.IsDefined(typeof(ExperienceEnhanceOptions.MergeSeriesScopeOption), mergeSeriesPreference))
+            {
+                options.ExperienceEnhanceOptions.MergeSeriesPreference =
+                    ExperienceEnhanceOptions.MergeSeriesScopeOption.LibraryScope;
+            }
+
             options.MediaInfoExtractOptions.LibraryScope = string.Join(",",
                 options.MediaInfoExtractOptions.LibraryScope
                     ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -835,6 +858,29 @@ namespace StrmAssistant
                     pinyinSortOptions.LibraryScope
                         ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                         .Where(v => pinyinSortLibraryList.Any(option => option.Value == v)) ??
+                    Enumerable.Empty<string>());
+            }
+
+            var episodeGroupOptions = options.MetadataEnhanceOptions;
+            var episodeGroupLibraryList = episodeGroupOptions?.LibraryList;
+
+            if (episodeGroupLibraryList != null)
+            {
+                episodeGroupOptions.EpisodeGroupLibraryScope = string.Join(",",
+                    episodeGroupOptions.EpisodeGroupLibraryScope
+                        ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(v => episodeGroupLibraryList.Any(option => option.Value == v)) ??
+                    Enumerable.Empty<string>());
+            }
+
+            var beautifyLibraryList = options.ExperienceEnhanceOptions.BeautifyMissingMetadataLibraryList;
+
+            if (beautifyLibraryList != null)
+            {
+                options.ExperienceEnhanceOptions.BeautifyMissingMetadataLibraryScope = string.Join(",",
+                    options.ExperienceEnhanceOptions.BeautifyMissingMetadataLibraryScope
+                        ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Where(v => beautifyLibraryList.Any(option => option.Value == v)) ??
                     Enumerable.Empty<string>());
             }
 
@@ -959,6 +1005,8 @@ namespace StrmAssistant
                 Logger.Info("CropPortraitScreenshots is set to {0}",
                     options.MediaInfoExtractOptions.CropPortraitScreenshots);
                 Logger.Info("DetectHdrVivid is set to {0}", options.MediaInfoExtractOptions.DetectHdrVivid);
+                Logger.Info("EnableImageCapture is set to {0}",
+                    options.MediaInfoExtractOptions.EnableImageCapture);
                 Logger.Info("EnableDvP7LayerBadge is set to {0}",
                     options.MediaInfoExtractOptions.EnableDvP7LayerBadge);
                 Logger.Info("ScreenshotQuality is set to {0}", options.MediaInfoExtractOptions.ScreenshotQuality);
@@ -1031,6 +1079,12 @@ namespace StrmAssistant
                 Logger.Info("MaxIntroDurationSeconds is set to {0}", options.IntroSkipOptions.MaxIntroDurationSeconds);
                 Logger.Info("MaxCreditsDurationSeconds is set to {0}", options.IntroSkipOptions.MaxCreditsDurationSeconds);
                 Logger.Info("MinOpeningPlotDurationSeconds is set to {0}", options.IntroSkipOptions.MinOpeningPlotDurationSeconds);
+                Logger.Info("IntroMarkerMinDurationSeconds is set to {0}",
+                    options.IntroSkipOptions.IntroMarkerMinDurationSeconds);
+                Logger.Info("IntroMarkerMaxDurationSeconds is set to {0}",
+                    options.IntroSkipOptions.IntroMarkerMaxDurationSeconds);
+                Logger.Info("IntroMarkerPaddingSeconds is set to {0}",
+                    options.IntroSkipOptions.IntroMarkerPaddingSeconds);
             }
             var enableIntroSkip = options.IntroSkipOptions.EnableIntroSkip;
             var autoMarkPreviousEpisodesPlayed = options.ExperienceEnhanceOptions.AutoMarkPreviousEpisodesPlayed;
@@ -1113,6 +1167,8 @@ namespace StrmAssistant
                 Logger.Info("MergeMultiVersion is set to {0}", options.ExperienceEnhanceOptions.MergeMultiVersion);
                 Logger.Info("MergeMoviesPreference is set to {0}",
                     EnumExtensions.GetDescription(options.ExperienceEnhanceOptions.MergeMoviesPreference));
+                Logger.Info("MergeSeriesPreference is set to {0}",
+                    EnumExtensions.GetDescription(options.ExperienceEnhanceOptions.MergeSeriesPreference));
                 Logger.Info("MaxMultiVersionMergeCount is set to {0}",
                     options.GeneralOptions.MaxMultiVersionMergeCount);
                 Logger.Info("AutoMarkPreviousEpisodesPlayed is set to {0}",
@@ -1126,8 +1182,37 @@ namespace StrmAssistant
                     options.ExperienceEnhanceOptions.LogNewestFirst);
                 Logger.Info("MultiSelectActions is set to {0}",
                     options.ExperienceEnhanceOptions.MultiSelectActions);
+                Logger.Info("HidePersonNoImage is set to {0}",
+                    options.ExperienceEnhanceOptions.HidePersonNoImage);
+                Logger.Info("HideSearchSuggestions is set to {0}",
+                    options.SearchOptions.HideSearchSuggestions);
+                Logger.Info("SuppressPluginUpdates is set to {0}",
+                    options.ExperienceEnhanceOptions.SuppressPluginUpdates);
+                Logger.Info("DeepDelete is set to {0}", options.GeneralOptions.DeepDelete);
+                Logger.Info("BeautifyMissingMetadata is set to {0}",
+                    options.ExperienceEnhanceOptions.BeautifyMissingMetadata);
+                Logger.Info("BeautifyMissingMetadataLibraryScope is set to {0}",
+                    string.IsNullOrEmpty(options.ExperienceEnhanceOptions.BeautifyMissingMetadataLibraryScope)
+                        ? "ALL"
+                        : options.ExperienceEnhanceOptions.BeautifyMissingMetadataLibraryScope);
+                Logger.Info("EnhanceMissingEpisodes is set to {0}",
+                    options.ExperienceEnhanceOptions.EnhanceMissingEpisodes);
+                Logger.Info("NoBoxsetsAutoCreation is set to {0}",
+                    options.ExperienceEnhanceOptions.NoBoxsetsAutoCreation);
             }
-            _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
+            if (_currentMergeMultiVersion != options.ExperienceEnhanceOptions.MergeMultiVersion)
+            {
+                _currentMergeMultiVersion = options.ExperienceEnhanceOptions.MergeMultiVersion;
+
+                if (_currentMergeMultiVersion)
+                {
+                    PatchManager.UnlockMultiVersionLimit?.Patch();
+                }
+                else
+                {
+                    PatchManager.UnlockMultiVersionLimit?.Unpatch();
+                }
+            }
 
             if (!suppress)
             {
@@ -1174,6 +1259,12 @@ namespace StrmAssistant
                     options.MetadataEnhanceOptions.MovieDbCacheTtlDays);
                 Logger.Info("MovieDbCacheMaxSizeMb is set to {0}",
                     options.MetadataEnhanceOptions.MovieDbCacheMaxSizeMb);
+                Logger.Info("MovieDbEpisodeGroup is set to {0}",
+                    options.MetadataEnhanceOptions.MovieDbEpisodeGroup);
+                Logger.Info("EpisodeGroupLibraryScope is set to {0}",
+                    string.IsNullOrWhiteSpace(options.MetadataEnhanceOptions.EpisodeGroupLibraryScope)
+                        ? "ALL"
+                        : options.MetadataEnhanceOptions.EpisodeGroupLibraryScope);
                 Logger.Info("EnableLocalMetadataSource is set to {0}",
                     options.EnableLocalMetadataSource);
                 Logger.Info("LocalMetadataRoot is set to {0}",
@@ -1254,6 +1345,74 @@ namespace StrmAssistant
                 else
                 {
                     PatchManager.ExclusiveExtract?.Unpatch();
+                }
+            }
+
+            if (_currentBeautifyMissingMetadata != options.ExperienceEnhanceOptions.BeautifyMissingMetadata)
+            {
+                _currentBeautifyMissingMetadata = options.ExperienceEnhanceOptions.BeautifyMissingMetadata;
+
+                if (_currentBeautifyMissingMetadata)
+                {
+                    if (BeautifyMissingMetadata.Instance is null) _ = new BeautifyMissingMetadata();
+                    else BeautifyMissingMetadata.Instance.Patch();
+                }
+                else
+                {
+                    BeautifyMissingMetadata.Instance?.Unpatch();
+                }
+            }
+
+            if (_currentEnhanceMissingEpisodes != options.ExperienceEnhanceOptions.EnhanceMissingEpisodes)
+            {
+                _currentEnhanceMissingEpisodes = options.ExperienceEnhanceOptions.EnhanceMissingEpisodes;
+
+                if (_currentEnhanceMissingEpisodes)
+                {
+                    if (EnhanceMissingEpisodes.Instance is null) _ = new EnhanceMissingEpisodes();
+                    else EnhanceMissingEpisodes.Instance.Patch();
+                }
+                else
+                {
+                    EnhanceMissingEpisodes.Instance?.Unpatch();
+                }
+            }
+
+            if (_currentNoBoxsetsAutoCreation != options.ExperienceEnhanceOptions.NoBoxsetsAutoCreation)
+            {
+                _currentNoBoxsetsAutoCreation = options.ExperienceEnhanceOptions.NoBoxsetsAutoCreation;
+
+                if (_currentNoBoxsetsAutoCreation)
+                {
+                    if (NoBoxsetsAutoCreation.Instance is null) _ = new NoBoxsetsAutoCreation();
+                    else NoBoxsetsAutoCreation.Instance.Patch();
+                }
+                else
+                {
+                    NoBoxsetsAutoCreation.Instance?.Unpatch();
+                }
+            }
+
+            if (!IsModSupported && options.GeneralOptions.DeepDelete)
+            {
+                // Deep Delete is a Harmony-only feature; do not leave it enabled when the
+                // hook could not be installed.
+                options.GeneralOptions.DeepDelete = false;
+                Logger.Warn("DeepDelete is unavailable ({0}); the option was turned off",
+                    PatchManager.ModFailureReason);
+            }
+
+            if (_currentDeepDelete != options.GeneralOptions.DeepDelete)
+            {
+                _currentDeepDelete = options.GeneralOptions.DeepDelete;
+
+                if (_currentDeepDelete)
+                {
+                    PatchManager.DeepDelete?.Patch();
+                }
+                else
+                {
+                    PatchManager.DeepDelete?.Unpatch();
                 }
             }
 
@@ -1375,6 +1534,8 @@ namespace StrmAssistant
                 options.ExperienceEnhanceOptions.PinyinSortOptions.LibraryList =
                     list.Where(option => option.Value != "-1").ToList();
             }
+            options.MetadataEnhanceOptions.LibraryList = listShow;
+            options.ExperienceEnhanceOptions.BeautifyMissingMetadataLibraryList = listShow;
             options.IntroSkipOptions.LibraryList = listShow;
             options.IntroSkipOptions.MarkerEnabledLibraryList = listMarkerEnabled;
             // per-library fingerprint overrides are hidden from the UI (see IntroSkipOptions)
