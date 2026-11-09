@@ -50,11 +50,8 @@ namespace StrmAssistant.Common
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private static DateTime _lastRequestUtc = DateTime.MinValue;
-        // Set after a transport level failure so that an unreachable service does not add a
-        // timeout to every single episode of a season. The two sources trip independently, so a
-        // failure of the primary does not stop the fallback from being queried.
-        private static DateTime _unavailableUntilUtc = DateTime.MinValue;
-        private static DateTime _secondaryUnavailableUntilUtc = DateTime.MinValue;
+        // Backoff is kept per source so that a failure of the primary does not stop the
+        // fallback from being queried.
 
         private enum SegmentSource
         {
@@ -510,9 +507,13 @@ namespace StrmAssistant.Common
 
                 await using var contentStream = response.Content;
 
-                return source == SegmentSource.Primary
+                var entry = source == SegmentSource.Primary
                     ? ParsePrimary(_jsonSerializer.DeserializeFromStream<IntroDbSegments>(contentStream))
                     : ParseSecondary(_jsonSerializer.DeserializeFromStream<TheIntroDbMedia>(contentStream));
+
+                SourceBackoff.ReportSuccess(BackoffKey(source));
+
+                return entry;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -564,21 +565,17 @@ namespace StrmAssistant.Common
 
         private static DateTime GetUnavailableUntil(SegmentSource source)
         {
-            return source == SegmentSource.Primary ? _unavailableUntilUtc : _secondaryUnavailableUntilUtc;
+            return SourceBackoff.UnavailableUntil(BackoffKey(source)) ?? DateTime.MinValue;
+        }
+
+        private static string BackoffKey(SegmentSource source)
+        {
+            return "introdb:" + source;
         }
 
         private static void SetUnavailable(SegmentSource source)
         {
-            var until = DateTime.UtcNow.AddMinutes(2);
-
-            if (source == SegmentSource.Primary)
-            {
-                _unavailableUntilUtc = until;
-            }
-            else
-            {
-                _secondaryUnavailableUntilUtc = until;
-            }
+            SourceBackoff.ReportFailure(BackoffKey(source));
         }
 
         private static IntroDbCacheEntry ParsePrimary(IntroDbSegments segments)
