@@ -73,18 +73,20 @@ namespace StrmAssistant.IntroSkip
 
         public void UpdateUsersInScope()
         {
-            var userIds = Plugin.Instance.GetPluginOptions().IntroSkipOptions.UserScope
-                ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(long.Parse).ToArray();
+            // Emby 的用户 Id 是 GUID 字符串，不是数字；这里按字符串比较，
+            // 并且绝不因为配置里出现非数字内容而抛异常（否则插件整个起不来）。
+            var scopeIds = Plugin.Instance.GetPluginOptions().IntroSkipOptions.UserScope
+                ?.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .Where(p => p.Length > 0)
+                .ToArray();
 
-            var userQuery = new UserQuery
+            if (scopeIds != null && scopeIds.Length > 0)
             {
-                IsDisabled = false
-            };
-
-            if (userIds != null && userIds.Any())
-            {
-                userQuery.UserIds = userIds;
-                UsersInScope = _userManager.GetUserList(userQuery);
+                UsersInScope = _userManager.GetUserList(new UserQuery { IsDisabled = false })
+                    .Where(u => scopeIds.Any(id => string.Equals(id, u.Id.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                                                   string.Equals(id, u.InternalId.ToString(), StringComparison.OrdinalIgnoreCase)))
+                    .ToArray();
             }
             else
             {

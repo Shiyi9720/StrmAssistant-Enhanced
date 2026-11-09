@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
 	<!-- 
 		Microsoft ResX Schema
@@ -21,10 +21,8 @@
 		<data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
 		<data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
 			[base64 mime encoded serialized .NET Framework object]
-		</data>
 		<data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
 			[base64 mime encoded string representing a byte array form of the .NET Framework object]
-		</data>
 
 		There are any number of "resheader" rows that contain simple 
 		name/value pairs.
@@ -363,10 +361,10 @@
     <value>Exclusive MediaInfo Extract is unavailable: {0}. The option is disabled and Emby's native extraction is used instead.</value>
   </data>
   <data name="Repo_Link" xml:space="preserve">
-    <value>Repo Link</value>
+    <value>GitHub</value>
   </data>
   <data name="Wiki_Link" xml:space="preserve">
-    <value>Wiki Link</value>
+    <value>Features</value>
   </data>
   <data name="AboutOptions_EditorTitle_About" xml:space="preserve">
     <value>About</value>
@@ -1888,5 +1886,26 @@
   </data>
   <data name="IntroSkipOptions_IntroMarkerPaddingSeconds_Seconds_added_before_and_after_each_detected_intro_marker_as_a_safety_margin__Default_is_0_" xml:space="preserve">
     <value>Seconds added before and after each detected intro marker as a safety margin. Default is 0.</value>
+  </data>
+  <data name="Update_Check_Button" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="Update_Checking" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="Update_UpToDate" xml:space="preserve">
+    <value>Already up to date</value>
+  </data>
+  <data name="Update_Done" xml:space="preserve">
+    <value>Check finished (current %s). Restart Emby if a new version was downloaded.</value>
+  </data>
+  <data name="Update_Failed" xml:space="preserve">
+    <value>Update check failed</value>
+  </data>
+  <data name="Update_Downloading" xml:space="preserve">
+    <value>A new version found, downloading...</value>
+  </data>
+  <data name="Update_NeedRestart" xml:space="preserve">
+    <value>New version downloaded. Restart Emby to apply.</value>
   </data>
 </root>

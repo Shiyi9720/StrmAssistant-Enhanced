@@ -1,0 +1,49 @@
+[
+  {
+    "guid": "63c322b7-a371-41a3-b11f-04f8418b37d8",
+    "name": "Strm 助手（社区版增强）",
+    "description": "面向 STRM 媒体库与中文环境的 Emby 增强插件：媒体信息提取与持久化、中文搜索（拼音/繁简）、本地 TMDB 元数据源、豆瓣补全、多版本管理、片头片尾、字幕与体验增强。非官方构建，仅支持 Emby 4.10.2（4.10.2.0）。",
+    "overview": "STRM 媒体库与中文环境增强：媒体信息、中文搜索、本地元数据源、豆瓣、多版本、片头片尾。",
+    "owner": "Shiyi9720",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
+    "versions": [
+      {
+        "version": "1.0.4",
+        "changelog": "**修复（重要，1.0.3 请勿使用）**\n\n- 首页一直转圈：注入的前端脚本以 Emby 的 `shortcuts.js` 模块形式下发，模块内抛异常会让依赖它的 `emby-itemscontainer` 拿到 `undefined`（报 `Cannot read properties of undefined (reading 'default')`），整个首页渲染卡死。现整段注入代码加 try/catch 与 DOM 就绪保护，异常只输出一条 warn\n- 插件加载失败（设置页 500、插件列表消失）：片头探测的「用户范围」被写成用户 GUID（如 `612d58eb…`），而代码用 `long.Parse` 解析，抛 `FormatException` 导致插件构造失败。现改为字符串比较，且任何解析异常都不再中断插件启动\n- 顺带清空受影响的 `UserScope` 配置并关闭被意外打开的片头探测\n\n**说明**\n\n- `v1.0.3` 存在上述两个问题，已在 Release 页标注，请升级到 1.0.4",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.4/StrmAssistant-1.0.4.zip",
+        "checksum": "68E187356F9D9DADE76F1F21CB1A885F",
+        "timestamp": "2026-11-08T08:27:22Z",
+        "dependencies": []
+      },
+      {
+        "version": "1.0.3",
+        "changelog": "**修复**\n\n- 「检查更新」按钮的提示与实际行为不一致：原来任务执行完就显示「已是最新版本」，但实际可能刚下载了新版本（需重启才生效）。现在先查 GitHub 最新版本再决定动作：\n  - 无新版本 → 「已是最新版本 (x.y.z)」，不触发下载\n  - 有新版本 → 「发现新版本，正在下载…」→ 完成后提示「已下载新版本，请重启 Emby 生效」",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.3/StrmAssistant-1.0.3.zip",
+        "checksum": "C8035A1DBD10DC2B29EBCAF27A6DB578",
+        "timestamp": "2026-11-07T10:01:31Z",
+        "dependencies": []
+      },
+      {
+        "version": "1.0.2",
+        "changelog": "**新增**\n\n- 插件设置页左下角新增「检查更新」按钮：点击后直接触发内置的 `Update Plugin` 任务，轮询任务状态并显示结果（已是最新版本 / 已更新请重启 / 失败原因），不必再去「计划任务」里手动找\n\n- 关于区版本行只显示版本号（如 `v1.0.2`），两处入口文案缩短为「GitHub」「功能说明」，避免窄屏被截断\n- 版本显示简化为 `v1.0.1 · Emby 4.10.2`，不再输出内部构建标记与提交哈希\n\n**说明**\n\n- 仅在「设置 → 高级 → Strm 助手」页面显示，不影响其他页面\n- 按钮调用的是同一个更新任务，逻辑与自动检查一致（比较仓库 Release，下载主 DLL）\n\n\n\n版本号即插件在「设置 → 插件」中显示的版本；升级可用插件内置的计划任务 `Update Plugin`，或手动替换 DLL。",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.2/StrmAssistant-1.0.2.zip",
+        "checksum": "7B50CDAC7E005759EFDAD93C3C9BCB7E",
+        "timestamp": "2026-11-07T09:52:47Z",
+        "dependencies": []
+      },
+      {
+        "version": "1.0.1",
+        "changelog": "首个公开构建。\n\n- Emby 4.10.2 适配（程序集 4.10.2.0）\n- 中文本地化（简体/繁体），插件列表与设置页显示中文名\n- 中文搜索：拼音全拼/首字母、繁简互搜、别名与演员检索、分级排序、索引重建任务\n- 本地 TMDB 元数据源：cache/override 四模式、episodegroup.json、override 图片自动刷入、tags.json 自定义标签、统一内容分级、自定义特别篇顺序\n- 豆瓣辅助：简介/海报/演员导演/季集补全、推荐频道、预告片、评分角标、缓存预构建\n- 多版本：智能排序、跨库版本进度与收藏分离、库条目角标、剧集总集数\n- 媒体信息：ISO/BDMV 提取、DVD IFO 章节、DV P7 双层检测（MEL/FEL）、HDR Vivid、Atmos/DTS:X、截图比例矫正、自定义 ffmpeg\n- 片头片尾、字幕与外挂音轨扫描、通知与体验增强若干项\n- 修复：插件显示名为中文后 User-Agent 非 ASCII 导致外部 HTTP 请求失败",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.1/StrmAssistant-1.0.1.zip",
+        "checksum": "16949FD91030467858612DEF0E4B75A9",
+        "timestamp": "2026-11-07T17:15:00Z",
+        "dependencies": []
+      }
+    ]
+  }
+]

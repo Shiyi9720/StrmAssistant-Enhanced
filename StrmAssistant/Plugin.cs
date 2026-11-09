@@ -1825,22 +1825,19 @@ namespace StrmAssistant
             }
         }
 
+        /// <summary>
+        /// 关于区显示的版本行。只展示干净的「版本 + 适配的 Emby 版本」，不再输出内部构建标记与提交哈希。
+        /// </summary>
         private static string GetVersionHash()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            var informationalVersion = assembly
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            var version = assembly.GetName().Version;
+            var text = version == null ? "?" : version.ToString();
 
-            var fullVersion = assembly.GetName().Version?.ToString();
+            if (text.EndsWith(".0.0")) text = text.Substring(0, text.Length - 4);
+            else if (text.EndsWith(".0")) text = text.Substring(0, text.Length - 2);
 
-            if (informationalVersion != null)
-            {
-                var parts = informationalVersion.Split('+');
-                var shortCommitHash = parts.Length > 1 ? parts[1].Substring(0, 7) : "n/a";
-                return $"{fullVersion}+{shortCommitHash}";
-            }
-
-            return fullVersion;
+            return $"v{text}";
         }
     }
 }

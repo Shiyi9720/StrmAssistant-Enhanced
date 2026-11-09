@@ -80,6 +80,22 @@
 
 设置文件为 `Strm Assistant.json`，从旧版本升级不会丢配置；回滚只需还原备份的 DLL 再重启。
 
+### 更新方式
+
+1. **插件内置更新**（推荐）：计划任务里的 `Update Plugin` 会检查本仓库的 Release，发现新版本时自动下载主程序并提示重启。默认每周运行一次，也可在任务列表里手动触发。
+2. **手动更新**：从 [Releases](https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases) 下载完整包，覆盖插件目录后重启。
+
+> 自动更新只替换主 DLL。若新版本改动了依赖或中文资源，Release 说明会注明「请下载完整包」。
+
+### 关于 manifest.json
+
+仓库根目录的 `manifest.json` 是插件清单（版本、下载地址、校验值），供自动化工具使用。**Emby 4.10 本身不支持添加第三方插件源**，安装与更新请按上面的两种方式。
+
+### 反馈问题
+
+请用 [Issue 模板](https://github.com/Shiyi9720/StrmAssistant-Enhanced/issues/new/choose) 提交，并附：Emby 版本、插件版本、复现步骤、`docker logs emby 2>&1 | grep -iE "strm|error|exception" | tail -50` 的输出、设置页截图。
+
+
 ## 常用设置位置
 
 - 插件开关：**设置 → 高级 → Strm 助手**
