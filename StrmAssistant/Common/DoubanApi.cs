@@ -51,7 +51,7 @@ namespace StrmAssistant.Common
         private static readonly TimeSpan TrailerMissCacheTime = TimeSpan.FromMinutes(10);
 
         private static DateTime _lastRequestUtc = DateTime.MinValue;
-        private static DateTime _blockedUntilUtc = DateTime.MinValue;
+        private const string BackoffKey = "douban";
 
         private readonly ILogger _logger;
         private readonly IHttpClient _httpClient;
@@ -980,7 +980,7 @@ namespace StrmAssistant.Common
             {
                 await WaitForRateLimitAsync(cancellationToken).ConfigureAwait(false);
 
-                if (DateTime.UtcNow < _blockedUntilUtc)
+                if (SourceBackoff.ShouldSkip(BackoffKey))
                 {
                     _logger?.Debug("DoubanSupplement - Temporarily blocked, skipping request");
                     return null;
@@ -1004,10 +1004,11 @@ namespace StrmAssistant.Common
                     response.StatusCode == (HttpStatusCode)418 ||
                     response.StatusCode == (HttpStatusCode)429)
                 {
-                    // Douban has flagged us. Back off for a while instead of retrying.
-                    _blockedUntilUtc = DateTime.UtcNow.AddMinutes(10);
+                    // Douban has flagged us. Back off instead of retrying, longer on every repeat.
+                    SourceBackoff.ReportFailure(BackoffKey);
                     _logger?.Info("DoubanSupplement - Request blocked with " + (int)response.StatusCode +
-                                 ", pausing for 10 minutes");
+                                 ", pausing until " +
+                                 SourceBackoff.UnavailableUntil(BackoffKey)?.ToString("yyyy-MM-dd HH:mm") + " UTC");
                     return null;
                 }
 
@@ -1015,7 +1016,11 @@ namespace StrmAssistant.Common
 
                 await using var contentStream = response.Content;
 
-                return _jsonSerializer.DeserializeFromStream<T>(contentStream);
+                var result = _jsonSerializer.DeserializeFromStream<T>(contentStream);
+
+                SourceBackoff.ReportSuccess(BackoffKey);
+
+                return result;
             }
             catch (OperationCanceledException)
             {

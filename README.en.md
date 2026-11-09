@@ -53,12 +53,19 @@ An unofficial plugin build for **Emby Server 4.10.2**, continuing from the commu
 
 Settings live in `Strm Assistant.json`; upgrading from an older version keeps your configuration. Roll back by restoring the backed-up DLL and restarting.
 
-## Known limitations
+## Scope and known limitations
+
+### By design (not defects)
+
+- Emby's transcoding pipeline is not intercepted: the plugin only does media info extraction, playback-chain enhancements and intro/credit marking
+- Cover capture only fills gaps: a frame is extracted only when an item still has no primary image, and existing posters are never overwritten; off by default
+- Every enhancement is off by default: an upgrade changes nothing until you enable it
+
+### Known limitations
 
 - Native watch progress is shared per TMDB id; per-version and cross-library resume is tracked by the plugin, and may drift on some clients
-- Emby's transcoding pipeline is not intercepted
-- Dolby Vision P7 layer detection needs a static ffprobe 9, downloaded automatically on first use (~30 MB); unavailable in fully offline setups without a manually placed binary or configured path
-- Douban, IntroDB and OpenSubtitles are third-party services; rate limits or API changes may disable those features temporarily
+- Dolby Vision P7 layer detection needs a static ffprobe 9 (Emby's bundled 5.1 lacks `-show_stream_groups`): the plugin prefers `bin/ffprobe` in its data folder, `/config/bin/ffprobe`, or the path configured in settings, and only then tries to download (~15 MB zip / 36 MB binary); unavailable in fully offline setups without a manually placed binary
+- Douban, IntroDB and OpenSubtitles are third-party services; rate limits or API changes may disable those features temporarily. Consecutive failures back off progressively (10 min → 30 min → 2 h → 6 h) and reset on success
 
 ## Notice
 
