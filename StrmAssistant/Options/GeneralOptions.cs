@@ -50,6 +50,10 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(CatchupMode), SimpleCondition.IsTrue)]
         public bool EnableFavoriteCatchupPriority { get; set; } = true;
 
+        [DisplayNameL("GeneralOptions_DeepDelete_Deep_Delete", typeof(Resources))]
+        [DescriptionL("GeneralOptions_DeepDelete_Delete_the_source_media_file_or_remote_URL_pointed_to_by_a_strm_file_when_the_item_is_deleted_from_Emby__Default_is_OFF_", typeof(Resources))]
+        public bool DeepDelete { get; set; } = false;
+
         [DisplayNameL("PluginOptions_MaxConcurrentCount_Max_Concurrent_Count", typeof(Resources))]
         [DescriptionL("PluginOptions_MaxConcurrentCount_Max_Concurrent_Count_must_be_between_1_to_10__Default_is_1_", typeof(Resources))]
         [Required, MinValue(1), MaxValue(20)]

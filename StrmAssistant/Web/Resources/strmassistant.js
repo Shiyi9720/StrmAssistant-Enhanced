@@ -204,6 +204,41 @@
             }
         },
 
+        splitMultiVersion: function (itemId, itemName) {
+            const state = window.strmAssistantSplitMultiVersion || {};
+            const name = state.name || 'Split Multi-Version';
+            const confirmText = (state.confirm ||
+                'Split all versions of "{0}" into independent movies? No files are moved or deleted.')
+                .replace('{0}', itemName);
+            const successText = state.success || 'Split Multi-Version Success';
+            const failureText = state.failure || 'Split Multi-Version Failed';
+
+            return confirm({
+                text: confirmText,
+                title: name,
+                confirmText: name,
+                primary: 'cancel'
+            }).then(function () {
+                loading.show();
+
+                let apiClient = connectionManager.currentApiClient();
+
+                return apiClient.ajax({
+                    type: 'POST',
+                    url: apiClient.getUrl(`Items/${itemId}/SplitMultiVersion`),
+                    data: {},
+                    contentType: 'application/json'
+                }).then(function () {
+                    toast(successText);
+                    setTimeout(function () { window.location.reload(); }, 800);
+                }, function () {
+                    toast(failureText);
+                }).finally(function () {
+                    loading.hide();
+                });
+            }, function () { });
+        },
+
         lock: function (itemId, lockData) {
             let apiClient = connectionManager.currentApiClient();
             let lockApi = apiClient.getUrl(`Items/${itemId}/Lock`);

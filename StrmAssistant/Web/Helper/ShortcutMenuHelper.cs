@@ -24,7 +24,41 @@ namespace StrmAssistant.Web.Helper
         {
             return (_shortcutsJs ?? string.Empty) + (_injectShortcutCommand ?? string.Empty) +
                    GetHiddenBoxSetsStateScript() + GetIntroRedetectStateScript() +
-                   UiEnhancementScript.Get();
+                   GetSplitMultiVersionStateScript() + UiEnhancementScript.Get();
+        }
+
+        /// <summary>
+        /// Publishes the localized texts of the "Split Multi-Version" shortcut command. Built per
+        /// request so the option and the server culture are always up to date.
+        /// </summary>
+        private static string GetSplitMultiVersionStateScript()
+        {
+            var enabled = Plugin.Instance?.GetPluginOptions()?.ExperienceEnhanceOptions
+                ?.MergeMultiVersion ?? false;
+
+            var builder = new StringBuilder();
+            builder.Append("\nwindow.strmAssistantSplitMultiVersion = {");
+            builder.Append("enabled: ").Append(enabled ? "true" : "false").Append(", ");
+            builder.Append("name: '")
+                .Append(UiEnhancementScript.JsString(
+                    "SplitMultiVersion_CommandName_Split_Multi_Version", "Split Multi-Version"))
+                .Append("', ");
+            builder.Append("confirm: '")
+                .Append(UiEnhancementScript.JsString(
+                    "SplitMultiVersion_Confirm_Split_all_versions_of__0__into_independent_movies__No_files_are_moved_or_deleted__Continue_",
+                    "Split all versions of \"{0}\" into independent movies? No files are moved or deleted."))
+                .Append("', ");
+            builder.Append("success: '")
+                .Append(UiEnhancementScript.JsString(
+                    "SplitMultiVersion_Success_Split_Multi_Version_Success", "Split Multi-Version Success"))
+                .Append("', ");
+            builder.Append("failure: '")
+                .Append(UiEnhancementScript.JsString(
+                    "SplitMultiVersion_Failed_Split_Multi_Version_Failed", "Split Multi-Version Failed"))
+                .Append("'");
+            builder.Append("};\n");
+
+            return builder.ToString();
         }
 
         /// <summary>
@@ -168,6 +202,16 @@ const strmAssistantCommandSource = {
                     icon: 'remove'
                 });
             }
+            if (options.items[0].Type === 'Movie' &&
+                window.strmAssistantSplitMultiVersion && window.strmAssistantSplitMultiVersion.enabled &&
+                options.items[0].MediaSources && options.items[0].MediaSources.length > 1 &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                result.push({
+                    name: window.strmAssistantSplitMultiVersion.name,
+                    id: 'split_multi_version',
+                    icon: 'call_split'
+                });
+            }
             if (options.items[0].hasOwnProperty('LockData') && options.items[0].Type !== 'CollectionFolder' &&
                 (options.user && options.user.Policy.IsAdministrator || false)) {
                 if (options.items[0].LockData) {
@@ -252,7 +296,8 @@ const strmAssistantCommandSource = {
             redetect_intro: 'redetect_intro',
             clear_chapter_images: 'clear_chapter_images',
             clear_bif: 'clear_bif',
-            clear_media_info: 'clear_media_info'
+            clear_media_info: 'clear_media_info',
+            split_multi_version: 'splitMultiVersion'
         };
         if (command.startsWith('delver_')) {
             const mediaSourceId = command.replace('delver_', '');
