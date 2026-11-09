@@ -10,15 +10,11 @@ namespace StrmAssistant.Options
 {
     /// <summary>
     /// Settings of the Douban rating cache prebuild task. This section is mounted under
-    /// MetadataEnhanceOptions next to the existing Douban options (see the integration diff in
-    /// the batch report). Until the mount is applied it is not editable in the UI and the task
-    /// stays disabled.
+    /// MetadataEnhanceOptions next to the existing Douban options.
     /// </summary>
     public class DoubanCacheOptions : EditableOptionsBase
     {
-        // The mount lives in MetadataEnhanceOptions, a file owned by another work stream. Read it
-        // by name so this branch builds and runs both before and after the mount is merged; after
-        // the merge callers can switch to a direct property access.
+        // The mount is MetadataEnhanceOptions.DoubanCacheOptions.
         private const string MountPropertyName = "DoubanCacheOptions";
 
         private static DoubanCacheOptions _defaultOptions;
@@ -63,7 +59,7 @@ namespace StrmAssistant.Options
         }
 
         /// <summary>
-        /// Returns the live settings section, or defaults when the mount has not been merged yet.
+        /// Returns the live settings section, or defaults when the plugin options are unavailable.
         /// </summary>
         internal static DoubanCacheOptions GetEffective()
         {
