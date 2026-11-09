@@ -133,6 +133,8 @@ namespace StrmAssistant.Common
 
             if (string.IsNullOrEmpty(exePath)) return false;
 
+            inputPath = StrmUrlHelper.Normalize(inputPath);
+
             var seconds = Math.Max(0, offset.TotalSeconds).ToString("0.###", CultureInfo.InvariantCulture);
 
             var filter = LibplaceboFilter;

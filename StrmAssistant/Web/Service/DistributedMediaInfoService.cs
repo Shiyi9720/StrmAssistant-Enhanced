@@ -1,4 +1,5 @@
 using MediaBrowser.Controller.Api;
+using StrmAssistant.Common;
 using StrmAssistant.Web.Api;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,8 @@ namespace StrmAssistant.Web.Service
 
         private static async Task<object> HandleAsync(DistributedMediaInfoRequest request)
         {
+            if (request != null) request.Path = StrmUrlHelper.Normalize(request.Path);
+
             var api = Plugin.DistributedExtractApi;
 
             if (api is null)

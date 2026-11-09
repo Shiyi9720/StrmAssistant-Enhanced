@@ -115,7 +115,9 @@ namespace StrmAssistant.Common
                 path = ReadShortcutTarget(path);
             }
 
-            return !string.IsNullOrEmpty(path) && CustomFfprobeApi.IsRemoteUrl(path) ? path : null;
+            return !string.IsNullOrEmpty(path) && CustomFfprobeApi.IsRemoteUrl(path)
+                ? StrmUrlHelper.Normalize(path)
+                : null;
         }
 
         /// <summary>
@@ -133,7 +135,7 @@ namespace StrmAssistant.Common
 
                     if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) continue;
 
-                    return value;
+                    return StrmUrlHelper.Normalize(value);
                 }
             }
             catch (Exception e)
@@ -233,6 +235,8 @@ namespace StrmAssistant.Common
         private async Task<(string Source, string DiscPath, MediaInfo MediaInfo)> ResolveRemoteProbeAsync(
             BaseItem item, string url, CancellationToken cancellationToken)
         {
+            url = StrmUrlHelper.Normalize(url);
+
             if (IsoApi.IsIsoPath(url))
             {
                 // A static ffprobe can open the image through its bluray protocol, including the
@@ -298,6 +302,8 @@ namespace StrmAssistant.Common
         private Task<MediaInfo> ProbeWithEmbyAsync(BaseItem item, string path, MediaProtocol protocol,
             CancellationToken cancellationToken)
         {
+            path = StrmUrlHelper.Normalize(path);
+
             var mediaSource = new MediaSourceInfo
             {
                 Path = path,

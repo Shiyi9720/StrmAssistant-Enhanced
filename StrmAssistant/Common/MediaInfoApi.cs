@@ -165,6 +165,14 @@ namespace StrmAssistant.Common
                 ? GetStaticMediaSourcesByApi(item, enableAlternateMediaSources, options)
                 : GetStaticMediaSourcesByRef(item, enableAlternateMediaSources, options);
 
+            if (mediaSources != null)
+            {
+                foreach (var mediaSource in mediaSources)
+                {
+                    mediaSource.Path = StrmUrlHelper.Normalize(mediaSource.Path);
+                }
+            }
+
             if (SubtitleBlacklist.IsConfigured && mediaSources != null)
             {
                 foreach (var mediaSource in mediaSources)
@@ -270,6 +278,17 @@ namespace StrmAssistant.Common
 
             if (string.IsNullOrEmpty(inputPath)) return false;
 
+            if (LibraryApi.IsFileShortcut(inputPath) && video.IsShortcut)
+            {
+                var mountedPath = await Plugin.LibraryApi.GetStrmMountPath(inputPath).ConfigureAwait(false);
+
+                if (!string.IsNullOrEmpty(mountedPath)) inputPath = mountedPath;
+            }
+
+            inputPath = StrmUrlHelper.Normalize(inputPath);
+
+            if (string.IsNullOrEmpty(inputPath)) return false;
+
             var detected = await DetectHdrVividCoreAsync(inputPath, cancellationToken).ConfigureAwait(false);
 
             if (!detected) return false;
@@ -287,6 +306,8 @@ namespace StrmAssistant.Common
 
         internal static string BuildHdrVividProbeArguments(string inputPath)
         {
+            inputPath = StrmUrlHelper.Normalize(inputPath);
+
             return "-hide_banner -loglevel error -select_streams v:0 -read_intervals %+#1 " +
                    "-show_entries frame=side_data_list -of default=noprint_wrappers=1 " +
                    $"\"{inputPath}\"";
@@ -302,6 +323,8 @@ namespace StrmAssistant.Common
 
         private async Task<bool> DetectHdrVividCoreAsync(string inputPath, CancellationToken cancellationToken)
         {
+            inputPath = StrmUrlHelper.Normalize(inputPath);
+
             // Optional distributed detection: the worker only answers whether the first video
             // frame carries HDR Vivid metadata. A null result means it could not handle the
             // request, so the local ffprobe below stays the fallback.

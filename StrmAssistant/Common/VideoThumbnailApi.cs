@@ -102,6 +102,11 @@ namespace StrmAssistant.Common
                 ? item.GetMediaSources(false, false, libraryOptions).FirstOrDefault()
                 : null;
 
+            if (mediaSource != null)
+            {
+                mediaSource.Path = StrmUrlHelper.Normalize(mediaSource.Path);
+            }
+
             // Distributed extraction only replaces the chapter image path. Libraries that use
             // BIF thumbnail sets, or items that already carry a local thumbnail set, keep using
             // Emby's generator. Any distributed failure silently falls through to it as well.
@@ -135,6 +140,8 @@ namespace StrmAssistant.Common
                     }
                 }
 
+                distributedMediaPath = StrmUrlHelper.Normalize(distributedMediaPath);
+
                 if (!string.IsNullOrEmpty(distributedMediaPath) &&
                     await Plugin.DistributedExtractApi
                         .TryExtractChapterImagesAsync(item, distributedMediaPath, chapters, cancellationToken,
@@ -160,8 +167,16 @@ namespace StrmAssistant.Common
                     cancellationToken
                 };
 
-            var result = await ((Task<bool>)_refreshThumbnailImages.Invoke(_thumbnailGenerator, parameters))
-                .ConfigureAwait(false);
+            var task = _refreshThumbnailImages.Invoke(_thumbnailGenerator, parameters) as Task;
+
+            if (task is null)
+            {
+                _logger?.Debug("VideoThumbnailApi - RefreshThumbnailImages returned no task");
+                return false;
+            }
+
+            var resultObject = await ReflectionTaskHelper.AwaitAsObject(task).ConfigureAwait(false);
+            var result = resultObject is bool extracted && extracted;
 
             if (result)
             {
@@ -297,11 +312,34 @@ namespace StrmAssistant.Common
             // check is deferred until a remote attempt has failed.
             if (!distributedEnabled && !DvP5Screenshot.IsAvailable(_ffmpegManager)) return;
 
-            var inputPath = mediaSource?.Path;
+            var inputPath = StrmUrlHelper.Normalize(mediaSource?.Path);
 
-            if (string.IsNullOrEmpty(inputPath) || !File.Exists(inputPath)) inputPath = item.Path;
+            if (string.IsNullOrEmpty(inputPath) ||
+                !File.Exists(inputPath) && !CustomFfprobeApi.IsHttpUrl(inputPath))
+            {
+                inputPath = item.Path;
 
-            if (string.IsNullOrEmpty(inputPath) || !File.Exists(inputPath))
+                if (item.IsShortcut)
+                {
+                    try
+                    {
+                        var mountedPath = await Plugin.LibraryApi.GetStrmMountPath(inputPath)
+                            .ConfigureAwait(false);
+
+                        if (!string.IsNullOrEmpty(mountedPath)) inputPath = mountedPath;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger?.Debug("DvP5Screenshot - Failed to resolve shortcut: " + item.Path + " - " +
+                                       e.Message);
+                    }
+                }
+            }
+
+            inputPath = StrmUrlHelper.Normalize(inputPath);
+
+            if (string.IsNullOrEmpty(inputPath) ||
+                !File.Exists(inputPath) && !CustomFfprobeApi.IsHttpUrl(inputPath))
             {
                 _logger?.Warn("DvP5Screenshot - Media file not found: " + item.Path);
                 return;

@@ -63,6 +63,8 @@ namespace StrmAssistant.Common
         {
             try
             {
+                source = StrmUrlHelper.Normalize(source);
+
                 if (CustomFfprobeApi.IsHttpUrl(source))
                 {
                     return HttpRangeStream.TryGetLength(source) ?? 0;
@@ -177,6 +179,8 @@ namespace StrmAssistant.Common
         public static async Task<string> ExtractAsync(string isoPath, IProgress<double> progress,
             CancellationToken cancellationToken)
         {
+            isoPath = StrmUrlHelper.Normalize(isoPath);
+
             if (!CanReadSource(isoPath)) return null;
 
             var job = Jobs.GetOrAdd(isoPath, path => new ExtractionJob(path));
@@ -227,6 +231,8 @@ namespace StrmAssistant.Common
 
         private static string ExtractCore(string isoPath)
         {
+            isoPath = StrmUrlHelper.Normalize(isoPath);
+
             var remote = CustomFfprobeApi.IsHttpUrl(isoPath);
             var length = GetSourceLength(isoPath);
             var lastWriteTicks = 0L;
@@ -350,12 +356,12 @@ namespace StrmAssistant.Common
 
             public HttpRangeStream(string url, long length)
             {
-                _url = url;
+                _url = StrmUrlHelper.Normalize(url);
                 _httpClient = Plugin.Instance?.HttpClient;
 
                 if (_httpClient is null) throw new IOException("HttpClient is not available");
 
-                _length = length > 0 ? length : TryGetLength(url) ?? -1;
+                _length = length > 0 ? length : TryGetLength(_url) ?? -1;
 
                 if (_length <= 0) throw new IOException("Unable to determine image size: " + url);
             }
@@ -521,6 +527,8 @@ namespace StrmAssistant.Common
 
             internal static long? TryGetLength(string url)
             {
+                url = StrmUrlHelper.Normalize(url);
+
                 var httpClient = Plugin.Instance?.HttpClient;
 
                 if (httpClient is null) return null;

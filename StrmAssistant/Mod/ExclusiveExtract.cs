@@ -232,12 +232,6 @@ namespace StrmAssistant.Mod
         [HarmonyPrefix]
         private static bool GetInputArgumentPrefix(ref string input, MediaProtocol protocol, ref string __result)
         {
-            if (protocol == MediaProtocol.Http)
-            {
-                __result = string.Format(CultureInfo.InvariantCulture, "\"{0}\"", input);
-                return false;
-            }
-
             if (LibraryApi.IsFileShortcut(input))
             {
                 var inputPath = input;
@@ -246,6 +240,17 @@ namespace StrmAssistant.Mod
                 {
                     input = mountPath;
                 }
+            }
+
+            // Every Emby ffmpeg/ffprobe invocation funnels through GetInputArgument. Normalize
+            // here as well so a mounted .strm URL is encoded exactly once, and an HTTP URL that
+            // reaches this method directly (media source path) is safe to pass as one argv.
+            input = StrmUrlHelper.Normalize(input);
+
+            if (protocol == MediaProtocol.Http || CustomFfprobeApi.IsHttpUrl(input))
+            {
+                __result = string.Format(CultureInfo.InvariantCulture, "\"{0}\"", input);
+                return false;
             }
 
             return true;
