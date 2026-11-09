@@ -45,6 +45,8 @@ namespace StrmAssistant.Mod
         public static readonly List<PatchTracker> PatchTrackerList = new List<PatchTracker>();
 
         public static ExclusiveExtract ExclusiveExtract;
+        public static DeepDelete DeepDelete;
+        public static UnlockMultiVersionLimit UnlockMultiVersionLimit;
 
         /// <summary>
         /// Lets Emby's marker pipeline treat .strm episodes inside the IntroSkip scope as intro
@@ -98,6 +100,8 @@ namespace StrmAssistant.Mod
             IntroDetectionForShortcut = new IntroDetectionForShortcut();
 
             ExclusiveExtract = new ExclusiveExtract();
+            DeepDelete = new DeepDelete();
+            UnlockMultiVersionLimit = new UnlockMultiVersionLimit();
         }
 
         public static bool IsPatched(MethodBase methodInfo, Type type)

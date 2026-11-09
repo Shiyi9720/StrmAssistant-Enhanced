@@ -103,6 +103,41 @@ namespace StrmAssistant.Web.Service
             }
         }
 
+        public void Any(SplitMultiVersion request)
+        {
+            if (Plugin.Instance.GetPluginOptions().ExperienceEnhanceOptions.MergeMultiVersion != true) return;
+
+            var user = GetUserForRequest(null);
+
+            if (user != null && !user.Policy.IsAdministrator) return;
+
+            var item = _libraryManager.GetItemById(request.Id);
+
+            if (!(item is Movie movie) || !(movie is Video video)) return;
+
+            var alternateVersionIds = video.GetAlternateVersionIds();
+
+            if (alternateVersionIds.Count == 0) return;
+
+            var versions = new[] { movie.InternalId }.Concat(alternateVersionIds)
+                .Select(id => _libraryManager.GetItemById(id))
+                .Where(i => i != null)
+                .ToList();
+
+            _logger?.Info("SplitMultiVersion - Splitting group: " +
+                          string.Join(", ", versions.Select(v => v.Name ?? v.InternalId.ToString())));
+
+            // Emby's SplitItems only resets PresentationUniqueKey on every version and saves the
+            // items. Nothing is moved or deleted, which is exactly what a strm library needs:
+            // each version keeps its own strm file and metadata and becomes a separate entry.
+            _libraryManager.SplitItems(movie);
+
+            foreach (var version in versions)
+            {
+                _logger?.Info($"SplitMultiVersion - Movie split: {version.Name} - {version.Path}");
+            }
+        }
+
         private List<BaseItem> GetSeasonEpisodesSameVersion(Episode episode)
         {
             var seasonFolderChildren = episode.Parent.GetItemList(new InternalItemsQuery
