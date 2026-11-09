@@ -517,13 +517,23 @@ namespace StrmAssistant.Common
             return filename.Replace("_", string.Empty).Replace(" ", string.Empty);
         }
 
-        private Task<bool> UpdateExternalSubtitleStream(BaseItem item,
+        private async Task<bool> UpdateExternalSubtitleStream(BaseItem item,
             MediaStream stream, MetadataRefreshOptions options, CancellationToken cancellationToken)
         {
             var libraryOptions = _libraryManager.GetLibraryOptions(item);
 
-            return (Task<bool>)_updateExternalSubtitleStream.Invoke(_ffProbeSubtitleInfo,
-                new object[] { item, stream, options, libraryOptions, cancellationToken });
+            var task = _updateExternalSubtitleStream.Invoke(_ffProbeSubtitleInfo,
+                new object[] { item, stream, options, libraryOptions, cancellationToken }) as Task;
+
+            if (task is null)
+            {
+                _logger?.Debug("SubtitleApi - UpdateExternalSubtitleStream returned no task");
+                return false;
+            }
+
+            var result = await ReflectionTaskHelper.AwaitAsObject(task).ConfigureAwait(false);
+
+            return result is bool updated && updated;
         }
 
         public MetadataRefreshOptions GetExternalSubtitleRefreshOptions()

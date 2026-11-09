@@ -213,7 +213,7 @@ namespace StrmAssistant.Common
                     remaining =>
                     {
                         var options = Options;
-                        var mappedPath = MapPath(mediaPath, options.PathMapping);
+                        var mappedPath = StrmUrlHelper.Normalize(MapPath(mediaPath, options.PathMapping));
 
                         return new DistributedMediaInfoRequest
                         {
@@ -315,7 +315,7 @@ namespace StrmAssistant.Common
                         return new DistributedThumbnailRequest
                         {
                             ApiKey = options.SharedApiKey,
-                            Path = MapPath(mediaPath, options.PathMapping),
+                            Path = StrmUrlHelper.Normalize(MapPath(mediaPath, options.PathMapping)),
                             TimeSeconds = point.Value,
                             Width = width,
                             TimeoutSeconds = ClampTimeoutSeconds((int)remaining.TotalSeconds)
@@ -474,7 +474,7 @@ namespace StrmAssistant.Common
                         return new DistributedFingerprintRequest
                         {
                             ApiKey = options.SharedApiKey,
-                            Path = MapPath(mediaPath, options.PathMapping),
+                            Path = StrmUrlHelper.Normalize(MapPath(mediaPath, options.PathMapping)),
                             StartSeconds = 0,
                             DurationSeconds = durationSeconds,
                             TimeoutSeconds = ClampTimeoutSeconds((int)remaining.TotalSeconds)
@@ -518,7 +518,7 @@ namespace StrmAssistant.Common
                 remaining =>
                 {
                     var options = Options;
-                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+                    var mappedPath = StrmUrlHelper.Normalize(MapPath(mediaPath, options.PathMapping));
 
                     return new DistributedHdrVividRequest
                     {
@@ -567,7 +567,7 @@ namespace StrmAssistant.Common
                 remaining =>
                 {
                     var options = Options;
-                    var mappedPath = MapPath(mediaPath, options.PathMapping);
+                    var mappedPath = StrmUrlHelper.Normalize(MapPath(mediaPath, options.PathMapping));
 
                     return new DistributedDvP5Request
                     {
@@ -820,6 +820,8 @@ namespace StrmAssistant.Common
         public async Task<DistributedMediaInfoResponse> HandleWorkerRequestAsync(
             DistributedMediaInfoRequest request, CancellationToken cancellationToken)
         {
+            if (request != null) request.Path = StrmUrlHelper.Normalize(request.Path);
+
             var options = Options;
 
             if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
@@ -919,6 +921,8 @@ namespace StrmAssistant.Common
         public async Task<DistributedThumbnailResponse> HandleWorkerThumbnailRequestAsync(
             DistributedThumbnailRequest request, CancellationToken cancellationToken)
         {
+            if (request != null) request.Path = StrmUrlHelper.Normalize(request.Path);
+
             var options = Options;
 
             if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
@@ -1078,6 +1082,8 @@ namespace StrmAssistant.Common
         public async Task<DistributedHdrVividResponse> HandleWorkerHdrVividRequestAsync(
             DistributedHdrVividRequest request, CancellationToken cancellationToken)
         {
+            if (request != null) request.Path = StrmUrlHelper.Normalize(request.Path);
+
             var options = Options;
 
             if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
@@ -1185,6 +1191,8 @@ namespace StrmAssistant.Common
         public async Task<DistributedDvP5Response> HandleWorkerDvP5RequestAsync(
             DistributedDvP5Request request, CancellationToken cancellationToken)
         {
+            if (request != null) request.Path = StrmUrlHelper.Normalize(request.Path);
+
             var options = Options;
 
             if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))
@@ -1354,6 +1362,8 @@ namespace StrmAssistant.Common
         public async Task<DistributedFingerprintResponse> HandleWorkerFingerprintRequestAsync(
             DistributedFingerprintRequest request, CancellationToken cancellationToken)
         {
+            if (request != null) request.Path = StrmUrlHelper.Normalize(request.Path);
+
             var options = Options;
 
             if (!options.EnableDistributedExtract || string.IsNullOrWhiteSpace(options.SharedApiKey))

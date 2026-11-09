@@ -70,6 +70,17 @@ namespace StrmAssistant.Common
             return IsHttpUrl(path) || IsSmbUrl(path);
         }
 
+        internal static string NormalizeInput(string inputPath)
+        {
+            if (string.IsNullOrEmpty(inputPath)) return inputPath;
+
+            const string blurayPrefix = "bluray:";
+
+            return inputPath.StartsWith(blurayPrefix, StringComparison.OrdinalIgnoreCase)
+                ? blurayPrefix + StrmUrlHelper.Normalize(inputPath.Substring(blurayPrefix.Length))
+                : StrmUrlHelper.Normalize(inputPath);
+        }
+
         /// <summary>
         /// Returns a validated ffprobe path, or null when no static build is available. The
         /// first call may start a background download; a short wait is used so a first-time
@@ -390,6 +401,8 @@ namespace StrmAssistant.Common
         internal static async Task<MediaInfo> ProbeAsync(string inputPath, bool isAudio,
             MediaProtocol protocol, CancellationToken cancellationToken)
         {
+            inputPath = NormalizeInput(inputPath);
+
             var json = await RunProbeJsonAsync(inputPath,
                 "-show_streams -show_chapters -show_format",
                 cancellationToken).ConfigureAwait(false);
@@ -406,6 +419,8 @@ namespace StrmAssistant.Common
             MediaProtocol protocol)
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
+
+            inputPath = NormalizeInput(inputPath);
 
             try
             {
@@ -445,6 +460,8 @@ namespace StrmAssistant.Common
             int timeoutMs, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(inputPath)) return null;
+
+            inputPath = NormalizeInput(inputPath);
 
             var exePath = await GetPathAsync(cancellationToken).ConfigureAwait(false);
 

@@ -48,12 +48,16 @@ namespace StrmAssistant.Common
             public Task<string> ExtractAudioImage(MediaSourceInfo mediaSource, string inputPath, int? streamIndex,
                 CancellationToken cancellationToken)
             {
+                inputPath = StrmUrlHelper.Normalize(inputPath);
+
                 return _inner.ExtractAudioImage(mediaSource, inputPath, streamIndex, cancellationToken);
             }
 
             public Task<string> ExtractAudioImage(MediaSourceInfo mediaSource, string inputPath,
                 MediaContainers? container, int? streamIndex, CancellationToken cancellationToken)
             {
+                inputPath = StrmUrlHelper.Normalize(inputPath);
+
                 return _inner.ExtractAudioImage(mediaSource, inputPath, container, streamIndex, cancellationToken);
             }
 
@@ -61,6 +65,8 @@ namespace StrmAssistant.Common
                 MediaContainers? container, MediaProtocol protocol, MediaStream videoStream,
                 Video3DFormat? threedFormat, TimeSpan? offset, CancellationToken cancellationToken)
             {
+                inputPath = StrmUrlHelper.Normalize(inputPath);
+
                 return _inner.ExtractVideoImage(mediaSource, inputPath, container, protocol, videoStream, threedFormat,
                     offset, cancellationToken);
             }
@@ -69,6 +75,8 @@ namespace StrmAssistant.Common
                 MediaContainers? container, MediaProtocol protocol, MediaStream imageStream, int? streamIndex,
                 CancellationToken cancellationToken)
             {
+                inputPath = StrmUrlHelper.Normalize(inputPath);
+
                 return _inner.ExtractVideoImage(mediaSource, inputPath, container, protocol, imageStream, streamIndex,
                     cancellationToken);
             }
@@ -78,6 +86,8 @@ namespace StrmAssistant.Common
                 Video3DFormat? threedFormat, TimeSpan interval, string targetDirectory, string filenamePrefix,
                 int? maxWidth, CancellationToken cancellationToken)
             {
+                inputPath = StrmUrlHelper.Normalize(inputPath);
+
                 try
                 {
                     var extractorType = EnableQuickImageSeriesExtractor(threedFormat, videoStream, interval, maxWidth)
@@ -114,6 +124,8 @@ namespace StrmAssistant.Common
                 Video3DFormat? threedFormat, TimeSpan[] extractionTimes, string targetDirectory,
                 string filenamePrefix, int? maxWidth, CancellationToken cancellationToken)
             {
+                inputPath = StrmUrlHelper.Normalize(inputPath);
+
                 await ExtractVideoImagesFromList2(mediaSource, inputPath, container, videoStream, protocol,
                     threedFormat, extractionTimes, targetDirectory, filenamePrefix, maxWidth, cancellationToken)
                     .ConfigureAwait(false);
@@ -124,6 +136,8 @@ namespace StrmAssistant.Common
                 Video3DFormat? threedFormat, TimeSpan[] extractionTimes, string targetDirectory,
                 string filenamePrefix, int? maxWidth, CancellationToken cancellationToken)
             {
+                inputPath = StrmUrlHelper.Normalize(inputPath);
+
                 try
                 {
                     var extractor = CreateExtractor("MultiImageExtractor");
