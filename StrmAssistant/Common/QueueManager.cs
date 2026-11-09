@@ -50,6 +50,8 @@ namespace StrmAssistant.Common
         public static bool IsMediaInfoProcessTaskRunning { get; private set; }
         public static bool IsEpisodeRefreshProcessTaskRunning { get; private set; }
 
+        private static readonly object MediaInfoStartLock = new object();
+
         static QueueManager()
         {
             Logger = Plugin.Instance.Logger;
@@ -69,26 +71,9 @@ namespace StrmAssistant.Common
             {
                 MediaInfoExtractItemQueue.Clear();
                 FavoriteMediaInfoExtractItemQueue.Clear();
-                MediaInfoProcessTask = MediaInfo_ProcessItemQueueAsync()
-                    .ContinueWith(task =>
-                    {
-                        if (task.IsFaulted)
-                        {
-                            Logger.Debug(
-                                $"(Trace) MediaInfo_ProcessItemQueueAsync terminated unexpectedly. Exception: {task.Exception?.Flatten()}");
-                        }
-                        else if (task.IsCanceled)
-                        {
-                            Logger.Debug("(Trace) MediaInfo_ProcessItemQueueAsync was canceled.");
-                        }
-                        else
-                        {
-                            Logger.Debug("(Trace) MediaInfo_ProcessItemQueueAsync completed successfully.");
-                        }
-
-                        MediaInfoProcessTask = null;
-                    }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
+
+            EnsureMediaInfoProcessTaskStarted();
 
             if (FingerprintProcessTask is null)
             {
@@ -136,6 +121,39 @@ namespace StrmAssistant.Common
                         }
 
                         EpisodeRefreshProcessTask = null;
+                    }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
+        }
+
+        /// <summary>
+        /// Starts the media info queue worker without touching any other queue. This is used by
+        /// the auto-extract path so newly added items are processed even when Catch-up Mode is
+        /// off; it never clears the queues because callers enqueue before requesting the start.
+        /// </summary>
+        public static void EnsureMediaInfoProcessTaskStarted()
+        {
+            lock (MediaInfoStartLock)
+            {
+                if (MediaInfoProcessTask != null) return;
+
+                MediaInfoProcessTask = MediaInfo_ProcessItemQueueAsync()
+                    .ContinueWith(task =>
+                    {
+                        if (task.IsFaulted)
+                        {
+                            Logger.Debug(
+                                $"(Trace) MediaInfo_ProcessItemQueueAsync terminated unexpectedly. Exception: {task.Exception?.Flatten()}");
+                        }
+                        else if (task.IsCanceled)
+                        {
+                            Logger.Debug("(Trace) MediaInfo_ProcessItemQueueAsync was canceled.");
+                        }
+                        else
+                        {
+                            Logger.Debug("(Trace) MediaInfo_ProcessItemQueueAsync completed successfully.");
+                        }
+
+                        MediaInfoProcessTask = null;
                     }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
         }

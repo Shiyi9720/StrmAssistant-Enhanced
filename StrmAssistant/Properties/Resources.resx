@@ -146,6 +146,12 @@
   <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_" xml:space="preserve">
     <value>Scan audio tracks stored next to strm or disc videos and merge them as external streams. Audio scanning only completes the plugin's own media stream data; it does not take over Emby transcoding selection. Default is OFF.</value>
   </data>
+  <data name="MediaInfoExtractOptions_AutoExtractOnItemAdded" xml:space="preserve">
+    <value>Automatically extract media info and images for new items</value>
+  </data>
+  <data name="MediaInfoExtractOptions_AutoExtractOnItemAdded_Description" xml:space="preserve">
+    <value>Queue newly added movies, episodes and videos for media info extraction and, when image capture is enabled, fill in a missing primary image. Default is OFF.</value>
+  </data>
   <data name="MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions" xml:space="preserve">
     <value>External Audio Extensions</value>
   </data>

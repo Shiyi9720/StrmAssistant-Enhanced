@@ -62,6 +62,12 @@
   <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_" xml:space="preserve">
     <value>掃描與 strm 或原盤視訊放在同一目錄的音軌檔案，並作為外掛流合併。音軌掃描只補全本外掛自身的媒體流資料，不接管 Emby 的轉碼選擇。預設關閉。</value>
   </data>
+  <data name="MediaInfoExtractOptions_AutoExtractOnItemAdded" xml:space="preserve">
+    <value>新增條目自動抽取媒體資訊/封面</value>
+  </data>
+  <data name="MediaInfoExtractOptions_AutoExtractOnItemAdded_Description" xml:space="preserve">
+    <value>新增電影、劇集或視訊入庫後自動加入媒體資訊抽取佇列；開啟圖片擷取時同時補全缺少的主圖。預設關閉。</value>
+  </data>
   <data name="MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions" xml:space="preserve">
     <value>外掛音軌副檔名</value>
   </data>

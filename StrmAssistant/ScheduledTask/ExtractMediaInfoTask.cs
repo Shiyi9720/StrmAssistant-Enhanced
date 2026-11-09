@@ -178,7 +178,21 @@ namespace StrmAssistant.ScheduledTask
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
-            return Array.Empty<TaskTriggerInfo>();
+            // Emby only consumes the default trigger when it first registers the task, so the
+            // option must already be enabled when the plugin is loaded for the interval to apply.
+            if (Plugin.Instance?.GetPluginOptions()?.MediaInfoExtractOptions?.AutoExtractOnItemAdded != true)
+            {
+                return Array.Empty<TaskTriggerInfo>();
+            }
+
+            return new[]
+            {
+                new TaskTriggerInfo
+                {
+                    Type = TaskTriggerInfo.TriggerInterval,
+                    IntervalTicks = TimeSpan.FromHours(6).Ticks
+                }
+            };
         }
 
         public static bool IsRunning { get; private set; }

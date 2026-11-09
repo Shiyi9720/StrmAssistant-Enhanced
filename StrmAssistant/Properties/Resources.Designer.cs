@@ -1915,6 +1915,22 @@ namespace StrmAssistant.Properties
             }
         }
         /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_AutoExtractOnItemAdded.
+        /// </summary>
+        public static string MediaInfoExtractOptions_AutoExtractOnItemAdded {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_AutoExtractOnItemAdded", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to MediaInfoExtractOptions_AutoExtractOnItemAdded_Description.
+        /// </summary>
+        public static string MediaInfoExtractOptions_AutoExtractOnItemAdded_Description {
+            get {
+                return ResourceManager.GetString("MediaInfoExtractOptions_AutoExtractOnItemAdded_Description", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Looks up a localized string similar to MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots.
         /// </summary>
         public static string MediaInfoExtractOptions_CropPortraitScreenshots_Crop_Portrait_Screenshots {
