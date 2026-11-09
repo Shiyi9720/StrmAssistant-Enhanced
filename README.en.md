@@ -55,10 +55,9 @@ Settings live in `Strm Assistant.json`; upgrading from an older version keeps yo
 
 ## Known limitations
 
-- The 8-version merge cap is hard-coded in Emby's scanner; only the task-side cap is configurable
-- Native watch progress is shared per TMDB id; per-version separation is implemented by the plugin
+- Native watch progress is shared per TMDB id; per-version and cross-library resume is tracked by the plugin, and may drift on some clients
 - Emby's transcoding pipeline is not intercepted
-- Dolby Vision P7 layer detection requires an external ffprobe ≥ 9
+- Dolby Vision P7 layer detection needs a static ffprobe 9, downloaded automatically on first use (~30 MB); unavailable in fully offline setups without a manually placed binary or configured path
 - Douban, IntroDB and OpenSubtitles are third-party services; rate limits or API changes may disable those features temporarily
 
 ## Notice
