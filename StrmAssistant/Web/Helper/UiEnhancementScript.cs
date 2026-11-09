@@ -1,5 +1,6 @@
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
+using System.Linq;
 
 namespace StrmAssistant.Web.Helper
 {
@@ -34,8 +35,13 @@ namespace StrmAssistant.Web.Helper
                                  (options?.MetadataEnhanceOptions.EnableDoubanTrailer ?? false);
             var versionFavorites = options?.ExperienceEnhanceOptions.VersionFavoriteOptions
                 ?.EnableCrossLibraryFavoriteSeparation ?? false;
+            var hidePersonNoImage = options?.ExperienceEnhanceOptions.HidePersonNoImage ?? false;
+            var hideSearchSuggestions = options?.SearchOptions.HideSearchSuggestions ?? true;
+            var suppressPluginUpdates = options?.ExperienceEnhanceOptions.SuppressPluginUpdates ?? false;
+            var suppressPluginUpdatePlugins =
+                options?.ExperienceEnhanceOptions.SuppressPluginUpdatePlugins ?? string.Empty;
 
-            return "\n" + GetStyleScript() + "\n" + GetDoubanRatingScript() + "\n" +
+            return "\n" + GetStyleScript(hideSearchSuggestions) + "\n" + GetDoubanRatingScript() + "\n" +
                    GetScript(multiVersionSort) + "\n" +
                    GetVersionNamesScript(multiVersionFriendlyNames) + "\n" + GetPlaybackScript() +
                    "\n" + GetVersionFavoriteScript(versionFavorites) +
@@ -51,11 +57,16 @@ namespace StrmAssistant.Web.Helper
                    GetHiddenBoxSetsScript() + "\n" +
                    GetDoubanRecommendationsScript(doubanRecommendations, doubanTrailers) + "\n" +
                    GetDoubanTrailerScript(doubanTrailers) + "\n" +
+                   GetHidePersonNoImageScript(hidePersonNoImage) + "\n" +
+                   GetSuppressPluginUpdateScript(suppressPluginUpdates, suppressPluginUpdatePlugins) + "\n" +
                    GetMediaBadgeScript() + "\n";
         }
 
-        private static string GetStyleScript()
+        private static string GetStyleScript(bool hideSearchSuggestions)
         {
+            var searchSuggestionsStyle =
+                hideSearchSuggestions ? ".searchSuggestions{display:none!important}" : string.Empty;
+
             return @"
 (function () {
     'use strict';
@@ -100,10 +111,206 @@ namespace StrmAssistant.Web.Helper
         'padding:0 .45em;border-radius:.3em;background:rgba(0,181,29,.16);color:#00b51d;' +
         'font-size:.9em;font-weight:600;line-height:1.6}' +
         '.strmAssistantDoubanRatingLabel{font-size:.85em;font-weight:500;opacity:.9}' +
-        '.searchSuggestions{display:none!important}';
+        '.strmAssistantHiddenPerson{display:none!important}' +
+        '@@SEARCH_SUGGESTIONS@@';
     (document.head || document.documentElement).appendChild(style);
 })();
+".Replace("@@SEARCH_SUGGESTIONS@@", searchSuggestionsStyle);
+        }
+
+        /// <summary>
+        /// Hides cast and crew cards that have no image on item detail pages. Emby renders people
+        /// without a primary image as a placeholder card, so a card without an image element is
+        /// an image-less person card. The check runs on every render and only touches the people
+        /// container, so media cards and other views are unaffected.
+        /// </summary>
+        private static string GetHidePersonNoImageScript(bool enabled)
+        {
+            if (!enabled) return string.Empty;
+
+            return @"
+(function () {
+    'use strict';
+
+    if (window.__strmAssistantHidePersonNoImagePatched) return;
+    window.__strmAssistantHidePersonNoImagePatched = true;
+
+    var hiddenClass = 'strmAssistantHiddenPerson';
+    var scheduled = false;
+
+    function hasImage(card) {
+        if (card.querySelector('img')) return true;
+
+        var lazy = card.querySelector('[data-src]');
+        if (lazy) return true;
+
+        var container = card.querySelector('.cardImageContainer') || card.querySelector('.cardContent');
+        if (container && container.style && container.style.backgroundImage &&
+            container.style.backgroundImage !== 'none') {
+            return true;
+        }
+
+        return false;
+    }
+
+    function apply() {
+        var containers = document.querySelectorAll('.peopleItemsContainer');
+        for (var c = 0; c < containers.length; c++) {
+            var cards = containers[c].querySelectorAll('.card');
+            for (var i = 0; i < cards.length; i++) {
+                var card = cards[i];
+                if (hasImage(card)) {
+                    card.classList.remove(hiddenClass);
+                } else {
+                    card.classList.add(hiddenClass);
+                }
+            }
+        }
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            try { apply(); } catch (e) { }
+        }, 200);
+    }
+
+    window.addEventListener('hashchange', schedule);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    startObserving();
+})();
 ";
+        }
+
+        /// <summary>
+        /// Suppresses the plugin update entries in the web client. The update list is fetched
+        /// through ApiClient.getAvailablePluginUpdates; filtering the response removes the update
+        /// entry from the plugins page and from any other client view that renders it. With no
+        /// configured plugin names every plugin update is suppressed.
+        /// </summary>
+        private static string GetSuppressPluginUpdateScript(bool enabled, string suppressedPlugins)
+        {
+            if (!enabled) return string.Empty;
+
+            var names = (suppressedPlugins ?? string.Empty)
+                .Split(new[] { ',', ';' }, System.StringSplitOptions.RemoveEmptyEntries)
+                .Select(name => name.Trim())
+                .Where(name => name.Length > 0)
+                .Select(name => "'" + name.Replace("\\", "\\\\").Replace("'", "\\'") + "'")
+                .ToArray();
+
+            return @"
+(function () {
+    'use strict';
+
+    var names = [@@NAMES@@];
+    var hiddenClass = 'strmAssistantHiddenPluginUpdate';
+    var scheduled = false;
+
+    function normalize(value) {
+        return String(value == null ? '' : value).replace(/^\s+|\s+$/g, '').toLowerCase();
+    }
+
+    names = names.map(normalize);
+
+    function isSuppressed(update) {
+        if (!update) return false;
+        if (!names.length) return true;
+
+        var values = [update.name, update.guid, update.targetFilename];
+        for (var i = 0; i < values.length; i++) {
+            if (values[i] && names.indexOf(normalize(values[i])) !== -1) return true;
+        }
+
+        return false;
+    }
+
+    function patch(client) {
+        var proto = Object.getPrototypeOf(client);
+        if (!proto || typeof proto.getAvailablePluginUpdates !== 'function') return false;
+        if (proto.__strmAssistantSuppressPluginUpdatePatched) return true;
+
+        var original = proto.getAvailablePluginUpdates;
+
+        proto.getAvailablePluginUpdates = function () {
+            var result = original.apply(this, arguments);
+            if (!result || typeof result.then !== 'function') return result;
+
+            return result.then(function (updates) {
+                if (!Array.isArray(updates)) return updates;
+                return updates.filter(function (update) {
+                    return !isSuppressed(update);
+                });
+            });
+        };
+
+        proto.__strmAssistantSuppressPluginUpdatePatched = true;
+        return true;
+    }
+
+    function hideEntries() {
+        var selector = '.pluginUpdate,.updateAvailable,.btnUpdate,[data-action=""update""],' +
+            '.pluginUpdateButton';
+        var nodes = document.querySelectorAll(selector);
+
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            node.classList.add(hiddenClass);
+            node.setAttribute('disabled', 'disabled');
+            node.style.display = 'none';
+        }
+    }
+
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () {
+            scheduled = false;
+            try { hideEntries(); } catch (e) { }
+        }, 250);
+    }
+
+    var attempts = 0;
+    var timer = setInterval(function () {
+        attempts++;
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var apiClient = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (apiClient && patch(apiClient)) clearInterval(timer);
+            }, function () { });
+        } catch (e) { }
+        if (attempts > 60) clearInterval(timer);
+    }, 2000);
+
+    window.addEventListener('hashchange', schedule);
+
+    function startObserving() {
+        if (!document.body) {
+            setTimeout(startObserving, 200);
+            return;
+        }
+
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+        schedule();
+    }
+
+    startObserving();
+})();
+".Replace("@@NAMES@@", string.Join(",", names));
         }
 
         /// <summary>

@@ -682,7 +682,9 @@ namespace StrmAssistant.Common
             {
                 var chapters = _itemRepository.GetChapters(item);
 
-                if (options.WriteIntroMarkers && IsIntroAcceptable(item, introSkipOptions, entry, options))
+                if (options.WriteIntroMarkers && IsIntroAcceptable(item, introSkipOptions, entry, options) &&
+                    IntroMarkerHelper.TryNormalizeRange(item, introSkipOptions, ToTicks(entry.IntroStartMs),
+                        ToTicks(entry.IntroEndMs), out var introStartTicks, out var introEndTicks))
                 {
                     var canWrite = chapters
                         .Where(c => c.MarkerType == MarkerType.IntroStart || c.MarkerType == MarkerType.IntroEnd)
@@ -696,13 +698,13 @@ namespace StrmAssistant.Common
                         {
                             Name = MarkerType.IntroStart + MarkerSuffix,
                             MarkerType = MarkerType.IntroStart,
-                            StartPositionTicks = ToTicks(entry.IntroStartMs)
+                            StartPositionTicks = introStartTicks
                         });
                         chapters.Add(new ChapterInfo
                         {
                             Name = MarkerType.IntroEnd + MarkerSuffix,
                             MarkerType = MarkerType.IntroEnd,
-                            StartPositionTicks = ToTicks(entry.IntroEndMs)
+                            StartPositionTicks = introEndTicks
                         });
                         changed = true;
                     }
@@ -750,8 +752,12 @@ namespace StrmAssistant.Common
 
             var duration = TimeSpan.FromTicks(end - start);
 
-            if (duration < TimeSpan.FromSeconds(5)) return false;
-            if (duration > TimeSpan.FromSeconds(introSkipOptions.MaxIntroDurationSeconds)) return false;
+            var minSeconds = Math.Max(1, introSkipOptions.IntroMarkerMinDurationSeconds);
+            var maxSeconds = Math.Max(1, Math.Min(introSkipOptions.MaxIntroDurationSeconds,
+                introSkipOptions.IntroMarkerMaxDurationSeconds));
+
+            if (duration < TimeSpan.FromSeconds(minSeconds)) return false;
+            if (duration > TimeSpan.FromSeconds(maxSeconds)) return false;
 
             return item.RunTimeTicks is null || end <= item.RunTimeTicks.Value;
         }

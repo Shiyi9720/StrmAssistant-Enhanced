@@ -41,6 +41,10 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(AliasSearch), SimpleCondition.IsTrue)]
         public bool TmdbAliasSearch { get; set; } = false;
 
+        [DisplayNameL("SearchOptions_HideSearchSuggestions_Hide_Search_Suggestions", typeof(Resources))]
+        [DescriptionL("SearchOptions_HideSearchSuggestions_Hide_the_recommendation_and_related_lists_on_the_search_page__Default_is_ON_", typeof(Resources))]
+        public bool HideSearchSuggestions { get; set; } = true;
+
         [DisplayNameL("SearchOptions_IndexStatus_Search_Index_Status", typeof(Resources))]
         [VisibleCondition(nameof(EnableChineseSearch), SimpleCondition.IsTrue)]
         public StatusItem IndexStatus { get; set; } = new StatusItem();

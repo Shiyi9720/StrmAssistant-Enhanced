@@ -4594,6 +4594,213 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_", resourceCulture);
             }
         }
-
+        /// <summary>
+        ///   Looks up a localized string similar to GeneralOptions_DeepDelete_Deep_Delete
+        /// </summary>
+        public static string GeneralOptions_DeepDelete_Deep_Delete {
+            get {
+                return ResourceManager.GetString("GeneralOptions_DeepDelete_Deep_Delete", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to GeneralOptions_DeepDelete_Delete_the_source_media_file_or_remote_URL_pointed_to_by_a_strm_file_when_the_item_is_deleted_from_Emby__Default_is_OFF_.
+        /// </summary>
+        public static string GeneralOptions_DeepDelete_Delete_the_source_media_file_or_remote_URL_pointed_to_by_a_strm_file_when_the_item_is_deleted_from_Emby__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("GeneralOptions_DeepDelete_Delete_the_source_media_file_or_remote_URL_pointed_to_by_a_strm_file_when_the_item_is_deleted_from_Emby__Default_is_OFF_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to SplitMultiVersion_CommandName_Split_Multi_Version
+        /// </summary>
+        public static string SplitMultiVersion_CommandName_Split_Multi_Version {
+            get {
+                return ResourceManager.GetString("SplitMultiVersion_CommandName_Split_Multi_Version", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to SplitMultiVersion_Confirm_Split_all_versions_of__0__into_independent_movies__No_files_are_moved_or_deleted__Continue_
+        /// </summary>
+        public static string SplitMultiVersion_Confirm_Split_all_versions_of__0__into_independent_movies__No_files_are_moved_or_deleted__Continue_ {
+            get {
+                return ResourceManager.GetString("SplitMultiVersion_Confirm_Split_all_versions_of__0__into_independent_movies__No_files_are_moved_or_deleted__Continue_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to SplitMultiVersion_Success_Split_Multi_Version_Success
+        /// </summary>
+        public static string SplitMultiVersion_Success_Split_Multi_Version_Success {
+            get {
+                return ResourceManager.GetString("SplitMultiVersion_Success_Split_Multi_Version_Success", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to SplitMultiVersion_Failed_Split_Multi_Version_Failed
+        /// </summary>
+        public static string SplitMultiVersion_Failed_Split_Multi_Version_Failed {
+            get {
+                return ResourceManager.GetString("SplitMultiVersion_Failed_Split_Multi_Version_Failed", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to SearchOptions_HideSearchSuggestions_Hide_Search_Suggestions.
+        /// </summary>
+        public static string SearchOptions_HideSearchSuggestions_Hide_Search_Suggestions {
+            get {
+                return ResourceManager.GetString("SearchOptions_HideSearchSuggestions_Hide_Search_Suggestions", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to SearchOptions_HideSearchSuggestions_Hide_the_recommendation_and_related_lists_on_the_search_page__Default_is_ON_.
+        /// </summary>
+        public static string SearchOptions_HideSearchSuggestions_Hide_the_recommendation_and_related_lists_on_the_search_page__Default_is_ON_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_HideSearchSuggestions_Hide_the_recommendation_and_related_lists_on_the_search_page__Default_is_ON_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_Auto_Automatic.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_Auto_Automatic {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_Auto_Automatic", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_OriginalAirDate_Original_Air_Date.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_OriginalAirDate_Original_Air_Date {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_OriginalAirDate_Original_Air_Date", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_Absolute_Absolute_Order.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_Absolute_Absolute_Order {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_Absolute_Absolute_Order", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_Dvd_DVD.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_Dvd_DVD {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_Dvd_DVD", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_Digital_Digital.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_Digital_Digital {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_Digital_Digital", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_StoryArc_Story_Arc.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_StoryArc_Story_Arc {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_StoryArc_Story_Arc", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_Production_Production.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_Production_Production {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_Production_Production", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to EpisodeGroupTypeOption_Tv_TV.
+        /// </summary>
+        public static string EpisodeGroupTypeOption_Tv_TV {
+            get {
+                return ResourceManager.GetString("EpisodeGroupTypeOption_Tv_TV", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EpisodeGroupPreferredType_Episode_Group_Type_Preference.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeGroupPreferredType_Episode_Group_Type_Preference {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeGroupPreferredType_Episode_Group_Type_Preference", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EpisodeGroupPreferredType_Prefer_this_TMDB_episode_group_type_when_several_groups_exist__Automatic_keeps_the_built_in_ranking__Default_is_Automatic_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeGroupPreferredType_Prefer_this_TMDB_episode_group_type_when_several_groups_exist__Automatic_keeps_the_built_in_ranking__Default_is_Automatic_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeGroupPreferredType_Prefer_this_TMDB_episode_group_type_when_several_groups_exist__Automatic_keeps_the_built_in_ranking__Default_is_Automatic_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Episode_Group_Selection.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Episode_Group_Selection {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Episode_Group_Selection", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Optional_TMDB_episode_group_id_or_exact_name_to_use_for_every_series__Blank_uses_the_type_preference_and_the_built_in_ranking__Default_is_BLANK_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Optional_TMDB_episode_group_id_or_exact_name_to_use_for_every_series__Blank_uses_the_type_preference_and_the_built_in_ranking__Default_is_BLANK_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Optional_TMDB_episode_group_id_or_exact_name_to_use_for_every_series__Blank_uses_the_type_preference_and_the_built_in_ranking__Default_is_BLANK_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_IntroMarkerMinDurationSeconds_Intro_Marker_Min_Duration_Seconds.
+        /// </summary>
+        public static string IntroSkipOptions_IntroMarkerMinDurationSeconds_Intro_Marker_Min_Duration_Seconds {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_IntroMarkerMinDurationSeconds_Intro_Marker_Min_Duration_Seconds", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_IntroMarkerMinDurationSeconds_Detected_intro_markers_shorter_than_this_are_discarded_as_false_positives__Default_is_5_.
+        /// </summary>
+        public static string IntroSkipOptions_IntroMarkerMinDurationSeconds_Detected_intro_markers_shorter_than_this_are_discarded_as_false_positives__Default_is_5_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_IntroMarkerMinDurationSeconds_Detected_intro_markers_shorter_than_this_are_discarded_as_false_positives__Default_is_5_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_IntroMarkerMaxDurationSeconds_Intro_Marker_Max_Duration_Seconds.
+        /// </summary>
+        public static string IntroSkipOptions_IntroMarkerMaxDurationSeconds_Intro_Marker_Max_Duration_Seconds {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_IntroMarkerMaxDurationSeconds_Intro_Marker_Max_Duration_Seconds", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_IntroMarkerMaxDurationSeconds_Detected_intro_markers_longer_than_this_are_trimmed_to_this_length__Default_is_600_.
+        /// </summary>
+        public static string IntroSkipOptions_IntroMarkerMaxDurationSeconds_Detected_intro_markers_longer_than_this_are_trimmed_to_this_length__Default_is_600_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_IntroMarkerMaxDurationSeconds_Detected_intro_markers_longer_than_this_are_trimmed_to_this_length__Default_is_600_", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_IntroMarkerPaddingSeconds_Intro_Marker_Padding_Seconds.
+        /// </summary>
+        public static string IntroSkipOptions_IntroMarkerPaddingSeconds_Intro_Marker_Padding_Seconds {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_IntroMarkerPaddingSeconds_Intro_Marker_Padding_Seconds", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to IntroSkipOptions_IntroMarkerPaddingSeconds_Seconds_added_before_and_after_each_detected_intro_marker_as_a_safety_margin__Default_is_0_.
+        /// </summary>
+        public static string IntroSkipOptions_IntroMarkerPaddingSeconds_Seconds_added_before_and_after_each_detected_intro_marker_as_a_safety_margin__Default_is_0_ {
+            get {
+                return ResourceManager.GetString("IntroSkipOptions_IntroMarkerPaddingSeconds_Seconds_added_before_and_after_each_detected_intro_marker_as_a_safety_margin__Default_is_0_", resourceCulture);
+            }
+        }
     }
 }
