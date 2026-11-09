@@ -9,6 +9,15 @@
     "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
     "versions": [
       {
+        "version": "1.0.5",
+        "changelog": "**新增**\n\n- 缺主图视频自动补封面：媒体信息提取处理完仍没有 Primary 的视频时，插件自己沿 strm/shortcut 直链用 ffmpeg 抽一帧（默认 30% 位置，宽度 600，均可在设置页调整），存为条目封面。适合私人资源这类刮削不出海报的库\n- 新条目自动处理：开启「入库即提取」后，新条目挂上库里就自动排队做媒体信息与封面（默认关闭）；同时 `Extract MediaInfo` 任务默认每 6 小时兜底跑一次\n\n**修复**\n\n- 抽帧封面不生效：Emby 4.10 的 `SaveImage` 只把图片写进元数据目录、不落库，条目依旧「没有封面」并反复重抽。现在抽帧后显式提交图片更新并回读校验，失败时回退为写媒体目录 `<文件名>-poster.jpg` 再登记\n- 设置页「关于」里版本行显示不全（`1.0.5.0+emby.4.10.2.0` 被截断），现只显示纯版本号\n\n**说明**\n\n- 封面抽帧与「入库即提取」默认关闭，升级后行为不变，需要时在「媒体信息提取」里逐项打开\n- 已合并 1.0.4 的全部修复（首页卡死、插件加载失败等）",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.5/StrmAssistant-1.0.5.zip",
+        "checksum": "9B8B6BA8ACF7BAAA9753E387003F980A",
+        "timestamp": "2026-11-09T18:01:18Z",
+        "dependencies": []
+      },
+      {
         "version": "1.0.4",
         "changelog": "**修复（重要，1.0.3 请勿使用）**\n\n- 首页一直转圈：注入的前端脚本以 Emby 的 `shortcuts.js` 模块形式下发，模块内抛异常会让依赖它的 `emby-itemscontainer` 拿到 `undefined`（报 `Cannot read properties of undefined (reading 'default')`），整个首页渲染卡死。现整段注入代码加 try/catch 与 DOM 就绪保护，异常只输出一条 warn\n- 插件加载失败（设置页 500、插件列表消失）：片头探测的「用户范围」被写成用户 GUID（如 `612d58eb…`），而代码用 `long.Parse` 解析，抛 `FormatException` 导致插件构造失败。现改为字符串比较，且任何解析异常都不再中断插件启动\n- 顺带清空受影响的 `UserScope` 配置并关闭被意外打开的片头探测\n\n**说明**\n\n- `v1.0.3` 存在上述两个问题，已在 Release 页标注，请升级到 1.0.4",
         "targetAbi": "4.10.2.0",
