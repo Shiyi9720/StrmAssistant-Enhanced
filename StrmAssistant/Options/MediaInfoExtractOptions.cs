@@ -20,6 +20,10 @@ namespace StrmAssistant.Options
         [Required]
         public bool IncludeExtra { get; set; } = false;
 
+        [DisplayNameL("MediaInfoExtractOptions_AutoExtractOnItemAdded", typeof(Resources))]
+        [DescriptionL("MediaInfoExtractOptions_AutoExtractOnItemAdded_Description", typeof(Resources))]
+        public bool AutoExtractOnItemAdded { get; set; } = false;
+
         [Browsable(false)]
         public bool IsModSupported => Plugin.Instance?.IsModSupported == true;
 

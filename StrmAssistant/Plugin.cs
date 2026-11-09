@@ -109,6 +109,7 @@ namespace StrmAssistant
         private bool _currentMediaInfoRestoreMode;
         private bool _currentExclusiveExtract;
         private bool _currentCatchupMode;
+        private bool _currentAutoExtractOnItemAdded;
         private bool _currentEnableFavoriteCatchupPriority;
         private bool _currentEnableIntroSkip;
         private bool _currentUnlockIntroSkip;
@@ -259,6 +260,7 @@ namespace StrmAssistant
                                            PersistMediaInfoOption.Restore.ToString();
             _currentExclusiveExtract = GetOptions().MediaInfoExtractOptions.ExclusiveExtract;
             _currentCatchupMode = GetOptions().GeneralOptions.CatchupMode;
+            _currentAutoExtractOnItemAdded = GetOptions().MediaInfoExtractOptions.AutoExtractOnItemAdded;
             _currentEnableFavoriteCatchupPriority = GetOptions().GeneralOptions.EnableFavoriteCatchupPriority;
             _currentEnableIntroSkip = GetOptions().IntroSkipOptions.EnableIntroSkip;
             _currentUnlockIntroSkip = GetOptions().IntroSkipOptions.UnlockIntroSkip;
@@ -581,6 +583,80 @@ namespace StrmAssistant
             catch (Exception ex)
             {
                 Logger.Debug(ex.Message);
+                Logger.Debug(ex.StackTrace);
+            }
+
+            try
+            {
+                await AutoExtractOnItemAddedAsync(e.Item).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Never let the ItemAdded handler throw: library scans would inherit the failure.
+                Logger.Warn("AutoExtract - ItemAdded handling failed: " + ex.Message);
+                Logger.Debug(ex.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// Queues a newly added item for media info extraction and, when enabled, primary image
+        /// capture. Runs independently of Catch-up Mode; the new option is the switch for this
+        /// path. Everything is best effort: failures are logged as warnings and never propagate
+        /// into Emby's library scan.
+        /// </summary>
+        private async System.Threading.Tasks.Task AutoExtractOnItemAddedAsync(BaseItem addedItem)
+        {
+            try
+            {
+                if (addedItem is null) return;
+                if (!GetOptions().MediaInfoExtractOptions.AutoExtractOnItemAdded) return;
+                if (!(addedItem is Movie || addedItem is Episode || addedItem is Video)) return;
+
+                var itemId = addedItem.InternalId;
+
+                // Let the scan finish persisting the item and populating its streams/images.
+                await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(15)).ConfigureAwait(false);
+
+                // Re-read the options after the delay so a toggle made meanwhile is honoured.
+                var options = GetOptions().MediaInfoExtractOptions;
+                if (!options.AutoExtractOnItemAdded) return;
+
+                // Re-fetch the item so we see the state written by the scan, not the event payload.
+                var item = _libraryManager.GetItemById(itemId);
+                if (item is null) return;
+
+                #pragma warning disable CS0618 // IsFolder is obsolete but the type check alone is not enough for callers passing a folder-typed instance.
+                if (!(item is Movie || item is Episode || item is Video) || item.IsFolder) return;
+#pragma warning restore CS0618
+
+                if (!LibraryApi.IsLibraryInScope(item)) return;
+
+                var hasMediaInfo = LibraryApi.HasMediaInfo(item);
+                var needsImage = options.EnableImageCapture && !item.HasImage(ImageType.Primary);
+
+                if (hasMediaInfo && !needsImage) return;
+
+                // The container/extension exclusion only applies to image capture. A missing
+                // media info is still worth extracting for containers that cannot be captured.
+                if (hasMediaInfo && LibraryApi.IsImageCaptureExcluded(item)) return;
+
+                if (MediaInfoBlacklist.FromOptions().IsExcluded(item)) return;
+
+                if (QueueManager.MediaInfoExtractItemQueue.Any(i => i.InternalId == item.InternalId) ||
+                    QueueManager.FavoriteMediaInfoExtractItemQueue.Any(i => i.InternalId == item.InternalId))
+                {
+                    return;
+                }
+
+                QueueManager.MediaInfoExtractItemQueue.Enqueue(item);
+                QueueManager.EnsureMediaInfoProcessTaskStarted();
+
+                Logger.Info("AutoExtract - Queued: " + item.Name + " - " + item.Path);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("AutoExtract - ItemAdded handling failed: " + addedItem?.Name + " - " +
+                            addedItem?.Path + " - " + ex.Message);
                 Logger.Debug(ex.StackTrace);
             }
         }
@@ -908,18 +984,28 @@ namespace StrmAssistant
         {
             var suppress = _currentSuppressOnOptionsSaved;
 
-            if (_currentCatchupMode != options.GeneralOptions.CatchupMode)
+            var catchupMode = options.GeneralOptions.CatchupMode;
+            var autoExtractOnItemAdded = options.MediaInfoExtractOptions.AutoExtractOnItemAdded;
+            var catchupModeChanged = _currentCatchupMode != catchupMode;
+            var autoExtractChanged = _currentAutoExtractOnItemAdded != autoExtractOnItemAdded;
+
+            _currentCatchupMode = catchupMode;
+            _currentAutoExtractOnItemAdded = autoExtractOnItemAdded;
+
+            if (catchupMode)
             {
-                _currentCatchupMode = options.GeneralOptions.CatchupMode;
-                if (options.GeneralOptions.CatchupMode)
-                {
-                    QueueManager.Initialize();
-                }
-                else
-                {
-                    QueueManager.Dispose();
-                }
+                if (catchupModeChanged) QueueManager.Initialize();
             }
+            else if (autoExtractOnItemAdded)
+            {
+                // Auto-extract owns the media info worker while Catch-up Mode is off.
+                QueueManager.EnsureMediaInfoProcessTaskStarted();
+            }
+            else if (catchupModeChanged || autoExtractChanged)
+            {
+                QueueManager.Dispose();
+            }
+
             UpdateCatchupScope();
             _currentEnableFavoriteCatchupPriority = options.GeneralOptions.EnableFavoriteCatchupPriority;
 
@@ -1007,6 +1093,8 @@ namespace StrmAssistant
                 Logger.Info("DetectHdrVivid is set to {0}", options.MediaInfoExtractOptions.DetectHdrVivid);
                 Logger.Info("EnableImageCapture is set to {0}",
                     options.MediaInfoExtractOptions.EnableImageCapture);
+                Logger.Info("AutoExtractOnItemAdded is set to {0}",
+                    options.MediaInfoExtractOptions.AutoExtractOnItemAdded);
                 Logger.Info("EnableDvP7LayerBadge is set to {0}",
                     options.MediaInfoExtractOptions.EnableDvP7LayerBadge);
                 Logger.Info("ScreenshotQuality is set to {0}", options.MediaInfoExtractOptions.ScreenshotQuality);

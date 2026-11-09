@@ -15,7 +15,9 @@ using StrmAssistant.Mod;
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -101,6 +103,12 @@ namespace StrmAssistant.Common
         public static List<string> LibraryPathsInScope;
         public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
+
+        private const int DefaultImageCaptureTimeoutMs = 120000;
+        private const double FallbackImageCapturePositionSeconds = 120;
+        private static readonly TimeSpan ImageCaptureFailureBackoff = TimeSpan.FromHours(24);
+        private static readonly ConcurrentDictionary<long, DateTime> ImageCaptureFailures =
+            new ConcurrentDictionary<long, DateTime>();
 
         public LibraryApi(ILibraryManager libraryManager, IProviderManager providerManager, IFileSystem fileSystem,
             IMediaMountManager mediaMountManager, IUserManager userManager)
@@ -672,6 +680,46 @@ namespace StrmAssistant.Common
         public async Task<bool?> OrchestrateMediaInfoProcessAsync(BaseItem taskItem, string source,
             CancellationToken cancellationToken, MediaInfoExtractionStats stats = null)
         {
+            var result = await OrchestrateMediaInfoProcessCoreAsync(taskItem, source, cancellationToken, stats)
+                .ConfigureAwait(false);
+
+            // Image capture is a separate step: it runs after the media info refresh so the item
+            // already carries its final RuntimeTicks, and it must never turn a successful refresh
+            // into a failed one.
+            if (result.HasValue)
+            {
+                await TryCapturePrimaryImageSafeAsync(taskItem, cancellationToken).ConfigureAwait(false);
+            }
+
+            return result;
+        }
+
+        private async Task TryCapturePrimaryImageSafeAsync(BaseItem taskItem, CancellationToken cancellationToken)
+        {
+            if (!(taskItem is Video video)) return;
+
+            try
+            {
+                await TryCapturePrimaryImageAsync(video, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                // Last resort: every expected failure is already handled inside the method, so
+                // this only guards against unexpected errors in the checks or in Emby APIs.
+                RecordImageCaptureFailure(taskItem.InternalId);
+                _logger?.Warn("ImageCapture - Unexpected failure: " + taskItem.Name + " - " + taskItem.Path +
+                              " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+            }
+        }
+
+        private async Task<bool?> OrchestrateMediaInfoProcessCoreAsync(BaseItem taskItem, string source,
+            CancellationToken cancellationToken, MediaInfoExtractionStats stats)
+        {
             if (MediaInfoBlacklist.FromOptions().IsExcluded(taskItem))
             {
                 _logger.Info("MediaInfoBlacklist - Skipped: " + taskItem.Name + " - " + taskItem.Path);
@@ -832,6 +880,505 @@ namespace StrmAssistant.Common
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Captures one frame from a video that still has no primary image and saves it as the
+        /// item's <see cref="ImageType.Primary"/>. Every check is best effort: a failure is logged
+        /// once and remembered for <see cref="ImageCaptureFailureBackoff"/> so a scheduled run
+        /// that keeps picking up the same unreadable item cannot retry it in a loop.
+        /// </summary>
+        public async Task<bool> TryCapturePrimaryImageAsync(Video item, CancellationToken cancellationToken)
+        {
+            var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
+
+            if (!options.EnableImageCapture) return false;
+
+            // Restore mode must not perform network extraction; the queue selection already
+            // disables image capture in this mode.
+            if (options.PersistMediaInfoMode == PersistMediaInfoOption.Restore.ToString()) return false;
+
+            if (item is null) return false;
+
+            // The refresh may have produced a primary image through another fetcher; in that case
+            // there is nothing to do. Always re-read the item from the repository so decisions and
+            // writes below never operate on the instance captured before the refresh.
+            var target = _libraryManager.GetItemById(item.InternalId) as Video;
+
+            if (target is null)
+            {
+                _logger?.Debug("ImageCapture - Item no longer exists: " + item.Name + " - " + item.Path);
+                return false;
+            }
+
+            if (target.HasImage(ImageType.Primary)) return false;
+
+            var libraryOptions = _libraryManager.GetLibraryOptions(target);
+
+            if (!ImageCaptureEnabled(target, libraryOptions)) return false;
+
+            if (MediaInfoBlacklist.FromOptions().IsExcluded(target))
+            {
+                _logger?.Debug("ImageCapture - Skipped by media info blacklist: " + target.Name + " - " +
+                               target.Path);
+                return false;
+            }
+
+            if (VideoThumbnailBlacklist.FromOptions().IsExcluded(target))
+            {
+                _logger?.Debug("ImageCapture - Skipped by video thumbnail blacklist: " + target.Name + " - " +
+                               target.Path);
+                return false;
+            }
+
+            if (IsImageCaptureExcluded(target))
+            {
+                _logger?.Debug("ImageCapture - Skipped by container or extension: " + target.Name + " - " +
+                               target.Path);
+                return false;
+            }
+
+            if (IsImageCaptureBackedOff(target.InternalId))
+            {
+                _logger?.Debug("ImageCapture - Skipped after an earlier failure: " + target.Name + " - " +
+                               target.Path);
+                return false;
+            }
+
+            var inputPath = target.Path;
+
+            if (target.IsShortcut)
+            {
+                try
+                {
+                    inputPath = await GetStrmMountPath(inputPath).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    _logger?.Info("ImageCapture - Failed to resolve shortcut: " + target.Name + " - " +
+                                  target.Path + " - " + e.Message);
+                    RecordImageCaptureFailure(target.InternalId);
+                    return false;
+                }
+            }
+
+            inputPath = StrmUrlHelper.Normalize(inputPath);
+
+            if (string.IsNullOrEmpty(inputPath))
+            {
+                _logger?.Info("ImageCapture - No playable path, skipped: " + target.Name + " - " + target.Path);
+                RecordImageCaptureFailure(target.InternalId);
+                return false;
+            }
+
+            var ffmpegManager = Plugin.Instance.FfmpegManager;
+            var exePath = FfmpegApi.GetEncoderPath(ffmpegManager);
+
+            if (string.IsNullOrEmpty(exePath))
+            {
+                _logger?.Warn("ImageCapture - ffmpeg is unavailable, skipped: " + target.Name + " - " +
+                              target.Path);
+                RecordImageCaptureFailure(target.InternalId);
+                return false;
+            }
+
+            var positionSeconds = GetImageCapturePositionSeconds(target);
+            var tempDirectory = Plugin.Instance.ApplicationPaths.TempDirectory;
+            var tempPath = Path.Combine(tempDirectory,
+                "strmassistant-image-capture-" + Guid.NewGuid().ToString("N") + ".jpg");
+
+            try
+            {
+                Directory.CreateDirectory(tempDirectory);
+
+                var arguments = BuildImageCaptureArguments(inputPath, tempPath, positionSeconds,
+                    options.ScreenshotMaxWidth);
+                var timeoutMs = ChapterApi.ApplyImageExtractionTimeoutMultiplier(DefaultImageCaptureTimeoutMs);
+
+                var extracted = await FfmpegApi
+                    .RunAsync(ffmpegManager, exePath, arguments, "ImageCapture", timeoutMs, cancellationToken)
+                    .ConfigureAwait(false);
+
+                var fileInfo = new FileInfo(tempPath);
+
+                if (!extracted || !fileInfo.Exists || fileInfo.Length == 0)
+                {
+                    RecordImageCaptureFailure(target.InternalId);
+                    _logger?.Warn("ImageCapture - Frame extraction failed: " + target.Name + " - " + target.Path +
+                                  " - seek " + positionSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "s");
+                    return false;
+                }
+
+                var directoryService = new DirectoryService(_logger, _fileSystem);
+
+                _logger?.Debug("ImageCapture - Capture start: " + target.Name + " - in-memory images: " +
+                               DescribeImages(target.ImageInfos));
+
+                var saveImageSucceeded = false;
+
+                try
+                {
+                    await _providerManager.SaveImage(target, libraryOptions, tempPath, ImageType.Primary, null,
+                            Array.Empty<long>(), directoryService, false, cancellationToken)
+                        .ConfigureAwait(false);
+                    saveImageSucceeded = true;
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    // A read-only metadata folder is handled by the media-folder fallback below.
+                    _logger?.Warn("ImageCapture - SaveImage failed: " + target.Name + " - " + target.Path + " - " +
+                                  e.Message);
+                    _logger?.Debug(e.StackTrace);
+                }
+
+                var inMemoryInfo = target.GetImageInfo(ImageType.Primary, 0);
+
+                _logger?.Info("ImageCapture - Frame ready: " + target.Name + " - SaveImage=" +
+                              (saveImageSucceeded ? "ok" : "failed") + " - in-memory primary=" +
+                              (inMemoryInfo?.Path ?? "none"));
+
+                // Emby 4.10's ImageSaver.SaveImage writes the file and calls item.SetImage, but it
+                // never saves the item. The normal provider pipeline persists the item later via
+                // MetadataService.SaveItem -> BaseItem.UpdateToRepository. Our capture runs after
+                // the refresh has already returned, so nothing would persist this mutation unless
+                // we do it here.
+                if (inMemoryInfo != null)
+                {
+                    PersistImageInfo(target);
+                }
+
+                var persistedInfo = GetPersistedPrimaryImage(target.InternalId);
+
+                _logger?.Info("ImageCapture - Persistence after SaveImage: " + target.Name + " - " +
+                              (persistedInfo != null ? "persisted: " + persistedInfo.Path : "not persisted"));
+
+                if (persistedInfo == null)
+                {
+                    // Fallback: write the frame next to the media file, which is also what the
+                    // historical external scripts produced. Then persist that image record.
+                    if (TrySaveFallbackPoster(target, tempPath, out var fallbackInfo))
+                    {
+                        target.SetImage(fallbackInfo, 0);
+                        PersistImageInfo(target);
+                        persistedInfo = GetPersistedPrimaryImage(target.InternalId);
+
+                        _logger?.Info("ImageCapture - Fallback persistence: " + target.Name + " - " +
+                                      (persistedInfo != null
+                                          ? "persisted: " + persistedInfo.Path
+                                          : "not persisted: " + fallbackInfo.Path));
+                    }
+                    else
+                    {
+                        _logger?.Warn("ImageCapture - Fallback poster not written: " + target.Name + " - " +
+                                      target.Path);
+                    }
+                }
+
+                if (persistedInfo == null)
+                {
+                    RecordImageCaptureFailure(target.InternalId);
+                    _logger?.Warn("ImageCapture - Not persisted, giving up: " + target.Name + " - " + target.Path +
+                                  " - seek " + positionSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "s");
+                    return false;
+                }
+
+                // Keep the caller's instance in sync. Later steps (for example the HDR Vivid tag
+                // update) may save the instance they hold; without this they could overwrite the
+                // Images column with a version that does not contain the captured poster.
+                SyncPrimaryImageInfo(item, persistedInfo);
+
+                ImageCaptureFailures.TryRemove(target.InternalId, out _);
+
+                _logger?.Info("ImageCapture - Primary image saved: " + target.Name + " - " + target.Path +
+                              " - seek " + positionSeconds.ToString("0.###", CultureInfo.InvariantCulture) +
+                              "s - " + fileInfo.Length + " bytes - " + persistedInfo.Path);
+
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                RecordImageCaptureFailure(target.InternalId);
+                _logger?.Warn("ImageCapture - Failed: " + target.Name + " - " + target.Path + " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+                return false;
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+        }
+
+        internal static bool IsImageCaptureExcluded(BaseItem item)
+        {
+            if (item.MediaContainer.HasValue && ExcludeMediaContainers.Contains(item.MediaContainer.Value))
+            {
+                return true;
+            }
+
+            if (!item.IsShortcut && item.IsFileProtocol && !string.IsNullOrEmpty(item.Path))
+            {
+                var fileExtension = Path.GetExtension(item.Path).TrimStart('.');
+
+                if (ExcludeMediaExtensions.Contains(fileExtension)) return true;
+            }
+
+            return false;
+        }
+
+        private double GetImageCapturePositionSeconds(Video item)
+        {
+            var positionPercent = Math.Max(10, Math.Min(90,
+                Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.ImageCapturePosition));
+
+            if (!item.RunTimeTicks.HasValue || item.RunTimeTicks.Value <= 0)
+            {
+                _logger?.Debug("ImageCapture - RuntimeTicks unavailable, using 120s fallback: " + item.Name + " - " +
+                               item.Path);
+
+                return FallbackImageCapturePositionSeconds;
+            }
+
+            return item.RunTimeTicks.Value / (double)TimeSpan.TicksPerSecond * positionPercent / 100.0;
+        }
+
+        /// <summary>
+        /// Builds the single frame ffmpeg command. Kept separate so the argument order can be
+        /// checked without running ffmpeg.
+        /// </summary>
+        internal static string BuildImageCaptureArguments(string inputPath, string targetPath,
+            double positionSeconds, int maxWidth)
+        {
+            var seconds = Math.Max(0, positionSeconds).ToString("0.###", CultureInfo.InvariantCulture);
+
+            var filter = maxWidth > 0
+                ? " -vf \"scale=" + maxWidth.ToString(CultureInfo.InvariantCulture) + ":-1\""
+                : string.Empty;
+
+            return string.Format(CultureInfo.InvariantCulture,
+                "-hide_banner -loglevel error -ss {0} -i \"{1}\" -frames:v 1{2} -q:v 3 -update 1 -y \"{3}\"",
+                seconds, inputPath, filter, targetPath);
+        }
+
+        private static string DescribeImages(ItemImageInfo[] images)
+        {
+            if (images == null || images.Length == 0) return "none";
+
+            return string.Join("; ", images.Select(i => i.Type + "=>" + (i.Path ?? "null")));
+        }
+
+        /// <summary>
+        /// Saves the item's current in-memory image list to the database. Uses the same
+        /// repository channel as Emby's normal metadata refresh (<c>LibraryManager.UpdateItems</c>
+        /// -> <c>IItemRepository.SaveItems</c>, which serializes <c>BaseItem.ImageInfos</c> into
+        /// <c>MediaItems.Images</c>). Metadata savers are disabled so this does not write NFO/XML.
+        /// </summary>
+        private void PersistImageInfo(BaseItem item)
+        {
+            try
+            {
+                _libraryManager.UpdateItems(new List<BaseItem> { item }, null, ItemUpdateType.ImageUpdate,
+                    true, false, null, CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                _logger?.Warn("ImageCapture - Failed to persist image info: " + item.Name + " - " + item.Path +
+                              " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// Re-reads the item from the database. <c>ILibraryManager.GetItemById(long)</c> goes to
+        /// the item repository for videos/movies/episodes, so this is a real persistence check
+        /// rather than a check of the mutated in-memory instance.
+        /// </summary>
+        private ItemImageInfo GetPersistedPrimaryImage(long internalId)
+        {
+            try
+            {
+                return _libraryManager.GetItemById(internalId)?.GetImageInfo(ImageType.Primary, 0);
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("ImageCapture - Failed to re-read item " + internalId + ": " + e.Message);
+                return null;
+            }
+        }
+
+        private static void SyncPrimaryImageInfo(BaseItem callerItem, ItemImageInfo primary)
+        {
+            if (callerItem == null || primary == null) return;
+
+            if (callerItem.ImageInfos == null)
+            {
+                callerItem.ImageInfos = Array.Empty<ItemImageInfo>();
+            }
+
+            callerItem.SetImage(primary, 0);
+        }
+
+        /// <summary>
+        /// Writes the captured frame to <c>&lt;media name&gt;-poster.jpg</c> in the item's own
+        /// folder and returns the matching image record. Returns false on any permission or I/O
+        /// problem so the caller can log a warning and give up on this item.
+        /// </summary>
+        private bool TrySaveFallbackPoster(Video item, string sourcePath, out ItemImageInfo imageInfo)
+        {
+            imageInfo = null;
+
+            var mediaPath = item.Path;
+
+            if (string.IsNullOrEmpty(mediaPath) || !_fileSystem.IsPathFullyQualified(mediaPath))
+            {
+                _logger?.Debug("ImageCapture - Cannot write media-folder poster for non-local path: " +
+                               item.Name + " - " + mediaPath);
+                return false;
+            }
+
+            var folder = Path.GetDirectoryName(mediaPath);
+
+            if (string.IsNullOrEmpty(folder) || !_fileSystem.DirectoryExists(folder))
+            {
+                _logger?.Debug("ImageCapture - Media folder does not exist: " + item.Name + " - " + folder);
+                return false;
+            }
+
+            var posterPath = Path.Combine(folder,
+                Path.GetFileNameWithoutExtension(mediaPath) + "-poster.jpg");
+
+            try
+            {
+                var bytes = File.ReadAllBytes(sourcePath);
+
+                if (bytes.Length == 0) return false;
+
+                _fileSystem.CreateDirectory(folder);
+
+                try
+                {
+                    if (_fileSystem.FileExists(posterPath))
+                    {
+                        // Clear a possibly read-only attribute before overwriting.
+                        _fileSystem.SetAttributes(posterPath, false, false);
+                    }
+                }
+                catch (Exception e)
+                {
+                    _logger?.Debug("ImageCapture - Could not clear poster attributes: " + posterPath + " - " +
+                                   e.Message);
+                }
+
+                _fileSystem.WriteAllBytes(posterPath, bytes);
+
+                TryGetJpegDimensions(bytes, out var width, out var height);
+
+                imageInfo = new ItemImageInfo
+                {
+                    Path = posterPath,
+                    Type = ImageType.Primary,
+                    DateModified = _fileSystem.GetLastWriteTimeUtc(posterPath),
+                    Width = width,
+                    Height = height
+                };
+
+                return true;
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                _logger?.Warn("ImageCapture - No write permission for media folder poster: " + item.Name + " - " +
+                              posterPath + " - " + e.Message);
+            }
+            catch (Exception e)
+            {
+                _logger?.Warn("ImageCapture - Failed to write media folder poster: " + item.Name + " - " +
+                              posterPath + " - " + e.Message);
+                _logger?.Debug(e.StackTrace);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Reads the SOF marker of a JPEG to recover the frame dimensions. Emby's own
+        /// ImageSaver does not populate Width/Height, but the fallback image record can.
+        /// </summary>
+        private static bool TryGetJpegDimensions(byte[] bytes, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
+
+            if (bytes == null || bytes.Length < 4 || bytes[0] != 0xFF || bytes[1] != 0xD8) return false;
+
+            var offset = 2;
+
+            while (offset + 3 < bytes.Length)
+            {
+                if (bytes[offset] != 0xFF)
+                {
+                    offset++;
+                    continue;
+                }
+
+                var marker = bytes[offset + 1];
+                offset += 2;
+
+                // Standalone markers: SOI, EOI, RSTn, TEM.
+                if (marker == 0xD8 || marker == 0xD9 || (marker >= 0xD0 && marker <= 0xD7) || marker == 0x01)
+                {
+                    continue;
+                }
+
+                if (offset + 2 > bytes.Length) return false;
+
+                var segmentLength = (bytes[offset] << 8) | bytes[offset + 1];
+
+                if (segmentLength < 2 || offset + segmentLength > bytes.Length) return false;
+
+                // SOF0..SOF15, excluding DHT (C4), JPG (C8) and DAC (CC).
+                if (marker >= 0xC0 && marker <= 0xCF && marker != 0xC4 && marker != 0xC8 && marker != 0xCC)
+                {
+                    if (segmentLength < 7) return false;
+
+                    height = (bytes[offset + 3] << 8) | bytes[offset + 4];
+                    width = (bytes[offset + 5] << 8) | bytes[offset + 6];
+
+                    return width > 0 && height > 0;
+                }
+
+                offset += segmentLength;
+            }
+
+            return false;
+        }
+
+        private static bool IsImageCaptureBackedOff(long itemId)
+        {
+            return ImageCaptureFailures.TryGetValue(itemId, out var failedAt) &&
+                   DateTime.UtcNow - failedAt < ImageCaptureFailureBackoff;
+        }
+
+        private static void RecordImageCaptureFailure(long itemId)
+        {
+            ImageCaptureFailures[itemId] = DateTime.UtcNow;
         }
 
         public static LibraryOptions CopyLibraryOptions(LibraryOptions sourceOptions)

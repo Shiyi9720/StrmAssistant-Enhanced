@@ -59,6 +59,12 @@
   <data name="MediaInfoExtractOptions_EnableExternalAudioScan_Scan_audio_tracks_stored_next_to_strm_or_disc_videos_and_merge_them_as_external_streams__Default_is_OFF_" xml:space="preserve">
     <value>扫描与 strm 或原盘视频放在同一目录的音轨文件，并作为外挂流合并。音轨扫描只补全插件自身的媒体流数据，不接管 Emby 的转码选择。默认关闭。</value>
   </data>
+  <data name="MediaInfoExtractOptions_AutoExtractOnItemAdded" xml:space="preserve">
+    <value>新增条目自动抽取媒体信息/封面</value>
+  </data>
+  <data name="MediaInfoExtractOptions_AutoExtractOnItemAdded_Description" xml:space="preserve">
+    <value>新增电影、剧集或视频入库后自动加入媒体信息抽取队列；开启图片捕获时同时补全缺失的主图。默认关闭。</value>
+  </data>
   <data name="MediaInfoExtractOptions_ExternalAudioExtensions_External_Audio_Extensions" xml:space="preserve">
     <value>外挂音轨扩展名</value>
   </data>
