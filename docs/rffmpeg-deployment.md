@@ -1,3 +1,7 @@
+> **状态：已废弃（2026-11-10）**。SSH + rffmpeg sidecar 方案不再维护，生产已下线并清理（容器、worker 目录、`/config/bin` 残留均删除，备份在 `/vol3/1000/临时备份/rffmpeg-cleanup-20261110-023008/`）。
+> 需要把提取下发给 worker 请用插件内置的「分布式媒体信息提取」（设置 → 分布式提取）；DV P7 由插件自动下载静态 ffprobe 9。
+> 以下内容仅作历史存档。
+
 # rffmpeg 负载均衡方案（分布式媒体信息提取）
 
 做法是外置 sidecar：容器内把 `ffprobe`/`ffmpeg` 换成 rffmpeg 封装器，由它通过 SSH 把命令发到 worker 节点执行。
