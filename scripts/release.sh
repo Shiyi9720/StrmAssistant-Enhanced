@@ -110,7 +110,7 @@ fi
 # 5. 提交 + tag + 推送
 echo "==> 提交并打 tag"
 git add -A "$PROJ" manifest.json CHANGELOG.md
-git -c user.name="${GIT_AUTHOR_NAME:-Hermes}" -c user.email="${GIT_AUTHOR_EMAIL:-hermes@local}" commit -m "chore(release): v$VERSION" || echo "   （无变更可提交）"
+git commit -m "chore(release): v$VERSION" || echo "   （无变更可提交）"
 git tag -f "$TAG"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 git push origin "$BRANCH"
