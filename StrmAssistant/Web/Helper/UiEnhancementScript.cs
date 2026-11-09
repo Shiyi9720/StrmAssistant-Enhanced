@@ -1,4 +1,4 @@
-using StrmAssistant.Options;
+﻿using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using System.Linq;
 
@@ -59,7 +59,233 @@ namespace StrmAssistant.Web.Helper
                    GetDoubanTrailerScript(doubanTrailers) + "\n" +
                    GetHidePersonNoImageScript(hidePersonNoImage) + "\n" +
                    GetSuppressPluginUpdateScript(suppressPluginUpdates, suppressPluginUpdatePlugins) + "\n" +
-                   GetMediaBadgeScript() + "\n";
+                   GetMediaBadgeScript() + "\n" +
+                   GetPluginUpdateScript() + "\n";
+        }
+
+        /// <summary>
+        /// 插件设置页的「检查更新」入口：先查 GitHub 最新 Release 判断有没有新版本，
+        /// 有新版本才触发内置 UpdatePluginTask 下载，并如实提示「需要重启才生效」。
+        /// 优先内联到 Save 按钮上方，找不到再回退为浮动按钮。
+        /// </summary>
+        private static string GetPluginUpdateScript()
+        {
+            string E(string v) => (v ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
+
+            var check = E(Resources.Update_Check_Button ?? "检查更新");
+            var checking = E(Resources.Update_Checking ?? "正在检查…");
+            var upToDate = E(Resources.Update_UpToDate ?? "已是最新版本");
+            var downloading = E(Resources.Update_Downloading ?? "发现新版本，正在下载…");
+            var needRestart = E(Resources.Update_NeedRestart ?? "已下载新版本，请重启 Emby 生效");
+            var failed = E(Resources.Update_Failed ?? "检查失败");
+
+            return @"
+(function () {
+    'use strict';
+    try {
+    var labels = {
+        check: '@@CHECK@@', checking: '@@CHECKING@@', upToDate: '@@UPTODATE@@',
+        downloading: '@@DOWNLOADING@@', needRestart: '@@NEEDRESTART@@', failed: '@@FAILED@@'
+    };
+    var box = null, btn = null, status = null, apiClient = null, busy = false, fallbackTimer = null;
+    var REPO = 'Shiyi9720/StrmAssistant-Enhanced';
+
+    function withApiClient(cb) {
+        if (apiClient) { cb(apiClient); return; }
+        try {
+            require(['connectionManager']).then(function (m) {
+                var cm = m && m[0];
+                var c = cm && cm.currentApiClient && cm.currentApiClient();
+                if (c) { apiClient = c; cb(c); }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function onSettingsPage() {
+        var h = (location.hash || '').toLowerCase();
+        var href = (location.href || '').toLowerCase();
+        return h.indexOf('63c322') >= 0 || href.indexOf('63c322') >= 0;
+    }
+
+    function setStatus(text, color) {
+        if (!status) return;
+        status.textContent = text || '';
+        status.style.color = color || '#999';
+    }
+
+    function finish(text, color) {
+        setStatus(text, color);
+        busy = false;
+        if (btn) btn.disabled = false;
+    }
+
+    function currentVersion() {
+        return new Promise(function (resolve) {
+            withApiClient(function (c) {
+                c.getJSON(c.getUrl('Plugins')).then(function (list) {
+                    var p = (list || []).filter(function (x) { return x.Name && x.Name.indexOf('Strm') === 0; })[0] || {};
+                    resolve(p.Version || '');
+                }, function () { resolve(''); });
+            });
+        });
+    }
+
+    function latestTag() {
+        return fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {
+            headers: { 'Accept': 'application/vnd.github+json' }
+        }).then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { return j && j.tag_name ? String(j.tag_name).replace(/^v/i, '') : null; })
+          .catch(function () { return null; });
+    }
+
+    function parse(v) {
+        if (!v) return null;
+        var m = String(v).match(/\d+(?:\.\d+)*/);
+        if (!m) return null;
+        return m[0].split('.').map(function (x) { return parseInt(x, 10) || 0; });
+    }
+
+    function isNewer(latest, current) {
+        var a = parse(latest), b = parse(current);
+        if (!a || !b) return false;
+        for (var i = 0; i < Math.max(a.length, b.length); i++) {
+            var x = a[i] || 0, y = b[i] || 0;
+            if (x > y) return true;
+            if (x < y) return false;
+        }
+        return false;
+    }
+
+    function runTask(cb) {
+        withApiClient(function (c) {
+            c.getJSON(c.getUrl('ScheduledTasks')).then(function (tasks) {
+                var t = (tasks || []).filter(function (x) { return x.Key === 'UpdatePluginTask'; })[0];
+                if (!t) { cb(c, null); return; }
+                c.ajax({ type: 'POST', url: c.getUrl('ScheduledTasks/Running/' + t.Id) })
+                    .then(function () { cb(c, t); }, function () { cb(c, null); });
+            }, function () { cb(c, null); });
+        });
+    }
+
+    function pollTask(c, id, tries, done) {
+        if (tries <= 0) { done(false, ''); return; }
+        setTimeout(function () {
+            c.getJSON(c.getUrl('ScheduledTasks/' + id)).then(function (t) {
+                var state = t && t.State;
+                if (state === 'Running' || state === 'Queued') { pollTask(c, id, tries - 1, done); return; }
+                var res = (t && t.LastExecutionResult) || {};
+                done(!res.ErrorMessage && res.Status === 'Completed', res.ErrorMessage || '');
+            }, function () { done(false, ''); });
+        }, 2000);
+    }
+
+    function run() {
+        if (busy) return;
+        busy = true;
+        if (btn) btn.disabled = true;
+        setStatus(labels.checking, '#ff9800');
+
+        currentVersion().then(function (cur) {
+            latestTag().then(function (latest) {
+                if (!latest) { finish(labels.failed + ' (GitHub 不可达)', '#e57373'); return; }
+                if (!isNewer(latest, cur)) { finish(labels.upToDate + ' (' + cur + ')', '#4caf50'); return; }
+
+                setStatus(labels.downloading + ' ' + latest, '#ff9800');
+                runTask(function (c, t) {
+                    if (!t) { finish(labels.failed + ' (task not found)', '#e57373'); return; }
+                    pollTask(c, t.Id, 45, function (ok, err) {
+                        if (ok) finish(labels.needRestart + ' (' + latest + ')', '#4caf50');
+                        else finish(labels.failed + (err ? ': ' + err : ''), '#e57373');
+                    });
+                });
+            });
+        });
+    }
+
+    function buildBox() {
+        var el = document.createElement('div');
+        el.id = 'strmAssistantUpdateBox';
+        el.style.cssText = 'margin:.8em 0;padding:.7em .9em;border-radius:.4em;background:rgba(0,0,0,.04);' +
+            'display:flex;flex-wrap:wrap;align-items:center;gap:.6em';
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'raised button-submit';
+        b.textContent = labels.check;
+        b.style.cssText = 'padding:.45em 1.1em;border:0;border-radius:.3em;background:#00a4dc;color:#fff;font-weight:600;cursor:pointer';
+        b.addEventListener('click', run);
+        var st = document.createElement('span');
+        st.style.cssText = 'font-size:.85em;color:#999';
+        el.appendChild(b); el.appendChild(st);
+        btn = b; status = st;
+        return el;
+    }
+
+    function findSaveAnchor() {
+        var buttons = document.querySelectorAll('button');
+        for (var i = 0; i < buttons.length; i++) {
+            var txt = (buttons[i].textContent || '').trim();
+            if (txt === '保存' || txt === 'Save' || txt === '儲存' || txt === '保存设置') return buttons[i];
+        }
+        return null;
+    }
+
+    function attachInline() {
+        if (box) return true;
+        var save = findSaveAnchor();
+        if (!save || !save.parentElement) return false;
+        box = buildBox();
+        save.parentElement.insertBefore(box, save);
+        return true;
+    }
+
+    function attachFloating() {
+        if (box) return;
+        box = buildBox();
+        box.style.cssText = 'position:fixed;left:1em;bottom:5em;z-index:1500;background:rgba(16,16,16,.94);' +
+            'color:#fff;border-radius:.5em;padding:.6em .8em;box-shadow:0 4px 16px rgba(0,0,0,.5)';
+        document.body.appendChild(box);
+    }
+
+    function ensure() {
+        if (!onSettingsPage()) {
+            if (box) { box.remove(); box = null; btn = null; status = null; }
+            return;
+        }
+        if (box && document.body.contains(box)) return;
+        if (attachInline()) return;
+        if (!fallbackTimer) {
+            fallbackTimer = setTimeout(function () {
+                fallbackTimer = null;
+                if (!box && onSettingsPage()) attachFloating();
+            }, 8000);
+        }
+    }
+
+    var scheduled = false;
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () { scheduled = false; ensure(); }, 250);
+    }
+
+    window.addEventListener('hashchange', schedule);
+    if (document.body) {
+        new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    } else {
+        document.addEventListener('DOMContentLoaded', schedule);
+    }
+    schedule();
+    } catch (e) {
+        if (window.console && console.warn) console.warn('[StrmAssistant] update widget skipped:', e);
+    }
+})();
+"
+                .Replace("@@CHECK@@", check)
+                .Replace("@@CHECKING@@", checking)
+                .Replace("@@UPTODATE@@", upToDate)
+                .Replace("@@DOWNLOADING@@", downloading)
+                .Replace("@@NEEDRESTART@@", needRestart)
+                .Replace("@@FAILED@@", failed);
         }
 
         private static string GetStyleScript(bool hideSearchSuggestions)

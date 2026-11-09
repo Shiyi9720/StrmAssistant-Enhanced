@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1</TargetFrameworks>
-    <AssemblyVersion>1.0.1</AssemblyVersion>
-    <FileVersion>1.0.1</FileVersion>
-    <InformationalVersion>1.0.1+emby.4.10.2.0</InformationalVersion>
+    <AssemblyVersion>1.0.5</AssemblyVersion>
+    <FileVersion>1.0.5</FileVersion>
+    <InformationalVersion>1.0.5</InformationalVersion>
     <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
-    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>$(MSBuildProjectName)Lite</AssemblyName>
     <!-- 用运行中 Emby 自带的程序集编译时，应指向其 /system 目录（默认 lib/emby）；
          没有该目录则回退到 NuGet SDK 包。程序集版本必须与服务器完全一致，否则 Emby 拒绝加载。 -->

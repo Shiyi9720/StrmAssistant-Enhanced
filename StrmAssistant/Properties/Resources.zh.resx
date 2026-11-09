@@ -1,4 +1,4 @@
-<root>
+﻿<root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -276,10 +276,10 @@
     <value>独占媒体信息提取不可用：{0}。该选项已禁用，将继续使用 Emby 原生提取。</value>
   </data>
   <data name="Repo_Link" xml:space="preserve">
-    <value>项目链接</value>
+    <value>GitHub</value>
   </data>
   <data name="Wiki_Link" xml:space="preserve">
-    <value>功能介绍</value>
+    <value>功能说明</value>
   </data>
   <data name="AboutOptions_EditorTitle_About" xml:space="preserve">
     <value>关于</value>
@@ -1359,8 +1359,8 @@
     <value>递归刷新季和集</value>
   </data>
   <data name="RecursiveRefresh_Season_Refresh_Season_Episodes" xml:space="preserve">
-  </data>
     <value>递归刷新本季剧集</value>
+  </data>
   <data name="DistributedExtractOptions_EditorTitle_Distributed_Extract" xml:space="preserve">
     <value>分布式媒体信息提取</value>
   </data>
@@ -1801,5 +1801,26 @@
   </data>
   <data name="IntroSkipOptions_IntroMarkerPaddingSeconds_Seconds_added_before_and_after_each_detected_intro_marker_as_a_safety_margin__Default_is_0_" xml:space="preserve">
     <value>在每个检测到的片头标记前后增加的留白秒数，默认为 0。</value>
+  </data>
+  <data name="Update_Check_Button" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="Update_Checking" xml:space="preserve">
+    <value>正在检查…</value>
+  </data>
+  <data name="Update_UpToDate" xml:space="preserve">
+    <value>已是最新版本</value>
+  </data>
+  <data name="Update_Done" xml:space="preserve">
+    <value>检查完成（当前 %s）。如已下载新版本，请重启 Emby 生效。</value>
+  </data>
+  <data name="Update_Failed" xml:space="preserve">
+    <value>检查失败</value>
+  </data>
+  <data name="Update_Downloading" xml:space="preserve">
+    <value>发现新版本，正在下载…</value>
+  </data>
+  <data name="Update_NeedRestart" xml:space="preserve">
+    <value>已下载新版本，请重启 Emby 生效</value>
   </data>
 </root>
