@@ -2859,6 +2859,22 @@ namespace StrmAssistant.Properties
             }
         }
         /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EpisodeGroupLibraryScope_Library_Scope.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeGroupLibraryScope_Library_Scope {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeGroupLibraryScope_Library_Scope", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to MetadataEnhanceOptions_EpisodeGroupLibraryScope_TV_shows_library_scope_to_apply_TMDB_episode_group_scraping_to__Blank_includes_all_.
+        /// </summary>
+        public static string MetadataEnhanceOptions_EpisodeGroupLibraryScope_TV_shows_library_scope_to_apply_TMDB_episode_group_scraping_to__Blank_includes_all_ {
+            get {
+                return ResourceManager.GetString("MetadataEnhanceOptions_EpisodeGroupLibraryScope_TV_shows_library_scope_to_apply_TMDB_episode_group_scraping_to__Blank_includes_all_", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Looks up a localized string similar to MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_.
         /// </summary>
         public static string MetadataEnhanceOptions_MovieRefreshMode_Choose_how_existing_movies_are_refreshed__Full_Refresh_replaces_everything_as_before__Missing_Fields_Only_skips_complete_movies_and_fills_gaps__Never_Overwrite_Existing_queries_the_provider_but_keeps_current_values__Default_is_Full_Refresh_ {
@@ -4578,5 +4594,6 @@ namespace StrmAssistant.Properties
                 return ResourceManager.GetString("PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_", resourceCulture);
             }
         }
+
     }
 }

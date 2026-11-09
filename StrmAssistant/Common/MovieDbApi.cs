@@ -15,6 +15,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StrmAssistant.Common
@@ -319,7 +320,7 @@ namespace StrmAssistant.Common
         /// TMDB only knows zh-CN, zh-TW and zh-HK. Script subtags used by Emby (zh-Hans,
         /// zh-Hant) are mapped onto the closest TMDB language so the request is understood.
         /// </summary>
-        private static string NormalizeChineseLanguage(string language)
+        internal static string NormalizeChineseLanguage(string language)
         {
             if (string.IsNullOrEmpty(language)) return language;
 
@@ -920,6 +921,15 @@ namespace StrmAssistant.Common
             private async Task<HttpResponseInfo> SendAsync(HttpRequestOptions options,
                 Func<Task<HttpResponseInfo>> send, bool isGet)
             {
+                // The remote episode group must be available before Prepare applies the
+                // local/remote/native mapping. It is fetched with the plugin's own HTTP client,
+                // so this cannot recurse through the patched provider client.
+                if (isGet && RemoteEpisodeGroup.IsEnabled)
+                {
+                    await RemoteEpisodeGroup.EnsureLoadedAsync(options?.Url, options?.CancellationToken ??
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+
                 var prepared = Prepare(options);
                 var localResponse = isGet
                     ? LocalMetadataSource.TryCreateResponse(prepared?.LocalMetadataTarget)

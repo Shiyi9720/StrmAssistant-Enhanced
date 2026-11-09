@@ -151,6 +151,57 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableMovieDbCache), SimpleCondition.IsTrue)]
         public int MovieDbCacheMaxSizeMb { get; set; } = 256;
 
+        [DisplayNameL("MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_Episode_Group", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_", typeof(Resources))]
+        public bool MovieDbEpisodeGroup { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_EpisodeGroupLibraryScope_Library_Scope", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EpisodeGroupLibraryScope_TV_shows_library_scope_to_apply_TMDB_episode_group_scraping_to__Blank_includes_all_", typeof(Resources))]
+        [EditMultilSelect]
+        [SelectItemsSource(nameof(LibraryList))]
+        [VisibleCondition(nameof(MovieDbEpisodeGroup), SimpleCondition.IsTrue)]
+        public string EpisodeGroupLibraryScope { get; set; } = string.Empty;
+
+        public enum EpisodeGroupTypeOption
+        {
+            [DescriptionL("EpisodeGroupTypeOption_Auto_Automatic", typeof(Resources))]
+            Auto = 0,
+
+            [DescriptionL("EpisodeGroupTypeOption_OriginalAirDate_Original_Air_Date", typeof(Resources))]
+            OriginalAirDate = 1,
+
+            [DescriptionL("EpisodeGroupTypeOption_Absolute_Absolute_Order", typeof(Resources))]
+            Absolute = 2,
+
+            [DescriptionL("EpisodeGroupTypeOption_Dvd_DVD", typeof(Resources))]
+            Dvd = 3,
+
+            [DescriptionL("EpisodeGroupTypeOption_Digital_Digital", typeof(Resources))]
+            Digital = 4,
+
+            [DescriptionL("EpisodeGroupTypeOption_StoryArc_Story_Arc", typeof(Resources))]
+            StoryArc = 5,
+
+            [DescriptionL("EpisodeGroupTypeOption_Production_Production", typeof(Resources))]
+            Production = 6,
+
+            [DescriptionL("EpisodeGroupTypeOption_Tv_TV", typeof(Resources))]
+            Tv = 7
+        }
+
+        [DisplayNameL("MetadataEnhanceOptions_EpisodeGroupPreferredType_Episode_Group_Type_Preference", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EpisodeGroupPreferredType_Prefer_this_TMDB_episode_group_type_when_several_groups_exist__Automatic_keeps_the_built_in_ranking__Default_is_Automatic_", typeof(Resources))]
+        [VisibleCondition(nameof(MovieDbEpisodeGroup), SimpleCondition.IsTrue)]
+        public EpisodeGroupTypeOption EpisodeGroupPreferredType { get; set; } = EpisodeGroupTypeOption.Auto;
+
+        [DisplayNameL("MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Episode_Group_Selection", typeof(Resources))]
+        [DescriptionL("MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Optional_TMDB_episode_group_id_or_exact_name_to_use_for_every_series__Blank_uses_the_type_preference_and_the_built_in_ranking__Default_is_BLANK_", typeof(Resources))]
+        [VisibleCondition(nameof(MovieDbEpisodeGroup), SimpleCondition.IsTrue)]
+        public string EpisodeGroupPreferredGroup { get; set; } = string.Empty;
+
+        [Browsable(false)]
+        public IEnumerable<EditorSelectOption> LibraryList { get; set; }
+
         [DisplayNameL("MetadataEnhanceOptions_EnableDoubanSupplement_Enable_Douban_Supplement", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_EnableDoubanSupplement_When_TMDB_has_no_Chinese_overview_or_poster__try_to_fill_the_missing_values_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", typeof(Resources))]
         public bool EnableDoubanSupplement { get; set; } = false;
@@ -179,6 +230,9 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_EnableDoubanTrailer_Show_a_trailer_button_on_Douban_recommendation_cards__Trailers_come_from_Douban_s_public_API_and_are_only_played__never_downloaded_or_saved__Default_is_OFF_", typeof(Resources))]
         [VisibleCondition(nameof(EnableDoubanRecommendations), SimpleCondition.IsTrue)]
         public bool EnableDoubanTrailer { get; set; } = false;
+
+        [DisplayNameL("MetadataEnhanceOptions_DoubanCacheOptions_Douban_Cache_Prebuild", typeof(Resources))]
+        public DoubanCacheOptions DoubanCacheOptions { get; set; } = new DoubanCacheOptions();
 
         [Browsable(false)]
         public List<EditorRadioOption> RefreshPersonModeList { get; set; } = new List<EditorRadioOption>();

@@ -42,7 +42,104 @@ namespace StrmAssistant.Common
 
         public static LocalEpisodeGroupMapping TryMapRequest(string url)
         {
-            if (string.IsNullOrWhiteSpace(url) || _jsonSerializer is null) return null;
+            if (string.IsNullOrWhiteSpace(url)) return null;
+
+            try
+            {
+                var options = Plugin.Instance?.GetPluginOptions();
+
+                if (_jsonSerializer != null && options != null && options.EnableLocalEpisodeGroup)
+                {
+                    // Local episodegroup.json always wins over the remote TMDB episode group.
+                    var mapping = TryMapUrl(url, LoadDocument, "local");
+
+                    if (mapping != null) return mapping;
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance?.Logger?.Debug("Local episode group - Request mapping failed: " + e.Message);
+            }
+
+            return RemoteEpisodeGroup.TryMapRequest(url);
+        }
+
+        /// <summary>
+        /// Shared mapping logic used by both the local file source and the remote TMDB source.
+        /// The supplied document is expected to use library season numbers in
+        /// <see cref="EpisodeGroupGroup.order"/> and zero-based positions in
+        /// <see cref="EpisodeGroupEpisode.order"/>.
+        /// </summary>
+        internal static LocalEpisodeGroupMapping TryMapUrl(string url,
+            Func<string, EpisodeGroupDocument> loadDocument, string source)
+        {
+            var path = GetPath(url);
+            var episodeMatch = EpisodePathRegex.Match(path);
+
+            if (episodeMatch.Success)
+            {
+                var seriesId = episodeMatch.Groups[2].Value;
+                var localSeason = int.Parse(episodeMatch.Groups[3].Value);
+                var localEpisode = int.Parse(episodeMatch.Groups[5].Value);
+                var document = loadDocument(seriesId);
+                var group = document?.groups?.FirstOrDefault(item => item?.order == localSeason);
+                var episode = group?.episodes?.FirstOrDefault(item => item?.order == localEpisode - 1);
+
+                if (episode is null) return null;
+
+                var mappedPath = episodeMatch.Groups[1].Value + episode.season_number +
+                                 episodeMatch.Groups[4].Value + episode.episode_number +
+                                 episodeMatch.Groups[6].Value;
+
+                return new LocalEpisodeGroupMapping
+                {
+                    Url = ReplacePath(url, path, mappedPath),
+                    LocalSeasonNumber = localSeason,
+                    LocalEpisodeNumber = localEpisode,
+                    TmdbSeasonNumber = episode.season_number,
+                    TmdbEpisodeNumber = episode.episode_number,
+                    IsEpisodeRequest = true,
+                    Source = source
+                };
+            }
+
+            var seasonMatch = SeasonPathRegex.Match(path);
+
+            if (!seasonMatch.Success) return null;
+
+            var seasonSeriesId = seasonMatch.Groups[2].Value;
+            var season = int.Parse(seasonMatch.Groups[3].Value);
+            var seasonDocument = loadDocument(seasonSeriesId);
+            var seasonGroup = seasonDocument?.groups?.FirstOrDefault(item => item?.order == season);
+            var tmdbSeasons = seasonGroup?.episodes?
+                .Where(item => item != null)
+                .Select(item => item.season_number)
+                .Distinct()
+                .ToList();
+
+            if (tmdbSeasons == null || tmdbSeasons.Count != 1) return null;
+
+            var mappedSeasonPath = seasonMatch.Groups[1].Value + tmdbSeasons[0] + seasonMatch.Groups[4].Value;
+
+            return new LocalEpisodeGroupMapping
+            {
+                Url = ReplacePath(url, path, mappedSeasonPath),
+                LocalSeasonNumber = season,
+                TmdbSeasonNumber = tmdbSeasons[0],
+                IsEpisodeRequest = false,
+                Source = source
+            };
+        }
+
+        /// <summary>
+        /// Returns the episode list expressed in the local library numbering together with the
+        /// corresponding TMDB season/episode numbers. The missing-episodes provider uses it so
+        /// that Emby compares the TMDB list with the local episode numbers.
+        /// Returns null when the episode group is disabled or the series has no episodegroup.json.
+        /// </summary>
+        internal static List<LocalEpisodeGroupEntry> TryGetLocalEpisodes(string seriesId)
+        {
+            if (string.IsNullOrWhiteSpace(seriesId) || _jsonSerializer is null) return null;
 
             try
             {
@@ -50,64 +147,35 @@ namespace StrmAssistant.Common
 
                 if (options is null || !options.EnableLocalEpisodeGroup) return null;
 
-                var path = GetPath(url);
-                var episodeMatch = EpisodePathRegex.Match(path);
+                var document = LoadDocument(seriesId);
 
-                if (episodeMatch.Success)
+                if (document?.groups is null) return null;
+
+                var entries = new List<LocalEpisodeGroupEntry>();
+
+                foreach (var group in document.groups)
                 {
-                    var seriesId = episodeMatch.Groups[2].Value;
-                    var localSeason = int.Parse(episodeMatch.Groups[3].Value);
-                    var localEpisode = int.Parse(episodeMatch.Groups[5].Value);
-                    var document = LoadDocument(seriesId);
-                    var group = document?.groups?.FirstOrDefault(item => item?.order == localSeason);
-                    var episode = group?.episodes?.FirstOrDefault(item => item?.order == localEpisode - 1);
+                    if (group?.episodes is null) continue;
 
-                    if (episode is null) return null;
-
-                    var mappedPath = episodeMatch.Groups[1].Value + episode.season_number +
-                                     episodeMatch.Groups[4].Value + episode.episode_number +
-                                     episodeMatch.Groups[6].Value;
-
-                    return new LocalEpisodeGroupMapping
+                    foreach (var episode in group.episodes)
                     {
-                        Url = ReplacePath(url, path, mappedPath),
-                        LocalSeasonNumber = localSeason,
-                        LocalEpisodeNumber = localEpisode,
-                        TmdbSeasonNumber = episode.season_number,
-                        TmdbEpisodeNumber = episode.episode_number,
-                        IsEpisodeRequest = true
-                    };
+                        if (episode is null) continue;
+
+                        entries.Add(new LocalEpisodeGroupEntry
+                        {
+                            LocalSeasonNumber = group.order,
+                            LocalEpisodeNumber = episode.order + 1,
+                            TmdbSeasonNumber = episode.season_number,
+                            TmdbEpisodeNumber = episode.episode_number
+                        });
+                    }
                 }
 
-                var seasonMatch = SeasonPathRegex.Match(path);
-
-                if (!seasonMatch.Success) return null;
-
-                var seasonSeriesId = seasonMatch.Groups[2].Value;
-                var season = int.Parse(seasonMatch.Groups[3].Value);
-                var seasonDocument = LoadDocument(seasonSeriesId);
-                var seasonGroup = seasonDocument?.groups?.FirstOrDefault(item => item?.order == season);
-                var tmdbSeasons = seasonGroup?.episodes?
-                    .Where(item => item != null)
-                    .Select(item => item.season_number)
-                    .Distinct()
-                    .ToList();
-
-                if (tmdbSeasons == null || tmdbSeasons.Count != 1) return null;
-
-                var mappedSeasonPath = seasonMatch.Groups[1].Value + tmdbSeasons[0] + seasonMatch.Groups[4].Value;
-
-                return new LocalEpisodeGroupMapping
-                {
-                    Url = ReplacePath(url, path, mappedSeasonPath),
-                    LocalSeasonNumber = season,
-                    TmdbSeasonNumber = tmdbSeasons[0],
-                    IsEpisodeRequest = false
-                };
+                return entries.Count > 0 ? entries : null;
             }
             catch (Exception e)
             {
-                Plugin.Instance?.Logger?.Debug("Local episode group - Request mapping failed: " + e.Message);
+                Plugin.Instance?.Logger?.Debug("Local episode group - Episode list failed: " + e.Message);
                 return null;
             }
         }
@@ -123,48 +191,61 @@ namespace StrmAssistant.Common
             tmdbSeason = localSeason;
             tmdbEpisode = localEpisode;
 
-            if (string.IsNullOrWhiteSpace(seriesId) || _jsonSerializer is null) return false;
+            if (string.IsNullOrWhiteSpace(seriesId)) return false;
 
             try
             {
                 var options = Plugin.Instance?.GetPluginOptions();
 
-                if (options is null || !options.EnableLocalEpisodeGroup) return false;
-
-                var document = LoadDocument(seriesId);
-                var group = document?.groups?.FirstOrDefault(item => item?.order == localSeason);
-
-                if (group?.episodes is null) return false;
-
-                if (localEpisode.HasValue)
+                if (_jsonSerializer != null && options != null && options.EnableLocalEpisodeGroup &&
+                    TryGetTmdbNumbers(LoadDocument(seriesId), localSeason, localEpisode,
+                        out tmdbSeason, out tmdbEpisode))
                 {
-                    var episode = group.episodes.FirstOrDefault(item =>
-                        item != null && item.order == localEpisode.Value - 1);
-
-                    if (episode is null) return false;
-
-                    tmdbSeason = episode.season_number;
-                    tmdbEpisode = episode.episode_number;
                     return true;
                 }
-
-                var tmdbSeasons = group.episodes
-                    .Where(item => item != null)
-                    .Select(item => item.season_number)
-                    .Distinct()
-                    .ToList();
-
-                if (tmdbSeasons.Count != 1) return false;
-
-                tmdbSeason = tmdbSeasons[0];
-                tmdbEpisode = null;
-                return true;
             }
             catch (Exception e)
             {
                 Plugin.Instance?.Logger?.Debug("Local episode group - Reverse mapping failed: " + e.Message);
-                return false;
             }
+
+            return RemoteEpisodeGroup.TryGetTmdbNumbers(seriesId, localSeason, localEpisode,
+                out tmdbSeason, out tmdbEpisode);
+        }
+
+        internal static bool TryGetTmdbNumbers(EpisodeGroupDocument document, int localSeason, int? localEpisode,
+            out int tmdbSeason, out int? tmdbEpisode)
+        {
+            tmdbSeason = localSeason;
+            tmdbEpisode = localEpisode;
+
+            var group = document?.groups?.FirstOrDefault(item => item?.order == localSeason);
+
+            if (group?.episodes is null) return false;
+
+            if (localEpisode.HasValue)
+            {
+                var episode = group.episodes.FirstOrDefault(item =>
+                    item != null && item.order == localEpisode.Value - 1);
+
+                if (episode is null) return false;
+
+                tmdbSeason = episode.season_number;
+                tmdbEpisode = episode.episode_number;
+                return true;
+            }
+
+            var tmdbSeasons = group.episodes
+                .Where(item => item != null)
+                .Select(item => item.season_number)
+                .Distinct()
+                .ToList();
+
+            if (tmdbSeasons.Count != 1) return false;
+
+            tmdbSeason = tmdbSeasons[0];
+            tmdbEpisode = null;
+            return true;
         }
 
         private static string GetPath(string url)
@@ -281,28 +362,14 @@ namespace StrmAssistant.Common
             public string Stamp { get; set; }
             public EpisodeGroupDocument Document { get; set; }
         }
+    }
 
-        private sealed class EpisodeGroupDocument
-        {
-            public string description { get; set; }
-            public List<EpisodeGroupGroup> groups { get; set; }
-        }
-
-        private sealed class EpisodeGroupGroup
-        {
-            public string name { get; set; }
-            public string overview { get; set; }
-            public string air_date { get; set; }
-            public int order { get; set; }
-            public List<EpisodeGroupEpisode> episodes { get; set; }
-        }
-
-        private sealed class EpisodeGroupEpisode
-        {
-            public int episode_number { get; set; }
-            public int season_number { get; set; }
-            public int order { get; set; }
-        }
+    internal sealed class LocalEpisodeGroupEntry
+    {
+        public int LocalSeasonNumber { get; set; }
+        public int LocalEpisodeNumber { get; set; }
+        public int TmdbSeasonNumber { get; set; }
+        public int TmdbEpisodeNumber { get; set; }
     }
 
     internal sealed class LocalEpisodeGroupMapping
@@ -313,5 +380,6 @@ namespace StrmAssistant.Common
         public int TmdbSeasonNumber { get; set; }
         public int? TmdbEpisodeNumber { get; set; }
         public bool IsEpisodeRequest { get; set; }
+        public string Source { get; set; }
     }
 }

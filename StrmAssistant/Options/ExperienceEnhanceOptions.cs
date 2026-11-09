@@ -1,7 +1,9 @@
 using Emby.Web.GenericEdit;
+using Emby.Web.GenericEdit.Common;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
 using StrmAssistant.Properties;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace StrmAssistant.Options
@@ -36,9 +38,9 @@ namespace StrmAssistant.Options
             GlobalScope
         }
 
+        [DisplayNameL("ExperienceEnhanceOptions_MergeSeriesPreferences_Series_Merge_Preference", typeof(Resources))]
         [VisibleCondition(nameof(MergeMultiVersion), SimpleCondition.IsTrue)]
-        [Browsable(false)]
-        public MergeSeriesScopeOption MergeSeriesPreference => MergeSeriesScopeOption.LibraryScope;
+        public MergeSeriesScopeOption MergeSeriesPreference { get; set; } = MergeSeriesScopeOption.LibraryScope;
 
         [DisplayNameL("VersionFavoriteOptions_EditorTitle_Cross_Library_Favorites", typeof(Resources))]
         public VersionFavoriteOptions VersionFavoriteOptions { get; set; } = new VersionFavoriteOptions();
@@ -89,5 +91,38 @@ namespace StrmAssistant.Options
         [DisplayNameL("ExperienceEnhanceOptions_MultiSelectActions_Multi_Select_Actions", typeof(Resources))]
         [DescriptionL("ExperienceEnhanceOptions_MultiSelectActions_Enable_multi_select_actions_on_season_pages__delete__download_and_convert__and_allow_selecting_multiple_libraries_to_scan_library_files__Default_is_OFF_", typeof(Resources))]
         public bool MultiSelectActions { get; set; } = false;
+
+        [DisplayNameL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata", typeof(Resources))]
+        [DescriptionL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_", typeof(Resources))]
+        public bool BeautifyMissingMetadata { get; set; } = false;
+
+        [DisplayNameL("IntroSkipOptions_LibraryScope_Library_Scope", typeof(Resources))]
+        [DescriptionL("IntroSkipOptions_LibraryScope_TV_shows_library_scope_to_detect__Blank_includes_all_", typeof(Resources))]
+        [EditMultilSelect]
+        [SelectItemsSource(nameof(BeautifyMissingMetadataLibraryList))]
+        [VisibleCondition(nameof(BeautifyMissingMetadata), SimpleCondition.IsTrue)]
+        public string BeautifyMissingMetadataLibraryScope { get; set; } = string.Empty;
+
+        [Browsable(false)]
+        public IEnumerable<EditorSelectOption> BeautifyMissingMetadataLibraryList { get; set; }
+
+        [DisplayNameL("UIFunctionOptions_EnhanceMissingEpisodes_Missing_Episodes_Enhanced", typeof(Resources))]
+        [DescriptionL("UIFunctionOptions_EnhanceMissingEpisodes_Add_MovieDb_support_for_the_missing_episodes_function__Default_is_OFF_", typeof(Resources))]
+        public bool EnhanceMissingEpisodes { get; set; } = false;
+
+        [DisplayNameL("UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_Boxsets_Auto_Creation", typeof(Resources))]
+        [DescriptionL("UIFunctionOptions_NoBoxsetsAutoCreation_Prevent_automatic_boxset_library_creation__Default_is_OFF_", typeof(Resources))]
+        public bool NoBoxsetsAutoCreation { get; set; } = false;
+
+        [DisplayNameL("ModOptions_HidePersonNoImage_Hide_Person_without_Image", typeof(Resources))]
+        [DescriptionL("ModOptions_HidePersonNoImage_Hide_person_without_image__Default_is_OFF_", typeof(Resources))]
+        public bool HidePersonNoImage { get; set; } = false;
+
+        [DisplayNameL("ExperienceEnhanceOptions_SuppressPluginUpdates_Suppress_Auto_Plugin_Updates", typeof(Resources))]
+        public bool SuppressPluginUpdates { get; set; } = false;
+
+        [DescriptionL("ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_", typeof(Resources))]
+        [VisibleCondition(nameof(SuppressPluginUpdates), SimpleCondition.IsTrue)]
+        public string SuppressPluginUpdatePlugins { get; set; } = string.Empty;
     }
 }

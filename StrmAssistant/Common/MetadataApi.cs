@@ -12,8 +12,10 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
 using StrmAssistant.Options;
+using StrmAssistant.Provider;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -359,6 +361,89 @@ namespace StrmAssistant.Common
             _fileSystem.CreateDirectory(_fileSystem.GetDirectoryName(cachePath));
             _jsonSerializer.SerializeToFile(result, cachePath);
             LruCache.AddOrUpdateCache(cacheKey, result);
+        }
+
+        private ISeriesMetadataProvider _movieDbSeriesProvider;
+
+        /// <summary>
+        /// The plugin-side MovieDb series provider used by the "view missing episodes" feature.
+        /// It reuses the plugin's mirror-aware TMDB client and cache.
+        /// </summary>
+        public ISeriesMetadataProvider GetMovieDbSeriesProvider()
+        {
+            return _movieDbSeriesProvider ?? (_movieDbSeriesProvider = new MovieDbSeriesProvider());
+        }
+
+        public static string BuildMovieDbApiUrl(string endpoint, string language)
+        {
+            var apiRoot = MovieDbApi.GetEffectiveApiRoot().TrimEnd('/');
+            var apiKey = MovieDbApi.GetEffectiveApiKey();
+
+            var url = apiRoot + "/3/" + endpoint + "?api_key=" + Uri.EscapeDataString(apiKey ?? string.Empty);
+
+            if (!string.IsNullOrEmpty(language))
+            {
+                url += "&language=" + Uri.EscapeDataString(language);
+            }
+
+            return url;
+        }
+
+        /// <summary>
+        /// Loads the complete TMDB episode list of a series (all seasons) with a six-hour disk
+        /// cache. Returns null when nothing could be fetched, so callers keep Emby's native
+        /// behaviour instead of showing an empty list.
+        /// </summary>
+        public async Task<SeriesResponseInfo> GetSeriesAllEpisodes(string tmdbId, string language,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(tmdbId)) return null;
+
+            var cacheFilename = "series-all-episodes";
+            if (!string.IsNullOrEmpty(language)) cacheFilename = cacheFilename + "-" + language;
+            var cacheKey = "tmdb_all_episodes_" + tmdbId + "_" + language;
+            var cachePath = Path.Combine(Plugin.Instance.ApplicationPaths.CachePath, "tmdb-tv", tmdbId,
+                cacheFilename + ".json");
+
+            var seriesInfoResponse = TryGetFromCache<SeriesResponseInfo>(cacheKey, cachePath);
+
+            if (seriesInfoResponse != null)
+            {
+                return seriesInfoResponse;
+            }
+
+            var seriesUrl = BuildMovieDbApiUrl("tv/" + tmdbId, language);
+            seriesInfoResponse = await GetMovieDbResponse<SeriesResponseInfo>(seriesUrl, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (seriesInfoResponse?.seasons is null) return null;
+
+            var seasonResults = new List<SeasonResponseInfo>();
+
+            foreach (var season in seriesInfoResponse.seasons)
+            {
+                if (cancellationToken.IsCancellationRequested) return null;
+
+                var seasonUrl = BuildMovieDbApiUrl("tv/" + tmdbId + "/season/" + season.season_number, language);
+                var seasonInfoResponse = await GetMovieDbResponse<SeasonResponseInfo>(seasonUrl, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (seasonInfoResponse != null)
+                {
+                    seasonResults.Add(seasonInfoResponse);
+                }
+            }
+
+            seriesInfoResponse.seasons = seasonResults;
+
+            if (seriesInfoResponse.seasons.All(season => season?.episodes is null || !season.episodes.Any()))
+            {
+                return null;
+            }
+
+            AddOrUpdateCache(seriesInfoResponse, cacheKey, cachePath);
+
+            return seriesInfoResponse;
         }
 
         public Series GetSeriesByPath(string path)
