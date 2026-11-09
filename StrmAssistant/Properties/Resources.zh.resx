@@ -653,6 +653,12 @@
   <data name="MetadataEnhanceOptions_MovieDbEpisodeGroup_Support_MovieDb_episode_group_scrapping_for_TV_shows__Default_is_OFF_" xml:space="preserve">
     <value>用指定的剧集组刮削剧集，支持外部源，默认关闭。</value>
   </data>
+  <data name="MetadataEnhanceOptions_EpisodeGroupLibraryScope_Library_Scope" xml:space="preserve">
+    <value>媒体库范围</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeGroupLibraryScope_TV_shows_library_scope_to_apply_TMDB_episode_group_scraping_to__Blank_includes_all_" xml:space="preserve">
+    <value>应用 TMDB 剧集组刮削的电视剧媒体库范围，留空表示全部。</value>
+  </data>
   <data name="ExclusiveControl_IgnoreFileChange_IgnoreFileChange" xml:space="preserve">
     <value>忽略文件变更</value>
   </data>
@@ -1711,5 +1717,83 @@
   </data>
   <data name="PluginOptions_EnableCustomSpecialsOrder_Apply_specials_json_air_order_values_to_season_0_episodes_from_override_or_cache__Missing_files_or_entries_leave_the_normal_order_unchanged__Default_is_OFF_" xml:space="preserve">
     <value>将覆盖或缓存目录中 specials.json 的 air_order 应用到特别篇（第 0 季）。文件或对应项缺失时保持默认顺序。默认关闭。</value>
+  </data>
+  <data name="GeneralOptions_DeepDelete_Deep_Delete" xml:space="preserve">
+    <value>深度删除</value>
+  </data>
+  <data name="GeneralOptions_DeepDelete_Delete_the_source_media_file_or_remote_URL_pointed_to_by_a_strm_file_when_the_item_is_deleted_from_Emby__Default_is_OFF_" xml:space="preserve">
+    <value>从 Emby 删除条目时，同时删除 .strm 文件指向的源媒体文件或远端 URL。默认关闭。</value>
+  </data>
+  <data name="SplitMultiVersion_CommandName_Split_Multi_Version" xml:space="preserve">
+    <value>拆分多版本</value>
+  </data>
+  <data name="SplitMultiVersion_Confirm_Split_all_versions_of__0__into_independent_movies__No_files_are_moved_or_deleted__Continue_" xml:space="preserve">
+    <value>确定要将「{0}」的所有版本拆分为独立影片吗？不会移动或删除任何文件。</value>
+  </data>
+  <data name="SplitMultiVersion_Success_Split_Multi_Version_Success" xml:space="preserve">
+    <value>拆分多版本成功</value>
+  </data>
+  <data name="SplitMultiVersion_Failed_Split_Multi_Version_Failed" xml:space="preserve">
+    <value>拆分多版本失败</value>
+  </data>
+  <data name="SearchOptions_HideSearchSuggestions_Hide_Search_Suggestions" xml:space="preserve">
+    <value>隐藏搜索推荐</value>
+  </data>
+  <data name="SearchOptions_HideSearchSuggestions_Hide_the_recommendation_and_related_lists_on_the_search_page__Default_is_ON_" xml:space="preserve">
+    <value>隐藏搜索页的推荐和相关列表，默认为开。</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_Auto_Automatic" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_OriginalAirDate_Original_Air_Date" xml:space="preserve">
+    <value>首播日期</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_Absolute_Absolute_Order" xml:space="preserve">
+    <value>绝对序号</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_Dvd_DVD" xml:space="preserve">
+    <value>DVD</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_Digital_Digital" xml:space="preserve">
+    <value>数字</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_StoryArc_Story_Arc" xml:space="preserve">
+    <value>故事线</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_Production_Production" xml:space="preserve">
+    <value>制作</value>
+  </data>
+  <data name="EpisodeGroupTypeOption_Tv_TV" xml:space="preserve">
+    <value>TV</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeGroupPreferredType_Episode_Group_Type_Preference" xml:space="preserve">
+    <value>剧集组类型偏好</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeGroupPreferredType_Prefer_this_TMDB_episode_group_type_when_several_groups_exist__Automatic_keeps_the_built_in_ranking__Default_is_Automatic_" xml:space="preserve">
+    <value>存在多个 TMDB 剧集组时优先选择该类型，自动表示沿用内置排序，默认为自动。</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Episode_Group_Selection" xml:space="preserve">
+    <value>剧集组选择</value>
+  </data>
+  <data name="MetadataEnhanceOptions_EpisodeGroupPreferredGroup_Optional_TMDB_episode_group_id_or_exact_name_to_use_for_every_series__Blank_uses_the_type_preference_and_the_built_in_ranking__Default_is_BLANK_" xml:space="preserve">
+    <value>可选的 TMDB 剧集组 ID 或完整名称，对所有剧集生效；留空则使用类型偏好和内置排序，默认为空。</value>
+  </data>
+  <data name="IntroSkipOptions_IntroMarkerMinDurationSeconds_Intro_Marker_Min_Duration_Seconds" xml:space="preserve">
+    <value>片头标记最短时长（秒）</value>
+  </data>
+  <data name="IntroSkipOptions_IntroMarkerMinDurationSeconds_Detected_intro_markers_shorter_than_this_are_discarded_as_false_positives__Default_is_5_" xml:space="preserve">
+    <value>检测到的片头标记短于该值时视为误报丢弃，默认为 5。</value>
+  </data>
+  <data name="IntroSkipOptions_IntroMarkerMaxDurationSeconds_Intro_Marker_Max_Duration_Seconds" xml:space="preserve">
+    <value>片头标记最长时长（秒）</value>
+  </data>
+  <data name="IntroSkipOptions_IntroMarkerMaxDurationSeconds_Detected_intro_markers_longer_than_this_are_trimmed_to_this_length__Default_is_600_" xml:space="preserve">
+    <value>检测到的片头标记长于该值时裁剪到该长度，默认为 600。</value>
+  </data>
+  <data name="IntroSkipOptions_IntroMarkerPaddingSeconds_Intro_Marker_Padding_Seconds" xml:space="preserve">
+    <value>片头标记留白（秒）</value>
+  </data>
+  <data name="IntroSkipOptions_IntroMarkerPaddingSeconds_Seconds_added_before_and_after_each_detected_intro_marker_as_a_safety_margin__Default_is_0_" xml:space="preserve">
+    <value>在每个检测到的片头标记前后增加的留白秒数，默认为 0。</value>
   </data>
 </root>
