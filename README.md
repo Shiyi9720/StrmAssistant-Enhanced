@@ -61,7 +61,7 @@
 
 ### 扩展
 
-- 可选 rffmpeg sidecar：把 `ffprobe` 调用经 SSH 分发到 worker 节点（见 `docs/rffmpeg-deployment.md`）
+- rffmpeg sidecar（SSH 把 `ffprobe` 转给 worker）**已废弃**：改用下面的内置分布式提取，不再需要 sidecar（存档见 `docs/rffmpeg-deployment.md`）
 - 分布式媒体信息提取：插件自身发起的信息提取可下发给 worker，失败自动回落本地并分类统计
 
 ## 安装

@@ -41,7 +41,7 @@ An unofficial plugin build for **Emby Server 4.10.2**, continuing from the commu
 - STRM-optimised OpenSubtitles search and download
 
 **Extras**
-- Optional rffmpeg sidecar to offload `ffprobe` over SSH (see `docs/rffmpeg-deployment.md`)
+- rffmpeg sidecar (SSH `ffprobe` offload) is **deprecated**: use the built-in distributed extraction below; no sidecar needed (archive: `docs/rffmpeg-deployment.md`)
 - Distributed media info extraction with automatic local fallback and per-outcome statistics
 
 ## Install
