@@ -137,8 +137,17 @@ namespace StrmAssistant.Common
                 }
             }
 
-            return await ((Task<Tuple<string, bool>>)_createTitleFingerprint.Invoke(_audioFingerprintManager,
-                new object[] { item, libraryOptions, directoryService, cancellationToken })).ConfigureAwait(false);
+            var createTitleFingerprintTask = _createTitleFingerprint.Invoke(_audioFingerprintManager,
+                new object[] { item, libraryOptions, directoryService, cancellationToken }) as Task;
+
+            if (createTitleFingerprintTask is null)
+            {
+                _logger?.Debug("FingerprintApi - CreateTitleFingerprint returned no task");
+                return null;
+            }
+
+            return (Tuple<string, bool>)await ReflectionTaskHelper
+                .AwaitAsObject(createTitleFingerprintTask).ConfigureAwait(false);
         }
 
         public Task<Tuple<string, bool>> CreateTitleFingerprint(Episode item, CancellationToken cancellationToken)
@@ -146,6 +155,31 @@ namespace StrmAssistant.Common
             var directoryService = new DirectoryService(_logger, _fileSystem);
 
             return CreateTitleFingerprint(item, directoryService, cancellationToken);
+        }
+
+        /// <summary>
+        /// Records an intro detection failure for a single episode, matching Emby's
+        /// AudioFingerprintManager.OnFailedToFindIntro semantics: the stored value is the
+        /// episode's current DateModified in Unix seconds, so InternalItemsQuery with
+        /// HasIntroDetectionFailure = false skips the episode until its DateModified changes.
+        /// </summary>
+        public void LogIntroDetectionFailure(Episode item)
+        {
+            try
+            {
+                _itemRepository.LogIntroDetectionFailureFailure(item.InternalId,
+                    item.DateModified.ToUnixTimeSeconds());
+
+                _logger?.Info("IntroFingerprintExtract - Intro Detection Failure Recorded: " + item.Name + " - " +
+                              item.Path);
+            }
+            catch (Exception e)
+            {
+                _logger?.Error("IntroFingerprintExtract - Failed to Record Intro Detection Failure: " + item.Name +
+                               " - " + item.Path);
+                _logger?.Error(e.Message);
+                _logger?.Debug(e.StackTrace);
+            }
         }
 
         /// <summary>
@@ -161,7 +195,11 @@ namespace StrmAssistant.Common
             if (_ffmpegManager.FfmpegCapabilities?.SupportsChromaprint != true) return null;
 
             var tempPath = Path.Combine(_applicationPaths.TempDirectory, Guid.NewGuid().ToString("N"));
-            var inputArgument = _mediaEncoder.GetInputArgument(inputPath.AsSpan(), MediaProtocol.File);
+            var normalizedInputPath = StrmUrlHelper.Normalize(inputPath);
+            var protocol = CustomFfprobeApi.IsHttpUrl(normalizedInputPath)
+                ? MediaProtocol.Http
+                : MediaProtocol.File;
+            var inputArgument = _mediaEncoder.GetInputArgument(normalizedInputPath.AsSpan(), protocol);
             var startArgument = start > TimeSpan.Zero
                 ? "-t " + _mediaEncoder.GetTimeParameter(start.Ticks)
                 : string.Empty;
@@ -220,15 +258,26 @@ namespace StrmAssistant.Common
         private Task<object> GetAllFingerprintFilesForSeason(Season season, Episode[] episodes,
             LibraryOptions libraryOptions, IDirectoryService directoryService, CancellationToken cancellationToken)
         {
-            return (Task<object>)_getAllFingerprintFilesForSeason.Invoke(_audioFingerprintManager,
-                new object[] { season, episodes, libraryOptions, directoryService, cancellationToken });
+            var task = _getAllFingerprintFilesForSeason.Invoke(_audioFingerprintManager,
+                new object[] { season, episodes, libraryOptions, directoryService, cancellationToken }) as Task;
+
+            if (task is null)
+            {
+                _logger?.Debug("FingerprintApi - GetAllFingerprintFilesForSeason returned no task");
+                return Task.FromResult<object>(null);
+            }
+
+            return ReflectionTaskHelper.AwaitAsObject(task);
         }
 
         private void UpdateSequencesForSeason(Season season, object seasonFingerprintInfo, Episode episode,
-            LibraryOptions libraryOptions, IDirectoryService directoryService)
+            LibraryOptions libraryOptions, IDirectoryService directoryService, CancellationToken cancellationToken)
         {
             _updateSequencesForSeason.Invoke(_audioFingerprintManager,
-                new[] { season, seasonFingerprintInfo, episode, libraryOptions, directoryService });
+                new object[]
+                {
+                    season, seasonFingerprintInfo, episode, libraryOptions, directoryService, cancellationToken
+                });
         }
 
         public void PatchTimeout(int maxConcurrentCount)
@@ -310,7 +359,8 @@ namespace StrmAssistant.Common
             }
 
             var isModSupported = Plugin.Instance.IsModSupported;
-            resultItems = resultItems.Where(i => isModSupported || !i.IsShortcut).GroupBy(i => i.InternalId)
+            resultItems = resultItems.Where(i => isModSupported || !i.IsShortcut)
+                .GroupBy(i => i.Path, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First()).ToList();
 
             var blacklist = FingerprintBlacklist.FromOptions();
@@ -361,6 +411,7 @@ namespace StrmAssistant.Common
                 GroupByPresentationUniqueKey = false,
                 HasPath = true,
                 HasAudioStream = false,
+                HasIntroDetectionFailure = false,
             };
 
             if (!string.IsNullOrEmpty(markerEnabledLibraryScope) && markerEnabledLibraryScope.Contains("-1"))
@@ -377,12 +428,21 @@ namespace StrmAssistant.Common
 
             var isModSupported = Plugin.Instance.IsModSupported;
             var blacklist = FingerprintBlacklist.FromOptions();
-
-            return _libraryManager.GetItemList(itemsFingerprintQuery)
-                .Where(i => isModSupported || !i.IsShortcut)
+            var queryItems = _libraryManager.GetItemList(itemsFingerprintQuery);
+            var results = queryItems.Where(i => isModSupported || !i.IsShortcut)
                 .OfType<Episode>()
                 .Where(i => !blacklist.IsExcluded(i))
+                .GroupBy(i => i.Path, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
                 .ToList();
+
+            _logger?.Info("IntroFingerprintExtract - PreExtract stage counts: query=" + queryItems.Length +
+                          ", filtered=" + results.Count +
+                          ", isModSupported=" + isModSupported +
+                          ", favoriteScope=" + (!string.IsNullOrEmpty(markerEnabledLibraryScope) &&
+                                               markerEnabledLibraryScope.Contains("-1")));
+
+            return results;
         }
 
         public List<Episode> FetchIntroFingerprintTaskItems()
@@ -402,6 +462,12 @@ namespace StrmAssistant.Common
                     (libraryIds.Contains("-1")
                         ? new[] { Resources.Favorites }.Concat(librariesSelected.Select(l => l.Name))
                         : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
+            _logger?.Info("IntroFingerprintExtract - MarkerEnabledLibraryScope(raw): " +
+                         (string.IsNullOrEmpty(Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope)
+                             ? "<empty>"
+                             : Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope));
+            _logger?.Info("IntroFingerprintExtract - LibraryPathsInScope(" + LibraryPathsInScope.Count + "): " +
+                         (LibraryPathsInScope.Any() ? string.Join(" | ", LibraryPathsInScope) : "<empty>"));
 
             var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
             _logger?.Info("Intro Detection Fingerprint Length (Minutes): " +
@@ -431,9 +497,11 @@ namespace StrmAssistant.Common
                 HasAudioStream = true
             };
 
-            if (libraryIds.All(i => i == "-1"))
+            if (libraryIds.Length != 0 && libraryIds.All(i => i == "-1"))
             {
-                itemsFingerprintQuery.ParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
+                var favoriteSeasonParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
+                _logger?.Info("IntroFingerprintExtract - FavoriteSeasonParentIds: " + favoriteSeasonParentIds.Length);
+                itemsFingerprintQuery.ParentIds = favoriteSeasonParentIds;
             }
             else
             {
@@ -445,12 +513,21 @@ namespace StrmAssistant.Common
 
             var isModSupported = Plugin.Instance.IsModSupported;
             var blacklist = FingerprintBlacklist.FromOptions();
-            var items = _libraryManager.GetItemList(itemsFingerprintQuery).Where(i => isModSupported || !i.IsShortcut)
-                .OfType<Episode>()
-                .Where(i => !blacklist.IsExcluded(i))
+            var queryItems = _libraryManager.GetItemList(itemsFingerprintQuery);
+            var afterShortcut = queryItems.Where(i => isModSupported || !i.IsShortcut).ToList();
+            var afterBlacklist = afterShortcut.OfType<Episode>().Where(i => !blacklist.IsExcluded(i)).ToList();
+            var items = afterBlacklist
                 .Where(i => i.RunTimeTicks >= TimeSpan
                     .FromMinutes(GetIntroDetectionFingerprintMinutesForItem(i)).Ticks)
+                .GroupBy(i => i.Path, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
                 .ToList();
+
+            _logger?.Info("IntroFingerprintExtract - Stage counts: query=" + queryItems.Length +
+                          ", modOrNonShortcut=" + afterShortcut.Count +
+                          ", blacklist=" + afterBlacklist.Count +
+                          ", runtime=" + items.Count +
+                          ", isModSupported=" + isModSupported);
 
             return items;
         }
@@ -601,6 +678,26 @@ namespace StrmAssistant.Common
                 return;
             }
 
+            // Fingerprint detection compares the episodes of one season with each other. A season
+            // with a single episode has no second fingerprint to compare against, so any detected
+            // title sequence would be a false positive. IntroDb markers are skipped as well.
+            var seasonEpisodeCount = season.GetEpisodes(new InternalItemsQuery
+            {
+                GroupByPresentationUniqueKey = false,
+                EnableTotalRecordCount = false,
+                IncludeItemTypes = new[] { nameof(Episode) },
+                HasPath = true,
+                MediaTypes = new[] { MediaType.Video }
+            }).Items.OfType<Episode>().Count();
+
+            if (seasonEpisodeCount < 2)
+            {
+                _logger?.Debug("IntroMarkerFilter - Skipped season with fewer than 2 episodes: " +
+                               season.Name + " - " + season.Path);
+                return;
+            }
+
+            var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
             var introDetectionFingerprintMinutes = GetIntroDetectionFingerprintMinutesForItem(season);
 
             var libraryOptions = _libraryManager.GetLibraryOptions(season);
@@ -647,7 +744,12 @@ namespace StrmAssistant.Common
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     UpdateSequencesForSeason(season, seasonFingerprintInfo, episode, libraryOptions,
-                        directoryService);
+                        directoryService, cancellationToken);
+
+                    // The fingerprint pipeline writes the markers directly through the item
+                    // repository, so the configurable bounds are applied right after it runs.
+                    IntroMarkerHelper.NormalizeEpisodeMarkers(episode, _itemRepository, introSkipOptions,
+                        _logger);
 
                     index++;
                     progress?.Report(index / total);
