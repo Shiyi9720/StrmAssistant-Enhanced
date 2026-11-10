@@ -19,6 +19,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "DvP7Api", DvP7Tests.Run);
             RunGroup(runner, "SourceBackoffHttp", SourceBackoffHttpTests.Run);
             RunGroup(runner, "DvP7DetectAsync", DvP7DetectTests.Run);
+            RunGroup(runner, "ProbeExitCode", ProbeExitCodeTests.Run);
             RunGroup(runner, "ResumeSequence", ResumeSequenceTests.Run);
 
             return runner.Finish();

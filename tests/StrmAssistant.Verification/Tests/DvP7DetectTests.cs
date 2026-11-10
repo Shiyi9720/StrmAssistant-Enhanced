@@ -140,17 +140,16 @@ namespace StrmAssistant.Verification
                     "actual " + (probe.ExitCode?.ToString() ?? "<none>"));
             }
 
-            // ffprobe still prints an empty JSON object with -print_format json, so the failure
-            // surfaces as an empty document rather than null. Pin that actual behaviour.
-            runner.Check("D2 failed probe yields null or an empty JSON object",
-                json is null || IsEmptyJsonObject(json),
+            // ffprobe still prints an empty JSON object with -print_format json, but the non-zero
+            // exit code plus the absence of stream data now marks it as a hard failure.
+            runner.Check("D2 failed probe yields null", json is null,
                 "actual '" + (json ?? "<null>") + "'");
 
             var info = DvP7Api.DetectAsync(missing, CancellationToken.None).GetAwaiter().GetResult();
 
-            runner.Check("D2 DetectAsync degrades to a non-P7 result without throwing",
-                info != null && !info.IsDvP7,
-                info is null ? "result was null" : "IsDvP7=" + info.IsDvP7);
+            runner.Check("D2 DetectAsync reports probe failure as null without throwing",
+                info is null,
+                info is null ? null : "IsDvP7=" + info.IsDvP7);
 
             // A probe that fails without printing anything must return null instead.
             var failedWrapper = WriteWrapper(workDir, "ffprobe-fail-empty",
@@ -187,8 +186,8 @@ namespace StrmAssistant.Verification
             var realJson = CustomFfprobeApi.RunProbeJsonAsync(emptyFile,
                 "-show_streams -show_stream_groups", CancellationToken.None).GetAwaiter().GetResult();
 
-            runner.Check("D3 real empty file still yields an empty JSON object or null",
-                realJson is null || IsEmptyJsonObject(realJson),
+            runner.Check("D3 real empty file yields null (non-zero exit + no stream data)",
+                realJson is null,
                 "actual '" + (realJson ?? "<null>") + "'");
             runner.Check("D3 real empty file exits non-zero",
                 FfmpegApi.Last != null && FfmpegApi.Last.ExitCode.HasValue &&
@@ -376,13 +375,6 @@ namespace StrmAssistant.Verification
                 "invocations: " + string.Join(" | ", invocations.Select(i => i.Arguments)));
             runner.Check("D5 wrapper validated and invoked at least three times",
                 invocations.Count >= 3, "actual " + invocations.Count);
-        }
-
-        private static bool IsEmptyJsonObject(string json)
-        {
-            if (json is null) return false;
-
-            return new string(json.Where(c => !char.IsWhiteSpace(c)).ToArray()) == "{}";
         }
 
         private static DvP7EnhancementLayer Classify(double ratio)

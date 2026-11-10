@@ -124,9 +124,11 @@ namespace StrmAssistant.Common
         /// Reads the resume point that belongs to each concrete version. An exact record wins and
         /// is returned untouched (a). When the target version has no record the most recent
         /// unfinished record in the same content group is converted once by runtime ratio and
-        /// persisted as the target version's own record (b). The finished state is still shared
-        /// across versions (c). Legacy records that carry no media source id are treated as a
-        /// wildcard, completed in place and written back (d).
+        /// persisted as the target version's own record (b); the source may be another item of the
+        /// group or another media source of the same merged item, and each target takes at most one
+        /// source record. The finished state is shared across versions that have no record of
+        /// their own (c). Legacy records that carry no media source id are treated as a wildcard,
+        /// completed in place and written back (d).
         /// </summary>
         private List<VersionPlaybackInfo> GetPerVersionPlayback(long userId, BaseItem item)
         {
@@ -156,8 +158,9 @@ namespace StrmAssistant.Common
                 }
 
                 // The most recent state wins: if the user just finished one version, every version
-                // is reported as played; if the newest event is unfinished progress, conversion is
-                // used.
+                // without a record of its own is reported as played; a version that has its own
+                // unfinished record still resumes from it. If the newest event is unfinished
+                // progress, conversion is used.
                 var sharedPlayed = records.FirstOrDefault()?.Played == true;
 
                 // Resolve exact per-version records first so a record is never reused for another
@@ -213,10 +216,16 @@ namespace StrmAssistant.Common
                         continue;
                     }
 
+                    // The target version has no record of its own: convert from the most recent
+                    // unfinished record of another version. "Another version" may be another item
+                    // in the same content group (split versions / libraries) or another media
+                    // source of the same merged item. The latter is why a sibling source's exact
+                    // record is eligible even though it is already in `used`: it was only reserved
+                    // for matching, not consumed as a conversion source. A record that belongs to
+                    // the target source itself is never used, and each target takes at most one.
                     var candidate = records.FirstOrDefault(r =>
-                        !used.Contains(r) && !r.Played && r.PositionTicks > 0 &&
-                        !sources.Any(s => s != null &&
-                                          (IsSameVersion(r, s) || IsLooseVersionMatch(r, s))));
+                        !r.Played && r.PositionTicks > 0 &&
+                        !IsSameVersion(r, source) && !IsLooseVersionMatch(r, source));
 
                     if (candidate is null)
                     {
@@ -224,8 +233,6 @@ namespace StrmAssistant.Common
                             $"VersionPlayback - resume miss: source={source.Id}, no record for this version, hit=false");
                         continue;
                     }
-
-                    used.Add(candidate);
 
                     var sourceRuntime = ResolveRuntime(candidate, sources);
                     var targetRuntime = source.RunTimeTicks.GetValueOrDefault();

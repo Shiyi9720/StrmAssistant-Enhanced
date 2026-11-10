@@ -472,16 +472,34 @@ namespace StrmAssistant.Common
                 var arguments = "-v error -print_format json " + (outputArguments ?? string.Empty) +
                                 " \"" + inputPath + "\"";
 
-                var output = await FfmpegApi.RunAndCaptureAsync(Plugin.Instance?.FfmpegManager, exePath, arguments,
-                    "CustomFfprobe", timeoutMs > 0 ? timeoutMs : 120000, cancellationToken)
-                    .ConfigureAwait(false);
+                var run = await FfmpegApi.RunAndCaptureWithExitCodeAsync(Plugin.Instance?.FfmpegManager,
+                    exePath, arguments, "CustomFfprobe", timeoutMs > 0 ? timeoutMs : 120000,
+                    cancellationToken).ConfigureAwait(false);
 
-                if (string.IsNullOrWhiteSpace(output)) return null;
+                if (string.IsNullOrWhiteSpace(run.Output)) return null;
 
-                var start = output.IndexOf('{');
-                var end = output.LastIndexOf('}');
+                var start = run.Output.IndexOf('{');
+                var end = run.Output.LastIndexOf('}');
+                var json = start < 0 || end <= start
+                    ? null
+                    : run.Output.Substring(start, end - start + 1);
 
-                return start < 0 || end <= start ? null : output.Substring(start, end - start + 1);
+                // ffprobe prints an empty JSON object even when it fails (missing/unreadable
+                // input), so a non-zero exit code with no stream data must be a hard failure.
+                // A non-zero exit code that still produced stream data is kept as-is: the probe
+                // succeeded for our purposes and must not be discarded.
+                if (run.ExitCode.GetValueOrDefault() != 0 &&
+                    (json is null ||
+                     (json.IndexOf("\"streams\"", StringComparison.Ordinal) < 0 &&
+                      json.IndexOf("\"stream_groups\"", StringComparison.Ordinal) < 0)))
+                {
+                    Logger?.Debug(
+                        $"CustomFfprobe - Probe failed: exitCode={run.ExitCode}, arguments={outputArguments}");
+
+                    return null;
+                }
+
+                return json;
             }
             catch (OperationCanceledException)
             {

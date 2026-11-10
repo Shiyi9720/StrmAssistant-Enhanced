@@ -47,7 +47,17 @@ namespace StrmAssistant.Common
             string exePath, string arguments, string name, int timeoutMs,
             CancellationToken cancellationToken)
         {
-            if (ffmpegManager is null || string.IsNullOrEmpty(exePath)) return null;
+            var result = await RunAndCaptureWithExitCodeAsync(ffmpegManager, exePath, arguments, name,
+                timeoutMs, cancellationToken).ConfigureAwait(false);
+
+            return result.Output;
+        }
+
+        internal static async Task<RunResult> RunAndCaptureWithExitCodeAsync(IFfmpegManager ffmpegManager,
+            string exePath, string arguments, string name, int timeoutMs,
+            CancellationToken cancellationToken)
+        {
+            if (ffmpegManager is null || string.IsNullOrEmpty(exePath)) return RunResult.Empty;
 
             var invocation = new Invocation(exePath, arguments);
             var effectiveTimeout = timeoutMs > 0 ? timeoutMs : 120000;
@@ -69,7 +79,7 @@ namespace StrmAssistant.Common
                 if (!process.Start())
                 {
                     invocation.StartFailed = true;
-                    return null;
+                    return RunResult.Empty;
                 }
 
                 // Read both pipes concurrently so a chatty process cannot deadlock on a full pipe.
@@ -107,7 +117,7 @@ namespace StrmAssistant.Common
                         // ignored
                     }
 
-                    return null;
+                    return RunResult.Empty;
                 }
 
                 invocation.Stdout = await stdoutTask.ConfigureAwait(false);
@@ -118,12 +128,12 @@ namespace StrmAssistant.Common
                 builder.Append(invocation.Stdout);
                 builder.Append(invocation.Stderr);
 
-                return builder.ToString();
+                return new RunResult(builder.ToString(), invocation.ExitCode);
             }
             catch (Exception e)
             {
                 invocation.Error = e.GetType().Name + ": " + e.Message;
-                return null;
+                return RunResult.Empty;
             }
             finally
             {
@@ -132,6 +142,22 @@ namespace StrmAssistant.Common
                     Invocations.Add(invocation);
                 }
             }
+        }
+
+        /// <summary>Mirror of the production FfmpegApi.RunResult shape.</summary>
+        internal readonly struct RunResult
+        {
+            public static readonly RunResult Empty = new RunResult(null, null);
+
+            public RunResult(string output, int? exitCode)
+            {
+                Output = output;
+                ExitCode = exitCode;
+            }
+
+            public string Output { get; }
+
+            public int? ExitCode { get; }
         }
 
         internal sealed class Invocation

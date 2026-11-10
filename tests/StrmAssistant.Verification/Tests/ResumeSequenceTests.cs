@@ -27,7 +27,10 @@ namespace StrmAssistant.Verification
             CrossItemSequence(runner);
             MostRecentUnfinishedWins(runner);
             PlayedCandidateIsNotConverted(runner);
-            MergedSourceItem(runner);
+            MergedSourceItemConverts(runner);
+            MergedSourceExactWins(runner);
+            MergedSourceThreeVersions(runner);
+            MergedSourceFinishedIsShared(runner);
         }
 
         /// <summary>
@@ -163,14 +166,13 @@ namespace StrmAssistant.Verification
         }
 
         /// <summary>
-        /// A single item carrying both versions (Emby merged media sources). The documented rule
-        /// says conversion draws only from records that do not belong to any current version, so
-        /// here B gets no plugin entry and the client keeps Emby's native position. Pinned so the
-        /// behaviour is visible; see the batch-15 report for the resulting limitation.
+        /// G1: one item carrying two media sources (Emby merged versions). Only the main source
+        /// has a record, so the secondary version converts once by runtime ratio and persists the
+        /// converted position as its own record.
         /// </summary>
-        private static void MergedSourceItem(TestRunner runner)
+        private static void MergedSourceItemConverts(TestRunner runner)
         {
-            runner.Section("F4. merged multi-source item (documented exclusion, no conversion)");
+            runner.Section("G1. merged multi-source item: secondary version converts from main");
 
             var harness = new Harness();
 
@@ -182,20 +184,146 @@ namespace StrmAssistant.Verification
             var movie = Movie(5000, "Merged Movie", 2024, sourceA);
             movie.MediaSources.Add(sourceB);
 
-            harness.Progress(movie, sourceA, 24 * TicksPerMinute);
+            harness.Progress(movie, sourceA, 24 * TicksPerMinute); // 40% of 60
 
             var readA = harness.Get(movie, "srcA");
-            runner.EqualLong("F4 A exact record stays at 24min", 24 * TicksPerMinute,
+            runner.EqualLong("G1 A exact record stays at 24min", 24 * TicksPerMinute,
                 readA?.PositionTicks ?? -1);
+            runner.Check("G1 A is not marked played", readA != null && !readA.Played);
 
             var readB = harness.Get(movie, "srcB");
-            runner.Check("F4 B has no plugin entry (A's record belongs to a current version)",
-                readB is null,
-                readB is null ? null : "position=" + readB.PositionTicks);
+            runner.Check("G1 B receives a converted resume point", readB != null);
+            runner.EqualLong("G1 B position is 32min (40% of 80min)", 32 * TicksPerMinute,
+                readB?.PositionTicks ?? -1);
+            runner.Check("G1 B is not marked played", readB != null && !readB.Played);
+
+            CheckStoredRecord(runner, harness, "G1", "srcB", 32 * TicksPerMinute);
+
+            // The conversion is a one-time event: B owns its record from now on.
+            var readBAgain = harness.Get(movie, "srcB");
+            runner.EqualLong("G1 second read of B is unchanged", 32 * TicksPerMinute,
+                readBAgain?.PositionTicks ?? -1);
+        }
+
+        /// <summary>G2: an exact record must win over conversion for a secondary source.</summary>
+        private static void MergedSourceExactWins(TestRunner runner)
+        {
+            runner.Section("G2. merged item: secondary source with its own record is not converted");
+
+            var harness = new Harness();
+
+            var sourceA = Source("srcA", "5000", "/library/Exact.Movie.2024.1080p.mkv",
+                60 * TicksPerMinute, 1080);
+            var sourceB = Source("srcB", "5000", "/library/Exact.Movie.2024.2160p.mkv",
+                80 * TicksPerMinute, 2160);
+
+            var movie = Movie(5000, "Exact Movie", 2024, sourceA);
+            movie.MediaSources.Add(sourceB);
+
+            harness.Progress(movie, sourceA, 24 * TicksPerMinute);
+            harness.Progress(movie, sourceB, 10 * TicksPerMinute);
+
+            var readB = harness.Get(movie, "srcB");
+            runner.EqualLong("G2 B keeps its own 10min, not a converted 32min", 10 * TicksPerMinute,
+                readB?.PositionTicks ?? -1);
+            runner.Check("G2 B is not marked played", readB != null && !readB.Played);
+
+            var readA = harness.Get(movie, "srcA");
+            runner.EqualLong("G2 A keeps its own 24min", 24 * TicksPerMinute,
+                readA?.PositionTicks ?? -1);
+
+            // No conversion happened, so only Dispose's forced persist flushes both progress
+            // events to disk (normal writes are throttled to one per 30 s).
+            harness.Flush();
+
+            CheckStoredRecord(runner, harness, "G2", "srcB", 10 * TicksPerMinute);
+        }
+
+        /// <summary>
+        /// G3: one item with three sources, only the main one has a record. Both other sources
+        /// convert from it and each writes its own record at its own runtime ratio; one source
+        /// record is never turned into a single shared converted record.
+        /// </summary>
+        private static void MergedSourceThreeVersions(TestRunner runner)
+        {
+            runner.Section("G3. merged item: three sources, only the main one has a record");
+
+            var harness = new Harness();
+
+            var sourceA = Source("srcA", "5000", "/library/Three.Movie.2024.1080p.mkv",
+                60 * TicksPerMinute, 1080);
+            var sourceB = Source("srcB", "5000", "/library/Three.Movie.2024.2160p.mkv",
+                80 * TicksPerMinute, 2160);
+            var sourceC = Source("srcC", "5000", "/library/Three.Movie.2024.720p.mkv",
+                120 * TicksPerMinute, 720);
+
+            var movie = Movie(5000, "Three Movie", 2024, sourceA);
+            movie.MediaSources.Add(sourceB);
+            movie.MediaSources.Add(sourceC);
+
+            harness.Progress(movie, sourceA, 24 * TicksPerMinute); // 40% of 60
+
+            // One read resolves every source, so both conversions happen in the same pass.
+            var entries = harness.GetAll(movie);
+
+            var readB = entries.FirstOrDefault(e => e.MediaSourceId == "srcB");
+            var readC = entries.FirstOrDefault(e => e.MediaSourceId == "srcC");
+
+            runner.EqualLong("G3 B converts to 32min (40% of 80min)", 32 * TicksPerMinute,
+                readB?.PositionTicks ?? -1);
+            runner.EqualLong("G3 C converts to 48min (40% of 120min)", 48 * TicksPerMinute,
+                readC?.PositionTicks ?? -1);
+
+            CheckStoredRecord(runner, harness, "G3 B", "srcB", 32 * TicksPerMinute);
+            CheckStoredRecord(runner, harness, "G3 C", "srcC", 48 * TicksPerMinute);
+            runner.Check("G3 the two converted entries are distinct records",
+                readB != null && readC != null &&
+                !ReferenceEquals(readB, readC) &&
+                readB.MediaSourceId != readC.MediaSourceId);
+
+            var secondPass = harness.GetAll(movie);
+            runner.EqualLong("G3 B is an exact hit on the second pass", 32 * TicksPerMinute,
+                secondPass.FirstOrDefault(e => e.MediaSourceId == "srcB")?.PositionTicks ?? -1);
+            runner.EqualLong("G3 C is an exact hit on the second pass", 48 * TicksPerMinute,
+                secondPass.FirstOrDefault(e => e.MediaSourceId == "srcC")?.PositionTicks ?? -1);
+        }
+
+        /// <summary>G4: a finished main source makes every recordless version report played.</summary>
+        private static void MergedSourceFinishedIsShared(TestRunner runner)
+        {
+            runner.Section("G4. merged item: finished main source -> recordless source is played");
+
+            var harness = new Harness();
+
+            var sourceA = Source("srcA", "5000", "/library/Finished.Movie.2024.1080p.mkv",
+                60 * TicksPerMinute, 1080);
+            var sourceB = Source("srcB", "5000", "/library/Finished.Movie.2024.2160p.mkv",
+                80 * TicksPerMinute, 2160);
+
+            var movie = Movie(5000, "Finished Movie", 2024, sourceA);
+            movie.MediaSources.Add(sourceB);
+
+            harness.Progress(movie, sourceA, 30 * TicksPerMinute);
+            harness.StopCompleted(movie, sourceA);
+
+            var readB = harness.Get(movie, "srcB");
+            runner.Check("G4 B is reported played", readB != null && readB.Played,
+                readB is null ? "no entry" : "played=" + readB.Played);
+            runner.EqualLong("G4 B position is 0, not a converted position", 0,
+                readB?.PositionTicks ?? -1);
+
+            var readA = harness.Get(movie, "srcA");
+            runner.Check("G4 A reports its own played state", readA != null && readA.Played);
         }
 
         private static void CheckConvertedStore(TestRunner runner, Harness harness, string prefix,
             long expectedPosition)
+        {
+            CheckStoredRecord(runner, harness, prefix, "srcB", expectedPosition);
+        }
+
+        private static void CheckStoredRecord(TestRunner runner, Harness harness, string prefix,
+            string mediaSourceId, long expectedPosition)
         {
             var path = Path.Combine(harness.StoreDirectory, "StrmAssistant.VersionPlayback.json");
 
@@ -218,16 +346,16 @@ namespace StrmAssistant.Verification
             foreach (var record in records.EnumerateArray())
             {
                 if (!record.TryGetProperty("MediaSourceId", out var id) ||
-                    id.GetString() != "srcB") continue;
+                    id.GetString() != mediaSourceId) continue;
 
                 found = record.TryGetProperty("PositionTicks", out var position) &&
                         position.GetInt64() == expectedPosition;
                 played = !record.TryGetProperty("Played", out var value) || value.GetBoolean();
             }
 
-            runner.Check(prefix + " store contains B's converted record at " +
+            runner.Check(prefix + " store contains " + mediaSourceId + " record at " +
                          (expectedPosition / TicksPerMinute) + "min", found);
-            runner.Check(prefix + " stored B record is unfinished", !played);
+            runner.Check(prefix + " stored " + mediaSourceId + " record is unfinished", !played);
         }
 
         private static Movie Movie(long id, string name, int year, MediaSourceInfo source)
@@ -322,6 +450,17 @@ namespace StrmAssistant.Verification
                 return _api.GetVersionPlayback(_user.InternalId, movie)
                     .FirstOrDefault(e => string.Equals(e.MediaSourceId, mediaSourceId,
                         StringComparison.Ordinal));
+            }
+
+            public List<VersionPlaybackInfo> GetAll(Movie movie)
+            {
+                return _api.GetVersionPlayback(_user.InternalId, movie);
+            }
+
+            /// <summary>Forces the throttled store to flush (production does this on shutdown).</summary>
+            public void Flush()
+            {
+                _api.Dispose();
             }
         }
 
