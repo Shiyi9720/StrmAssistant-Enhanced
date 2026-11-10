@@ -17,6 +17,9 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "ResumePositionMath", ResumePositionMathTests.Run);
             RunGroup(runner, "SourceBackoff", SourceBackoffTests.Run);
             RunGroup(runner, "DvP7Api", DvP7Tests.Run);
+            RunGroup(runner, "SourceBackoffHttp", SourceBackoffHttpTests.Run);
+            RunGroup(runner, "DvP7DetectAsync", DvP7DetectTests.Run);
+            RunGroup(runner, "ResumeSequence", ResumeSequenceTests.Run);
 
             return runner.Finish();
         }
@@ -38,6 +41,7 @@ namespace StrmAssistant.Verification
     {
         private int _pass;
         private int _fail;
+        private int _skip;
 
         public void Section(string name)
         {
@@ -59,6 +63,12 @@ namespace StrmAssistant.Verification
             }
         }
 
+        public void Skip(string name, string reason)
+        {
+            _skip++;
+            Console.WriteLine("[SKIP] " + name + " - " + reason);
+        }
+
         public void EqualLong(string name, long expected, long actual)
         {
             Check(name, expected == actual, "expected " + expected + ", actual " + actual);
@@ -73,7 +83,8 @@ namespace StrmAssistant.Verification
         public int Finish()
         {
             Console.WriteLine();
-            Console.WriteLine("SUMMARY: " + _pass + " passed, " + _fail + " failed");
+            Console.WriteLine("SUMMARY: " + _pass + " passed, " + _fail + " failed, " + _skip +
+                              " skipped");
 
             return _fail == 0 ? 0 : 1;
         }
