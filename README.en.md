@@ -64,7 +64,7 @@ Settings live in `Strm Assistant.json`; upgrading from an older version keeps yo
 ### Known limitations
 
 - Native watch progress is shared per TMDB id; per-version and cross-library resume is tracked by the plugin, and may drift on some clients
-- Dolby Vision P7 layer detection needs a static ffprobe 9 (Emby's bundled 5.1 lacks `-show_stream_groups`): the plugin prefers `bin/ffprobe` in its data folder, `/config/bin/ffprobe`, or the path configured in settings, and only then tries to download (~15 MB zip / 36 MB binary); unavailable in fully offline setups without a manually placed binary
+- Dolby Vision P7 layer detection needs a static ffprobe 9 (Emby's bundled 5.1 lacks `-show_stream_groups`): the plugin prefers `bin/ffprobe` in its data folder, `/config/bin/ffprobe`, or the path configured in settings, and only then tries to download (~15 MB zip / 36 MB binary); unavailable in fully offline setups without a manually placed binary; the check only applies to disc sources (ISO/BDMV dual-layer streams), single-track P7 MKV/REMUX files are reported as Profile 7 by Emby itself
 - Douban, IntroDB and OpenSubtitles are third-party services; rate limits or API changes may disable those features temporarily. Consecutive failures back off progressively (10 min → 30 min → 2 h → 6 h) and reset on success
 
 ## Notice
