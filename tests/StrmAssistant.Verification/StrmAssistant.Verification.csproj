@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Verification project for batch-12/13 logic. It is deliberately standalone:
+    Verification project for batch-12/13/15 logic. It is deliberately standalone:
       * not referenced by StrmAssistant.sln or StrmAssistant.csproj;
       * links the real source files from ../../StrmAssistant/Common (no copied logic);
-      * supplies the minimal Emby/plugin shims the linked files reference (see src/Shims.cs).
+      * supplies the minimal Emby/plugin shims the linked files reference (see src/Shims.cs,
+        src/EmbyShims.cs and src/FfmpegApiShim.cs).
     Run with:
       DOTNET_ROOT=/home/Shiyi/.dotnet /home/Shiyi/.dotnet/dotnet run -c Release
   -->
@@ -22,6 +23,9 @@
     <Compile Include="..\..\StrmAssistant\Common\SourceBackoff.cs" Link="src\SourceBackoff.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DvP7Api.cs" Link="src\DvP7Api.cs" />
     <Compile Include="..\..\StrmAssistant\Common\ResumePositionMath.cs" Link="src\ResumePositionMath.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\CustomFfprobeApi.cs" Link="src\CustomFfprobeApi.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\StrmUrlHelper.cs" Link="src\StrmUrlHelper.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\VersionPlaybackApi.cs" Link="src\VersionPlaybackApi.cs" />
   </ItemGroup>
 
   <ItemGroup>
