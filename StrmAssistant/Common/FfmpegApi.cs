@@ -138,12 +138,27 @@ namespace StrmAssistant.Common
 
         /// <summary>
         /// Emby's ffmpeg runner can write the process output to a log file. That is the only way
-        /// to read ffprobe/filter output through the public runner API.
+        /// to read ffprobe/filter output through the public runner API. The exit code is dropped
+        /// here; use <see cref="RunAndCaptureWithExitCodeAsync"/> when it matters.
         /// </summary>
         internal static async Task<string> RunAndCaptureAsync(IFfmpegManager ffmpegManager, string exePath,
             string arguments, string name, int timeoutMs, CancellationToken cancellationToken)
         {
-            if (ffmpegManager is null || string.IsNullOrEmpty(exePath)) return null;
+            var result = await RunAndCaptureWithExitCodeAsync(ffmpegManager, exePath, arguments, name,
+                timeoutMs, cancellationToken).ConfigureAwait(false);
+
+            return result.Output;
+        }
+
+        /// <summary>
+        /// Same as <see cref="RunAndCaptureAsync"/> but also reports the process exit code. A null
+        /// exit code means the runner never reported one (start failure, timeout, cancellation or
+        /// an Emby build that does not expose <c>LastExitCode</c>).
+        /// </summary>
+        internal static async Task<RunResult> RunAndCaptureWithExitCodeAsync(IFfmpegManager ffmpegManager,
+            string exePath, string arguments, string name, int timeoutMs, CancellationToken cancellationToken)
+        {
+            if (ffmpegManager is null || string.IsNullOrEmpty(exePath)) return RunResult.Empty;
 
             var logPath = Path.Combine(Path.GetTempPath(),
                 "strmassistant-" + Guid.NewGuid().ToString("N") + ".log");
@@ -152,11 +167,11 @@ namespace StrmAssistant.Common
             {
                 using (var runner = ffmpegManager.CreateFfMpegRunner(name, logPath))
                 {
-                    if (runner is null) return null;
+                    if (runner is null) return RunResult.Empty;
 
                     if (!runner.Run(exePath, arguments))
                     {
-                        return null;
+                        return RunResult.Empty;
                     }
 
                     var exited = await runner.WaitForExitAsync(timeoutMs, cancellationToken)
@@ -165,7 +180,7 @@ namespace StrmAssistant.Common
                     if (!exited)
                     {
                         await runner.WaitAndKillAsync(2000).ConfigureAwait(false);
-                        return null;
+                        return RunResult.Empty;
                     }
 
                     // Output is flushed when the process exits; give the writer a moment.
@@ -175,16 +190,18 @@ namespace StrmAssistant.Common
                         await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                     }
 
-                    return File.Exists(logPath) ? File.ReadAllText(logPath) : string.Empty;
+                    var output = File.Exists(logPath) ? File.ReadAllText(logPath) : string.Empty;
+
+                    return new RunResult(output, ReadExitCode(runner));
                 }
             }
             catch (OperationCanceledException)
             {
-                return null;
+                return RunResult.Empty;
             }
             catch (Exception)
             {
-                return null;
+                return RunResult.Empty;
             }
             finally
             {
@@ -197,6 +214,35 @@ namespace StrmAssistant.Common
                     // ignored
                 }
             }
+        }
+
+        private static int? ReadExitCode(Emby.Model.ProcessRun.IProcessRunner runner)
+        {
+            try
+            {
+                return runner.LastExitCode;
+            }
+            catch
+            {
+                // An Emby build that does not populate LastExitCode must not fail the probe.
+                return null;
+            }
+        }
+
+        /// <summary>Captured process output plus the exit code, when the runner exposes it.</summary>
+        internal readonly struct RunResult
+        {
+            public static readonly RunResult Empty = new RunResult(null, null);
+
+            public RunResult(string output, int? exitCode)
+            {
+                Output = output;
+                ExitCode = exitCode;
+            }
+
+            public string Output { get; }
+
+            public int? ExitCode { get; }
         }
 
         internal static async Task<bool> RunAsync(IFfmpegManager ffmpegManager, string exePath, string arguments,
