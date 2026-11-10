@@ -23,6 +23,12 @@ namespace StrmAssistant.Common
     /// grouped by provider/name content identity and then matched back to a concrete media source
     /// by source id, file name stem, or resolution/source/codec signature, which also covers the
     /// same movie stored separately in multiple libraries.
+    ///
+    /// When <see cref="Options.VersionPlaybackOptions.PersistPerVersionResume"/> is enabled the
+    /// store is keyed by (item id, media source id) instead: a resume point is kept for each
+    /// version, switching versions converts the position once by runtime ratio, and the finished
+    /// state stays shared. The option is OFF by default and the previous behaviour is preserved
+    /// byte for byte in that case.
     /// </summary>
     public class VersionPlaybackApi
     {
@@ -40,6 +46,7 @@ namespace StrmAssistant.Common
 
         private DateTime _lastPersistUtc = DateTime.MinValue;
         private bool _initialized;
+        private bool _migratedOnLoad;
 
         public VersionPlaybackApi(ISessionManager sessionManager, IJsonSerializer jsonSerializer)
         {
@@ -58,6 +65,9 @@ namespace StrmAssistant.Common
             _sessionManager.PlaybackProgress += OnPlaybackProgress;
             _sessionManager.PlaybackStopped += OnPlaybackStopped;
 
+            // Legacy records were normalized in memory by Load; write the migrated shape once.
+            if (_migratedOnLoad && IsPerVersionResumeEnabled()) Persist(true);
+
             _initialized = true;
         }
 
@@ -74,6 +84,13 @@ namespace StrmAssistant.Common
         }
 
         public List<VersionPlaybackInfo> GetVersionPlayback(long userId, BaseItem item)
+        {
+            return IsPerVersionResumeEnabled()
+                ? GetPerVersionPlayback(userId, item)
+                : GetLegacyPlayback(userId, item);
+        }
+
+        private List<VersionPlaybackInfo> GetLegacyPlayback(long userId, BaseItem item)
         {
             var itemKey = GetItemKey(item);
             var nameKey = GetNameKey(item);
@@ -101,6 +118,150 @@ namespace StrmAssistant.Common
             }
 
             return MapRecordsToSources(records, sources);
+        }
+
+        /// <summary>
+        /// Reads the resume point that belongs to each concrete version. An exact record wins and
+        /// is returned untouched (a). When the target version has no record the most recent
+        /// unfinished record in the same content group is converted once by runtime ratio and
+        /// persisted as the target version's own record (b). The finished state is still shared
+        /// across versions (c). Legacy records that carry no media source id are treated as a
+        /// wildcard, completed in place and written back (d).
+        /// </summary>
+        private List<VersionPlaybackInfo> GetPerVersionPlayback(long userId, BaseItem item)
+        {
+            var itemKey = GetItemKey(item);
+            var nameKey = GetNameKey(item);
+            if (string.IsNullOrEmpty(itemKey) && string.IsNullOrEmpty(nameKey))
+                return new List<VersionPlaybackInfo>();
+
+            var sources = GetCurrentMediaSources(item);
+            var result = new List<VersionPlaybackInfo>();
+            var used = new HashSet<VersionPlaybackRecord>();
+            var changed = false;
+
+            lock (_sync)
+            {
+                var records = _records.Values
+                    .Where(r => r.UserId == userId &&
+                                (MatchesKey(r.ItemKey, itemKey) || MatchesKey(r.NameKey, nameKey) ||
+                                 MatchesKey(r.ItemKey, item.InternalId.ToString(CultureInfo.InvariantCulture))) &&
+                                (r.PositionTicks > 0 || r.Played))
+                    .OrderByDescending(r => r.LastPlayedDate)
+                    .ToList();
+
+                if (sources is null || sources.Count == 0)
+                {
+                    return records.Select(ToVersionPlaybackInfo).ToList();
+                }
+
+                // The most recent state wins: if the user just finished one version, every version
+                // is reported as played; if the newest event is unfinished progress, conversion is
+                // used.
+                var sharedPlayed = records.FirstOrDefault()?.Played == true;
+
+                // Resolve exact per-version records first so a record is never reused for another
+                // source and so conversions can only draw from genuinely other versions.
+                var exact = new Dictionary<MediaSourceInfo, VersionPlaybackRecord>();
+
+                foreach (var source in sources.Where(s => s != null))
+                {
+                    var record = records.FirstOrDefault(r => !used.Contains(r) &&
+                        (IsSameVersion(r, source) || IsLooseVersionMatch(r, source)));
+
+                    if (record is null) continue;
+
+                    used.Add(record);
+                    exact[source] = record;
+                }
+
+                foreach (var source in sources)
+                {
+                    if (source is null) continue;
+
+                    if (exact.TryGetValue(source, out var record))
+                    {
+                        if (MigrateRecord(record, source)) changed = true;
+
+                        result.Add(new VersionPlaybackInfo
+                        {
+                            MediaSourceId = !string.IsNullOrEmpty(source.Id) ? source.Id : record.MediaSourceId,
+                            ItemId = !string.IsNullOrEmpty(source.ItemId) ? source.ItemId : record.MediaSourceItemId,
+                            PositionTicks = record.PositionTicks,
+                            Played = record.Played
+                        });
+
+                        _logger?.Debug(
+                            $"VersionPlayback - resume hit: source={source.Id}, item={RecordItemId(record)}, " +
+                            $"position={record.PositionTicks}, played={record.Played}, hit=true");
+                        continue;
+                    }
+
+                    if (sharedPlayed)
+                    {
+                        result.Add(new VersionPlaybackInfo
+                        {
+                            MediaSourceId = source.Id,
+                            ItemId = source.ItemId,
+                            PositionTicks = 0,
+                            Played = true
+                        });
+
+                        _logger?.Debug(
+                            $"VersionPlayback - resume hit: source={source.Id}, played shared across versions, " +
+                            "position=0, hit=false");
+                        continue;
+                    }
+
+                    var candidate = records.FirstOrDefault(r =>
+                        !used.Contains(r) && !r.Played && r.PositionTicks > 0 &&
+                        !sources.Any(s => s != null &&
+                                          (IsSameVersion(r, s) || IsLooseVersionMatch(r, s))));
+
+                    if (candidate is null)
+                    {
+                        _logger?.Debug(
+                            $"VersionPlayback - resume miss: source={source.Id}, no record for this version, hit=false");
+                        continue;
+                    }
+
+                    used.Add(candidate);
+
+                    var sourceRuntime = ResolveRuntime(candidate, sources);
+                    var targetRuntime = source.RunTimeTicks.GetValueOrDefault();
+
+                    if (targetRuntime <= 0) targetRuntime = item.RunTimeTicks.GetValueOrDefault();
+
+                    var converted = ResumePositionMath.ConvertPosition(candidate.PositionTicks,
+                        sourceRuntime, targetRuntime);
+                    var itemId = !string.IsNullOrEmpty(source.ItemId)
+                        ? source.ItemId
+                        : item.InternalId.ToString(CultureInfo.InvariantCulture);
+                    var mediaSourceId = !string.IsNullOrEmpty(source.Id) ? source.Id : null;
+                    var convertedRecord = CreateRecord(userId, itemKey, nameKey, itemId, mediaSourceId,
+                        source, converted, targetRuntime, false, DateTime.UtcNow);
+
+                    _records[PerVersionKey(userId, itemId, mediaSourceId)] = convertedRecord;
+                    changed = true;
+
+                    result.Add(new VersionPlaybackInfo
+                    {
+                        MediaSourceId = mediaSourceId,
+                        ItemId = itemId,
+                        PositionTicks = converted,
+                        Played = false
+                    });
+
+                    _logger?.Debug(
+                        $"VersionPlayback - resume converted: from={candidate.MediaSourceId}, to={mediaSourceId}, " +
+                        $"position={candidate.PositionTicks}->{converted}, runtime={sourceRuntime}->{targetRuntime}, " +
+                        "hit=false");
+                }
+            }
+
+            if (changed) Persist(true);
+
+            return result;
         }
 
         private void OnPlaybackStart(object sender, PlaybackProgressEventArgs e)
@@ -153,8 +314,11 @@ namespace StrmAssistant.Common
             var nameKey = GetNameKey(movie);
             if (string.IsNullOrEmpty(itemKey) && string.IsNullOrEmpty(nameKey)) return;
 
+            var perVersion = IsPerVersionResumeEnabled();
             var mediaSourceItemId = e.MediaSource?.ItemId;
-            var mediaSourceId = e.MediaSourceId;
+            var mediaSourceId = !string.IsNullOrEmpty(e.MediaSourceId) || !perVersion
+                ? e.MediaSourceId
+                : e.MediaSource?.Id;
 
             if (string.IsNullOrEmpty(mediaSourceId) && string.IsNullOrEmpty(mediaSourceItemId)) return;
 
@@ -170,6 +334,10 @@ namespace StrmAssistant.Common
             }
 
             var now = DateTime.UtcNow;
+            var itemId = !string.IsNullOrEmpty(mediaSourceItemId)
+                ? mediaSourceItemId
+                : movie.InternalId.ToString(CultureInfo.InvariantCulture);
+            var runtimeTicks = e.MediaSource?.RunTimeTicks ?? movie.RunTimeTicks ?? 0;
             var versionKey = GetVersionKey(e.MediaSource);
             var versionSignature = GetVersionSignature(e.MediaSource);
 
@@ -177,18 +345,33 @@ namespace StrmAssistant.Common
             {
                 foreach (var user in e.Users)
                 {
-                    var key = RecordKey(user.InternalId, itemKey, mediaSourceItemId, mediaSourceId);
+                    var key = perVersion
+                        ? PerVersionKey(user.InternalId, itemId, mediaSourceId)
+                        : RecordKey(user.InternalId, itemKey, mediaSourceItemId, mediaSourceId);
 
-                    if (!_records.TryGetValue(key, out var record))
+                    if (!_records.TryGetValue(key, out var record) && perVersion)
                     {
-                        record = new VersionPlaybackRecord
+                        // Reuse a legacy record for the same concrete version and move it to the
+                        // per-version key, so switching versions does not accumulate duplicates.
+                        var existing = _records.Values
+                            .Where(r => r.UserId == user.InternalId &&
+                                        IsSameRecordVersion(r, itemId, mediaSourceId))
+                            .OrderByDescending(r => r.LastPlayedDate)
+                            .FirstOrDefault();
+
+                        if (existing != null)
                         {
-                            UserId = user.InternalId,
-                            ItemKey = string.IsNullOrEmpty(itemKey) ? nameKey : itemKey,
-                            NameKey = nameKey,
-                            MediaSourceId = mediaSourceId,
-                            MediaSourceItemId = mediaSourceItemId
-                        };
+                            var oldKey = _records.FirstOrDefault(kv => ReferenceEquals(kv.Value, existing)).Key;
+                            if (oldKey != null) _records.Remove(oldKey);
+                            _records[key] = existing;
+                            record = existing;
+                        }
+                    }
+
+                    if (record is null)
+                    {
+                        record = CreateRecord(user.InternalId, itemKey, nameKey, itemId, mediaSourceId,
+                            e.MediaSource, 0, runtimeTicks, false, now);
                         _records[key] = record;
                     }
 
@@ -198,8 +381,10 @@ namespace StrmAssistant.Common
 
                     if (string.IsNullOrEmpty(record.ItemKey)) record.ItemKey = itemKey ?? nameKey;
                     if (string.IsNullOrEmpty(record.NameKey)) record.NameKey = nameKey;
+                    if (!string.IsNullOrEmpty(itemId)) record.ItemId = itemId;
                     if (string.IsNullOrEmpty(record.MediaSourceId)) record.MediaSourceId = mediaSourceId;
                     if (string.IsNullOrEmpty(record.MediaSourceItemId)) record.MediaSourceItemId = mediaSourceItemId;
+                    if (runtimeTicks > 0) record.RunTimeTicks = runtimeTicks;
                     if (!string.IsNullOrEmpty(versionKey)) record.VersionKey = versionKey;
                     if (!string.IsNullOrEmpty(versionSignature)) record.VersionSignature = versionSignature;
                 }
@@ -246,6 +431,19 @@ namespace StrmAssistant.Common
             }
         }
 
+        private static bool IsPerVersionResumeEnabled()
+        {
+            try
+            {
+                return Plugin.Instance?.GetPluginOptions()?.ExperienceEnhanceOptions
+                    ?.VersionPlaybackOptions?.PersistPerVersionResume ?? false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private static List<VersionPlaybackInfo> MapRecordsToSources(List<VersionPlaybackRecord> records,
             List<MediaSourceInfo> sources)
         {
@@ -288,6 +486,136 @@ namespace StrmAssistant.Common
         {
             return MatchesKey(record.MediaSourceId, source.Id) ||
                    MatchesKey(record.MediaSourceItemId, source.ItemId);
+        }
+
+        /// <summary>
+        /// Matches a record to the concrete version it belongs to. A missing media source id (old
+        /// format) is treated as a wildcard for the same item; a missing item id is matched by
+        /// source id only. Records that carry no ids at all are matched loosely by file identity.
+        /// </summary>
+        private static bool IsSameVersion(VersionPlaybackRecord record, MediaSourceInfo source)
+        {
+            // The media source id is the precise discriminator: merged versions may all report the
+            // same owning item id to the client, so an item-id match is only used for old records
+            // that have no media source id yet.
+            if (!string.IsNullOrEmpty(record.MediaSourceId))
+                return MatchesKey(record.MediaSourceId, source.Id);
+
+            var recordItemId = RecordItemId(record);
+
+            return !string.IsNullOrEmpty(recordItemId) && MatchesKey(recordItemId, source.ItemId);
+        }
+
+        private static bool IsLooseVersionMatch(VersionPlaybackRecord record, MediaSourceInfo source)
+        {
+            if (!string.IsNullOrEmpty(record.MediaSourceId) || !string.IsNullOrEmpty(RecordItemId(record)))
+                return false;
+
+            return MatchesKey(record.VersionKey, GetVersionKey(source)) ||
+                   MatchesKey(record.VersionSignature, GetVersionSignature(source));
+        }
+
+        private static bool IsSameRecordVersion(VersionPlaybackRecord record, string itemId,
+            string mediaSourceId)
+        {
+            if (record.UserId <= 0) return false;
+
+            var recordItemId = RecordItemId(record);
+
+            if (!string.IsNullOrEmpty(recordItemId) && !string.IsNullOrEmpty(itemId) &&
+                !MatchesKey(recordItemId, itemId))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(record.MediaSourceId) && !string.IsNullOrEmpty(mediaSourceId) &&
+                !MatchesKey(record.MediaSourceId, mediaSourceId))
+            {
+                return false;
+            }
+
+            return !string.IsNullOrEmpty(recordItemId) || !string.IsNullOrEmpty(record.MediaSourceId) ||
+                   !string.IsNullOrEmpty(record.VersionKey) || !string.IsNullOrEmpty(record.VersionSignature);
+        }
+
+        private static string RecordItemId(VersionPlaybackRecord record)
+        {
+            return !string.IsNullOrEmpty(record.ItemId) ? record.ItemId : record.MediaSourceItemId;
+        }
+
+        private static bool MigrateRecord(VersionPlaybackRecord record, MediaSourceInfo source)
+        {
+            var changed = false;
+
+            if (string.IsNullOrEmpty(record.ItemId) && !string.IsNullOrEmpty(source.ItemId))
+            {
+                record.ItemId = source.ItemId;
+                changed = true;
+            }
+
+            if (string.IsNullOrEmpty(record.MediaSourceItemId) && !string.IsNullOrEmpty(source.ItemId))
+            {
+                record.MediaSourceItemId = source.ItemId;
+                changed = true;
+            }
+
+            if (string.IsNullOrEmpty(record.MediaSourceId) && !string.IsNullOrEmpty(source.Id))
+            {
+                record.MediaSourceId = source.Id;
+                changed = true;
+            }
+
+            if (record.RunTimeTicks <= 0 && source.RunTimeTicks > 0)
+            {
+                record.RunTimeTicks = source.RunTimeTicks.Value;
+                changed = true;
+            }
+
+            if (string.IsNullOrEmpty(record.VersionKey) && !string.IsNullOrEmpty(GetVersionKey(source)))
+            {
+                record.VersionKey = GetVersionKey(source);
+                changed = true;
+            }
+
+            if (string.IsNullOrEmpty(record.VersionSignature) &&
+                !string.IsNullOrEmpty(GetVersionSignature(source)))
+            {
+                record.VersionSignature = GetVersionSignature(source);
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        private static long ResolveRuntime(VersionPlaybackRecord record, List<MediaSourceInfo> sources)
+        {
+            if (record.RunTimeTicks > 0) return record.RunTimeTicks;
+
+            var source = sources.FirstOrDefault(s => s != null && IsSameVersion(record, s)) ??
+                         sources.FirstOrDefault(s => s != null && IsLooseVersionMatch(record, s));
+
+            return source?.RunTimeTicks.GetValueOrDefault() ?? 0;
+        }
+
+        private static VersionPlaybackRecord CreateRecord(long userId, string itemKey, string nameKey,
+            string itemId, string mediaSourceId, MediaSourceInfo source, long positionTicks,
+            long runtimeTicks, bool played, DateTime lastPlayedDate)
+        {
+            return new VersionPlaybackRecord
+            {
+                UserId = userId,
+                ItemKey = string.IsNullOrEmpty(itemKey) ? nameKey : itemKey,
+                NameKey = nameKey,
+                ItemId = itemId,
+                MediaSourceId = mediaSourceId,
+                MediaSourceItemId = source?.ItemId,
+                VersionKey = GetVersionKey(source),
+                VersionSignature = GetVersionSignature(source),
+                PositionTicks = positionTicks,
+                Played = played,
+                RunTimeTicks = runtimeTicks > 0 ? runtimeTicks : source?.RunTimeTicks.GetValueOrDefault() ?? 0,
+                LastPlayedDate = lastPlayedDate
+            };
         }
 
         private static VersionPlaybackInfo ToVersionPlaybackInfo(VersionPlaybackRecord record)
@@ -472,6 +800,11 @@ namespace StrmAssistant.Common
                    (string.IsNullOrEmpty(mediaSourceItemId) ? mediaSourceId : mediaSourceItemId);
         }
 
+        private static string PerVersionKey(long userId, string itemId, string mediaSourceId)
+        {
+            return "pv|" + userId + "|" + itemId + "|" + mediaSourceId;
+        }
+
         private void Persist(bool force)
         {
             lock (_sync)
@@ -519,6 +852,16 @@ namespace StrmAssistant.Common
                     if (record is null || string.IsNullOrEmpty(record.ItemKey) ||
                         record.LastPlayedDate < cutoff) continue;
 
+                    // Old format has no ItemId column. MediaSourceItemId already carries the same
+                    // id, so promote it in memory when the feature is on; the read/write paths
+                    // persist the new shape. When the option is OFF the stored shape is untouched.
+                    if (IsPerVersionResumeEnabled() && string.IsNullOrEmpty(record.ItemId) &&
+                        !string.IsNullOrEmpty(record.MediaSourceItemId))
+                    {
+                        record.ItemId = record.MediaSourceItemId;
+                        _migratedOnLoad = true;
+                    }
+
                     var key = RecordKey(record.UserId, record.ItemKey, record.MediaSourceItemId,
                         record.MediaSourceId);
 
@@ -541,12 +884,23 @@ namespace StrmAssistant.Common
             public long UserId { get; set; }
             public string ItemKey { get; set; }
             public string NameKey { get; set; }
+
+            /// <summary>Concrete item id of the version that produced this record.</summary>
+            public string ItemId { get; set; }
+
             public string MediaSourceId { get; set; }
+
+            /// <summary>Kept for old records; mirrors <see cref="ItemId"/> on write.</summary>
             public string MediaSourceItemId { get; set; }
+
             public string VersionKey { get; set; }
             public string VersionSignature { get; set; }
             public long PositionTicks { get; set; }
             public bool Played { get; set; }
+
+            /// <summary>Runtime of the version, used for the one-time cross-version conversion.</summary>
+            public long RunTimeTicks { get; set; }
+
             public DateTime LastPlayedDate { get; set; }
         }
     }

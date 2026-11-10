@@ -4411,6 +4411,30 @@ namespace StrmAssistant.Properties
             }
         }
         /// <summary>
+        ///   Looks up a localized string similar to VersionPlaybackOptions_EditorTitle_Version_Playback.
+        /// </summary>
+        public static string VersionPlaybackOptions_EditorTitle_Version_Playback {
+            get {
+                return ResourceManager.GetString("VersionPlaybackOptions_EditorTitle_Version_Playback", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to VersionPlaybackOptions_PersistPerVersionResume_Keep_Resume_Point_Per_Version.
+        /// </summary>
+        public static string VersionPlaybackOptions_PersistPerVersionResume_Keep_Resume_Point_Per_Version {
+            get {
+                return ResourceManager.GetString("VersionPlaybackOptions_PersistPerVersionResume_Keep_Resume_Point_Per_Version", resourceCulture);
+            }
+        }
+        /// <summary>
+        ///   Looks up a localized string similar to VersionPlaybackOptions_PersistPerVersionResume_Record_the_resume_point_for_each_version_separately__When_switching_versions_the_position_is_converted_once_by_runtime_ratio_and_the_finished_state_stays_shared__Applies_to_movies_in_the_web_client__Default_is_OFF_.
+        /// </summary>
+        public static string VersionPlaybackOptions_PersistPerVersionResume_Record_the_resume_point_for_each_version_separately__When_switching_versions_the_position_is_converted_once_by_runtime_ratio_and_the_finished_state_stays_shared__Applies_to_movies_in_the_web_client__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("VersionPlaybackOptions_PersistPerVersionResume_Record_the_resume_point_for_each_version_separately__When_switching_versions_the_position_is_converted_once_by_runtime_ratio_and_the_finished_state_stays_shared__Applies_to_movies_in_the_web_client__Default_is_OFF_", resourceCulture);
+            }
+        }
+        /// <summary>
         ///   Looks up a localized string similar to VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites.
         /// </summary>
         public static string VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Separate_Cross_Library_Favorites {

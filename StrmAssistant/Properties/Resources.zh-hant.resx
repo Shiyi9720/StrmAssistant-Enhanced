@@ -1481,6 +1481,15 @@
   <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
     <value>按媒體庫分別記錄電影收藏，在 A 庫收藏不會影響 B 庫的同一影片，取消收藏也只影響當前庫。僅對網頁客戶端中的電影生效。更改後需重啟 Emby。預設為關閉。</value>
   </data>
+  <data name="VersionPlaybackOptions_EditorTitle_Version_Playback" xml:space="preserve">
+    <value>多版本續播</value>
+  </data>
+  <data name="VersionPlaybackOptions_PersistPerVersionResume_Keep_Resume_Point_Per_Version" xml:space="preserve">
+    <value>按版本儲存播放斷點</value>
+  </data>
+  <data name="VersionPlaybackOptions_PersistPerVersionResume_Record_the_resume_point_for_each_version_separately__When_switching_versions_the_position_is_converted_once_by_runtime_ratio_and_the_finished_state_stays_shared__Applies_to_movies_in_the_web_client__Default_is_OFF_" xml:space="preserve">
+    <value>按版本分別記錄播放斷點；切換版本時按片長比例換算一次，已看完狀態仍然共享。僅對網頁客戶端中的電影生效。預設為關閉。</value>
+  </data>
   <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command" xml:space="preserve">
     <value>顯示重新探測片頭命令</value>
   </data>
