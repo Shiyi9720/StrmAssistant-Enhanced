@@ -1566,6 +1566,15 @@
   <data name="VersionFavoriteOptions_EnableCrossLibraryFavoriteSeparation_Record_movie_favorites_per_library_so_favoriting_a_movie_in_one_library_does_not_affect_the_same_movie_in_another_library__Unfavoriting_only_affects_the_current_library__Applies_to_movies_in_the_web_client__A_restart_is_required_after_changing__Default_is_OFF_" xml:space="preserve">
     <value>Record movie favorites per library, so favoriting a movie in one library does not affect the same movie in another library. Unfavoriting only affects the current library. Applies to movies in the web client. A restart is required after changing. Default is OFF.</value>
   </data>
+  <data name="VersionPlaybackOptions_EditorTitle_Version_Playback" xml:space="preserve">
+    <value>Version Playback</value>
+  </data>
+  <data name="VersionPlaybackOptions_PersistPerVersionResume_Keep_Resume_Point_Per_Version" xml:space="preserve">
+    <value>Keep Resume Point Per Version</value>
+  </data>
+  <data name="VersionPlaybackOptions_PersistPerVersionResume_Record_the_resume_point_for_each_version_separately__When_switching_versions_the_position_is_converted_once_by_runtime_ratio_and_the_finished_state_stays_shared__Applies_to_movies_in_the_web_client__Default_is_OFF_" xml:space="preserve">
+    <value>Record the resume point for each version separately. When switching versions the position is converted once by runtime ratio and the finished state stays shared. Applies to movies in the web client. Default is OFF.</value>
+  </data>
   <data name="IntroSkipOptions_ShowRedetectIntroCommand_Show_Re_detect_Intro_Command" xml:space="preserve">
     <value>Show Re-detect Intro Command</value>
   </data>
