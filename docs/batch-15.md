@@ -36,3 +36,20 @@ batch-14 的 63 条用例只覆盖纯解析与计数器。本轮把三处只有�
 - `SourceBackoff` 没有时钟注入，E 组用反射把到期时间回拨来推进阶梯（仅测试，不改生产）。
 - Emby 真实 `IJsonSerializer`（ServiceStack）的落盘格式：F 组用 System.Text.Json shim，已验证记录字段写入磁盘。
 - 客户端（Web/手机/TV）真实起播位置与旧 JSON 迁移。
+
+## 附：多版本续播开关的配置位置（2026-11-10 真机实测踩到）
+
+`PersistPerVersionResume` 只在配置的 `ExperienceEnhanceOptions.VersionPlaybackOptions` 下生效；
+写到顶层 `VersionPlaybackOptions` 既不报错也不生效（插件读的是
+`GetPluginOptions()?.ExperienceEnhanceOptions?.VersionPlaybackOptions?.PersistPerVersionResume`），
+此时静默退回旧逻辑——旧逻辑按 `MediaSourceId`/`ItemId` 严格匹配，**不会跨条目换算**，
+表现为「同名同年的两条独立条目互不共享进度」。
+
+修正位置后真机实测（《逆行人生》244716 2160p / 244717 1080p，同 name|逆行人生|2024）：
+
+- A 播到 29075456000 ticks（40%）后读 B：返回 29074892000，与按片长比
+  `72687230000/72688640000` 换算的理论值**完全一致（差 0 tick）**，并落盘为 B 自己的记录；
+- 旧逻辑下同样的读取返回空。
+
+结论：跨条目（同片被 Emby 拆成两条）的换算是靠 per-version 模式实现的，不是缺陷；
+启用时必须把开关写进 `ExperienceEnhanceOptions` 分支。
