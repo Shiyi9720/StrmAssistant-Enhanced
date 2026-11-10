@@ -193,7 +193,8 @@ const strmAssistantCommandSource = {
                 result.push({ name: this.globalize.translate('HeaderScanLibraryFiles'), id: 'traverse', icon: 'refresh' });
             }
             if ((options.items[0].Type === 'Movie' || options.items[0].Type === 'Episode') &&
-                 options.items[0].CanDelete && options.mediaSourceId && options.items[0].MediaSources.length > 1) {
+                 options.items[0].CanDelete && options.mediaSourceId &&
+                 options.items[0].MediaSources && options.items[0].MediaSources.length > 1) {
                 result.push({
                     name: cjk
                         ? this.globalize.translate('Delete') + this.globalize.translate('Version')
