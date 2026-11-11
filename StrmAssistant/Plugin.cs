@@ -162,7 +162,7 @@ namespace StrmAssistant
             {
                 try
                 {
-                    Plugin.Instance?.Logger.Info("[AssemblyResolve] {0} ui={1}", args.Name,
+                    Plugin.Instance?.Logger.Debug("[AssemblyResolve] {0} ui={1}", args.Name,
                         CultureInfo.CurrentUICulture?.Name);
                     var an = new AssemblyName(args.Name);
 
@@ -209,8 +209,7 @@ namespace StrmAssistant
                     }
 
                     var loaded = File.Exists(file) ? Assembly.Load(File.ReadAllBytes(file)) : null;
-                    System.Diagnostics.Debug.WriteLine($"[Satellite] {an.CultureName} -> {file} loaded={loaded != null}");
-                    Plugin.Instance?.Logger.Info("[LoadDependency] {0} -> {1} loaded={2}", an.FullName, file, loaded != null);
+                    Plugin.Instance?.Logger.Debug("[LoadDependency] {0} -> {1} loaded={2}", an.FullName, file, loaded != null);
                     return loaded;
                 }
                 catch
