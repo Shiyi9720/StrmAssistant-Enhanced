@@ -21,6 +21,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "DvP7DetectAsync", DvP7DetectTests.Run);
             RunGroup(runner, "ProbeExitCode", ProbeExitCodeTests.Run);
             RunGroup(runner, "ResumeSequence", ResumeSequenceTests.Run);
+            RunGroup(runner, "SatelliteResourceManager", SatelliteResourceTests.Run);
 
             return runner.Finish();
         }

@@ -66,6 +66,9 @@ namespace StrmAssistant
     public static class Plugin
     {
         public static PluginInstance Instance { get; set; } = new PluginInstance();
+
+        /// <summary>Production field read by SatelliteResourceManager (set in Plugin.Init).</summary>
+        internal static string _satelliteRoot;
     }
 
     /// <summary>Application paths slice used by the linked files.</summary>
@@ -74,6 +77,8 @@ namespace StrmAssistant
         public string PluginConfigurationsPath { get; set; }
 
         public string ProgramDataPath { get; set; }
+
+        public string PluginsPath { get; set; }
     }
 
     public sealed class PluginInstance

@@ -26,6 +26,7 @@
     <Compile Include="..\..\StrmAssistant\Common\CustomFfprobeApi.cs" Link="src\CustomFfprobeApi.cs" />
     <Compile Include="..\..\StrmAssistant\Common\StrmUrlHelper.cs" Link="src\StrmUrlHelper.cs" />
     <Compile Include="..\..\StrmAssistant\Common\VersionPlaybackApi.cs" Link="src\VersionPlaybackApi.cs" />
+    <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />
   </ItemGroup>
 
   <ItemGroup>
