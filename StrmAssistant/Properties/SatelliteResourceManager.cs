@@ -87,8 +87,6 @@ namespace StrmAssistant.Properties
         protected override ResourceSet InternalGetResourceSet(CultureInfo culture,
             bool createIfNotExists, bool tryParents)
         {
-            Plugin.Instance?.Logger.Info("[SatRM] IGRES culture={0} root={1} instance={2}",
-                culture?.Name, SatelliteRoot ?? "(null)", Plugin.Instance == null ? "null" : "set");
             for (var c = culture; c != null && !string.IsNullOrEmpty(c.Name); c = c.Parent)
             {
                 if (!c.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
