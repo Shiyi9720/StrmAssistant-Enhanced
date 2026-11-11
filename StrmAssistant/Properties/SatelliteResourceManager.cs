@@ -20,6 +20,8 @@ namespace StrmAssistant.Properties
         private static readonly object SyncRoot = new object();
         private static readonly Dictionary<string, Assembly> SatelliteCache =
             new Dictionary<string, Assembly>();
+        private static readonly Dictionary<string, ResourceSet> ResourceSetCache =
+            new Dictionary<string, ResourceSet>();
 
         private readonly string _baseName;
 
@@ -103,8 +105,10 @@ namespace StrmAssistant.Properties
                         continue;
                     }
 
-                    // 卫星程序集里的资源名带文化后缀（…Properties.Resources.zh.resources），
-                    // 枚举出与基础名匹配的那个，用它的“去掉 .resources 后缀”的名字建 RM
+                    // 卫星程序集里的清单资源名带文化后缀（…Properties.Resources.zh.resources）。
+                    // 这个清单本身就是该语言资源集的完整内容，直接打开流构造 ResourceSet；
+                    // 不能再拿“去掉 .resources”的名字去 new ResourceManager——那会去卫星程序集里
+                    // 找 …Resources.zh.<culture>.resources，永远找不到。
                     var satName = satellite.GetManifestResourceNames()
                         .FirstOrDefault(n => n.StartsWith(_baseName, StringComparison.OrdinalIgnoreCase) &&
                                              n.EndsWith(".resources", StringComparison.OrdinalIgnoreCase));
@@ -113,12 +117,22 @@ namespace StrmAssistant.Properties
                         continue;
                     }
 
-                    var satBaseName = satName.Substring(0, satName.Length - ".resources".Length);
-                    var satelliteManager = new ResourceManager(satBaseName, satellite);
-                    var set = satelliteManager.GetResourceSet(
-                        CultureInfo.InvariantCulture, createIfNotExists, true);
-                    if (set != null)
+                    // ResourceSet 非线程安全，按现有风格锁住缓存读写；同一目录只创建一次。
+                    lock (SyncRoot)
                     {
+                        if (ResourceSetCache.TryGetValue(dir, out var cachedSet) && cachedSet != null)
+                        {
+                            return cachedSet;
+                        }
+
+                        var stream = satellite.GetManifestResourceStream(satName);
+                        if (stream == null)
+                        {
+                            continue;
+                        }
+
+                        var set = new ResourceSet(stream);
+                        ResourceSetCache[dir] = set;
                         return set;
                     }
                 }
