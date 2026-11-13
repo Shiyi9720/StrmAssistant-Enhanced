@@ -1,5 +1,6 @@
 using StrmAssistant.Common;
 using System;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -278,45 +279,27 @@ namespace StrmAssistant.Verification
         {
             runner.Section("D5. -read_intervals %+#300 packet-sample fallback");
 
-            var sample = ResolveSample();
+            // The sample only has to yield packets for two video streams; the stream-group
+            // document that no local sample can produce is synthesized by the wrapper below.
+            // A locally generated two-stream mp4 is preferred over the historic external sample:
+            // that file lives on a cloud mount, and when ffprobe cannot read it, it prints "{}",
+            // which used to crash the whole group instead of reporting a skip.
+            var resolved = FindPacketSample(ffprobe, workDir);
 
-            if (sample is null)
+            if (resolved is null)
             {
                 runner.Skip("D5 packet-sample fallback",
-                    "no multi-stream media sample found (set STRMASSISTANT_SAMPLE)");
+                    "no readable two-stream sample (external sample unreadable and no ffmpeg to generate one)");
                 return;
             }
+
+            var sample = resolved.Value.SamplePath;
+            var baseBytes = resolved.Value.BaseBytes;
+            var enhancementBytes = resolved.Value.EnhancementBytes;
 
             Console.WriteLine("      sample: " + sample);
 
-            // Run the same packet probe the plugin will run, so the expected ratio comes from
-            // real ffprobe output rather than a hard-coded number.
-            var packetArguments = "-v error -print_format json -show_entries packet=stream_index,size " +
-                                  "-read_intervals %+#300 \"" + sample + "\"";
-            var packetJson = RunProcess(ffprobe, packetArguments);
-
-            long baseBytes = 0;
-            long enhancementBytes = 0;
-
-            using (var document = JsonDocument.Parse(packetJson))
-            {
-                foreach (var packet in document.RootElement.GetProperty("packets").EnumerateArray())
-                {
-                    var index = packet.GetProperty("stream_index").GetInt32();
-                    var size = long.Parse(packet.GetProperty("size").GetString(),
-                        CultureInfo.InvariantCulture);
-
-                    if (index == 0) baseBytes += size;
-                    else if (index == 1) enhancementBytes += size;
-                }
-            }
-
-            if (baseBytes <= 0 || enhancementBytes <= 0)
-            {
-                runner.Skip("D5 packet-sample fallback", "sample did not yield packets for streams 0 and 1");
-                return;
-            }
-
+            // The expected ratio comes from real ffprobe packet bytes, not a hard-coded number.
             var expectedRatio = (double) enhancementBytes / baseBytes;
             var expectedType = Classify(expectedRatio);
 
@@ -509,15 +492,151 @@ namespace StrmAssistant.Verification
                 !string.IsNullOrWhiteSpace(path) && File.Exists(path));
         }
 
-        private static string ResolveSample()
+        private static Sample? FindPacketSample(string ffprobe, string workDir)
         {
-            var environment = Environment.GetEnvironmentVariable("STRMASSISTANT_SAMPLE");
+            var candidates = new List<string> {Environment.GetEnvironmentVariable("STRMASSISTANT_SAMPLE")};
 
-            var candidates = new List<string> {environment};
+            candidates.Add(GenerateSample(ffprobe, workDir));
+
             candidates.AddRange(SampleCandidates);
 
-            return candidates.FirstOrDefault(path =>
-                !string.IsNullOrWhiteSpace(path) && File.Exists(path));
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate) || !File.Exists(candidate)) continue;
+
+                var measured = MeasurePackets(ffprobe, candidate);
+
+                if (measured != null)
+                {
+                    return new Sample(candidate, measured.Value.BaseBytes, measured.Value.EnhancementBytes);
+                }
+
+                Console.WriteLine("      sample unreadable, trying next: " + candidate);
+            }
+
+            return null;
+        }
+
+        private static (long BaseBytes, long EnhancementBytes)? MeasurePackets(string ffprobe, string sample)
+        {
+            // Run the same packet probe the plugin will run.
+            var packetArguments = "-v error -print_format json -show_entries packet=stream_index,size " +
+                                  "-read_intervals %+#300 \"" + sample + "\"";
+            var packetJson = RunProcess(ffprobe, packetArguments);
+
+            if (string.IsNullOrWhiteSpace(packetJson)) return null;
+
+            try
+            {
+                using var document = JsonDocument.Parse(packetJson);
+
+                if (!document.RootElement.TryGetProperty("packets", out var packets)) return null;
+
+                long baseBytes = 0;
+                long enhancementBytes = 0;
+
+                foreach (var packet in packets.EnumerateArray())
+                {
+                    if (!packet.TryGetProperty("stream_index", out var indexElement) ||
+                        !packet.TryGetProperty("size", out var sizeElement)) continue;
+
+                    var index = indexElement.ValueKind == JsonValueKind.String
+                        ? int.Parse(indexElement.GetString() ?? "0", CultureInfo.InvariantCulture)
+                        : indexElement.GetInt32();
+                    var size = sizeElement.ValueKind == JsonValueKind.String
+                        ? long.Parse(sizeElement.GetString() ?? "0", CultureInfo.InvariantCulture)
+                        : sizeElement.GetInt64();
+
+                    if (index == 0) baseBytes += size;
+                    else if (index == 1) enhancementBytes += size;
+                }
+
+                if (baseBytes <= 0 || enhancementBytes <= 0) return null;
+
+                return (baseBytes, enhancementBytes);
+            }
+            catch (Exception ex) when (ex is JsonException || ex is InvalidOperationException ||
+                                       ex is FormatException || ex is OverflowException)
+            {
+                // ffprobe prints "{}" (or nothing at all) when it cannot read the input.
+                return null;
+            }
+        }
+
+        private static string GenerateSample(string ffprobe, string workDir)
+        {
+            var ffmpeg = ResolveFfmpeg(ffprobe);
+
+            if (ffmpeg is null) return null;
+
+            var path = Path.Combine(workDir, "two-stream-sample.mp4");
+
+            if (File.Exists(path) && new FileInfo(path).Length > 0) return path;
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = ffmpeg,
+                Arguments = "-y -v error -f lavfi -i testsrc2=size=320x240:rate=10:duration=12 " +
+                            "-f lavfi -i testsrc2=size=160x120:rate=10:duration=12 " +
+                            "-map 0:v -map 1:v -c:v libx264 -preset ultrafast -b:v 240k -b:v:1 40k " +
+                            "\"" + path + "\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            try
+            {
+                using var process = Process.Start(startInfo);
+
+                process.StandardOutput.ReadToEnd();
+                var stderr = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                if (process.ExitCode == 0 && File.Exists(path) && new FileInfo(path).Length > 0) return path;
+
+                Console.WriteLine("      ffmpeg could not generate a sample: " + stderr.Trim());
+            }
+            catch (Exception ex) when (ex is Win32Exception || ex is IOException)
+            {
+                Console.WriteLine("      ffmpeg unavailable: " + ex.Message);
+            }
+
+            return null;
+        }
+
+        private static string ResolveFfmpeg(string ffprobe)
+        {
+            var candidates = new List<string> {Environment.GetEnvironmentVariable("STRMASSISTANT_FFMPEG")};
+
+            var ffprobeDirectory = Path.GetDirectoryName(ffprobe);
+
+            if (!string.IsNullOrEmpty(ffprobeDirectory))
+            {
+                candidates.Add(Path.Combine(ffprobeDirectory, "ffmpeg"));
+            }
+
+            candidates.Add("/usr/bin/ffmpeg");
+            candidates.Add("/usr/local/bin/ffmpeg");
+
+            return candidates.FirstOrDefault(path => !string.IsNullOrWhiteSpace(path) && File.Exists(path));
+        }
+
+        private readonly struct Sample
+        {
+            public Sample(string samplePath, long baseBytes, long enhancementBytes)
+            {
+                SamplePath = samplePath;
+                BaseBytes = baseBytes;
+                EnhancementBytes = enhancementBytes;
+            }
+
+            public string SamplePath { get; }
+
+            public long BaseBytes { get; }
+
+            public long EnhancementBytes { get; }
         }
 
         private sealed class DummyFfmpegManager : MediaBrowser.Controller.MediaEncoding.IFfmpegManager
