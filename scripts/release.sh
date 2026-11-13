@@ -6,8 +6,16 @@
 #   scripts/release.sh 1.0.2 --notes-file n.md   # 或用指定文件作为发布说明
 #   scripts/release.sh 1.0.2 --dry-run           # 只做构建/打包/校验，不改 git、不发 Release
 #
-# 前置：dotnet、zip、gh（已登录且有当前仓库权限）、git 工作区干净
+# 前置：dotnet、zip、gh（已登录且有发布仓库权限）、git 工作区干净
+#
+# 发布仓库与推送远端写死，不要用 `gh repo view` 猜：本仓库配了 origin/pub/upstream
+# 三个 remote，gh 会解析到 upstream `sjtuross/StrmAssistant`，v1.0.9 就这样把
+# manifest.sourceUrl 写成了上游地址。需要发到别处时用环境变量覆盖：
+#   REPO_SLUG=owner/name PUSH_REMOTE=pub scripts/release.sh 1.0.10
 set -euo pipefail
+
+REPO_SLUG="${REPO_SLUG:-Shiyi9720/StrmAssistant-Enhanced}"
+PUSH_REMOTE="${PUSH_REMOTE:-pub}"
 
 VERSION=""
 NOTES_FILE=""
@@ -30,9 +38,17 @@ TAG="v$VERSION"
 PROJ="StrmAssistant/StrmAssistant.csproj"
 OUT="StrmAssistant/bin/Release/netstandard2.1"
 DIST="$ROOT/dist"
-REPO_SLUG="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
+RESOLVED_SLUG="$(gh repo view "$REPO_SLUG" --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
 
-echo "==> 版本 ${VERSION}（tag ${TAG}），仓库 $REPO_SLUG"
+if [ "$RESOLVED_SLUG" != "$REPO_SLUG" ]; then
+  echo "发布仓库校验失败：期望 $REPO_SLUG，gh 解析为 ${RESOLVED_SLUG:-<空>}" >&2
+  echo "请先 gh auth status 确认已登录，或用 REPO_SLUG / PUSH_REMOTE 覆盖。" >&2
+  exit 1
+fi
+
+git remote get-url "$PUSH_REMOTE" >/dev/null 2>&1 || { echo "远端 $PUSH_REMOTE 不存在"; exit 1; }
+
+echo "==> 版本 ${VERSION}（tag ${TAG}），仓库 $REPO_SLUG，推送远端 $PUSH_REMOTE"
 
 # 1. 版本号
 python3 - "$PROJ" "$VERSION" <<'PY'
@@ -113,8 +129,8 @@ git add -A "$PROJ" manifest.json CHANGELOG.md
 git commit -m "chore(release): v$VERSION" || echo "   （无变更可提交）"
 git tag -f "$TAG"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-git push origin "$BRANCH"
-git push -f origin "$TAG"
+git push "$PUSH_REMOTE" "$BRANCH"
+git push -f "$PUSH_REMOTE" "$TAG"
 
 # 6. 建 Release
 echo "==> 创建 Release $TAG"
