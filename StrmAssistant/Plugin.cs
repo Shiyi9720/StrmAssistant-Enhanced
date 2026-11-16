@@ -536,7 +536,10 @@ namespace StrmAssistant
                     {
                         if (IsCatchupTaskSelected(CatchupTask.MediaInfo) && !deserializeResult)
                         {
-                            QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                            // Registers the id as pending, so the auto-extract path (which runs
+                            // 15s later) sees the item as already queued instead of enqueueing
+                            // it a second time.
+                            QueueManager.TryEnqueueMediaInfo(e.Item);
                         }
 
                         if (IsCatchupTaskSelected(CatchupTask.IntroSkip) &&
@@ -544,7 +547,7 @@ namespace StrmAssistant
                         {
                             if (!deserializeResult)
                             {
-                                QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                                QueueManager.TryEnqueueMediaInfo(e.Item);
                             }
                             else if (e.Item is Episode episode && ChapterApi.SeasonHasIntroCredits(episode))
                             {
@@ -600,8 +603,9 @@ namespace StrmAssistant
         /// <summary>
         /// Queues a newly added item for media info extraction and, when enabled, primary image
         /// capture. Runs independently of Catch-up Mode; the new option is the switch for this
-        /// path. Everything is best effort: failures are logged as warnings and never propagate
-        /// into Emby's library scan.
+        /// path. An item the catch-up block already claimed on the same ItemAdded event is left
+        /// to that path. Everything is best effort: failures are logged as warnings and never
+        /// propagate into Emby's library scan.
         /// </summary>
         private async System.Threading.Tasks.Task AutoExtractOnItemAddedAsync(BaseItem addedItem)
         {
@@ -612,6 +616,18 @@ namespace StrmAssistant
                 if (!(addedItem is Movie || addedItem is Episode || addedItem is Video)) return;
 
                 var itemId = addedItem.InternalId;
+
+                // The catch-up block above runs on this very event and, for the items it takes
+                // over, registers the id as pending before enqueueing. Read that claim here,
+                // while it is still from this add: the delay below is long enough for the worker
+                // to have finished the item, so an extraction that could not produce media info
+                // (unreadable source) would otherwise be queued a second time by this path. Only
+                // the path that claims the item on ItemAdded extracts it once.
+                if (QueueManager.PendingMediaInfoItemIds.ContainsKey(itemId))
+                {
+                    Logger.Debug("AutoExtract - Already queued: " + addedItem.Name + " - " + addedItem.Path);
+                    return;
+                }
 
                 // Let the scan finish persisting the item and populating its streams/images.
                 await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(15)).ConfigureAwait(false);
@@ -641,9 +657,10 @@ namespace StrmAssistant
 
                 if (MediaInfoBlacklist.FromOptions().IsExcluded(item)) return;
 
-                // O(1) admission check: TryAdd is atomic, so concurrent ItemAdded events for the
-                // same id cannot both enqueue it. The worker removes the id when it dequeues.
-                if (!QueueManager.PendingMediaInfoItemIds.TryAdd(item.InternalId, 0))
+                // O(1) admission check: the id is pending for as long as the item is queued or
+                // being processed, so this rejects a concurrent ItemAdded, and equally a catch-up
+                // enqueue that happened while the first pass was still running.
+                if (!QueueManager.TryEnqueueMediaInfo(item))
                 {
                     Logger.Debug("AutoExtract - Already queued: " + item.Name + " - " + item.Path);
                     return;
@@ -651,7 +668,6 @@ namespace StrmAssistant
 
                 try
                 {
-                    QueueManager.MediaInfoExtractItemQueue.Enqueue(item);
                     QueueManager.EnsureMediaInfoProcessTaskStarted();
                 }
                 catch
@@ -776,11 +792,11 @@ namespace StrmAssistant
                 {
                     if (_currentEnableFavoriteCatchupPriority)
                     {
-                        QueueManager.FavoriteMediaInfoExtractItemQueue.Enqueue(e.Item);
+                        QueueManager.TryEnqueueMediaInfo(e.Item, true);
                     }
                     else
                     {
-                        QueueManager.MediaInfoExtractItemQueue.Enqueue(e.Item);
+                        QueueManager.TryEnqueueMediaInfo(e.Item);
                     }
                 }
             }
