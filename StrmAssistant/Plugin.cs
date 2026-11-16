@@ -641,14 +641,24 @@ namespace StrmAssistant
 
                 if (MediaInfoBlacklist.FromOptions().IsExcluded(item)) return;
 
-                if (QueueManager.MediaInfoExtractItemQueue.Any(i => i.InternalId == item.InternalId) ||
-                    QueueManager.FavoriteMediaInfoExtractItemQueue.Any(i => i.InternalId == item.InternalId))
+                // O(1) admission check: TryAdd is atomic, so concurrent ItemAdded events for the
+                // same id cannot both enqueue it. The worker removes the id when it dequeues.
+                if (!QueueManager.PendingMediaInfoItemIds.TryAdd(item.InternalId, 0))
                 {
+                    Logger.Debug("AutoExtract - Already queued: " + item.Name + " - " + item.Path);
                     return;
                 }
 
-                QueueManager.MediaInfoExtractItemQueue.Enqueue(item);
-                QueueManager.EnsureMediaInfoProcessTaskStarted();
+                try
+                {
+                    QueueManager.MediaInfoExtractItemQueue.Enqueue(item);
+                    QueueManager.EnsureMediaInfoProcessTaskStarted();
+                }
+                catch
+                {
+                    QueueManager.PendingMediaInfoItemIds.TryRemove(item.InternalId, out _);
+                    throw;
+                }
 
                 Logger.Info("AutoExtract - Queued: " + item.Name + " - " + item.Path);
             }
@@ -662,6 +672,7 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
+            ItemBlacklist.InvalidateInstanceCache();
             SearchIndexService.NotifyItemRemoved(e.Item.InternalId);
 
             try
@@ -698,6 +709,7 @@ namespace StrmAssistant
 
         private void OnItemUpdated(object sender, ItemChangeEventArgs e)
         {
+            ItemBlacklist.InvalidateInstanceCache();
             SearchIndexService.NotifyItemChanged(e.Item);
             _ = OverrideImageService.ApplyAsync(e.Item);
             LocalMetadataTagService.Apply(e.Item);
@@ -982,6 +994,12 @@ namespace StrmAssistant
         protected override void OnOptionsSaved(PluginOptions options)
         {
             var suppress = _currentSuppressOnOptionsSaved;
+
+            // Option-derived parsers (container/extension sets, blacklist wildcards, subtitle
+            // patterns) are cached. Drop them so the next item sees the saved values.
+            LibraryApi.InvalidateMediaExclusionCache();
+            ItemBlacklist.InvalidateParsedCache();
+            SubtitleBlacklist.InvalidateCache();
 
             var catchupMode = options.GeneralOptions.CatchupMode;
             var autoExtractOnItemAdded = options.MediaInfoExtractOptions.AutoExtractOnItemAdded;

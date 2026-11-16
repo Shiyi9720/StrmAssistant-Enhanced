@@ -56,9 +56,8 @@ namespace StrmAssistant.ScheduledTask
             var persistMediaInfo = persistMediaInfoMode != PersistMediaInfoOption.None.ToString();
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
-            var preExtractEpisodes = Plugin.FingerprintApi.FetchIntroPreExtractTaskItems();
-            var postExtractEpisodes = Plugin.FingerprintApi.FetchIntroFingerprintTaskItems();
-            var episodes= preExtractEpisodes.Concat(postExtractEpisodes).ToList();
+            var (preExtractEpisodes, postExtractEpisodes) = Plugin.FingerprintApi.FetchIntroTaskItems();
+            var episodes = preExtractEpisodes.Concat(postExtractEpisodes).ToList();
             var groupedBySeason = episodes.GroupBy(e => e.Season).ToList();
             var seasonTasks = new List<Task>();
 

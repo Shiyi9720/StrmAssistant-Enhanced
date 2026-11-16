@@ -14,9 +14,10 @@ namespace StrmAssistant.Common
 
         public static MediaInfoBlacklist FromOptions()
         {
-            var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
+            var keywords = Plugin.Instance.GetPluginOptions()
+                .MediaInfoExtractOptions.MediaInfoExcludeKeywords ?? string.Empty;
 
-            return new MediaInfoBlacklist(options.MediaInfoExcludeKeywords);
+            return GetShared(keywords, () => new MediaInfoBlacklist(keywords));
         }
     }
 }

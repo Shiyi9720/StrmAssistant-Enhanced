@@ -1,6 +1,7 @@
 using MediaBrowser.Model.Entities;
 using StrmAssistant.Options;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -58,11 +59,20 @@ namespace StrmAssistant.Common
                 ["may"] = "ms"
             };
 
-        private readonly List<string> _languages;
-        private readonly List<string> _titles;
-        private readonly List<string> _codecs;
+        private sealed class Pattern
+        {
+            public string Text;
+            public Regex Wildcard;
+        }
 
-        private SubtitleBlacklist(List<string> languages, List<string> titles, List<string> codecs)
+        private static readonly ConcurrentDictionary<string, SubtitleBlacklist> Cache =
+            new ConcurrentDictionary<string, SubtitleBlacklist>(StringComparer.Ordinal);
+
+        private readonly List<Pattern> _languages;
+        private readonly List<Pattern> _titles;
+        private readonly List<Pattern> _codecs;
+
+        private SubtitleBlacklist(List<Pattern> languages, List<Pattern> titles, List<Pattern> codecs)
         {
             _languages = languages;
             _titles = titles;
@@ -86,9 +96,23 @@ namespace StrmAssistant.Common
         public static SubtitleBlacklist FromOptions()
         {
             var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
+            var languages = options.SubtitleBlacklistLanguages ?? string.Empty;
+            var titles = options.SubtitleBlacklistTitles ?? string.Empty;
+            var codecs = options.SubtitleBlacklistCodecs ?? string.Empty;
+            var key = languages + "\u0001" + titles + "\u0001" + codecs;
 
-            return new SubtitleBlacklist(Split(options.SubtitleBlacklistLanguages), Split(options.SubtitleBlacklistTitles),
-                Split(options.SubtitleBlacklistCodecs));
+            // The parsed patterns (including compiled wildcard regexes) are shared by every item
+            // and media source. A saved option change produces a new key automatically.
+            return Cache.GetOrAdd(key, _ => new SubtitleBlacklist(Split(languages), Split(titles),
+                Split(codecs)));
+        }
+
+        /// <summary>
+        /// Drops the shared parsed-pattern cache after options are saved.
+        /// </summary>
+        public static void InvalidateCache()
+        {
+            Cache.Clear();
         }
 
         public bool IsBlacklisted(MediaStream stream)
@@ -108,6 +132,7 @@ namespace StrmAssistant.Common
             return _languages.Any(pattern =>
                 MatchesExact(raw, pattern) || MatchesExact(normalized, pattern) ||
                 MatchesWildcard(raw, pattern) || MatchesWildcard(normalized, pattern));
+
         }
 
         private bool MatchesTitle(MediaStream stream)
@@ -119,7 +144,7 @@ namespace StrmAssistant.Common
             if (string.IsNullOrWhiteSpace(title)) title = stream.Comment;
             if (string.IsNullOrWhiteSpace(title)) return false;
 
-            return _titles.Any(pattern => title.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) >= 0 ||
+            return _titles.Any(pattern => title.IndexOf(pattern.Text, StringComparison.OrdinalIgnoreCase) >= 0 ||
                                           MatchesWildcard(title, pattern));
         }
 
@@ -131,14 +156,24 @@ namespace StrmAssistant.Common
                 MatchesExact(stream.Codec, pattern) || MatchesWildcard(stream.Codec, pattern));
         }
 
-        private static List<string> Split(string value)
+        private static List<Pattern> Split(string value)
         {
             return string.IsNullOrWhiteSpace(value)
-                ? new List<string>()
+                ? new List<Pattern>()
                 : value.Split(ListSeparators, StringSplitOptions.RemoveEmptyEntries)
                     .Select(i => i.Trim())
                     .Where(i => i.Length > 0)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select(i => new Pattern
+                    {
+                        Text = i,
+                        Wildcard = i.IndexOf('*') < 0 && i.IndexOf('?') < 0
+                            ? null
+                            : new Regex(
+                                "^" + Regex.Escape(i).Replace("\\*", ".*").Replace("\\?", ".") + "$",
+                                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant |
+                                RegexOptions.Compiled)
+                    })
                     .ToList();
         }
 
@@ -149,20 +184,16 @@ namespace StrmAssistant.Common
             return LanguageAliases.TryGetValue(normalized, out var alias) ? alias : normalized;
         }
 
-        private static bool MatchesExact(string value, string pattern)
+        private static bool MatchesExact(string value, Pattern pattern)
         {
-            if (pattern.IndexOf('*') >= 0 || pattern.IndexOf('?') >= 0) return false;
+            if (pattern.Wildcard != null) return false;
 
-            return string.Equals(value, pattern, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(value, pattern.Text, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool MatchesWildcard(string value, string pattern)
+        private static bool MatchesWildcard(string value, Pattern pattern)
         {
-            if (pattern.IndexOf('*') < 0 && pattern.IndexOf('?') < 0) return false;
-
-            var regex = "^" + Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$";
-
-            return Regex.IsMatch(value, regex, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return pattern.Wildcard?.IsMatch(value) ?? false;
         }
     }
 }

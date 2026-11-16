@@ -47,47 +47,87 @@ namespace StrmAssistant.Common
             ExtraType.Trailer
         };
 
-        public static MediaContainers[] ExcludeMediaContainers
+        private sealed class MediaExclusionSnapshot
         {
-            get
+            public string Key;
+            public HashSet<MediaContainers> Containers;
+            public HashSet<string> Extensions;
+        }
+
+        private static readonly object MediaExclusionCacheSync = new object();
+        private static volatile MediaExclusionSnapshot _mediaExclusionSnapshot;
+
+        private static MediaExclusionSnapshot GetMediaExclusionSnapshot()
+        {
+            var key = Plugin.Instance.GetPluginOptions()
+                          .MediaInfoExtractOptions.ImageCaptureExcludeMediaContainers ?? string.Empty;
+
+            var snapshot = _mediaExclusionSnapshot;
+
+            if (snapshot != null && string.Equals(snapshot.Key, key, StringComparison.Ordinal))
             {
-                return Plugin.Instance.GetPluginOptions()
-                    .MediaInfoExtractOptions.ImageCaptureExcludeMediaContainers
-                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(c =>
-                        Enum.TryParse<MediaContainers>(c.Trim(), true, out var container)
-                            ? container
-                            : (MediaContainers?)null)
-                    .Where(container => container.HasValue)
-                    .Select(container => container.Value)
-                    .Concat(new[] { MediaContainers.Iso })
-                    .Distinct()
-                    .ToArray();
+                return snapshot;
+            }
+
+            lock (MediaExclusionCacheSync)
+            {
+                snapshot = _mediaExclusionSnapshot;
+
+                if (snapshot != null && string.Equals(snapshot.Key, key, StringComparison.Ordinal))
+                {
+                    return snapshot;
+                }
+
+                var containers = new HashSet<MediaContainers>
+                {
+                    MediaContainers.Iso
+                };
+
+                foreach (var token in key.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (Enum.TryParse<MediaContainers>(token.Trim(), true, out var container))
+                    {
+                        containers.Add(container);
+                    }
+                }
+
+                var extensions = new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (var container in containers)
+                {
+                    foreach (var alias in container.GetAliases() ?? Array.Empty<string>())
+                    {
+                        if (!string.IsNullOrWhiteSpace(alias)) extensions.Add(alias);
+                    }
+                }
+
+                snapshot = new MediaExclusionSnapshot
+                {
+                    Key = key,
+                    Containers = containers,
+                    Extensions = extensions
+                };
+
+                _mediaExclusionSnapshot = snapshot;
+
+                return snapshot;
             }
         }
 
-        public static string[] ExcludeMediaExtensions
-        {
-            get
-            {
-                return Plugin.Instance.GetPluginOptions()
-                    .MediaInfoExtractOptions.ImageCaptureExcludeMediaContainers
-                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .SelectMany(c =>
-                    {
-                        if (Enum.TryParse<MediaContainers>(c.Trim(), true, out var container))
-                        {
-                            var aliases = container.GetAliases();
-                            return aliases?.Where(a => !string.IsNullOrWhiteSpace(a)) ?? Array.Empty<string>();
-                        }
+        /// <summary>
+        /// Parsed once per distinct option value instead of for every item. A changed option
+        /// value is picked up automatically; the explicit reset keeps the old snapshot from
+        /// lingering after a save.
+        /// </summary>
+        public static HashSet<MediaContainers> ExcludeMediaContainers =>
+            GetMediaExclusionSnapshot().Containers;
 
-                        return Array.Empty<string>();
-                    })
-                    .Concat(MediaContainers.Iso.GetAliases())
-                    .Where(alias => !string.IsNullOrWhiteSpace(alias))
-                    .Distinct()
-                    .ToArray();
-            }
+        public static HashSet<string> ExcludeMediaExtensions =>
+            GetMediaExclusionSnapshot().Extensions;
+
+        public static void InvalidateMediaExclusionCache()
+        {
+            _mediaExclusionSnapshot = null;
         }
 
         public static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>
@@ -255,6 +295,43 @@ namespace StrmAssistant.Common
             return orderedItems;
         }
 
+        private const int ItemBatchSize = 500;
+
+        /// <summary>
+        /// Returns only the ids for a query, so a full-library scan never materialises every
+        /// item at once. Callers then fetch the ids they still need in bounded batches.
+        /// </summary>
+        private long[] GetItemIds(InternalItemsQuery query)
+        {
+            try
+            {
+                return _libraryManager.GetInternalItemIds(query) ?? Array.Empty<long>();
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("Item id query failed: " + e.Message);
+                return Array.Empty<long>();
+            }
+        }
+
+        private IEnumerable<BaseItem[]> GetItemBatches(IReadOnlyList<long> ids)
+        {
+            for (var offset = 0; offset < ids.Count; offset += ItemBatchSize)
+            {
+                var count = Math.Min(ItemBatchSize, ids.Count - offset);
+                var batchIds = new long[count];
+
+                for (var i = 0; i < count; i++)
+                {
+                    batchIds[i] = ids[offset + i];
+                }
+
+                var items = _libraryManager.GetItemList(new InternalItemsQuery { ItemIds = batchIds });
+
+                yield return items ?? Array.Empty<BaseItem>();
+            }
+        }
+
         public List<BaseItem> FetchPreExtractTaskItems()
         {
             var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope
@@ -292,67 +369,106 @@ namespace StrmAssistant.Common
                     .ToArray();
             }
 
-            var items = Array.Empty<BaseItem>();
-            var extras = Array.Empty<BaseItem>();
+            var items = new List<BaseItem>();
+            var extras = new List<BaseItem>();
 
             if (!libraryIds.Any() || libraryIds.Any(id => id != "-1"))
             {
-                var itemsMediaInfoQuery = new InternalItemsQuery
+                var pathScopes = libraryIds.Any(id => id != "-1") && libraries.Any()
+                    ? libraries.SelectMany(l => l.Locations).Select(ls =>
+                        ls.EndsWith(Path.DirectorySeparatorChar.ToString())
+                            ? ls
+                            : ls + Path.DirectorySeparatorChar).ToArray()
+                    : null;
+
+                var imageScopes = enableImageCapture && librariesWithImageCapture.Any()
+                    ? librariesWithImageCapture.SelectMany(l => l.Locations).Select(ls =>
+                        ls.EndsWith(Path.DirectorySeparatorChar.ToString())
+                            ? ls
+                            : ls + Path.DirectorySeparatorChar).ToArray()
+                    : null;
+
+                var mediaInfoQuery = new InternalItemsQuery
                 {
                     HasPath = true,
                     HasAudioStream = false,
                     MediaTypes = new[] { MediaType.Video, MediaType.Audio }
                 };
 
-                if (libraryIds.Any(id => id != "-1") && libraries.Any())
-                {
-                    itemsMediaInfoQuery.PathStartsWithAny = libraries.SelectMany(l => l.Locations).Select(ls =>
-                        ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                            ? ls
-                            : ls + Path.DirectorySeparatorChar).ToArray();
-                }
+                if (pathScopes != null) mediaInfoQuery.PathStartsWithAny = pathScopes;
 
-                var itemsMediaInfo = _libraryManager.GetItemList(itemsMediaInfoQuery);
-
-                var itemsImageCaptureQuery = new InternalItemsQuery
+                var imageCaptureQuery = new InternalItemsQuery
                 {
                     HasPath = true,
                     MediaTypes = new[] { MediaType.Video, MediaType.Audio }
                 };
 
-                if (enableImageCapture && librariesWithImageCapture.Any())
-                {
-                    itemsImageCaptureQuery.PathStartsWithAny =
-                        librariesWithImageCapture.SelectMany(l => l.Locations).Select(ls =>
-                            ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                                ? ls
-                                : ls + Path.DirectorySeparatorChar).ToArray();
+                if (imageScopes != null) imageCaptureQuery.PathStartsWithAny = imageScopes;
 
-                    var itemsImageCapture = _libraryManager.GetItemList(itemsImageCaptureQuery)
-                        .Where(i => !i.HasImage(ImageType.Primary)).ToList();
-                    items = itemsMediaInfo.Concat(itemsImageCapture).GroupBy(i => i.InternalId).Select(g => g.First())
-                        .ToArray();
-                }
-                else
-                {
-                    items = itemsMediaInfo;
-                }
+                // The id queries are cheap; the expensive item materialisation below happens
+                // once for the union instead of once per query.
+                var mediaInfoIds = GetItemIds(mediaInfoQuery);
+                var imageCaptureIds = imageScopes != null ? GetItemIds(imageCaptureQuery) : Array.Empty<long>();
+
+                var extrasMediaInfoIds = Array.Empty<long>();
+                var extrasImageCaptureIds = Array.Empty<long>();
 
                 if (includeExtra)
                 {
-                    itemsMediaInfoQuery.ExtraTypes = IncludeExtraTypes;
-                    var extrasMediaInfo = _libraryManager.GetItemList(itemsMediaInfoQuery);
+                    var extrasMediaInfoQuery = new InternalItemsQuery
+                    {
+                        HasPath = true,
+                        HasAudioStream = false,
+                        MediaTypes = new[] { MediaType.Video, MediaType.Audio },
+                        ExtraTypes = IncludeExtraTypes
+                    };
 
-                    if (enableImageCapture && librariesWithImageCapture.Any())
+                    if (pathScopes != null) extrasMediaInfoQuery.PathStartsWithAny = pathScopes;
+
+                    extrasMediaInfoIds = GetItemIds(extrasMediaInfoQuery);
+
+                    if (imageScopes != null)
                     {
-                        itemsImageCaptureQuery.ExtraTypes = IncludeExtraTypes;
-                        var extrasImageCapture = _libraryManager.GetItemList(itemsImageCaptureQuery);
-                        extras = extrasImageCapture.Concat(extrasMediaInfo).GroupBy(i => i.InternalId)
-                            .Select(g => g.First()).ToArray();
+                        var extrasImageCaptureQuery = new InternalItemsQuery
+                        {
+                            HasPath = true,
+                            MediaTypes = new[] { MediaType.Video, MediaType.Audio },
+                            ExtraTypes = IncludeExtraTypes,
+                            PathStartsWithAny = imageScopes
+                        };
+
+                        extrasImageCaptureIds = GetItemIds(extrasImageCaptureQuery);
                     }
-                    else
+                }
+
+                var mediaInfoSet = new HashSet<long>(mediaInfoIds);
+                var imageCaptureSet = new HashSet<long>(imageCaptureIds);
+                var extrasSet = new HashSet<long>(extrasMediaInfoIds);
+                extrasSet.UnionWith(extrasImageCaptureIds);
+
+                var allIds = new HashSet<long>(mediaInfoSet);
+                allIds.UnionWith(imageCaptureSet);
+                allIds.UnionWith(extrasSet);
+                var orderedIds = allIds.ToList();
+
+                foreach (var batch in GetItemBatches(orderedIds))
+                {
+                    foreach (var item in batch)
                     {
-                        extras = extrasMediaInfo;
+                        var id = item.InternalId;
+
+                        // Extras from the image-capture query were not filtered by image in the
+                        // original code; only the main item path applied that filter.
+                        if (extrasSet.Contains(id)) extras.Add(item);
+
+                        if (mediaInfoSet.Contains(id))
+                        {
+                            items.Add(item);
+                        }
+                        else if (imageCaptureSet.Contains(id) && !item.HasImage(ImageType.Primary))
+                        {
+                            items.Add(item);
+                        }
                     }
                 }
             }
@@ -416,26 +532,58 @@ namespace StrmAssistant.Common
             var itemsWithExtras = new List<BaseItem>();
             if (!libraryIds.Any() || libraryIds.Any(id => id != "-1"))
             {
+                var mediaTypes = includeAudio
+                    ? new[] { MediaType.Video, MediaType.Audio }
+                    : new[] { MediaType.Video };
+
+                var pathScopes = libraryIds.Any(id => id != "-1") && libraries.Any()
+                    ? libraries.SelectMany(l => l.Locations).Select(ls =>
+                        ls.EndsWith(Path.DirectorySeparatorChar.ToString()) ? ls : ls + Path.DirectorySeparatorChar)
+                        .ToArray()
+                    : null;
+
                 var itemsQuery = new InternalItemsQuery
                 {
-                    HasPath = true, HasAudioStream = true,
-                    MediaTypes = includeAudio ? new[] { MediaType.Video, MediaType.Audio } : new[] { MediaType.Video }
+                    HasPath = true, HasAudioStream = true, MediaTypes = mediaTypes
                 };
 
-                if (libraryIds.Any(id => id != "-1") && libraries.Any())
-                {
-                    itemsQuery.PathStartsWithAny = libraries.SelectMany(l => l.Locations)
-                        .Select(ls =>
-                            ls.EndsWith(Path.DirectorySeparatorChar.ToString()) ? ls : ls + Path.DirectorySeparatorChar)
-                        .ToArray();
-                }
+                if (pathScopes != null) itemsQuery.PathStartsWithAny = pathScopes;
 
-                itemsWithExtras = _libraryManager.GetItemList(itemsQuery).ToList();
+                var itemIds = GetItemIds(itemsQuery);
+                var extrasIds = Array.Empty<long>();
 
                 if (includeExtra)
                 {
-                    itemsQuery.ExtraTypes = IncludeExtraTypes;
-                    itemsWithExtras = _libraryManager.GetItemList(itemsQuery).Concat(itemsWithExtras).ToList();
+                    var extrasQuery = new InternalItemsQuery
+                    {
+                        HasPath = true, HasAudioStream = true, MediaTypes = mediaTypes,
+                        ExtraTypes = IncludeExtraTypes
+                    };
+
+                    if (pathScopes != null) extrasQuery.PathStartsWithAny = pathScopes;
+
+                    extrasIds = GetItemIds(extrasQuery);
+                }
+
+                var itemIdSet = new HashSet<long>(itemIds);
+                var extrasIdSet = new HashSet<long>(extrasIds);
+
+                var allIds = new HashSet<long>(itemIdSet);
+                allIds.UnionWith(extrasIdSet);
+
+                foreach (var batch in GetItemBatches(allIds.ToList()))
+                {
+                    foreach (var item in batch)
+                    {
+                        var id = item.InternalId;
+
+                        // Extras came first in the original concat, so they win the de-duplication
+                        // when an id appears in both sets.
+                        if (extrasIdSet.Contains(id) || itemIdSet.Contains(id))
+                        {
+                            itemsWithExtras.Add(item);
+                        }
+                    }
                 }
             }
 
@@ -1800,15 +1948,25 @@ namespace StrmAssistant.Common
 
             var episodeRefreshOptions = GetEpisodeRefreshOptions();
 
-            var itemsToRefresh = _libraryManager
-                .GetItemList(new InternalItemsQuery
+            var episodeIds = GetItemIds(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
+            });
+
+            var itemsToRefresh = new List<Episode>();
+
+            foreach (var batch in GetItemBatches(episodeIds))
+            {
+                foreach (var episode in batch.OfType<Episode>())
                 {
-                    IncludeItemTypes = new[] { nameof(Episode) }, HasIndexNumber = true, IsLocked = false
-                })
-                .OfType<Episode>()
-                .Where(e => EpisodeNeedsRefresh(e, lookBackTime, episodeRefreshOptions, true))
-                .OrderByDescending(GetPremiereDateOrDefault)
-                .ToList();
+                    if (EpisodeNeedsRefresh(episode, lookBackTime, episodeRefreshOptions, true))
+                    {
+                        itemsToRefresh.Add(episode);
+                    }
+                }
+            }
+
+            itemsToRefresh = itemsToRefresh.OrderByDescending(GetPremiereDateOrDefault).ToList();
 
             _logger?.Info("EpisodeRefresh - Number of items: " + itemsToRefresh.Count);
 
@@ -1827,15 +1985,25 @@ namespace StrmAssistant.Common
             var mode = Plugin.MetadataApi.GetMovieMetadataRefreshMode();
             _logger?.Info("MovieMetadataRefresh - Mode: " + mode);
 
-            var itemsToRefresh = _libraryManager
-                .GetItemList(new InternalItemsQuery
+            var movieIds = GetItemIds(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { nameof(Movie) }, IsVirtualItem = false, IsLocked = false
+            });
+
+            var itemsToRefresh = new List<Movie>();
+
+            foreach (var batch in GetItemBatches(movieIds))
+            {
+                foreach (var movie in batch.OfType<Movie>())
                 {
-                    IncludeItemTypes = new[] { nameof(Movie) }, IsVirtualItem = false, IsLocked = false
-                })
-                .OfType<Movie>()
-                .Where(Plugin.MetadataApi.MovieMetadataNeedsRefresh)
-                .OrderByDescending(m => m.DateCreated)
-                .ToList();
+                    if (Plugin.MetadataApi.MovieMetadataNeedsRefresh(movie))
+                    {
+                        itemsToRefresh.Add(movie);
+                    }
+                }
+            }
+
+            itemsToRefresh = itemsToRefresh.OrderByDescending(m => m.DateCreated).ToList();
 
             _logger?.Info("MovieMetadataRefresh - Number of items: " + itemsToRefresh.Count);
 
@@ -1856,17 +2024,28 @@ namespace StrmAssistant.Common
 
             var movieRefreshOptions = GetEpisodeRefreshOptions();
 
-            var itemsToRefresh = _libraryManager
-                .GetItemList(new InternalItemsQuery
+            var movieIds = GetItemIds(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { nameof(Movie) }, IsLocked = false
+            });
+
+            var missingFieldsOnly =
+                Plugin.MetadataApi.GetMovieMetadataRefreshMode() == MovieMetadataRefreshMode.MissingFieldsOnly;
+            var itemsToRefresh = new List<Movie>();
+
+            foreach (var batch in GetItemBatches(movieIds))
+            {
+                foreach (var movie in batch.OfType<Movie>())
                 {
-                    IncludeItemTypes = new[] { nameof(Movie) }, IsLocked = false
-                })
-                .OfType<Movie>()
-                .Where(m => (Plugin.MetadataApi.GetMovieMetadataRefreshMode() != MovieMetadataRefreshMode.MissingFieldsOnly ||
-                             Plugin.MetadataApi.MovieMetadataNeedsRefresh(m)) &&
-                            MovieNeedsRefresh(m, lookBackTime, movieRefreshOptions, true))
-                .OrderByDescending(m => m.DateCreated)
-                .ToList();
+                    if ((!missingFieldsOnly || Plugin.MetadataApi.MovieMetadataNeedsRefresh(movie)) &&
+                        MovieNeedsRefresh(movie, lookBackTime, movieRefreshOptions, true))
+                    {
+                        itemsToRefresh.Add(movie);
+                    }
+                }
+            }
+
+            itemsToRefresh = itemsToRefresh.OrderByDescending(m => m.DateCreated).ToList();
 
             _logger?.Info("MovieRefresh - Number of items: " + itemsToRefresh.Count);
 

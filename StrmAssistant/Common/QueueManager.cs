@@ -28,10 +28,15 @@ namespace StrmAssistant.Common
         public static CancellationTokenSource IntroSkipTokenSource;
         public static CancellationTokenSource FingerprintTokenSource;
         public static CancellationTokenSource EpisodeRefreshTokenSource;
-        public static SemaphoreSlim MasterSemaphore;
-        public static SemaphoreSlim Tier2Semaphore;
-        public static SemaphoreSlim FingerprintSemaphore;
+        public static AsyncSemaphore MasterSemaphore;
+        public static AsyncSemaphore Tier2Semaphore;
+        public static AsyncSemaphore FingerprintSemaphore;
         public static ConcurrentQueue<BaseItem> MediaInfoExtractItemQueue = new ConcurrentQueue<BaseItem>();
+
+        // Item ids currently waiting in a media info queue. Auto-extract uses this as an O(1)
+        // admission check so two ItemAdded events for the same item cannot both enqueue it.
+        public static readonly ConcurrentDictionary<long, byte> PendingMediaInfoItemIds =
+            new ConcurrentDictionary<long, byte>();
         public static ConcurrentQueue<Episode> IntroSkipItemQueue = new ConcurrentQueue<Episode>();
         public static ConcurrentQueue<BaseItem> FingerprintItemQueue = new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<BaseItem> EpisodeRefreshItemQueue = new ConcurrentQueue<BaseItem>();
@@ -60,9 +65,9 @@ namespace StrmAssistant.Common
             _currentFingerprintMaxConcurrentCount =
                 Plugin.Instance.GetPluginOptions().GeneralOptions.IntroDetectionMaxConcurrentCount;
 
-            MasterSemaphore = new SemaphoreSlim(_currentMasterMaxConcurrentCount);
-            Tier2Semaphore = new SemaphoreSlim(_currentTier2MaxConcurrentCount);
-            FingerprintSemaphore = new SemaphoreSlim(_currentFingerprintMaxConcurrentCount);
+            MasterSemaphore = new AsyncSemaphore(_currentMasterMaxConcurrentCount);
+            Tier2Semaphore = new AsyncSemaphore(_currentTier2MaxConcurrentCount);
+            FingerprintSemaphore = new AsyncSemaphore(_currentFingerprintMaxConcurrentCount);
         }
 
         public static void Initialize()
@@ -71,6 +76,7 @@ namespace StrmAssistant.Common
             {
                 MediaInfoExtractItemQueue.Clear();
                 FavoriteMediaInfoExtractItemQueue.Clear();
+                PendingMediaInfoItemIds.Clear();
             }
 
             EnsureMediaInfoProcessTaskStarted();
@@ -164,10 +170,10 @@ namespace StrmAssistant.Common
             {
                 _currentMasterMaxConcurrentCount = maxConcurrentCount;
 
-                var newMasterSemaphore = new SemaphoreSlim(maxConcurrentCount);
-                var oldMasterSemaphore = MasterSemaphore;
-                MasterSemaphore = newMasterSemaphore;
-                oldMasterSemaphore.Dispose();
+                // Adjust the existing instance in place. Workers that already acquired a permit
+                // keep a reference to this object, so their Release can never hit a disposed
+                // semaphore or a different counter.
+                MasterSemaphore?.SetLimit(maxConcurrentCount);
             }
         }
 
@@ -177,10 +183,7 @@ namespace StrmAssistant.Common
             {
                 _currentTier2MaxConcurrentCount = maxConcurrentCount;
 
-                var newTier2Semaphore = new SemaphoreSlim(maxConcurrentCount);
-                var oldTier2Semaphore = Tier2Semaphore;
-                Tier2Semaphore = newTier2Semaphore;
-                oldTier2Semaphore.Dispose();
+                Tier2Semaphore?.SetLimit(maxConcurrentCount);
             }
         }
 
@@ -190,10 +193,7 @@ namespace StrmAssistant.Common
             {
                 _currentFingerprintMaxConcurrentCount = maxConcurrentCount;
 
-                var newFingerprintSemaphore = new SemaphoreSlim(maxConcurrentCount);
-                var oldFingerprintSemaphore = FingerprintSemaphore;
-                FingerprintSemaphore = newFingerprintSemaphore;
-                oldFingerprintSemaphore.Dispose();
+                FingerprintSemaphore?.SetLimit(maxConcurrentCount);
             }
         }
 
@@ -208,6 +208,21 @@ namespace StrmAssistant.Common
         private static bool IsFavoriteCatchupPriorityEnabled()
         {
             return Plugin.Instance?.GetPluginOptions()?.GeneralOptions.EnableFavoriteCatchupPriority is true;
+        }
+
+        /// <summary>
+        /// Puts back items that were already dequeued but never started because a permit could
+        /// not be acquired (cancellation or an unexpected failure). They stay in the queue for
+        /// the next run instead of disappearing silently.
+        /// </summary>
+        private static void RequeueMediaInfoItems(ConcurrentQueue<BaseItem> queue, List<BaseItem> items,
+            int startIndex)
+        {
+            for (var i = startIndex; i < items.Count; i++)
+            {
+                PendingMediaInfoItemIds.TryAdd(items[i].InternalId, 0);
+                queue.Enqueue(items[i]);
+            }
         }
 
         private static void DrainFavoriteQueuesWhenDisabled()
@@ -271,6 +286,8 @@ namespace StrmAssistant.Common
 
                     while (queue.TryDequeue(out var dequeueItem))
                     {
+                        PendingMediaInfoItemIds.TryRemove(dequeueItem.InternalId, out _);
+
                         var library = dequeueItem.GetTopParent();
                         var progress = library?.GetRefreshProgress();
 
@@ -306,22 +323,30 @@ namespace StrmAssistant.Common
 
                         IsMediaInfoProcessTaskRunning = true;
 
-                        foreach (var item in mediaInfoItems)
+                        for (var itemIndex = 0; itemIndex < mediaInfoItems.Count; itemIndex++)
                         {
-                            var taskItem = item;
+                            var taskItem = mediaInfoItems[itemIndex];
 
                             try
                             {
                                 await MasterSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                             }
-                            catch
+                            catch (OperationCanceledException)
                             {
+                                RequeueMediaInfoItems(queue, mediaInfoItems, itemIndex);
+                                break;
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.Error("MediaInfoExtract - Acquire permit failed: " + e.Message);
+                                RequeueMediaInfoItems(queue, mediaInfoItems, itemIndex);
                                 break;
                             }
 
                             if (cancellationToken.IsCancellationRequested)
                             {
                                 MasterSemaphore.Release();
+                                RequeueMediaInfoItems(queue, mediaInfoItems, itemIndex);
                                 Logger.Info("MediaInfoExtract - Item Cancelled: " + taskItem.Name + " - " +
                                             taskItem.Path);
                                 break;
@@ -412,9 +437,10 @@ namespace StrmAssistant.Common
                 if (deferredItems.Count > 0)
                 {
                     Logger.Info("MediaInfoExtract - Enqueue Deferred Count: " + deferredItems.Count);
-                        
+
                     foreach (var item in deferredItems)
                     {
+                        PendingMediaInfoItemIds.TryAdd(item.InternalId, 0);
                         queue.Enqueue(item);
                     }
                 }
@@ -520,16 +546,33 @@ namespace StrmAssistant.Common
                         var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
                         var groupedBySeason = episodes.GroupBy(e => e.Season).ToList();
+                        var episodesBySeason = groupedBySeason.Select(g => g.ToList()).ToList();
                         var seasonTasks = new List<Task>();
-                        
+                        var abortFingerprint = false;
+
+                        void RequeueFingerprintFrom(int seasonIndex, int episodeIndex)
+                        {
+                            for (var si = seasonIndex; si < episodesBySeason.Count; si++)
+                            {
+                                var list = episodesBySeason[si];
+
+                                for (var ei = si == seasonIndex ? episodeIndex : 0; ei < list.Count; ei++)
+                                {
+                                    queue.Enqueue(list[ei]);
+                                }
+                            }
+                        }
+
                         IsMediaInfoProcessTaskRunning = true;
 
-                        foreach (var season in groupedBySeason)
+                        for (var seasonIndex = 0; seasonIndex < groupedBySeason.Count; seasonIndex++)
                         {
+                            var season = groupedBySeason[seasonIndex];
                             var taskSeason = season.Key;
 
                             if (cancellationToken.IsCancellationRequested)
                             {
+                                RequeueFingerprintFrom(seasonIndex, 0);
                                 Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
                                             taskSeason.Path);
                                 break;
@@ -538,22 +581,35 @@ namespace StrmAssistant.Common
                             var episodeTasks = new List<Task>();
                             var seasonSkip = false;
 
-                            foreach (var episode in season)
+                            var seasonEpisodes = episodesBySeason[seasonIndex];
+
+                            for (var episodeIndex = 0; episodeIndex < seasonEpisodes.Count; episodeIndex++)
                             {
-                                var taskItem = episode;
+                                var taskItem = seasonEpisodes[episodeIndex];
 
                                 try
                                 {
                                     await FingerprintSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                                 }
-                                catch
+                                catch (OperationCanceledException)
                                 {
+                                    RequeueFingerprintFrom(seasonIndex, episodeIndex);
+                                    abortFingerprint = true;
+                                    break;
+                                }
+                                catch (Exception e)
+                                {
+                                    Logger.Error("IntroFingerprintExtract - Acquire permit failed: " + e.Message);
+                                    RequeueFingerprintFrom(seasonIndex, episodeIndex);
+                                    abortFingerprint = true;
                                     break;
                                 }
 
                                 if (cancellationToken.IsCancellationRequested)
                                 {
                                     FingerprintSemaphore.Release();
+                                    RequeueFingerprintFrom(seasonIndex, episodeIndex);
+                                    abortFingerprint = true;
                                     break;
                                 }
 
@@ -633,6 +689,16 @@ namespace StrmAssistant.Common
                                 episodeTasks.Add(task);
                             }
 
+                            if (abortFingerprint)
+                            {
+                                if (episodeTasks.Count > 0)
+                                {
+                                    await Task.WhenAll(episodeTasks).ConfigureAwait(false);
+                                }
+
+                                break;
+                            }
+
                             if (seasonSkip)
                             {
                                 await Task.WhenAll(episodeTasks).ConfigureAwait(false);
@@ -644,6 +710,7 @@ namespace StrmAssistant.Common
                             {
                                 if (cancellationToken.IsCancellationRequested)
                                 {
+                                    RequeueFingerprintFrom(seasonIndex + 1, 0);
                                     Logger.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name +
                                                 " - " + taskSeason.Path);
                                     break;
@@ -835,22 +902,44 @@ namespace StrmAssistant.Common
 
                         IsEpisodeRefreshProcessTaskRunning = true;
 
-                        foreach (var item in itemsToRefresh)
+                        for (var itemIndex = 0; itemIndex < itemsToRefresh.Count; itemIndex++)
                         {
-                            var taskItem = item;
+                            var taskItem = itemsToRefresh[itemIndex];
 
                             try
                             {
                                 await Tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                             }
-                            catch
+                            catch (OperationCanceledException)
                             {
+                                for (var i = itemIndex; i < itemsToRefresh.Count; i++)
+                                {
+                                    EpisodeRefreshItemQueue.Enqueue(itemsToRefresh[i]);
+                                }
+
+                                break;
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.Error("EpisodeRefresh - Acquire permit failed: " + e.Message);
+
+                                for (var i = itemIndex; i < itemsToRefresh.Count; i++)
+                                {
+                                    EpisodeRefreshItemQueue.Enqueue(itemsToRefresh[i]);
+                                }
+
                                 break;
                             }
 
                             if (cancellationToken.IsCancellationRequested)
                             {
                                 Tier2Semaphore.Release();
+
+                                for (var i = itemIndex; i < itemsToRefresh.Count; i++)
+                                {
+                                    EpisodeRefreshItemQueue.Enqueue(itemsToRefresh[i]);
+                                }
+
                                 Logger.Info("EpisodeRefresh - Item Cancelled: " + taskItem.Name + " - " +
                                             taskItem.Path);
                                 break;
