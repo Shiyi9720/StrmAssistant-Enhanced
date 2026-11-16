@@ -672,6 +672,7 @@ namespace StrmAssistant
 
         private void OnItemRemoved(object sender, ItemChangeEventArgs e)
         {
+            ItemBlacklist.InvalidateInstanceCache();
             SearchIndexService.NotifyItemRemoved(e.Item.InternalId);
 
             try
@@ -708,6 +709,7 @@ namespace StrmAssistant
 
         private void OnItemUpdated(object sender, ItemChangeEventArgs e)
         {
+            ItemBlacklist.InvalidateInstanceCache();
             SearchIndexService.NotifyItemChanged(e.Item);
             _ = OverrideImageService.ApplyAsync(e.Item);
             LocalMetadataTagService.Apply(e.Item);
@@ -992,6 +994,12 @@ namespace StrmAssistant
         protected override void OnOptionsSaved(PluginOptions options)
         {
             var suppress = _currentSuppressOnOptionsSaved;
+
+            // Option-derived parsers (container/extension sets, blacklist wildcards, subtitle
+            // patterns) are cached. Drop them so the next item sees the saved values.
+            LibraryApi.InvalidateMediaExclusionCache();
+            ItemBlacklist.InvalidateParsedCache();
+            SubtitleBlacklist.InvalidateCache();
 
             var catchupMode = options.GeneralOptions.CatchupMode;
             var autoExtractOnItemAdded = options.MediaInfoExtractOptions.AutoExtractOnItemAdded;

@@ -31,10 +31,16 @@ namespace StrmAssistant.Common
         public static VideoThumbnailBlacklist FromOptions()
         {
             var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
-            var containers = ParseContainers(options.VideoThumbnailExcludeMediaContainers);
+            var keywords = options.VideoThumbnailExcludeKeywords ?? string.Empty;
+            var rawContainers = options.VideoThumbnailExcludeMediaContainers ?? string.Empty;
+            var key = keywords + "\u0001" + rawContainers;
 
-            return new VideoThumbnailBlacklist(options.VideoThumbnailExcludeKeywords, containers,
-                GetContainerAliases(containers));
+            return GetShared(key, () =>
+            {
+                var containers = ParseContainers(rawContainers);
+
+                return new VideoThumbnailBlacklist(keywords, containers, GetContainerAliases(containers));
+            });
         }
 
         public bool IsExcluded(Video item)

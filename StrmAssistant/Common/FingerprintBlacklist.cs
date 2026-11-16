@@ -14,9 +14,10 @@ namespace StrmAssistant.Common
 
         public static FingerprintBlacklist FromOptions()
         {
-            var options = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
+            var keywords = Plugin.Instance.GetPluginOptions()
+                .IntroSkipOptions.FingerprintExcludeKeywords ?? string.Empty;
 
-            return new FingerprintBlacklist(options.FingerprintExcludeKeywords);
+            return GetShared(keywords, () => new FingerprintBlacklist(keywords));
         }
     }
 }

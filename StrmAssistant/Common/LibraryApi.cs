@@ -47,47 +47,87 @@ namespace StrmAssistant.Common
             ExtraType.Trailer
         };
 
-        public static MediaContainers[] ExcludeMediaContainers
+        private sealed class MediaExclusionSnapshot
         {
-            get
+            public string Key;
+            public HashSet<MediaContainers> Containers;
+            public HashSet<string> Extensions;
+        }
+
+        private static readonly object MediaExclusionCacheSync = new object();
+        private static volatile MediaExclusionSnapshot _mediaExclusionSnapshot;
+
+        private static MediaExclusionSnapshot GetMediaExclusionSnapshot()
+        {
+            var key = Plugin.Instance.GetPluginOptions()
+                          .MediaInfoExtractOptions.ImageCaptureExcludeMediaContainers ?? string.Empty;
+
+            var snapshot = _mediaExclusionSnapshot;
+
+            if (snapshot != null && string.Equals(snapshot.Key, key, StringComparison.Ordinal))
             {
-                return Plugin.Instance.GetPluginOptions()
-                    .MediaInfoExtractOptions.ImageCaptureExcludeMediaContainers
-                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(c =>
-                        Enum.TryParse<MediaContainers>(c.Trim(), true, out var container)
-                            ? container
-                            : (MediaContainers?)null)
-                    .Where(container => container.HasValue)
-                    .Select(container => container.Value)
-                    .Concat(new[] { MediaContainers.Iso })
-                    .Distinct()
-                    .ToArray();
+                return snapshot;
+            }
+
+            lock (MediaExclusionCacheSync)
+            {
+                snapshot = _mediaExclusionSnapshot;
+
+                if (snapshot != null && string.Equals(snapshot.Key, key, StringComparison.Ordinal))
+                {
+                    return snapshot;
+                }
+
+                var containers = new HashSet<MediaContainers>
+                {
+                    MediaContainers.Iso
+                };
+
+                foreach (var token in key.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (Enum.TryParse<MediaContainers>(token.Trim(), true, out var container))
+                    {
+                        containers.Add(container);
+                    }
+                }
+
+                var extensions = new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (var container in containers)
+                {
+                    foreach (var alias in container.GetAliases() ?? Array.Empty<string>())
+                    {
+                        if (!string.IsNullOrWhiteSpace(alias)) extensions.Add(alias);
+                    }
+                }
+
+                snapshot = new MediaExclusionSnapshot
+                {
+                    Key = key,
+                    Containers = containers,
+                    Extensions = extensions
+                };
+
+                _mediaExclusionSnapshot = snapshot;
+
+                return snapshot;
             }
         }
 
-        public static string[] ExcludeMediaExtensions
-        {
-            get
-            {
-                return Plugin.Instance.GetPluginOptions()
-                    .MediaInfoExtractOptions.ImageCaptureExcludeMediaContainers
-                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                    .SelectMany(c =>
-                    {
-                        if (Enum.TryParse<MediaContainers>(c.Trim(), true, out var container))
-                        {
-                            var aliases = container.GetAliases();
-                            return aliases?.Where(a => !string.IsNullOrWhiteSpace(a)) ?? Array.Empty<string>();
-                        }
+        /// <summary>
+        /// Parsed once per distinct option value instead of for every item. A changed option
+        /// value is picked up automatically; the explicit reset keeps the old snapshot from
+        /// lingering after a save.
+        /// </summary>
+        public static HashSet<MediaContainers> ExcludeMediaContainers =>
+            GetMediaExclusionSnapshot().Containers;
 
-                        return Array.Empty<string>();
-                    })
-                    .Concat(MediaContainers.Iso.GetAliases())
-                    .Where(alias => !string.IsNullOrWhiteSpace(alias))
-                    .Distinct()
-                    .ToArray();
-            }
+        public static HashSet<string> ExcludeMediaExtensions =>
+            GetMediaExclusionSnapshot().Extensions;
+
+        public static void InvalidateMediaExclusionCache()
+        {
+            _mediaExclusionSnapshot = null;
         }
 
         public static readonly HashSet<string> ExcludedCollectionTypes = new HashSet<string>

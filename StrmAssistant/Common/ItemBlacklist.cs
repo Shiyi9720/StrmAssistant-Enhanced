@@ -1,5 +1,6 @@
 using MediaBrowser.Controller.Entities;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -15,17 +16,62 @@ namespace StrmAssistant.Common
     {
         private static readonly char[] ListSeparators = { ',', ';', '\r', '\n', '|' };
 
-        private readonly List<string> _keywords;
-        private readonly Dictionary<long, bool> _ownMatches = new Dictionary<long, bool>();
+        private sealed class ParsedKeywords
+        {
+            public List<string> Keywords;
+            public List<Regex> Wildcards;
+        }
+
+        // The same keyword string is parsed once and shared by every instance and batch. The
+        // compiled wildcard regexes live here, so constructing a blacklist for a batch no longer
+        // recompiles them per item.
+        private static readonly ConcurrentDictionary<string, ParsedKeywords> ParsedKeywordCache =
+            new ConcurrentDictionary<string, ParsedKeywords>(StringComparer.Ordinal);
+
+        // A single parsed instance per subclass and option value. Reusing the instance is what
+        // makes _ownMatches useful: one batch no longer pays for the same parent/tag checks over
+        // and over. Item changes and option saves clear it so tag edits are never stale.
+        private static readonly ConcurrentDictionary<string, object> InstanceCache =
+            new ConcurrentDictionary<string, object>(StringComparer.Ordinal);
+
+        private readonly ParsedKeywords _parsedKeywords;
+        private readonly ConcurrentDictionary<long, bool> _ownMatches =
+            new ConcurrentDictionary<long, bool>();
         private readonly string _excludeTag;
 
         protected ItemBlacklist(string excludeTag, string keywords)
         {
             _excludeTag = excludeTag;
-            _keywords = SplitList(keywords);
+            _parsedKeywords = ParsedKeywordCache.GetOrAdd(keywords ?? string.Empty, ParseKeywords);
         }
 
-        public bool HasKeywords => _keywords.Count > 0;
+        public bool HasKeywords => _parsedKeywords.Keywords.Count > 0;
+
+        protected static T GetShared<T>(string key, Func<T> factory) where T : class
+        {
+            var cacheKey = typeof(T).FullName + "|" + (key ?? string.Empty);
+
+            return (T) InstanceCache.GetOrAdd(cacheKey, _ => factory());
+        }
+
+        /// <summary>
+        /// Drops the shared parsed-keyword and instance caches. Called when options are saved; a
+        /// changed keyword string would miss the cache anyway, this just releases the old entries.
+        /// </summary>
+        public static void InvalidateParsedCache()
+        {
+            ParsedKeywordCache.Clear();
+            InstanceCache.Clear();
+        }
+
+        /// <summary>
+        /// Drops cached per-item decisions after an item changed (for example its tags), while
+        /// keeping the parsed keywords and compiled wildcards.
+        /// </summary>
+        public static void InvalidateInstanceCache()
+        {
+            InstanceCache.Clear();
+        }
 
         public bool IsExcluded(BaseItem item)
         {
@@ -60,7 +106,7 @@ namespace StrmAssistant.Common
 
         private bool MatchesKeyword(BaseItem item)
         {
-            if (_keywords.Count == 0) return false;
+            if (_parsedKeywords.Keywords.Count == 0) return false;
 
             return MatchesKeyword(item.Name) || MatchesKeyword(item.Path) ||
                    MatchesKeyword(item.FileNameWithoutExtension);
@@ -70,9 +116,39 @@ namespace StrmAssistant.Common
         {
             if (string.IsNullOrWhiteSpace(value)) return false;
 
-            return _keywords.Any(keyword =>
-                value.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                MatchesWildcard(value, keyword));
+            foreach (var keyword in _parsedKeywords.Keywords)
+            {
+                if (value.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            }
+
+            foreach (var wildcard in _parsedKeywords.Wildcards)
+            {
+                if (wildcard.IsMatch(value)) return true;
+            }
+
+            return false;
+        }
+
+        private static ParsedKeywords ParseKeywords(string value)
+        {
+            var keywords = SplitList(value);
+            var wildcards = new List<Regex>();
+
+            foreach (var keyword in keywords)
+            {
+                if (keyword.IndexOf('*') < 0 && keyword.IndexOf('?') < 0) continue;
+
+                var pattern = "^" + Regex.Escape(keyword).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+
+                wildcards.Add(new Regex(pattern,
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled));
+            }
+
+            return new ParsedKeywords
+            {
+                Keywords = keywords,
+                Wildcards = wildcards
+            };
         }
 
         private static List<string> SplitList(string value)
@@ -84,15 +160,6 @@ namespace StrmAssistant.Common
                     .Where(i => i.Length > 0)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
-        }
-
-        private static bool MatchesWildcard(string value, string pattern)
-        {
-            if (pattern.IndexOf('*') < 0 && pattern.IndexOf('?') < 0) return false;
-
-            var regex = "^" + Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$";
-
-            return Regex.IsMatch(value, regex, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
     }
 }
