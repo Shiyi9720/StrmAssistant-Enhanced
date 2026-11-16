@@ -235,7 +235,10 @@ namespace StrmAssistant.Mod
             if (LibraryApi.IsFileShortcut(input))
             {
                 var inputPath = input;
-                var mountPath = Task.Run(async () => await Plugin.LibraryApi.GetStrmMountPath(inputPath)).Result;
+                // This hook runs on Emby's synchronous ffprobe path. The mount is resolved on this
+                // thread (Task.Run(...).Result additionally occupied a second thread-pool thread per
+                // probe) and a recent result for the same .strm is reused.
+                var mountPath = Plugin.LibraryApi.GetStrmMountPathCached(inputPath);
                 if (!string.IsNullOrEmpty(mountPath))
                 {
                     input = mountPath;

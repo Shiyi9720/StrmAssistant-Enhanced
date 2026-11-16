@@ -128,7 +128,7 @@ namespace StrmAssistant.Common
                         try
                         {
                             distributedMediaPath = await Plugin.LibraryApi
-                                .GetStrmMountPath(distributedMediaPath).ConfigureAwait(false);
+                                .GetStrmMountPath(distributedMediaPath, cancellationToken).ConfigureAwait(false);
                         }
                         catch (Exception e)
                         {
@@ -323,7 +323,7 @@ namespace StrmAssistant.Common
                 {
                     try
                     {
-                        var mountedPath = await Plugin.LibraryApi.GetStrmMountPath(inputPath)
+                        var mountedPath = await Plugin.LibraryApi.GetStrmMountPath(inputPath, cancellationToken)
                             .ConfigureAwait(false);
 
                         if (!string.IsNullOrEmpty(mountedPath)) inputPath = mountedPath;

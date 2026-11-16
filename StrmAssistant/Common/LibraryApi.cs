@@ -865,7 +865,7 @@ namespace StrmAssistant.Common
             var filePath = taskItem.Path;
             if (taskItem.IsShortcut)
             {
-                filePath = await GetStrmMountPath(filePath).ConfigureAwait(false);
+                filePath = await GetStrmMountPath(filePath, cancellationToken).ConfigureAwait(false);
             }
 
             if (string.IsNullOrEmpty(filePath)) return null;
@@ -1080,7 +1080,7 @@ namespace StrmAssistant.Common
             {
                 try
                 {
-                    inputPath = await GetStrmMountPath(inputPath).ConfigureAwait(false);
+                    inputPath = await GetStrmMountPath(inputPath, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -1604,11 +1604,70 @@ namespace StrmAssistant.Common
             return path != null && string.Equals(Path.GetExtension(path), ".strm", StringComparison.OrdinalIgnoreCase);
         }
 
-        public async Task<string> GetStrmMountPath(string strmPath)
+        /// <summary>
+        /// Resolves the local path of a .strm shortcut by asking Emby's mount manager. The token is
+        /// the caller's own: it used to be hard coded to <see cref="CancellationToken.None"/>, so a
+        /// cancelled extraction still waited for the mount (and for the network behind it).
+        /// </summary>
+        public async Task<string> GetStrmMountPath(string strmPath,
+            CancellationToken cancellationToken = default)
         {
-            using var mediaMount = await _mediaMountManager.Mount(strmPath, null, CancellationToken.None);
+            using var mediaMount = await _mediaMountManager.Mount(strmPath, null, cancellationToken)
+                .ConfigureAwait(false);
 
             return StrmUrlHelper.Normalize(mediaMount?.MountedPathInfo?.FullName);
+        }
+
+        /// <summary>How long a resolved .strm mount path may be reused by the ffprobe hot path.</summary>
+        private static readonly TimeSpan StrmMountPathCacheTtl = TimeSpan.FromMinutes(5);
+
+        /// <summary>Upper bound of the mount path cache; expired entries are dropped past it.</summary>
+        private const int StrmMountPathCacheLimit = 256;
+
+        private readonly ConcurrentDictionary<string, (string MountPath, DateTime CachedAt)> _strmMountPathCache =
+            new ConcurrentDictionary<string, (string MountPath, DateTime CachedAt)>();
+
+        /// <summary>
+        /// Synchronous, cached variant of <see cref="GetStrmMountPath"/> for the ffprobe/ffmpeg
+        /// hook, which Emby calls synchronously and therefore cannot await.
+        ///
+        /// It resolves the mount on the calling thread instead of <c>Task.Run(...).Result</c>, which
+        /// blocked the calling thread <em>and</em> occupied a second thread-pool thread for every
+        /// single probe, and it answers repeat probes of the same .strm from a short lived cache so
+        /// the hot path usually does not call the mount manager at all.
+        ///
+        /// Emby's ffprobe entry point takes no <see cref="CancellationToken"/>, so this overload is
+        /// the one place where the mount cannot be cancelled; the cached hit keeps that window
+        /// small. Callers that do own a token use <see cref="GetStrmMountPath"/>.
+        /// </summary>
+        public string GetStrmMountPathCached(string strmPath)
+        {
+            if (string.IsNullOrEmpty(strmPath)) return null;
+
+            if (_strmMountPathCache.TryGetValue(strmPath, out var cached) &&
+                DateTime.UtcNow - cached.CachedAt < StrmMountPathCacheTtl)
+            {
+                return cached.MountPath;
+            }
+
+            var mountPath = GetStrmMountPath(strmPath, CancellationToken.None).GetAwaiter().GetResult();
+
+            var now = DateTime.UtcNow;
+
+            _strmMountPathCache[strmPath] = (mountPath, now);
+
+            if (_strmMountPathCache.Count > StrmMountPathCacheLimit)
+            {
+                foreach (var entry in _strmMountPathCache)
+                {
+                    if (now - entry.Value.CachedAt >= StrmMountPathCacheTtl)
+                    {
+                        _strmMountPathCache.TryRemove(entry.Key, out _);
+                    }
+                }
+            }
+
+            return mountPath;
         }
 
         public BaseItem[] GetItemsByIds(long[] itemIds)
