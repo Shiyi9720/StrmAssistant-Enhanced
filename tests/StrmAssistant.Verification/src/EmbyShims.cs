@@ -149,8 +149,18 @@ namespace MediaBrowser.Model.Serialization
 {
     public interface IJsonSerializer
     {
+        void SerializeToStream(object obj, System.IO.Stream stream);
         void SerializeToFile(object obj, string path);
         T DeserializeFromFile<T>(string path);
+    }
+}
+
+namespace MediaBrowser.Controller.Plugins
+{
+    /// <summary>Placeholder: VersionPlaybackApi/DoubanRatingStore expose shutdown entry points.</summary>
+    public interface IServerEntryPoint : System.IDisposable
+    {
+        void Run();
     }
 }
 
