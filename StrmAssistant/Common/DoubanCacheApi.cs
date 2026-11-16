@@ -37,7 +37,6 @@ namespace StrmAssistant.Common
             "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         };
 
-        private static readonly Random Random = new Random();
         private static readonly SemaphoreSlim _requestGate = new SemaphoreSlim(1, 1);
 
         private static DateTime _lastRequestUtc = DateTime.MinValue;
@@ -200,7 +199,7 @@ namespace StrmAssistant.Common
                     CancellationToken = cancellationToken,
                     AcceptHeader = "application/json",
                     Referer = DoubanReferer,
-                    UserAgent = UserAgents[Random.Next(UserAgents.Length)],
+                    UserAgent = UserAgents[ConcurrentRandom.Next(UserAgents.Length)],
                     BufferContent = true,
                     LogRequest = false,
                     LogResponse = false
@@ -253,7 +252,7 @@ namespace StrmAssistant.Common
             }
 
             // Random jitter keeps a fixed request cadence from looking like a bot.
-            await Task.Delay(Random.Next(0, 500), cancellationToken).ConfigureAwait(false);
+            await Task.Delay(ConcurrentRandom.Next(0, 500), cancellationToken).ConfigureAwait(false);
         }
 
         // Douban's mobile endpoints return lower case field names.
