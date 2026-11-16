@@ -32,6 +32,11 @@ namespace StrmAssistant.Common
         public static AsyncSemaphore Tier2Semaphore;
         public static AsyncSemaphore FingerprintSemaphore;
         public static ConcurrentQueue<BaseItem> MediaInfoExtractItemQueue = new ConcurrentQueue<BaseItem>();
+
+        // Item ids currently waiting in a media info queue. Auto-extract uses this as an O(1)
+        // admission check so two ItemAdded events for the same item cannot both enqueue it.
+        public static readonly ConcurrentDictionary<long, byte> PendingMediaInfoItemIds =
+            new ConcurrentDictionary<long, byte>();
         public static ConcurrentQueue<Episode> IntroSkipItemQueue = new ConcurrentQueue<Episode>();
         public static ConcurrentQueue<BaseItem> FingerprintItemQueue = new ConcurrentQueue<BaseItem>();
         public static ConcurrentQueue<BaseItem> EpisodeRefreshItemQueue = new ConcurrentQueue<BaseItem>();
@@ -71,6 +76,7 @@ namespace StrmAssistant.Common
             {
                 MediaInfoExtractItemQueue.Clear();
                 FavoriteMediaInfoExtractItemQueue.Clear();
+                PendingMediaInfoItemIds.Clear();
             }
 
             EnsureMediaInfoProcessTaskStarted();
@@ -214,6 +220,7 @@ namespace StrmAssistant.Common
         {
             for (var i = startIndex; i < items.Count; i++)
             {
+                PendingMediaInfoItemIds.TryAdd(items[i].InternalId, 0);
                 queue.Enqueue(items[i]);
             }
         }
@@ -279,6 +286,8 @@ namespace StrmAssistant.Common
 
                     while (queue.TryDequeue(out var dequeueItem))
                     {
+                        PendingMediaInfoItemIds.TryRemove(dequeueItem.InternalId, out _);
+
                         var library = dequeueItem.GetTopParent();
                         var progress = library?.GetRefreshProgress();
 
@@ -428,9 +437,10 @@ namespace StrmAssistant.Common
                 if (deferredItems.Count > 0)
                 {
                     Logger.Info("MediaInfoExtract - Enqueue Deferred Count: " + deferredItems.Count);
-                        
+
                     foreach (var item in deferredItems)
                     {
+                        PendingMediaInfoItemIds.TryAdd(item.InternalId, 0);
                         queue.Enqueue(item);
                     }
                 }
