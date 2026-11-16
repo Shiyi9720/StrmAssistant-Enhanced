@@ -574,6 +574,8 @@ namespace StrmAssistant.Common
             var afterBlacklistCount = 0;
             var items = new List<Episode>();
             var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var fingerprintMinutesLookup = new IntroDetectionFingerprintMinutesLookup(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions);
 
             foreach (var batch in GetItemBatches(queryItemIds))
             {
@@ -589,7 +591,8 @@ namespace StrmAssistant.Common
                     afterBlacklistCount++;
 
                     if (episode.RunTimeTicks <
-                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode)).Ticks)
+                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode,
+                            fingerprintMinutesLookup)).Ticks)
                     {
                         continue;
                     }
@@ -640,6 +643,8 @@ namespace StrmAssistant.Common
             var postPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var postAfterShortcut = 0;
             var postAfterBlacklist = 0;
+            var fingerprintMinutesLookup = new IntroDetectionFingerprintMinutesLookup(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions);
 
             foreach (var batch in GetItemBatches(allIds.ToList()))
             {
@@ -665,7 +670,8 @@ namespace StrmAssistant.Common
                     postAfterBlacklist++;
 
                     if (episode.RunTimeTicks <
-                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode)).Ticks)
+                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode,
+                            fingerprintMinutesLookup)).Ticks)
                     {
                         continue;
                     }
@@ -690,22 +696,84 @@ namespace StrmAssistant.Common
             return (pre, post);
         }
 
-        private int GetIntroDetectionFingerprintMinutesForItem(BaseItem item)
+        /// <summary>
+        /// Answers "how many minutes of fingerprint does this item need" for a whole run.
+        ///
+        /// The per-library overrides are read once (<c>Overrides()</c> re-enumerated the option
+        /// collection on every single episode before), and the library of an item is looked up at
+        /// most once per parent instead of once per episode: every episode of a season resolves to
+        /// the same <see cref="ILibraryManager.GetCollectionFolders"/> result.
+        ///
+        /// The fallbacks mirror the previous inline code exactly, including the fact that only the
+        /// library-aware lookup clamps to [2, 20]:
+        ///  - no override configured (the common case)      → the raw global option value
+        ///  - override configured, no collection folder     → the raw global option value
+        ///  - override configured, library known            → GetIntroDetectionFingerprintMinutes()
+        /// </summary>
+        private sealed class IntroDetectionFingerprintMinutesLookup
         {
-            var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
+            private readonly ILibraryManager _libraryManager;
+            private readonly IntroSkipOptions _introSkipOptions;
+            private readonly Dictionary<string, int> _minutesByLibraryId;
+            private readonly Dictionary<long, int> _minutesByParentId = new Dictionary<long, int>();
 
-            if (introSkipOptions.LibraryIntroDetectionFingerprintOptions?.Overrides().Any() == true)
+            public IntroDetectionFingerprintMinutesLookup(ILibraryManager libraryManager,
+                IntroSkipOptions introSkipOptions)
             {
+                _libraryManager = libraryManager;
+                _introSkipOptions = introSkipOptions;
+
+                if (introSkipOptions.LibraryIntroDetectionFingerprintOptions?.Overrides().Any() != true) return;
+
+                // Same id pairing as UpdateLibraryIntroDetectionFingerprintLength / the container
+                // library lookup: the assignment option id is the virtual folder's ItemId, which is
+                // the collection folder's InternalId.
+                _minutesByLibraryId = libraryManager.GetVirtualFolders()
+                    .GroupBy(f => f.ItemId)
+                    .ToDictionary(g => g.Key,
+                        g => introSkipOptions.GetIntroDetectionFingerprintMinutes(g.Key));
+            }
+
+            public int Get(BaseItem item)
+            {
+                if (_minutesByLibraryId is null) return _introSkipOptions.IntroDetectionFingerprintMinutes;
+
+                var parentId = item.ParentId;
+
+                if (parentId != 0 && _minutesByParentId.TryGetValue(parentId, out var cached))
+                {
+                    return cached;
+                }
+
+                var minutes = _introSkipOptions.IntroDetectionFingerprintMinutes;
+
                 var collectionFolder = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
 
                 if (collectionFolder != null)
                 {
-                    return introSkipOptions.GetIntroDetectionFingerprintMinutes(
-                        collectionFolder.InternalId.ToString());
+                    minutes = _minutesByLibraryId.TryGetValue(collectionFolder.InternalId.ToString(), out var value)
+                        ? value
+                        : _introSkipOptions.GetIntroDetectionFingerprintMinutes(
+                            collectionFolder.InternalId.ToString());
                 }
-            }
 
-            return introSkipOptions.IntroDetectionFingerprintMinutes;
+                if (parentId != 0) _minutesByParentId[parentId] = minutes;
+
+                return minutes;
+            }
+        }
+
+        /// <summary>
+        /// Single item convenience overload. Loops share one <paramref name="lookup"/> instead, so
+        /// that the per-library overrides and the per-item library lookup are paid for once.
+        /// </summary>
+        private int GetIntroDetectionFingerprintMinutesForItem(BaseItem item,
+            IntroDetectionFingerprintMinutesLookup lookup = null)
+        {
+            lookup = lookup ?? new IntroDetectionFingerprintMinutesLookup(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions);
+
+            return lookup.Get(item);
         }
 
         public void UpdateLibraryIntroDetectionFingerprintLength()

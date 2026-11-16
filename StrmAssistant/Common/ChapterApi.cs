@@ -404,6 +404,10 @@ namespace StrmAssistant.Common
 
             var parentIds = episodesInScope.Select(e => e.ParentId).Distinct().ToArray();
 
+            // Built once: the query result below can hold every episode of every season in scope,
+            // so re-projecting episodesInScope into a list for each of them was quadratic.
+            var episodesInScopeIds = new HashSet<long>(episodesInScope.Select(e => e.InternalId));
+
             var groupedByParent = _libraryManager.GetItemList(new InternalItemsQuery
                 {
                     IncludeItemTypes = new[] { nameof(Episode) },
@@ -413,7 +417,7 @@ namespace StrmAssistant.Common
                     HasIndexNumber = true
                 })
                 .OfType<Episode>()
-                .Where(ep => !episodesInScope.Select(e => e.InternalId).Contains(ep.InternalId))
+                .Where(ep => !episodesInScopeIds.Contains(ep.InternalId))
                 .GroupBy(ep => ep.ParentId);
 
             var resultEpisodes = new List<Episode>();
@@ -456,6 +460,8 @@ namespace StrmAssistant.Common
 
             var parentIds = episodes.Select(e => e.ParentId).Distinct().ToArray();
 
+            var episodeIds = new HashSet<long>(episodes.Select(e => e.InternalId));
+
             var groupedByParent = _libraryManager.GetItemList(new InternalItemsQuery
                 {
                     IncludeItemTypes = new[] { nameof(Episode) },
@@ -464,7 +470,7 @@ namespace StrmAssistant.Common
                     ParentIds = parentIds,
                     HasIndexNumber = true
                 })
-                .Where(ep => !episodes.Select(e => e.InternalId).Contains(ep.InternalId))
+                .Where(ep => !episodeIds.Contains(ep.InternalId))
                 .OfType<Episode>()
                 .GroupBy(ep => ep.ParentId);
 
