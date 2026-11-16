@@ -13,6 +13,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 
 namespace StrmAssistant.Web.Service
 {
@@ -29,6 +30,7 @@ namespace StrmAssistant.Web.Service
         private const int NativeResultLimit = 300;
         private const int CacheLimit = 64;
         private static readonly TimeSpan CacheLifetime = TimeSpan.FromSeconds(20);
+        private static readonly TimeSpan MatchTimeout = TimeSpan.FromSeconds(5);
 
         private static readonly ItemFields[] DefaultFields =
         {
@@ -121,7 +123,11 @@ namespace StrmAssistant.Web.Service
 
             try
             {
-                foreach (var match in Plugin.SearchIndexService.Match(query))
+                // A huge library with a fuzzy-only query must never hold the request open
+                // indefinitely; on timeout Match returns the partial strong results it has.
+                using var matchTimeout = new CancellationTokenSource(MatchTimeout);
+
+                foreach (var match in Plugin.SearchIndexService.Match(query, matchTimeout.Token))
                 {
                     if (!PassesPreFilter(match.Type, includeTypes, excludeTypes)) continue;
 

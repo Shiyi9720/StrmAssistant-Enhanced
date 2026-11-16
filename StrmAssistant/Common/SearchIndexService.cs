@@ -29,7 +29,7 @@ namespace StrmAssistant.Common
     /// </summary>
     public sealed class SearchIndexService
     {
-        internal const int CurrentVersion = 3;
+        internal const int CurrentVersion = 4;
 
         public const int TierExact = 0;
         public const int TierPrefix = 1;
@@ -42,6 +42,7 @@ namespace StrmAssistant.Common
         private const int MaxActorCount = 8;
         private const int MaxWeakCandidates = 4000;
         private const int MaxFuzzyChecks = 20000;
+        private const int MaxBigramPostings = 8000000;
 
         private static readonly string[] IndexedItemTypes =
         {
@@ -58,10 +59,39 @@ namespace StrmAssistant.Common
         private readonly ILogger _logger;
         private readonly SemaphoreSlim _buildGate = new SemaphoreSlim(1, 1);
         private readonly object _sync = new object();
-        private readonly ConcurrentDictionary<long, byte> _pendingUpdates = new ConcurrentDictionary<long, byte>();
+        private readonly ConcurrentDictionary<long, int> _pendingUpdates = new ConcurrentDictionary<long, int>();
+
+        private sealed class SearchLookup
+        {
+            public static readonly SearchLookup Empty = new SearchLookup
+            {
+                Exact = new Dictionary<string, int[]>(StringComparer.Ordinal),
+                Prefix = new Dictionary<string, int[]>(StringComparer.Ordinal),
+                Bigrams = null
+            };
+
+            public Dictionary<string, int[]> Exact;
+            public Dictionary<string, int[]> Prefix;
+
+            // Null when the library is too large to index every 2-gram within the memory cap;
+            // matching then falls back to the old full scan for contains matches.
+            public Dictionary<string, int[]> Bigrams;
+        }
+
+        private sealed class SearchState
+        {
+            public static readonly SearchState Empty = new SearchState
+            {
+                Snapshot = Array.Empty<IndexedItem>(),
+                Lookup = SearchLookup.Empty
+            };
+
+            public IndexedItem[] Snapshot;
+            public SearchLookup Lookup;
+        }
 
         private Dictionary<long, IndexedItem> _items = new Dictionary<long, IndexedItem>();
-        private volatile IndexedItem[] _snapshot = Array.Empty<IndexedItem>();
+        private volatile SearchState _state = SearchState.Empty;
 
         private volatile bool _ready;
         private volatile bool _isBuilding;
@@ -71,6 +101,7 @@ namespace StrmAssistant.Common
         private int _version;
         private int _starting;
         private int _updateScheduled;
+        private int _updateVersion;
 
         public SearchIndexService(ILibraryManager libraryManager, IJsonSerializer jsonSerializer,
             IHttpClient httpClient)
@@ -94,7 +125,7 @@ namespace StrmAssistant.Common
                 Enabled = IsEnabled,
                 Ready = _ready,
                 IsBuilding = _isBuilding,
-                ItemCount = _snapshot.Length,
+                ItemCount = _state.Snapshot.Length,
                 BuiltAtUtc = _builtAtUtc,
                 Progress = _progressPercent,
                 LastError = _lastError
@@ -163,38 +194,52 @@ namespace StrmAssistant.Common
 
             try
             {
-                _isBuilding = true;
+                // Serialize with an incremental update that may already be in flight: once the
+                // flag is visible under _sync, that update parks its ids instead of publishing.
+                lock (_sync)
+                {
+                    _isBuilding = true;
+                }
+
                 _progressPercent = 0;
                 _lastError = null;
 
                 _logger?.Info("ChineseSearch - Index build started");
 
                 var options = GetOptions();
-                var previous = _snapshot.ToDictionary(i => i.Entry.Id);
+                var previous = _state.Snapshot.ToDictionary(i => i.Entry.Id);
                 var entries = new List<SearchIndexEntry>();
                 var aliasFetches = 0;
 
-                var total = GetTotalItemCount();
+                // Ids are cheap; items are loaded in bounded batches so a deep SortName
+                // pagination (StartIndex growing to the library size) is avoided.
+                var itemIds = GetIndexItemIds(out var idsAvailable);
 
-                var startIndex = 0;
+                if (!idsAvailable)
+                {
+                    // Never replace a good index with an empty one because a transient id query
+                    // failed.
+                    _logger?.Info("ChineseSearch - Index build aborted: item id query failed");
+                    return;
+                }
 
-                while (true)
+                var total = itemIds.Length;
+
+                for (var offset = 0; offset < itemIds.Length; offset += PageSize)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var pageQuery = new InternalItemsQuery
-                    {
-                        Recursive = true,
-                        IncludeItemTypes = IndexedItemTypes,
-                        IsVirtualItem = false,
-                        Limit = PageSize,
-                        StartIndex = startIndex,
-                        EnableTotalRecordCount = false
-                    };
-                    pageQuery.AddToOrderByIfNeeded(ItemSortBy.SortName);
-                    var page = _libraryManager.GetItemList(pageQuery);
+                    var count = Math.Min(PageSize, itemIds.Length - offset);
+                    var batchIds = new long[count];
 
-                    if (page == null || page.Length == 0) break;
+                    for (var i = 0; i < count; i++)
+                    {
+                        batchIds[i] = itemIds[offset + i];
+                    }
+
+                    var page = _libraryManager.GetItemList(new InternalItemsQuery { ItemIds = batchIds });
+
+                    if (page == null) continue;
 
                     foreach (var item in page)
                     {
@@ -220,15 +265,11 @@ namespace StrmAssistant.Common
                         entries.Add(entry);
                     }
 
-                    startIndex += page.Length;
-
                     if (total > 0)
                     {
-                        _progressPercent = (int) Math.Min(90, startIndex * 90.0 / total);
+                        _progressPercent = (int) Math.Min(90, (offset + count) * 90.0 / total);
                         progress?.Report(_progressPercent);
                     }
-
-                    if (page.Length < PageSize) break;
 
                     // Yield to foreground work between pages. The index is a background feature
                     // and must not starve library scans or playback.
@@ -237,19 +278,42 @@ namespace StrmAssistant.Common
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var indexed = entries.Select(BuildIndexedItem).ToArray();
+                var indexed = new List<IndexedItem>(entries.Count);
+
+                foreach (var entry in entries)
+                {
+                    indexed.Add(BuildIndexedItemWithPersistedKeys(entry));
+                }
+
+                var dictionary = new Dictionary<long, IndexedItem>(indexed.Count);
+
+                foreach (var item in indexed)
+                {
+                    dictionary[item.Entry.Id] = item;
+                }
+
+                // Updates received while the build was running were parked. Merge them into the
+                // freshly built dictionary before publishing so the build cannot overwrite them.
+                var pendingIds = DrainPendingUpdates();
+
+                foreach (var id in pendingIds)
+                {
+                    // The dictionary holds the freshly built entries, so alias reuse sees the
+                    // newest state rather than the snapshot taken when the build started.
+                    ApplyItemToDictionary(dictionary, id, dictionary);
+                }
+
+                var snapshot = dictionary.Values.ToArray();
+                var lookup = BuildLookup(snapshot);
 
                 lock (_sync)
                 {
-                    var dictionary = new Dictionary<long, IndexedItem>(indexed.Length);
-
-                    foreach (var item in indexed)
-                    {
-                        dictionary[item.Entry.Id] = item;
-                    }
-
                     _items = dictionary;
-                    _snapshot = indexed;
+                    _state = new SearchState
+                    {
+                        Snapshot = snapshot,
+                        Lookup = lookup
+                    };
                     _builtAtUtc = DateTime.UtcNow;
                     _ready = true;
                     Interlocked.Increment(ref _version);
@@ -258,11 +322,13 @@ namespace StrmAssistant.Common
                 _progressPercent = 95;
                 progress?.Report(_progressPercent);
 
-                await SaveIndexAsync(entries, cancellationToken).ConfigureAwait(false);
+                var finalEntries = snapshot.Select(i => i.Entry).ToList();
+
+                await SaveIndexAsync(finalEntries, cancellationToken).ConfigureAwait(false);
 
                 _progressPercent = 100;
                 progress?.Report(_progressPercent);
-                _logger?.Info("ChineseSearch - Index build complete: " + entries.Count + " items");
+                _logger?.Info("ChineseSearch - Index build complete: " + finalEntries.Count + " items");
             }
             catch (OperationCanceledException)
             {
@@ -276,28 +342,41 @@ namespace StrmAssistant.Common
             }
             finally
             {
-                _isBuilding = false;
+                lock (_sync)
+                {
+                    _isBuilding = false;
+                }
+
                 _buildGate.Release();
+
+                if (!_pendingUpdates.IsEmpty)
+                {
+                    ScheduleUpdate();
+                }
             }
         }
 
-        private int GetTotalItemCount()
+        private long[] GetIndexItemIds(out bool success)
         {
             try
             {
-                return _libraryManager.GetItemsResult(new InternalItemsQuery
+                var query = new InternalItemsQuery
                 {
                     Recursive = true,
                     IncludeItemTypes = IndexedItemTypes,
-                    IsVirtualItem = false,
-                    Limit = 0,
-                    EnableTotalRecordCount = true
-                }).TotalRecordCount;
+                    IsVirtualItem = false
+                };
+                query.AddToOrderByIfNeeded(ItemSortBy.SortName);
+
+                success = true;
+
+                return _libraryManager.GetInternalItemIds(query) ?? Array.Empty<long>();
             }
             catch (Exception e)
             {
-                _logger?.Debug("ChineseSearch - Count query failed: " + e.Message);
-                return 0;
+                _logger?.Debug("ChineseSearch - Index id query failed: " + e.Message);
+                success = false;
+                return Array.Empty<long>();
             }
         }
 
@@ -534,13 +613,199 @@ namespace StrmAssistant.Common
             };
         }
 
+        private static IndexedItem BuildIndexedItemWithPersistedKeys(SearchIndexEntry entry)
+        {
+            var item = BuildIndexedItem(entry);
+
+            entry.Keys = item.Keys
+                .Select(key => new SearchIndexKey
+                {
+                    Key = key.Key,
+                    Kind = key.Kind,
+                    Flags = key.Flags
+                })
+                .ToList();
+
+            return item;
+        }
+
+        private static IndexedItem IndexedItemFromEntry(SearchIndexEntry entry)
+        {
+            var storedKeys = entry.Keys;
+
+            if (storedKeys == null || storedKeys.Count == 0)
+            {
+                // Index files written before keys were persisted (or an entry that genuinely
+                // has no keys) still load; only this entry pays the conversion cost.
+                return BuildIndexedItem(entry);
+            }
+
+            return new IndexedItem
+            {
+                Entry = entry,
+                Keys = storedKeys
+                    .Where(key => key != null && !string.IsNullOrEmpty(key.Key))
+                    .Select(key => new IndexedKey
+                    {
+                        Key = key.Key,
+                        Kind = key.Kind,
+                        Flags = key.Flags
+                    })
+                    .ToArray()
+            };
+        }
+
+        private bool ApplyItemToDictionary(Dictionary<long, IndexedItem> dictionary, long id,
+            Dictionary<long, IndexedItem> previous)
+        {
+            var item = _libraryManager.GetItemById(id);
+
+            if (item == null || item.IsVirtualItem || !IndexedItemTypes.Contains(item.GetType().Name))
+            {
+                return dictionary.Remove(id);
+            }
+
+            var entry = CreateEntry(item);
+
+            if (previous.TryGetValue(id, out var old) &&
+                string.Equals(old.Entry.TmdbId, entry.TmdbId, StringComparison.Ordinal))
+            {
+                entry.Aliases = old.Entry.Aliases;
+                entry.AliasesFetched = old.Entry.AliasesFetched;
+            }
+
+            dictionary[id] = BuildIndexedItemWithPersistedKeys(entry);
+            return true;
+        }
+
+        private List<long> DrainPendingUpdates()
+        {
+            var ids = new List<long>();
+            var collection = (ICollection<KeyValuePair<long, int>>) _pendingUpdates;
+
+            foreach (var pair in _pendingUpdates)
+            {
+                // Remove the exact version we observed so an update that arrived after the
+                // enumeration is not dropped.
+                if (collection.Remove(pair))
+                {
+                    ids.Add(pair.Key);
+                }
+            }
+
+            return ids;
+        }
+
+        private void RequeuePendingUpdates(List<long> ids)
+        {
+            foreach (var id in ids)
+            {
+                _pendingUpdates[id] = Interlocked.Increment(ref _updateVersion);
+            }
+        }
+
+        private static SearchLookup BuildLookup(IndexedItem[] snapshot)
+        {
+            var exact = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            var prefix = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            var bigrams = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            var bigramPostings = 0L;
+            var bigramsEnabled = true;
+
+            for (var index = 0; index < snapshot.Length; index++)
+            {
+                var keys = snapshot[index].Keys ?? Array.Empty<IndexedKey>();
+
+                foreach (var key in keys)
+                {
+                    var text = key.Key;
+
+                    if (string.IsNullOrEmpty(text)) continue;
+
+                    AddPosting(exact, text, index);
+                    AddPosting(prefix, text.Substring(0, 1), index);
+
+                    if (text.Length >= 2) AddPosting(prefix, text.Substring(0, 2), index);
+
+                    if (!bigramsEnabled) continue;
+
+                    for (var i = 0; i + 1 < text.Length; i++)
+                    {
+                        var gram = text.Substring(i, 2);
+
+                        if (!bigrams.TryGetValue(gram, out var posting))
+                        {
+                            posting = new List<int>();
+                            bigrams[gram] = posting;
+                        }
+
+                        if (posting.Count > 0 && posting[posting.Count - 1] == index) continue;
+
+                        posting.Add(index);
+                        bigramPostings++;
+
+                        if (bigramPostings <= MaxBigramPostings) continue;
+
+                        // Above the cap the index would cost more memory than the scan it saves.
+                        bigramsEnabled = false;
+                        bigrams = null;
+                        break;
+                    }
+                }
+            }
+
+            return new SearchLookup
+            {
+                Exact = ToArrays(exact),
+                Prefix = ToArrays(prefix),
+                Bigrams = bigramsEnabled ? ToArrays(bigrams) : null
+            };
+        }
+
+        private static void AddPosting(Dictionary<string, List<int>> map, string key, int index)
+        {
+            if (!map.TryGetValue(key, out var posting))
+            {
+                posting = new List<int>();
+                map[key] = posting;
+            }
+
+            if (posting.Count == 0 || posting[posting.Count - 1] != index)
+            {
+                posting.Add(index);
+            }
+        }
+
+        private static Dictionary<string, int[]> ToArrays(Dictionary<string, List<int>> source)
+        {
+            var result = new Dictionary<string, int[]>(source.Count, StringComparer.Ordinal);
+
+            foreach (var pair in source)
+            {
+                result[pair.Key] = pair.Value.ToArray();
+            }
+
+            return result;
+        }
+
+        private static string QueryPrefixBucket(string text)
+        {
+            return text.Length >= 2 ? text.Substring(0, 2) : text;
+        }
+
         public IReadOnlyList<IndexMatch> Match(string query)
+        {
+            return Match(query, CancellationToken.None);
+        }
+
+        public IReadOnlyList<IndexMatch> Match(string query, CancellationToken cancellationToken)
         {
             var options = GetOptions();
 
             if (!options.EnableChineseSearch) return Array.Empty<IndexMatch>();
 
-            var snapshot = _snapshot;
+            var state = _state;
+            var snapshot = state.Snapshot;
 
             if (snapshot.Length == 0) return Array.Empty<IndexMatch>();
 
@@ -548,17 +813,18 @@ namespace StrmAssistant.Common
 
             if (variants.Count == 0) return Array.Empty<IndexMatch>();
 
+            if (cancellationToken.IsCancellationRequested) return Array.Empty<IndexMatch>();
+
             var strong = new List<IndexMatch>();
             var weak = new List<IndexMatch>();
             var fuzzyChecks = 0;
             var queryHasChinese = variants.Any(v => v.HasChinese);
             var smartRanking = options.SmartRanking;
+            var cancelled = false;
 
-            foreach (var item in snapshot)
+            void Accept(IndexMatch best)
             {
-                var best = FindBest(item, variants, queryHasChinese, smartRanking, options.PinyinSearch,
-                    options.AliasSearch, ref fuzzyChecks);
-                if (best == null) continue;
+                if (best == null) return;
 
                 if (best.Tier <= TierPrefix)
                 {
@@ -570,9 +836,124 @@ namespace StrmAssistant.Common
                 }
             }
 
+            // Exact/prefix/contains candidates come from the in-memory lookup, so only these
+            // items need the full tier evaluation.
+            var candidates = CollectCandidates(state.Lookup, variants);
+
+            foreach (var index in candidates)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    cancelled = true;
+                    break;
+                }
+
+                Accept(FindBest(snapshot[index], variants, queryHasChinese, smartRanking,
+                    options.PinyinSearch, options.AliasSearch, ref fuzzyChecks));
+            }
+
+            var containsScanNeeded = state.Lookup.Bigrams == null && variants.Any(v => v.Text.Length >= 2);
+            var fuzzyScanNeeded = fuzzyChecks < MaxFuzzyChecks &&
+                                  variants.Any(v => v.AllowFuzzy && v.Text.Length >= 3);
+
+            if (!cancelled && (containsScanNeeded || fuzzyScanNeeded))
+            {
+                if (containsScanNeeded)
+                {
+                    // Without a bigram index, contains matches still require the full scan.
+                    for (var index = 0; index < snapshot.Length; index++)
+                    {
+                        if (candidates.Contains(index)) continue;
+
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            cancelled = true;
+                            break;
+                        }
+
+                        Accept(FindBest(snapshot[index], variants, queryHasChinese, smartRanking,
+                            options.PinyinSearch, options.AliasSearch, ref fuzzyChecks));
+                    }
+                }
+                else
+                {
+                    // Every contains match is already in the candidate set; the remaining items
+                    // can only contribute the weak fuzzy tier.
+                    for (var index = 0; index < snapshot.Length; index++)
+                    {
+                        if (candidates.Contains(index)) continue;
+
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            cancelled = true;
+                            break;
+                        }
+
+                        Accept(FindFuzzy(snapshot[index], variants, queryHasChinese, smartRanking,
+                            options.PinyinSearch, options.AliasSearch, ref fuzzyChecks));
+                    }
+                }
+            }
+
+            if (cancelled)
+            {
+                _logger?.Debug("ChineseSearch - Match cancelled or timed out, returning partial results");
+            }
+
             strong.AddRange(weak);
 
             return strong;
+        }
+
+        private static HashSet<int> CollectCandidates(SearchLookup lookup, List<QueryVariant> variants)
+        {
+            var candidates = new HashSet<int>();
+
+            void AddAll(int[] values)
+            {
+                if (values == null) return;
+
+                foreach (var value in values)
+                {
+                    candidates.Add(value);
+                }
+            }
+
+            foreach (var variant in variants)
+            {
+                var text = variant.Text;
+
+                if (string.IsNullOrEmpty(text)) continue;
+
+                if (lookup.Exact.TryGetValue(text, out var exact)) AddAll(exact);
+
+                if (lookup.Prefix.TryGetValue(QueryPrefixBucket(text), out var prefix)) AddAll(prefix);
+
+                if (lookup.Bigrams == null || text.Length < 2) continue;
+
+                int[] shortest = null;
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                var missing = false;
+
+                for (var i = 0; i + 1 < text.Length; i++)
+                {
+                    var gram = text.Substring(i, 2);
+
+                    if (!seen.Add(gram)) continue;
+
+                    if (!lookup.Bigrams.TryGetValue(gram, out var posting))
+                    {
+                        missing = true;
+                        break;
+                    }
+
+                    if (shortest == null || posting.Length < shortest.Length) shortest = posting;
+                }
+
+                if (!missing) AddAll(shortest);
+            }
+
+            return candidates;
         }
 
         private static IndexMatch FindBest(IndexedItem item, List<QueryVariant> variants,
@@ -623,10 +1004,105 @@ namespace StrmAssistant.Common
                         LanguageRank = languageRank,
                         KindPriority = GetKindPriority(kind)
                     };
+
+                    // No later key can beat an exact name match with the best language rank.
+                    if (tier == TierExact && languageRank == 0 && best.KindPriority == 0)
+                    {
+                        return best;
+                    }
                 }
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// Evaluates only the fuzzy tier. Used for items that are known not to match exactly,
+        /// by prefix or by substring, so the full key loop does not repeat those checks.
+        /// </summary>
+        private static IndexMatch FindFuzzy(IndexedItem item, List<QueryVariant> variants,
+            bool queryHasChinese, bool smartRanking, bool allowPinyin, bool allowAlias, ref int fuzzyChecks)
+        {
+            IndexMatch best = null;
+
+            foreach (var variant in variants)
+            {
+                if (!variant.AllowFuzzy || variant.Text.Length < 3) continue;
+
+                foreach (var key in item.Keys)
+                {
+                    if (string.IsNullOrEmpty(key.Key)) continue;
+
+                    var kind = (SearchKeyKind)key.Kind;
+
+                    if (kind == SearchKeyKind.Initials || kind == SearchKeyKind.Year ||
+                        kind == SearchKeyKind.ExternalId)
+                    {
+                        continue;
+                    }
+
+                    if (!allowPinyin && kind == SearchKeyKind.Pinyin) continue;
+
+                    if (!allowAlias && (kind == SearchKeyKind.OriginalTitle ||
+                                        kind == SearchKeyKind.Alias || kind == SearchKeyKind.Year))
+                    {
+                        continue;
+                    }
+
+                    var tier = GetFuzzyTier(key, variant, ref fuzzyChecks);
+
+                    if (tier < 0) continue;
+
+                    var sourceChinese = (key.Flags & KeyFlags.Chinese) != 0;
+                    var languageRank = GetLanguageRank(queryHasChinese, sourceChinese, kind, smartRanking);
+                    var kindPriority = GetKindPriority(kind);
+
+                    if (best != null)
+                    {
+                        var comparison = CompareTier(tier, languageRank, kindPriority,
+                            best.Tier, best.LanguageRank, best.KindPriority);
+
+                        if (comparison >= 0) continue;
+                    }
+
+                    best = new IndexMatch
+                    {
+                        Item = item,
+                        Tier = tier,
+                        Kind = kind,
+                        SourceChinese = sourceChinese,
+                        LanguageRank = languageRank,
+                        KindPriority = kindPriority
+                    };
+                }
+            }
+
+            return best;
+        }
+
+        private static int GetFuzzyTier(IndexedKey key, QueryVariant variant, ref int fuzzyChecks)
+        {
+            if (fuzzyChecks >= MaxFuzzyChecks) return -1;
+
+            if (variant.Text.Length >= 3 && key.Key.Length <= variant.Text.Length * 3 &&
+                SearchTextHelper.IsSubsequence(variant.Text, key.Key))
+            {
+                return TierFuzzy;
+            }
+
+            if (variant.Text.Length >= 3 && key.Key.Length > 0 && key.Key[0] == variant.Text[0])
+            {
+                fuzzyChecks++;
+
+                var maxDistance = variant.Text.Length >= 7 ? 2 : 1;
+
+                if (SearchTextHelper.IsSimilar(variant.Text, key.Key, maxDistance))
+                {
+                    return TierFuzzy;
+                }
+            }
+
+            return -1;
         }
 
         private static int GetTier(IndexedKey key, QueryVariant variant, ref int fuzzyChecks)
@@ -778,19 +1254,26 @@ namespace StrmAssistant.Common
                     return false;
                 }
 
-                var indexed = file.Items.Select(BuildIndexedItem).ToArray();
+                var indexed = file.Items.Select(IndexedItemFromEntry).ToArray();
+                var dictionary = new Dictionary<long, IndexedItem>(indexed.Length);
+
+                foreach (var item in indexed)
+                {
+                    dictionary[item.Entry.Id] = item;
+                }
+
+                // Keys were persisted with the index, so loading no longer repeats the
+                // pinyin/simplified/traditional conversion for every title.
+                var lookup = BuildLookup(indexed);
 
                 lock (_sync)
                 {
-                    var dictionary = new Dictionary<long, IndexedItem>(indexed.Length);
-
-                    foreach (var item in indexed)
-                    {
-                        dictionary[item.Entry.Id] = item;
-                    }
-
                     _items = dictionary;
-                    _snapshot = indexed;
+                    _state = new SearchState
+                    {
+                        Snapshot = indexed,
+                        Lookup = lookup
+                    };
                     _builtAtUtc = file.BuiltAtUtc;
                     _ready = true;
                     Interlocked.Increment(ref _version);
@@ -932,22 +1415,27 @@ namespace StrmAssistant.Common
 
         public void NotifyItemChanged(BaseItem item)
         {
-            if (item == null || !_ready || !IsEnabled) return;
+            if (item == null || !IsEnabled) return;
+            if (!_ready && !_isBuilding) return;
 
-            _pendingUpdates[item.InternalId] = 0;
+            _pendingUpdates[item.InternalId] = Interlocked.Increment(ref _updateVersion);
             ScheduleUpdate();
         }
 
         public void NotifyItemRemoved(long itemId)
         {
-            if (!_ready || !IsEnabled) return;
+            if (!IsEnabled) return;
+            if (!_ready && !_isBuilding) return;
 
-            _pendingUpdates[itemId] = 0;
+            _pendingUpdates[itemId] = Interlocked.Increment(ref _updateVersion);
             ScheduleUpdate();
         }
 
         private void ScheduleUpdate()
         {
+            // While a full build runs, updates are only parked in _pendingUpdates. The build
+            // merges them before publishing and schedules another pass in its finally block.
+            if (_isBuilding) return;
             if (Interlocked.Exchange(ref _updateScheduled, 1) == 1) return;
 
             _ = Task.Run(async () =>
@@ -956,52 +1444,44 @@ namespace StrmAssistant.Common
                 {
                     await Task.Delay(2000).ConfigureAwait(false);
 
-                    var ids = _pendingUpdates.Keys.ToArray();
+                    if (_isBuilding) return;
 
-                    foreach (var id in ids)
-                    {
-                        _pendingUpdates.TryRemove(id, out _);
-                    }
+                    var ids = DrainPendingUpdates();
 
-                    if (ids.Length == 0) return;
+                    if (ids.Count == 0) return;
 
                     var changed = false;
 
                     lock (_sync)
                     {
+                        if (_isBuilding)
+                        {
+                            // The build owns the index right now; hand these ids back so its
+                            // merge step or the follow-up pass sees them.
+                            RequeuePendingUpdates(ids);
+                            return;
+                        }
+
                         var dictionary = new Dictionary<long, IndexedItem>(_items);
-                        var previous = _snapshot.ToDictionary(i => i.Entry.Id);
+                        var previous = _state.Snapshot.ToDictionary(i => i.Entry.Id);
 
                         foreach (var id in ids)
                         {
-                            var item = _libraryManager.GetItemById(id);
-
-                            if (item == null || item.IsVirtualItem ||
-                                !IndexedItemTypes.Contains(item.GetType().Name))
-                            {
-                                changed |= dictionary.Remove(id);
-                                continue;
-                            }
-
-                            var entry = CreateEntry(item);
-
-                            if (previous.TryGetValue(id, out var old) &&
-                                string.Equals(old.Entry.TmdbId, entry.TmdbId, StringComparison.Ordinal))
-                            {
-                                entry.Aliases = old.Entry.Aliases;
-                                entry.AliasesFetched = old.Entry.AliasesFetched;
-                            }
-
-                            dictionary[id] = BuildIndexedItem(entry);
-                            changed = true;
+                            changed |= ApplyItemToDictionary(dictionary, id, previous);
                         }
 
-                        if (changed)
+                        if (!changed) return;
+
+                        var snapshot = dictionary.Values.ToArray();
+                        var lookup = BuildLookup(snapshot);
+
+                        _items = dictionary;
+                        _state = new SearchState
                         {
-                            _items = dictionary;
-                            _snapshot = dictionary.Values.ToArray();
-                            Interlocked.Increment(ref _version);
-                        }
+                            Snapshot = snapshot,
+                            Lookup = lookup
+                        };
+                        Interlocked.Increment(ref _version);
                     }
                 }
                 catch (Exception e)
@@ -1012,7 +1492,7 @@ namespace StrmAssistant.Common
                 {
                     Interlocked.Exchange(ref _updateScheduled, 0);
 
-                    if (!_pendingUpdates.IsEmpty)
+                    if (!_pendingUpdates.IsEmpty && !_isBuilding)
                     {
                         ScheduleUpdate();
                     }
@@ -1053,6 +1533,20 @@ namespace StrmAssistant.Common
         public List<string> Aliases { get; set; } = new List<string>();
         public List<string> People { get; set; } = new List<string>();
         public Dictionary<string, string> ProviderIds { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// The keys computed by <see cref="SearchIndexService.BuildIndexedItem"/>. Persisting
+        /// them means a restart does not re-run the pinyin/simplified/traditional conversion for
+        /// every title, actor and alias.
+        /// </summary>
+        public List<SearchIndexKey> Keys { get; set; }
+    }
+
+    public sealed class SearchIndexKey
+    {
+        public string Key { get; set; }
+        public byte Kind { get; set; }
+        public byte Flags { get; set; }
     }
 
     internal sealed class IndexedItem
