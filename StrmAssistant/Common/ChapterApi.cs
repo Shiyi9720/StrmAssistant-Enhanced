@@ -208,7 +208,7 @@ namespace StrmAssistant.Common
                 {
                     if (!Plugin.LibraryApi.HasMediaInfo(e))
                     {
-                        QueueManager.MediaInfoExtractItemQueue.Enqueue(e);
+                        QueueManager.TryEnqueueMediaInfo(e);
                         return false;
                     }
 
@@ -236,7 +236,7 @@ namespace StrmAssistant.Common
                 {
                     if (!Plugin.LibraryApi.HasMediaInfo(e))
                     {
-                        QueueManager.MediaInfoExtractItemQueue.Enqueue(e);
+                        QueueManager.TryEnqueueMediaInfo(e);
                         return false;
                     }
 

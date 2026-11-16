@@ -32,8 +32,11 @@ namespace StrmAssistant.Common
         public static AsyncSemaphore FingerprintSemaphore;
         public static ConcurrentQueue<BaseItem> MediaInfoExtractItemQueue = new ConcurrentQueue<BaseItem>();
 
-        // Item ids currently waiting in a media info queue. Auto-extract uses this as an O(1)
-        // admission check so two ItemAdded events for the same item cannot both enqueue it.
+        // Item ids that are currently in a media info queue or being processed by its worker.
+        // The invariant is: the id stays here for exactly as long as the item is queued or owned
+        // by the worker, so the O(1) admission check in TryEnqueueMediaInfo rejects any second
+        // enqueue of the same item no matter which path it comes from.
+        // Set on enqueue, cleared when the item is processed (or dropped) - never on dequeue.
         public static readonly ConcurrentDictionary<long, byte> PendingMediaInfoItemIds =
             new ConcurrentDictionary<long, byte>();
         public static ConcurrentQueue<Episode> IntroSkipItemQueue = new ConcurrentQueue<Episode>();
@@ -210,17 +213,61 @@ namespace StrmAssistant.Common
         }
 
         /// <summary>
+        /// Registers the item as pending and puts it in a media info queue. Every path that adds
+        /// new work goes through here - catch-up on ItemAdded, auto-extract, favorite catch-up,
+        /// the intro fingerprint worker handing items over and the chapter helpers - so an item
+        /// that is already queued (or still being processed) is never enqueued a second time.
+        /// Returns false when the item was already pending; nothing is enqueued in that case.
+        /// </summary>
+        public static bool TryEnqueueMediaInfo(BaseItem item, bool isFavorite = false)
+        {
+            if (item is null) return false;
+
+            if (!PendingMediaInfoItemIds.TryAdd(item.InternalId, 0)) return false;
+
+            try
+            {
+                GetMediaInfoQueue(isFavorite).Enqueue(item);
+            }
+            catch
+            {
+                PendingMediaInfoItemIds.TryRemove(item.InternalId, out _);
+                throw;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Puts an item into a media info queue without the admission check, for work the worker
+        /// already owns: items deferred because a library scan is running, items put back after a
+        /// permit could not be acquired, and items moved between the favorite and regular queues.
+        /// The pending marker stays registered (or is re-registered) so the item keeps being
+        /// deduplicated while it waits for the next run.
+        /// </summary>
+        public static void RequeueMediaInfo(BaseItem item, bool isFavorite = false)
+        {
+            if (item is null) return;
+
+            PendingMediaInfoItemIds.TryAdd(item.InternalId, 0);
+            GetMediaInfoQueue(isFavorite).Enqueue(item);
+        }
+
+        private static ConcurrentQueue<BaseItem> GetMediaInfoQueue(bool isFavorite)
+        {
+            return isFavorite ? FavoriteMediaInfoExtractItemQueue : MediaInfoExtractItemQueue;
+        }
+
+        /// <summary>
         /// Puts back items that were already dequeued but never started because a permit could
         /// not be acquired (cancellation or an unexpected failure). They stay in the queue for
-        /// the next run instead of disappearing silently.
+        /// the next run instead of disappearing silently, and stay pending with them.
         /// </summary>
-        private static void RequeueMediaInfoItems(ConcurrentQueue<BaseItem> queue, List<BaseItem> items,
-            int startIndex)
+        private static void RequeueMediaInfoItems(List<BaseItem> items, int startIndex, bool isFavorite)
         {
             for (var i = startIndex; i < items.Count; i++)
             {
-                PendingMediaInfoItemIds.TryAdd(items[i].InternalId, 0);
-                queue.Enqueue(items[i]);
+                RequeueMediaInfo(items[i], isFavorite);
             }
         }
 
@@ -230,7 +277,7 @@ namespace StrmAssistant.Common
 
             while (FavoriteMediaInfoExtractItemQueue.TryDequeue(out var mediaInfoItem))
             {
-                MediaInfoExtractItemQueue.Enqueue(mediaInfoItem);
+                RequeueMediaInfo(mediaInfoItem);
             }
 
             while (FavoriteFingerprintItemQueue.TryDequeue(out var fingerprintItem))
@@ -285,8 +332,10 @@ namespace StrmAssistant.Common
 
                     while (queue.TryDequeue(out var dequeueItem))
                     {
-                        PendingMediaInfoItemIds.TryRemove(dequeueItem.InternalId, out _);
-
+                        // The pending marker deliberately survives the dequeue: the item is still
+                        // owned by the worker until its task finishes, and releasing it here is
+                        // what let a second path (auto-extract, 15s behind ItemAdded) enqueue the
+                        // same item again while the first pass was still running.
                         var library = dequeueItem.GetTopParent();
                         var progress = library?.GetRefreshProgress();
 
@@ -307,6 +356,16 @@ namespace StrmAssistant.Common
                     var dedupQueueItems =
                         dequeueItems.GroupBy(i => i.InternalId).Select(g => g.First()).ToList();
                     var mediaInfoItems = Plugin.LibraryApi.FetchExtractQueueItems(dedupQueueItems);
+
+                    // Everything the scope, favorite and blacklist filters dropped will never get
+                    // a task, so its pending marker has to be released here; keeping it would
+                    // block the id from ever being queued again.
+                    var scheduledIds = new HashSet<long>(mediaInfoItems.Select(i => i.InternalId));
+
+                    foreach (var droppedItem in dequeueItems.Where(i => !scheduledIds.Contains(i.InternalId)))
+                    {
+                        PendingMediaInfoItemIds.TryRemove(droppedItem.InternalId, out _);
+                    }
 
                     if (mediaInfoItems.Count > 0)
                     {
@@ -332,20 +391,20 @@ namespace StrmAssistant.Common
                             }
                             catch (OperationCanceledException)
                             {
-                                RequeueMediaInfoItems(queue, mediaInfoItems, itemIndex);
+                                RequeueMediaInfoItems(mediaInfoItems, itemIndex, isFavorite);
                                 break;
                             }
                             catch (Exception e)
                             {
                                 Logger.Error("MediaInfoExtract - Acquire permit failed: " + e.Message);
-                                RequeueMediaInfoItems(queue, mediaInfoItems, itemIndex);
+                                RequeueMediaInfoItems(mediaInfoItems, itemIndex, isFavorite);
                                 break;
                             }
 
                             if (cancellationToken.IsCancellationRequested)
                             {
                                 MasterSemaphore.Release();
-                                RequeueMediaInfoItems(queue, mediaInfoItems, itemIndex);
+                                RequeueMediaInfoItems(mediaInfoItems, itemIndex, isFavorite);
                                 Logger.Info("MediaInfoExtract - Item Cancelled: " + taskItem.Name + " - " +
                                             taskItem.Path);
                                 break;
@@ -419,6 +478,12 @@ namespace StrmAssistant.Common
                                     }
 
                                     MasterSemaphore.Release();
+
+                                    // The item is finished - processed, skipped or failed - so it
+                                    // may be queued again from now on. A permit failure or a
+                                    // cancellation before the task started is handled above by
+                                    // RequeueMediaInfoItems, which keeps the marker instead.
+                                    PendingMediaInfoItemIds.TryRemove(taskItem.InternalId, out _);
                                 }
                             }, cancellationToken);
                             tasks.Add(task);
@@ -439,8 +504,7 @@ namespace StrmAssistant.Common
 
                     foreach (var item in deferredItems)
                     {
-                        PendingMediaInfoItemIds.TryAdd(item.InternalId, 0);
-                        queue.Enqueue(item);
+                        RequeueMediaInfo(item, isFavorite);
                     }
                 }
 
@@ -523,14 +587,9 @@ namespace StrmAssistant.Common
 
                         foreach (var item in mediaInfoItems)
                         {
-                            if (isFavorite)
-                            {
-                                FavoriteMediaInfoExtractItemQueue.Enqueue(item);
-                            }
-                            else
-                            {
-                                MediaInfoExtractItemQueue.Enqueue(item);
-                            }
+                            // Handed over to the media info worker; the admission check keeps an
+                            // item that is already queued there from being added twice.
+                            TryEnqueueMediaInfo(item, isFavorite);
                         }
                     }
 
