@@ -141,7 +141,11 @@ namespace StrmAssistant.Common
         };
 
         public static List<string> LibraryPathsInScope;
-        public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
+
+        // Written whenever the user list is refreshed and enumerated concurrently by the queue
+        // threads (favorites, notifications, options UI), so it must be safe to read while a
+        // refresh is running.
+        public static ConcurrentDictionary<User, bool> AllUsers = new ConcurrentDictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
 
         private const int DefaultImageCaptureTimeoutMs = 120000;
@@ -187,6 +191,18 @@ namespace StrmAssistant.Common
             foreach (var user in allUsers)
             {
                 AllUsers[user] = _userManager.GetUserById(user.InternalId).Policy.IsAdministrator;
+            }
+
+            // Users that were deleted (or disabled) used to stay in the dictionary forever, and the
+            // queue threads kept iterating them. Drop everything that is not part of this refresh.
+            var currentUsers = new HashSet<User>(allUsers);
+
+            foreach (var user in AllUsers.Keys)
+            {
+                if (!currentUsers.Contains(user))
+                {
+                    AllUsers.TryRemove(user, out _);
+                }
             }
 
             FetchAdminOrderedViews();
