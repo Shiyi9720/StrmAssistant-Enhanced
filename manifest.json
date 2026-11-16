@@ -9,6 +9,15 @@
     "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
     "versions": [
       {
+        "version": "1.1.2",
+        "changelog": "**修复**\n\n- 快捷菜单「删除版本」：条目没有 `MediaSources` 时直接读取 `.length` 抛 `TypeError`，导致影片/剧集详情页的右键菜单整体渲染失败；现先判空再读取\n- 用户缓存：`AllUsers` 原为普通 `Dictionary`，用户增删事件与队列线程、通知发送、设置页的枚举并发进行，写操作可能撕裂枚举；改为 `ConcurrentDictionary`，刷新时移除已删除或已禁用的用户\n- 随机数：队列管理器、刷新任务与豆瓣客户端在多线程上共用一个 `Random` 实例，并发 `Next` 可能破坏内部状态；新增 `Common/ConcurrentRandom.cs`，每个线程各持一个实例\n- 播放会话泄漏：原先只在 `PlaybackStopped` 时清理，客户端崩溃或断连会让 `_playSessionData` 与两个节流表一直留到插件重启；新增 30 分钟巡检，清理 2 小时无活动的会话与 1 小时未更新的节流记录\n\n**性能与稳定性**\n\n- 章节 / 指纹扫描去掉二次方查找：`SeasonHasIntroCredits`、`PopulateIntroCredits` 先建 id 集合再按 id 查询；片头指纹的每库分钟数每次运行只解析一次，并按季缓存条目所属库\n- 库范围解析统一：新增 `Common/LibraryScopeResolver.cs`，把「范围 id 解析 → 虚拟文件夹 → 收藏夹 → 路径前缀 → 黑名单 → 去重」这段重复逻辑从十余个调用点收敛到一处，路径比较统一为 `OrdinalIgnoreCase`；各调用点自己的库过滤与队列去重键保持不变\n- `.strm` 挂载：`ExclusiveExtract` 的探测钩子不再用 `Task.Run(...).Result` 同时占用两个线程，改为在调用线程解析；同一路径最近 5 分钟内的结果直接复用（最多 256 条）；`GetStrmMountPath` 改为接受调用方的取消令牌\n- 豆瓣评分 / 播放记录落盘：不再在持有状态锁时序列化整表，改为锁内标脏、锁外快照与写盘，防抖定时器合并连续变更，宿主关闭时冲刷剩余脏数据；写入先写 `.tmp` 再 `File.Replace` 原子替换（文件系统不支持重命名时回退为覆盖），读者不会看到写了一半的文件。JSON 结构、文件名与加载路径不变\n- 代理请求：按代理地址与凭据缓存 `HttpClient`，复用连接与 TLS 握手；单个请求的超时改为链接调用方令牌，不再依赖 `HttpClient.Timeout`\n- 定时任务：媒体信息持久化、影片刷新、剧集刷新、影片元数据刷新、外挂字幕扫描、清理章节标记等任务的 `Task.Delay(10).Wait()` 改为 `await`，不再每处理一条就阻塞线程 10 毫秒\n\n**说明**\n\n- 功能行为不变，均为修复与性能 / 稳定性改动；设置文件与数据文件格式不变\n- 构建 0 error，仅保留既有的 `CS0618 LibraryApi.IsFolder` 过时警告\n- 自动化验证工程 191 条用例全过，并在运行中的 Emby 上完成部署验证",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.1.2/StrmAssistant-1.1.2.zip",
+        "checksum": "40EDF3D2D6DDD6AE3D85822E1EA9A864",
+        "timestamp": "2026-11-16T13:53:30Z",
+        "dependencies": []
+      },
+      {
         "version": "1.1.1",
         "changelog": "**变更**\n\n- 插件中文显示名由「Strm 助手」改回「神医助手」，繁体为「神醫助手」。涉及资源键 `Plugin_Name`（插件列表名称）与 `PluginOptions_EditorTitle_Strm_Assistant`（插件页面标题 / 侧栏菜单名），以及 `manifest.json` 的 `name` 与 README 文案\n- 英文名仍为 `Strm Assistant`（中性资源与 `README.en.md` 不变），设置文件名 `Strm Assistant.json` 不变\n\n**说明**\n\n- 仅显示名改动，无任何功能代码变更；升级后「设置 → 插件」与「设置 → 高级 → 神医助手」均显示新名称\n- 构建 0 error，仅保留既有的 `CS0618 LibraryApi.IsFolder` 过时警告",
         "targetAbi": "4.10.2.0",
