@@ -92,7 +92,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                 }, cancellationToken);
                 tasks.Add(task);
-                Task.Delay(10).Wait();
+                await Task.Delay(10).ConfigureAwait(false);
             }
             await Task.WhenAll(tasks).ConfigureAwait(false);
 

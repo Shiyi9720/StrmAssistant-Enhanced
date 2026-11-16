@@ -31,7 +31,7 @@ namespace StrmAssistant.ScheduledTask
             double total = items.Count;
             var current = 0;
 
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 foreach (var item in items)
                 {
@@ -50,7 +50,8 @@ namespace StrmAssistant.ScheduledTask
                     current++;
                     _logger?.Info("IntroSkip - Clear Task " + current + "/" + total + " - " + item.Path);
 
-                    Task.Delay(10).Wait();
+                    // Blocking the worker thread for a "yield" was pure overhead.
+                    await Task.Delay(10).ConfigureAwait(false);
                 }
             }, cancellationToken);
 
