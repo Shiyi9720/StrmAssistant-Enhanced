@@ -129,11 +129,7 @@ namespace StrmAssistant.Mod
         {
             if (item is null || !item.IsShortcut) return false;
 
-            var libraryPaths = FingerprintApi.LibraryPathsInScope;
-
-            return libraryPaths != null && libraryPaths.Count > 0 &&
-                   !string.IsNullOrEmpty(item.Path) &&
-                   libraryPaths.Any(path => !string.IsNullOrEmpty(path) && item.Path.StartsWith(path));
+            return LibraryScopeResolver.IsPathInScope(item.Path, FingerprintApi.LibraryPathsInScope);
         }
 
         /// <summary>

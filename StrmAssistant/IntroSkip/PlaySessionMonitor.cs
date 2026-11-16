@@ -57,18 +57,9 @@ namespace StrmAssistant.IntroSkip
 
         public void UpdateLibraryPathsInScope()
         {
-            var validLibraryIds = GetValidLibraryIds(Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope);
-
-            var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
-                            (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
-                .ToList();
-
-            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
-                .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                    ? ls
-                    : ls + Path.DirectorySeparatorChar)
-                .ToList();
+            LibraryPathsInScope = LibraryScopeResolver.ResolveScopePaths(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope,
+                f => f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null);
         }
 
         public void UpdateUsersInScope()
@@ -423,7 +414,7 @@ namespace StrmAssistant.IntroSkip
 
         public bool IsLibraryInScope(BaseItem item)
         {
-            return !string.IsNullOrEmpty(item.Path) && LibraryPathsInScope.Any(l => item.Path.StartsWith(l));
+            return LibraryScopeResolver.IsPathInScope(item.Path, LibraryPathsInScope);
         }
 
         public bool IsUserInScope(long userInternalId)

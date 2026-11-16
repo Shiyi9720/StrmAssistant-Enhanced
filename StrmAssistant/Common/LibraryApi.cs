@@ -166,24 +166,14 @@ namespace StrmAssistant.Common
 
         public void UpdateLibraryPathsInScope()
         {
-            var validLibraryIds =
-                GetValidLibraryIds(Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope);
-
-            var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => !ExcludedCollectionTypes.Contains(f.CollectionType) &&
-                            (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
-                .ToList();
-
-            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
-                .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                    ? ls
-                    : ls + Path.DirectorySeparatorChar)
-                .ToList();
+            LibraryPathsInScope = LibraryScopeResolver.ResolveScopePaths(_libraryManager,
+                Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope,
+                f => !ExcludedCollectionTypes.Contains(f.CollectionType));
         }
 
         public bool IsLibraryInScope(BaseItem item)
         {
-            return !string.IsNullOrEmpty(item.Path) && LibraryPathsInScope.Any(l => item.Path.StartsWith(l));
+            return LibraryScopeResolver.IsPathInScope(item.Path, LibraryPathsInScope);
         }
 
         public void FetchUsers()
@@ -246,10 +236,11 @@ namespace StrmAssistant.Common
 
         public List<BaseItem> FetchExtractQueueItems(List<BaseItem> items)
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope
-                ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(
+                Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope);
 
-            var includeFavorites = libraryIds == null || !libraryIds.Any() || libraryIds.Contains("-1");
+            // Media info also takes favorites for an empty scope, unlike the intro skip queues.
+            var includeFavorites = !libraryIds.Any() || LibraryScopeResolver.IncludesFavorites(libraryIds);
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
@@ -261,16 +252,15 @@ namespace StrmAssistant.Common
 
                 var incomingItems = items.Where(item => item is Video || item is Audio).ToList();
 
-                if (libraryIds == null || !libraryIds.Any())
+                if (!libraryIds.Any())
                 {
                     resultItems = resultItems.Concat(incomingItems).ToList();
                 }
 
-                if (libraryIds != null && libraryIds.Any(id => id != "-1") && LibraryPathsInScope.Any())
+                if (LibraryScopeResolver.SelectsLibraries(libraryIds) && LibraryPathsInScope.Any())
                 {
-                    var filteredItems = incomingItems
-                        .Where(i => LibraryPathsInScope.Any(p => i.ContainingFolderPath.StartsWith(p)))
-                        .ToList();
+                    var filteredItems = LibraryScopeResolver.FilterInScope(incomingItems,
+                        i => i.ContainingFolderPath, LibraryPathsInScope);
                     resultItems = resultItems.Concat(filteredItems).ToList();
                 }
             }
@@ -334,8 +324,8 @@ namespace StrmAssistant.Common
 
         public List<BaseItem> FetchPreExtractTaskItems()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(
+                Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope);
             var libraries = _libraryManager.GetVirtualFolders()
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id)).ToList();
             var librariesWithImageCapture = GetLibrariesWithImageCapture(libraries);
@@ -343,7 +333,7 @@ namespace StrmAssistant.Common
             _logger?.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
                 ? "ALL"
                 : string.Join(", ",
-                    libraryIds.Contains("-1")
+                    LibraryScopeResolver.IncludesFavorites(libraryIds)
                         ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
                         : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
@@ -352,7 +342,7 @@ namespace StrmAssistant.Common
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
             var favoritesWithExtra = Array.Empty<BaseItem>();
-            if (libraryIds.Contains("-1"))
+            if (LibraryScopeResolver.IncludesFavorites(libraryIds))
             {
                 var favorites = AllUsers.Select(e => e.Key)
                     .SelectMany(user => _libraryManager.GetItemList(new InternalItemsQuery
@@ -372,20 +362,14 @@ namespace StrmAssistant.Common
             var items = new List<BaseItem>();
             var extras = new List<BaseItem>();
 
-            if (!libraryIds.Any() || libraryIds.Any(id => id != "-1"))
+            if (!LibraryScopeResolver.IsFavoritesOnly(libraryIds))
             {
-                var pathScopes = libraryIds.Any(id => id != "-1") && libraries.Any()
-                    ? libraries.SelectMany(l => l.Locations).Select(ls =>
-                        ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                            ? ls
-                            : ls + Path.DirectorySeparatorChar).ToArray()
+                var pathScopes = LibraryScopeResolver.SelectsLibraries(libraryIds) && libraries.Any()
+                    ? LibraryScopeResolver.ToScopePaths(libraries).ToArray()
                     : null;
 
                 var imageScopes = enableImageCapture && librariesWithImageCapture.Any()
-                    ? librariesWithImageCapture.SelectMany(l => l.Locations).Select(ls =>
-                        ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                            ? ls
-                            : ls + Path.DirectorySeparatorChar).ToArray()
+                    ? LibraryScopeResolver.ToScopePaths(librariesWithImageCapture).ToArray()
                     : null;
 
                 var mediaInfoQuery = new InternalItemsQuery
@@ -491,9 +475,8 @@ namespace StrmAssistant.Common
 
         public List<BaseItem> FetchPostExtractTaskItems(bool includeAudio)
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions()
-                .MediaInfoExtractOptions.LibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(Plugin.Instance.GetPluginOptions()
+                .MediaInfoExtractOptions.LibraryScope);
             var libraries = _libraryManager.GetVirtualFolders()
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id))
                 .ToList();
@@ -501,7 +484,7 @@ namespace StrmAssistant.Common
             _logger?.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
                 ? "ALL"
                 : string.Join(", ",
-                    libraryIds.Contains("-1")
+                    LibraryScopeResolver.IncludesFavorites(libraryIds)
                         ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
                         : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
@@ -509,7 +492,7 @@ namespace StrmAssistant.Common
             _logger?.Info("Include Extra: " + includeExtra);
 
             var favoritesWithExtra = new List<BaseItem>();
-            if (libraryIds.Contains("-1"))
+            if (LibraryScopeResolver.IncludesFavorites(libraryIds))
             {
                 var favorites = AllUsers.Select(e => e.Key)
                     .SelectMany(user => _libraryManager.GetItemList(new InternalItemsQuery
@@ -530,16 +513,14 @@ namespace StrmAssistant.Common
             }
 
             var itemsWithExtras = new List<BaseItem>();
-            if (!libraryIds.Any() || libraryIds.Any(id => id != "-1"))
+            if (!LibraryScopeResolver.IsFavoritesOnly(libraryIds))
             {
                 var mediaTypes = includeAudio
                     ? new[] { MediaType.Video, MediaType.Audio }
                     : new[] { MediaType.Video };
 
-                var pathScopes = libraryIds.Any(id => id != "-1") && libraries.Any()
-                    ? libraries.SelectMany(l => l.Locations).Select(ls =>
-                        ls.EndsWith(Path.DirectorySeparatorChar.ToString()) ? ls : ls + Path.DirectorySeparatorChar)
-                        .ToArray()
+                var pathScopes = LibraryScopeResolver.SelectsLibraries(libraryIds) && libraries.Any()
+                    ? LibraryScopeResolver.ToScopePaths(libraries).ToArray()
                     : null;
 
                 var itemsQuery = new InternalItemsQuery
