@@ -2,14 +2,18 @@ using MediaBrowser.Common.Net;
 using MediaBrowser.Model.IO;
 using StrmAssistant.Options;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StrmAssistant.Common
@@ -17,11 +21,21 @@ namespace StrmAssistant.Common
     /// <summary>
     /// Provides HTTP proxy support for the plugin's outgoing requests.
     /// Emby's own IHttpClient does not expose per-request proxy settings, so proxied requests
-    /// are executed with a dedicated HttpClientHandler.Proxy instance instead.
+    /// are executed with a dedicated HttpClientHandler.Proxy instance instead. The client behind
+    /// that handler is shared per proxy configuration so connections are reused.
     /// </summary>
     public static class ProxyApi
     {
         private static readonly char[] WhitelistSeparators = { ',', ';', '\r', '\n', ' ', '\t' };
+
+        // HttpClient keeps its own default of 100 s when the caller does not ask for a timeout.
+        private const int DefaultTimeoutMs = 100000;
+        private static readonly TimeSpan RetireGracePeriod = TimeSpan.FromSeconds(15);
+
+        private static readonly ConcurrentDictionary<string, HttpClient> ClientPool =
+            new ConcurrentDictionary<string, HttpClient>(StringComparer.Ordinal);
+
+        private static readonly object ClientPoolSync = new object();
 
         public static NetworkOptions GetOptions()
         {
@@ -62,6 +76,43 @@ namespace StrmAssistant.Common
             return options.ProxyMode == ProxyModeOption.Global || IsWhitelisted(uri.Host, options.ProxyWhitelist);
         }
 
+        /// <summary>
+        /// One client per proxy configuration, reused by every proxied request so that connections
+        /// (and TLS handshakes) are pooled instead of rebuilt for each call. A new configuration
+        /// retires the previous client, which both releases its connections and makes a changed
+        /// proxy address take effect immediately. The handler's own connections are recycled once
+        /// they have been idle, so a proxy name that moves in DNS is re-resolved as well.
+        /// </summary>
+        public static HttpClient GetHttpClient()
+        {
+            var key = BuildProxyKey();
+
+            if (ClientPool.TryGetValue(key, out var cached)) return cached;
+
+            lock (ClientPoolSync)
+            {
+                if (ClientPool.TryGetValue(key, out cached)) return cached;
+
+                var client = new HttpClient(CreateHttpClientHandler())
+                {
+                    // Per-request timeouts are enforced with a linked token source, because the
+                    // timeout of a shared client cannot be changed per request.
+                    Timeout = Timeout.InfiniteTimeSpan
+                };
+
+                foreach (var staleKey in ClientPool.Keys.ToList())
+                {
+                    if (string.Equals(staleKey, key, StringComparison.Ordinal)) continue;
+
+                    if (ClientPool.TryRemove(staleKey, out var stale)) RetireClient(stale);
+                }
+
+                ClientPool[key] = client;
+
+                return client;
+            }
+        }
+
         public static HttpClientHandler CreateHttpClientHandler()
         {
             var handler = new HttpClientHandler
@@ -72,6 +123,44 @@ namespace StrmAssistant.Common
             };
 
             return handler;
+        }
+
+        // Credentials are part of the identity but must not be readable from the key.
+        private static string BuildProxyKey()
+        {
+            if (!CommonUtility.TryParseProxyUrl(GetOptions().ProxyServer, out var schema, out var host, out var port,
+                    out var username, out var password))
+            {
+                return "unconfigured";
+            }
+
+            var raw = string.Join("|", schema, host, port.ToString(CultureInfo.InvariantCulture),
+                username, password);
+
+            using (var sha = SHA256.Create())
+            {
+                var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
+
+                return string.Concat(hash.Select(b => b.ToString("x2", CultureInfo.InvariantCulture)));
+            }
+        }
+
+        // The client lives in a pool entry that is only reachable while its configuration is the
+        // active one, so its connections can still be serving a request that was already sent.
+        private static void RetireClient(HttpClient client)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(RetireGracePeriod).ConfigureAwait(false);
+                    client.Dispose();
+                }
+                catch
+                {
+                    // Best effort; the handler is collected with the client.
+                }
+            });
         }
 
         public static WebProxy CreateWebProxy()
@@ -260,24 +349,20 @@ namespace StrmAssistant.Common
             private async Task<HttpResponseInfo> SendForResponseAsync(HttpRequestOptions options, string httpMethod,
                 bool writeToTempFile = false)
             {
-                using var handler = ProxyApi.CreateHttpClientHandler();
-                using var client = new HttpClient(handler);
+                var client = ProxyApi.GetHttpClient();
 
-                if (options.TimeoutMs > 0)
-                {
-                    client.Timeout = TimeSpan.FromMilliseconds(options.TimeoutMs);
-                }
+                using var timeoutSource = CreateTimeoutSource(options);
+                var cancellationToken = timeoutSource.Token;
 
                 using var request = CreateRequest(options, httpMethod);
                 using var response = await client
-                    .SendAsync(request, HttpCompletionOption.ResponseHeadersRead,
-                        options.CancellationToken)
+                    .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                     .ConfigureAwait(false);
 
                 var sourceStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 var memoryStream = new MemoryStream();
 
-                await sourceStream.CopyToAsync(memoryStream, 81920, options.CancellationToken)
+                await sourceStream.CopyToAsync(memoryStream, 81920, cancellationToken)
                     .ConfigureAwait(false);
                 memoryStream.Position = 0;
 
@@ -305,7 +390,7 @@ namespace StrmAssistant.Common
                 if (writeToTempFile)
                 {
                     var tempFilePath = GetTempFilePath();
-                    await File.WriteAllBytesAsync(tempFilePath, memoryStream.ToArray(), options.CancellationToken)
+                    await File.WriteAllBytesAsync(tempFilePath, memoryStream.ToArray(), cancellationToken)
                         .ConfigureAwait(false);
 
                     result.TempFilePath = tempFilePath;
@@ -317,6 +402,19 @@ namespace StrmAssistant.Common
                 }
 
                 return result;
+            }
+
+            // The client is shared, so its Timeout cannot carry a per-request value: the caller's
+            // token is linked with the requested timeout instead, which the whole transfer honours.
+            // A timeout surfaces as a cancellation of this source only, never of the caller's token.
+            private static CancellationTokenSource CreateTimeoutSource(HttpRequestOptions options)
+            {
+                var timeoutMs = options.TimeoutMs > 0 ? options.TimeoutMs : ProxyApi.DefaultTimeoutMs;
+
+                var source = CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken);
+                source.CancelAfter(timeoutMs);
+
+                return source;
             }
 
             private static HttpRequestMessage CreateRequest(HttpRequestOptions options, string httpMethod)
