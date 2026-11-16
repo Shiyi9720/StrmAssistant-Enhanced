@@ -67,6 +67,9 @@ namespace StrmAssistant
     {
         public static PluginInstance Instance { get; set; } = new PluginInstance();
 
+        /// <summary>Read by the shutdown entry point of VersionPlaybackApi.</summary>
+        public static StrmAssistant.Common.VersionPlaybackApi VersionPlaybackApi { get; set; }
+
         /// <summary>Production field read by SatelliteResourceManager (set in Plugin.Init).</summary>
         internal static string _satelliteRoot;
     }
@@ -123,6 +126,14 @@ namespace StrmAssistant
             public T DeserializeFromString<T>(string json)
             {
                 return System.Text.Json.JsonSerializer.Deserialize<T>(json, JsonOptions);
+            }
+
+            public void SerializeToStream(object obj, Stream stream)
+            {
+                var bytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(
+                    obj, obj.GetType(), JsonOptions);
+
+                stream.Write(bytes, 0, bytes.Length);
             }
 
             public void SerializeToFile(object obj, string path)

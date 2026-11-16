@@ -69,6 +69,7 @@ namespace StrmAssistant.Verification
             runner.Check("F1 B is not marked played", readB != null && !readB.Played);
 
             // The conversion is persisted as B's own record before anything else changes.
+            harness.Flush();
             CheckConvertedStore(runner, harness, "F1", 32 * TicksPerMinute);
 
             // Reading B again is an exact hit: no second conversion.
@@ -197,6 +198,7 @@ namespace StrmAssistant.Verification
                 readB?.PositionTicks ?? -1);
             runner.Check("G1 B is not marked played", readB != null && !readB.Played);
 
+            harness.Flush();
             CheckStoredRecord(runner, harness, "G1", "srcB", 32 * TicksPerMinute);
 
             // The conversion is a one-time event: B owns its record from now on.
@@ -274,6 +276,7 @@ namespace StrmAssistant.Verification
             runner.EqualLong("G3 C converts to 48min (40% of 120min)", 48 * TicksPerMinute,
                 readC?.PositionTicks ?? -1);
 
+            harness.Flush();
             CheckStoredRecord(runner, harness, "G3 B", "srcB", 32 * TicksPerMinute);
             CheckStoredRecord(runner, harness, "G3 C", "srcC", 48 * TicksPerMinute);
             runner.Check("G3 the two converted entries are distinct records",
@@ -457,10 +460,14 @@ namespace StrmAssistant.Verification
                 return _api.GetVersionPlayback(_user.InternalId, movie);
             }
 
-            /// <summary>Forces the throttled store to flush (production does this on shutdown).</summary>
+            /// <summary>
+            /// Forces the throttled store to flush to disk (production does this on shutdown).
+            /// Unlike Dispose this keeps the session subscriptions, so a sequence can read the
+            /// file at any point without ending the playback it is still feeding.
+            /// </summary>
             public void Flush()
             {
-                _api.Dispose();
+                _api.Flush();
             }
         }
 

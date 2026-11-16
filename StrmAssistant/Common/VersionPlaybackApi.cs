@@ -1,6 +1,7 @@
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
@@ -12,6 +13,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace StrmAssistant.Common
 {
@@ -41,10 +43,17 @@ namespace StrmAssistant.Common
         private readonly IJsonSerializer _jsonSerializer;
         private readonly string _storePath;
         private readonly object _sync = new object();
+
+        // Serializes snapshot plus write so an older snapshot can never overwrite a newer one.
+        private readonly object _persistSync = new object();
+
         private readonly Dictionary<string, VersionPlaybackRecord> _records =
             new Dictionary<string, VersionPlaybackRecord>(StringComparer.OrdinalIgnoreCase);
 
+        private readonly Timer _flushTimer;
         private DateTime _lastPersistUtc = DateTime.MinValue;
+        private bool _dirty;
+        private int _flushScheduled;
         private bool _initialized;
         private bool _migratedOnLoad;
 
@@ -53,6 +62,7 @@ namespace StrmAssistant.Common
             _sessionManager = sessionManager;
             _jsonSerializer = jsonSerializer;
             _storePath = Path.Combine(Plugin.Instance.ApplicationPaths.PluginConfigurationsPath, StoreFileName);
+            _flushTimer = new Timer(OnFlushTimer, null, Timeout.Infinite, Timeout.Infinite);
 
             Load();
         }
@@ -66,7 +76,7 @@ namespace StrmAssistant.Common
             _sessionManager.PlaybackStopped += OnPlaybackStopped;
 
             // Legacy records were normalized in memory by Load; write the migrated shape once.
-            if (_migratedOnLoad && IsPerVersionResumeEnabled()) Persist(true);
+            if (_migratedOnLoad && IsPerVersionResumeEnabled()) PersistIfNeeded(true);
 
             _initialized = true;
         }
@@ -79,8 +89,17 @@ namespace StrmAssistant.Common
             _sessionManager.PlaybackProgress -= OnPlaybackProgress;
             _sessionManager.PlaybackStopped -= OnPlaybackStopped;
 
-            Persist(true);
+            PersistIfNeeded(true);
             _initialized = false;
+        }
+
+        /// <summary>
+        /// Writes out the records that are still dirty. Called on shutdown; the playback event
+        /// path only marks the store dirty and lets the scheduled flush do the file I/O.
+        /// </summary>
+        public void Flush()
+        {
+            PersistIfNeeded(true);
         }
 
         public List<VersionPlaybackInfo> GetVersionPlayback(long userId, BaseItem item)
@@ -266,7 +285,7 @@ namespace StrmAssistant.Common
                 }
             }
 
-            if (changed) Persist(true);
+            if (changed) MarkDirtyAndSchedule();
 
             return result;
         }
@@ -397,7 +416,9 @@ namespace StrmAssistant.Common
                 }
             }
 
-            Persist(stopped);
+            // Never write from the playback event: the position is only marked dirty here and the
+            // file I/O happens on the scheduled flush, off the session thread.
+            MarkDirtyAndSchedule();
         }
 
         internal static string GetItemKey(BaseItem item)
@@ -812,14 +833,61 @@ namespace StrmAssistant.Common
             return "pv|" + userId + "|" + itemId + "|" + mediaSourceId;
         }
 
-        private void Persist(bool force)
+        /// <summary>
+        /// Marks the store dirty and arranges the write. The change is written straight away when
+        /// the throttle window is open and the timer covers the last change of a burst, so no
+        /// caller (playback event or request handler) ever serializes the store itself.
+        /// </summary>
+        private void MarkDirtyAndSchedule()
         {
             lock (_sync)
             {
-                if (!force && DateTime.UtcNow - _lastPersistUtc < PersistInterval) return;
+                _dirty = true;
+            }
 
-                try
+            PersistIfNeeded();
+            ScheduleFlush();
+        }
+
+        private void ScheduleFlush()
+        {
+            lock (_sync)
+            {
+                if (!_dirty) return;
+            }
+
+            if (Interlocked.CompareExchange(ref _flushScheduled, 1, 0) != 0) return;
+
+            _flushTimer.Change(PersistInterval, Timeout.InfiniteTimeSpan);
+        }
+
+        private void OnFlushTimer(object state)
+        {
+            try
+            {
+                Interlocked.Exchange(ref _flushScheduled, 0);
+                PersistIfNeeded(true);
+            }
+            catch (Exception ex)
+            {
+                _logger?.Debug("VersionPlayback - Scheduled flush failed: " + ex.Message);
+            }
+        }
+
+        // The snapshot is a shallow copy taken under the lock; the records it points at are only
+        // mutated under the same lock, so the worst a concurrent update can do is land in the file
+        // with a value from either side of the write. The store lock is never held during I/O.
+        private void PersistIfNeeded(bool force = false)
+        {
+            List<VersionPlaybackRecord> snapshot;
+
+            lock (_persistSync)
+            {
+                lock (_sync)
                 {
+                    if (!_dirty) return;
+                    if (!force && DateTime.UtcNow - _lastPersistUtc < PersistInterval) return;
+
                     var cutoff = DateTime.UtcNow - Retention;
                     foreach (var key in _records.Where(r => r.Value.LastPlayedDate < cutoff)
                                  .Select(r => r.Key).ToList())
@@ -827,17 +895,72 @@ namespace StrmAssistant.Common
                         _records.Remove(key);
                     }
 
-                    var store = new VersionPlaybackStore
-                    {
-                        Records = _records.Values.ToList()
-                    };
-
-                    _jsonSerializer.SerializeToFile(store, _storePath);
+                    snapshot = _records.Values.ToList();
+                    _dirty = false;
                     _lastPersistUtc = DateTime.UtcNow;
+                }
+
+                try
+                {
+                    WriteStoreAtomically(new VersionPlaybackStore
+                    {
+                        Records = snapshot
+                    });
                 }
                 catch (Exception ex)
                 {
                     _logger?.Debug("VersionPlayback - Persist failed: " + ex.Message);
+
+                    // Keep the records dirty so the next event or the shutdown flush retries them.
+                    lock (_sync)
+                    {
+                        _dirty = true;
+                    }
+                }
+            }
+        }
+
+        // Serializing into a sibling temp file and replacing the target keeps the JSON shape and the
+        // file name, and leaves either the old or the new file in place, never a partial one.
+        private void WriteStoreAtomically(VersionPlaybackStore store)
+        {
+            var tempPath = _storePath + ".tmp";
+
+            try
+            {
+                using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    _jsonSerializer.SerializeToStream(store, stream);
+                }
+
+                try
+                {
+                    if (File.Exists(_storePath))
+                    {
+                        File.Replace(tempPath, _storePath, null);
+                    }
+                    else
+                    {
+                        File.Move(tempPath, _storePath);
+                    }
+                }
+                catch (Exception e)
+                {
+                    // The swap renames over an existing file, which some network mounts refuse;
+                    // fall back to a plain overwrite so the records still reach the file.
+                    _logger?.Debug("VersionPlayback - Atomic replace failed, falling back: " + e.Message);
+                    File.Copy(tempPath, _storePath, true);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempPath)) File.Delete(tempPath);
+                }
+                catch
+                {
+                    // Best effort cleanup only.
                 }
             }
         }
@@ -867,6 +990,7 @@ namespace StrmAssistant.Common
                     {
                         record.ItemId = record.MediaSourceItemId;
                         _migratedOnLoad = true;
+                        _dirty = true;
                     }
 
                     var key = RecordKey(record.UserId, record.ItemKey, record.MediaSourceItemId,
@@ -923,5 +1047,22 @@ namespace StrmAssistant.Common
     public class VersionPlaybackResponse
     {
         public List<VersionPlaybackInfo> Items { get; set; } = new List<VersionPlaybackInfo>();
+    }
+
+    /// <summary>
+    /// Flushes the pending per-version resume writes on server shutdown. Emby resolves every
+    /// concrete <see cref="IServerEntryPoint"/> in the plugin assembly and disposes it while the
+    /// application host shuts down, which is the teardown hook available to a plugin.
+    /// </summary>
+    public sealed class VersionPlaybackShutdownEntryPoint : IServerEntryPoint
+    {
+        public void Run()
+        {
+        }
+
+        public void Dispose()
+        {
+            Plugin.VersionPlaybackApi?.Flush();
+        }
     }
 }
