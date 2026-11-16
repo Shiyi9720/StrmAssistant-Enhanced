@@ -9,6 +9,15 @@
     "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
     "versions": [
       {
+        "version": "1.1.0",
+        "changelog": "**性能**\n\n- 中文搜索索引：构建时直接保存已算好的 key，并分别建立精确、前缀、包含三组候选结构；索引持久化后重启直接加载，不再重算。查询改为走候选集合并带 5 秒超时与取消支持。索引格式升至 `Version=4`，旧索引会自动重建一次\n- 定时任务分批物化：全库任务改用 `GetInternalItemIds`，每批 500 条读取并处理，不再把整库条目一次性读进内存\n- 选项解析缓存：排除容器、扩展名、黑名单等按选项串缓存，通配符正则预编译，不必每个条目重新解析\n- 入库自动提取去重：改用 `ConcurrentDictionary`，去掉原来的 O(N²) 线性扫描\n\n**稳定性**\n\n- 并发控制：新增 `Common/AsyncSemaphore.cs`，调整并发上限时直接在原对象上 `SetLimit` 调速，不再热替换 `SemaphoreSlim`；修复调整过程中可能出现的 `ObjectDisposedException`、计数膨胀和排队条目静默丢失\n\n**文档**\n\n- 新增 `docs/optimization-review-2026-11-16.md`：2026-11-16 代码优化静态审查，记录 10 项问题、影响与建议，本轮修复其中 5 项\n\n**说明**\n\n- 功能行为不变，均为性能与稳定性优化；升级后搜索索引会重建一次\n- 已在运行中的 Emby 实跑验证：启动无异常、六种中文搜索命中数与旧版一致、`RefreshEpisode` 96 条全部通过、未出现 OOM\n- 构建 0 error，仅保留既有的 `CS0618 LibraryApi.IsFolder` 过时警告",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.1.0/StrmAssistant-1.1.0.zip",
+        "checksum": "00A080D46B2DA5F0405F13524EAE9E0A",
+        "timestamp": "2026-11-16T12:29:03Z",
+        "dependencies": []
+      },
+      {
         "version": "1.0.9",
         "changelog": "**修复**\n\n- 中文界面回退英文：插件主程序集由 Emby 按字节加载，卫星资源（`zh` / `zh-hant`）里的清单名本身带文化后缀，旧逻辑把后缀截掉后再去构造 `ResourceManager`，永远查不到条目而回退英文。现在直接以清单流构造 `ResourceSet` 并按语言缓存（感谢 @拾忆 定位）\n- 启动日志刷屏：`InternalGetResourceSet` 与程序集解析各留了一条 `Info` 级调试输出，每次启动要写近 90 行，已降为 `Debug`\n\n**说明**\n\n- 仅资源加载与日志级别改动，功能行为不变\n- 已核对 `zh-CN` → 您确定要继续吗？、`zh-Hant` → 確定要繼續執行？",
         "targetAbi": "4.10.2.0",
