@@ -400,10 +400,41 @@ namespace StrmAssistant.Common
                    string.IsNullOrEmpty(_itemRepository.GetIntroDetectionFailureResult(item.InternalId));
         }
 
-        public List<Episode> FetchIntroPreExtractTaskItems()
-        {
-            var markerEnabledLibraryScope = Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope;
+        private const int ItemBatchSize = 500;
 
+        private long[] GetItemIds(InternalItemsQuery query)
+        {
+            try
+            {
+                return _libraryManager.GetInternalItemIds(query) ?? Array.Empty<long>();
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("Fingerprint item id query failed: " + e.Message);
+                return Array.Empty<long>();
+            }
+        }
+
+        private IEnumerable<BaseItem[]> GetItemBatches(IReadOnlyList<long> ids)
+        {
+            for (var offset = 0; offset < ids.Count; offset += ItemBatchSize)
+            {
+                var count = Math.Min(ItemBatchSize, ids.Count - offset);
+                var batchIds = new long[count];
+
+                for (var i = 0; i < count; i++)
+                {
+                    batchIds[i] = ids[offset + i];
+                }
+
+                var items = _libraryManager.GetItemList(new InternalItemsQuery { ItemIds = batchIds });
+
+                yield return items ?? Array.Empty<BaseItem>();
+            }
+        }
+
+        private InternalItemsQuery CreateIntroPreExtractQuery(string markerEnabledLibraryScope)
+        {
             var itemsFingerprintQuery = new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { nameof(Episode) },
@@ -426,17 +457,35 @@ namespace StrmAssistant.Common
                 }
             }
 
+            return itemsFingerprintQuery;
+        }
+
+        public List<Episode> FetchIntroPreExtractTaskItems()
+        {
+            var markerEnabledLibraryScope = Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope;
+
+            var itemsFingerprintQuery = CreateIntroPreExtractQuery(markerEnabledLibraryScope);
+
             var isModSupported = Plugin.Instance.IsModSupported;
             var blacklist = FingerprintBlacklist.FromOptions();
-            var queryItems = _libraryManager.GetItemList(itemsFingerprintQuery);
-            var results = queryItems.Where(i => isModSupported || !i.IsShortcut)
-                .OfType<Episode>()
-                .Where(i => !blacklist.IsExcluded(i))
-                .GroupBy(i => i.Path, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
+            var queryItemIds = GetItemIds(itemsFingerprintQuery);
+            var results = new List<Episode>();
+            var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            _logger?.Info("IntroFingerprintExtract - PreExtract stage counts: query=" + queryItems.Length +
+            foreach (var batch in GetItemBatches(queryItemIds))
+            {
+                foreach (var item in batch)
+                {
+                    if (!isModSupported && item.IsShortcut) continue;
+                    if (!(item is Episode episode)) continue;
+                    if (blacklist.IsExcluded(episode)) continue;
+                    if (!seenPaths.Add(episode.Path)) continue;
+
+                    results.Add(episode);
+                }
+            }
+
+            _logger?.Info("IntroFingerprintExtract - PreExtract stage counts: query=" + queryItemIds.Length +
                           ", filtered=" + results.Count +
                           ", isModSupported=" + isModSupported +
                           ", favoriteScope=" + (!string.IsNullOrEmpty(markerEnabledLibraryScope) &&
@@ -445,7 +494,7 @@ namespace StrmAssistant.Common
             return results;
         }
 
-        public List<Episode> FetchIntroFingerprintTaskItems()
+        private InternalItemsQuery CreateIntroFingerprintQuery()
         {
             var libraryIds = Plugin.Instance.GetPluginOptions()
                 .IntroSkipOptions.MarkerEnabledLibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -511,25 +560,134 @@ namespace StrmAssistant.Common
                 }
             }
 
+            return itemsFingerprintQuery;
+        }
+
+        public List<Episode> FetchIntroFingerprintTaskItems()
+        {
+            var itemsFingerprintQuery = CreateIntroFingerprintQuery();
+
             var isModSupported = Plugin.Instance.IsModSupported;
             var blacklist = FingerprintBlacklist.FromOptions();
-            var queryItems = _libraryManager.GetItemList(itemsFingerprintQuery);
-            var afterShortcut = queryItems.Where(i => isModSupported || !i.IsShortcut).ToList();
-            var afterBlacklist = afterShortcut.OfType<Episode>().Where(i => !blacklist.IsExcluded(i)).ToList();
-            var items = afterBlacklist
-                .Where(i => i.RunTimeTicks >= TimeSpan
-                    .FromMinutes(GetIntroDetectionFingerprintMinutesForItem(i)).Ticks)
-                .GroupBy(i => i.Path, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .ToList();
+            var queryItemIds = GetItemIds(itemsFingerprintQuery);
+            var afterShortcutCount = 0;
+            var afterBlacklistCount = 0;
+            var items = new List<Episode>();
+            var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            _logger?.Info("IntroFingerprintExtract - Stage counts: query=" + queryItems.Length +
-                          ", modOrNonShortcut=" + afterShortcut.Count +
-                          ", blacklist=" + afterBlacklist.Count +
+            foreach (var batch in GetItemBatches(queryItemIds))
+            {
+                foreach (var item in batch)
+                {
+                    if (!isModSupported && item.IsShortcut) continue;
+
+                    afterShortcutCount++;
+
+                    if (!(item is Episode episode)) continue;
+                    if (blacklist.IsExcluded(episode)) continue;
+
+                    afterBlacklistCount++;
+
+                    if (episode.RunTimeTicks <
+                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode)).Ticks)
+                    {
+                        continue;
+                    }
+
+                    if (!seenPaths.Add(episode.Path)) continue;
+
+                    items.Add(episode);
+                }
+            }
+
+            _logger?.Info("IntroFingerprintExtract - Stage counts: query=" + queryItemIds.Length +
+                          ", modOrNonShortcut=" + afterShortcutCount +
+                          ", blacklist=" + afterBlacklistCount +
                           ", runtime=" + items.Count +
                           ", isModSupported=" + isModSupported);
 
             return items;
+        }
+
+        /// <summary>
+        /// Runs both intro-extraction selection passes with a single materialisation pass. The
+        /// two id queries are cheap; this avoids loading the full episode set twice. Items are
+        /// split back into the pre/post lists in memory, preserving each pass's own filters.
+        /// </summary>
+        public (List<Episode> Pre, List<Episode> Post) FetchIntroTaskItems()
+        {
+            var markerEnabledLibraryScope =
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope;
+
+            var preQuery = CreateIntroPreExtractQuery(markerEnabledLibraryScope);
+            var postQuery = CreateIntroFingerprintQuery();
+
+            var preIds = GetItemIds(preQuery);
+            var postIds = GetItemIds(postQuery);
+
+            var preSet = new HashSet<long>(preIds);
+            var postSet = new HashSet<long>(postIds);
+
+            var allIds = new HashSet<long>(preSet);
+            allIds.UnionWith(postSet);
+
+            var isModSupported = Plugin.Instance.IsModSupported;
+            var blacklist = FingerprintBlacklist.FromOptions();
+
+            var pre = new List<Episode>();
+            var post = new List<Episode>();
+            var prePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var postPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var postAfterShortcut = 0;
+            var postAfterBlacklist = 0;
+
+            foreach (var batch in GetItemBatches(allIds.ToList()))
+            {
+                foreach (var item in batch)
+                {
+                    var id = item.InternalId;
+
+                    if (preSet.Contains(id) && (isModSupported || !item.IsShortcut) &&
+                        item is Episode preEpisode && !blacklist.IsExcluded(preEpisode) &&
+                        prePaths.Add(preEpisode.Path))
+                    {
+                        pre.Add(preEpisode);
+                    }
+
+                    if (!postSet.Contains(id)) continue;
+                    if (!isModSupported && item.IsShortcut) continue;
+
+                    postAfterShortcut++;
+
+                    if (!(item is Episode episode)) continue;
+                    if (blacklist.IsExcluded(episode)) continue;
+
+                    postAfterBlacklist++;
+
+                    if (episode.RunTimeTicks <
+                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode)).Ticks)
+                    {
+                        continue;
+                    }
+
+                    if (!postPaths.Add(episode.Path)) continue;
+
+                    post.Add(episode);
+                }
+            }
+
+            _logger?.Info("IntroFingerprintExtract - PreExtract stage counts: query=" + preIds.Length +
+                          ", filtered=" + pre.Count +
+                          ", isModSupported=" + isModSupported +
+                          ", favoriteScope=" + (!string.IsNullOrEmpty(markerEnabledLibraryScope) &&
+                                               markerEnabledLibraryScope.Contains("-1")));
+            _logger?.Info("IntroFingerprintExtract - Stage counts: query=" + postIds.Length +
+                          ", modOrNonShortcut=" + postAfterShortcut +
+                          ", blacklist=" + postAfterBlacklist +
+                          ", runtime=" + post.Count +
+                          ", isModSupported=" + isModSupported);
+
+            return (pre, post);
         }
 
         private int GetIntroDetectionFingerprintMinutesForItem(BaseItem item)
