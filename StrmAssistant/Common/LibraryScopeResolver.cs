@@ -24,6 +24,10 @@ namespace StrmAssistant.Common
     ///  - A null or empty item path is "not in scope" rather than an exception.
     ///  - Which libraries are accepted stays with the caller (media info skips books/photos/...,
     ///    intro skip takes TV libraries, video thumbnail takes libraries with chapter images).
+    ///  - The de-duplication key is *not* shared on purpose: the media info and video thumbnail
+    ///    queues de-duplicate by InternalId, the fingerprint queues by full path with
+    ///    OrdinalIgnoreCase. Those two keys keep different items when a shortcut and its target,
+    ///    or two versions, share a path, so unifying them would change which items are processed.
     /// </summary>
     internal static class LibraryScopeResolver
     {
