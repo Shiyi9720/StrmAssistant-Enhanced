@@ -1,5 +1,17 @@
 # 更新日志
 
+## 1.1.1
+
+**变更**
+
+- 插件中文显示名由「Strm 助手」改回「神医助手」，繁体为「神醫助手」。涉及资源键 `Plugin_Name`（插件列表名称）与 `PluginOptions_EditorTitle_Strm_Assistant`（插件页面标题 / 侧栏菜单名），以及 `manifest.json` 的 `name` 与 README 文案
+- 英文名仍为 `Strm Assistant`（中性资源与 `README.en.md` 不变），设置文件名 `Strm Assistant.json` 不变
+
+**说明**
+
+- 仅显示名改动，无任何功能代码变更；升级后「设置 → 插件」与「设置 → 高级 → 神医助手」均显示新名称
+- 构建 0 error，仅保留既有的 `CS0618 LibraryApi.IsFolder` 过时警告
+
 ## 1.1.0
 
 **性能**

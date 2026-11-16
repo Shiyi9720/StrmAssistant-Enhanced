@@ -42,8 +42,8 @@ curl -s http://192.168.31.51:8096/emby/System/Info | grep -o '"Version":"[^"]*"'
    ```
    常见插件目录：Docker 官方镜像 `/config/plugins`；裸装 `/var/lib/emby/plugins`；Windows `%APPDATA%\Emby-Server\programdata\plugins`。
 3. **重启 Emby**（拷 DLL 不重启不生效）：`docker restart emby` 或面板里重启。
-4. 打开 Web 端 → **设置 → 插件**，应能看到 **`Strm 助手`**，版本 `3.0.0.57`。
-5. 打开 **设置 → 高级 → Strm 助手**，能进设置页即为安装成功。
+4. 打开 Web 端 → **设置 → 插件**，应能看到 **`神医助手`**，版本 `3.0.0.57`。
+5. 打开 **设置 → 高级 → 神医助手**，能进设置页即为安装成功。
 
 **配置文件**：仍为 `Strm Assistant.json`（和社区版/官方版同名），从旧版升级过来的设置会自动沿用，不会丢配置。
 
