@@ -19,7 +19,6 @@ namespace StrmAssistant.Common
         private static DateTime _introSkipProcessLastRunTime = DateTime.MinValue;
         private static DateTime _fingerprintProcessLastRunTime = DateTime.MinValue;
         private static DateTime _episodeRefreshProcessLastRunTime = DateTime.MinValue;
-        private static readonly Random Random = new Random();
         private static int _currentMasterMaxConcurrentCount;
         private static int _currentTier2MaxConcurrentCount;
         private static int _currentFingerprintMaxConcurrentCount;
@@ -950,7 +949,7 @@ namespace StrmAssistant.Common
                                 try
                                 {
                                     await Task.Delay(
-                                            Random.Next(0,
+                                            ConcurrentRandom.Next(0,
                                                 Math.Max(0, tier2MaxConcurrentCount - Tier2Semaphore.CurrentCount) *
                                                 MetadataApi.RequestIntervalMs), cancellationToken)
                                         .ConfigureAwait(false);

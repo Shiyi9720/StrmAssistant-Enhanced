@@ -426,7 +426,8 @@ namespace StrmAssistant.Common
             {
                 try
                 {
-                    mediaPath = await Plugin.LibraryApi.GetStrmMountPath(mediaPath).ConfigureAwait(false);
+                    mediaPath = await Plugin.LibraryApi.GetStrmMountPath(mediaPath, cancellationToken)
+                        .ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {

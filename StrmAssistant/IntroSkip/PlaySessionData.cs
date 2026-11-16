@@ -43,6 +43,12 @@ namespace StrmAssistant.IntroSkip
 
         public DateTime? LastPlaybackRateChangeEventTime { get; set; } = null;
 
+        /// <summary>
+        /// Last time this session was touched by a playback event. Used to drop the sessions of
+        /// clients that disappeared without a PlaybackStopped event.
+        /// </summary>
+        public DateTime LastActivityTime { get; set; } = DateTime.UtcNow;
+
         public bool NoDetectionButReset { get; set; } =
             IsIntroSkipPreferenceSelected(IntroSkipPreference.NoDetectionButReset);
     }

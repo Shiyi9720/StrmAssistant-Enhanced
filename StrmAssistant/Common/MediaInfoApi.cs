@@ -280,7 +280,8 @@ namespace StrmAssistant.Common
 
             if (LibraryApi.IsFileShortcut(inputPath) && video.IsShortcut)
             {
-                var mountedPath = await Plugin.LibraryApi.GetStrmMountPath(inputPath).ConfigureAwait(false);
+                var mountedPath = await Plugin.LibraryApi.GetStrmMountPath(inputPath, cancellationToken)
+                    .ConfigureAwait(false);
 
                 if (!string.IsNullOrEmpty(mountedPath)) inputPath = mountedPath;
             }

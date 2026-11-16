@@ -288,26 +288,18 @@ namespace StrmAssistant.Common
 
         public bool IsLibraryInScope(BaseItem item)
         {
-            return !string.IsNullOrEmpty(item.Path) && LibraryPathsInScope.Any(l => item.Path.StartsWith(l));
+            return LibraryScopeResolver.IsPathInScope(item.Path, LibraryPathsInScope);
         }
 
         public void UpdateLibraryPathsInScope()
         {
-            var validLibraryIds = GetValidLibraryIds(Plugin.Instance.GetPluginOptions()
-                .IntroSkipOptions.MarkerEnabledLibraryScope);
-
-            var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => f.LibraryOptions.EnableMarkerDetection &&
-                            (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
-                            (!validLibraryIds.Any() || validLibraryIds.All(id => id == "-1") ||
-                             validLibraryIds.Contains(f.Id)))
-                .ToList();
-
-            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
-                .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                    ? ls
-                    : ls + Path.DirectorySeparatorChar)
-                .ToList();
+            // The marker scope is the one place where "favorites only" still means "every library",
+            // because a favorite can live in any of them.
+            LibraryPathsInScope = LibraryScopeResolver.ResolveScopePaths(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions.MarkerEnabledLibraryScope,
+                f => f.LibraryOptions.EnableMarkerDetection &&
+                     (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null),
+                includeAllLibrariesWhenFavoritesOnly: true);
         }
 
         public long[] GetAllFavoriteSeasons()
@@ -333,10 +325,10 @@ namespace StrmAssistant.Common
 
         public List<Episode> FetchFingerprintQueueItems(List<BaseItem> items)
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope?
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope);
 
-            var includeFavorites = libraryIds?.Contains("-1") == true;
+            var includeFavorites = LibraryScopeResolver.IncludesFavorites(libraryIds);
 
             var resultItems = new List<Episode>();
             var incomingItems = items.OfType<Episode>().ToList();
@@ -349,11 +341,10 @@ namespace StrmAssistant.Common
                         .ToList();
                 }
 
-                if (libraryIds is null || !libraryIds.Any() || libraryIds.Any(id => id != "-1"))
+                if (!LibraryScopeResolver.IsFavoritesOnly(libraryIds))
                 {
-                    var filteredItems = incomingItems
-                        .Where(i => LibraryPathsInScope.Any(p => i.ContainingFolderPath.StartsWith(p)))
-                        .ToList();
+                    var filteredItems = LibraryScopeResolver.FilterInScope(incomingItems,
+                        i => i.ContainingFolderPath, LibraryPathsInScope);
                     resultItems = resultItems.Concat(filteredItems).ToList();
                 }
             }
@@ -445,7 +436,8 @@ namespace StrmAssistant.Common
                 HasIntroDetectionFailure = false,
             };
 
-            if (!string.IsNullOrEmpty(markerEnabledLibraryScope) && markerEnabledLibraryScope.Contains("-1"))
+            if (LibraryScopeResolver.IncludesFavorites(
+                    LibraryScopeResolver.ParseScopeIds(markerEnabledLibraryScope)))
             {
                 itemsFingerprintQuery.ParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
             }
@@ -488,17 +480,16 @@ namespace StrmAssistant.Common
             _logger?.Info("IntroFingerprintExtract - PreExtract stage counts: query=" + queryItemIds.Length +
                           ", filtered=" + results.Count +
                           ", isModSupported=" + isModSupported +
-                          ", favoriteScope=" + (!string.IsNullOrEmpty(markerEnabledLibraryScope) &&
-                                               markerEnabledLibraryScope.Contains("-1")));
+                          ", favoriteScope=" + LibraryScopeResolver.IncludesFavorites(
+                              LibraryScopeResolver.ParseScopeIds(markerEnabledLibraryScope)));
 
             return results;
         }
 
         private InternalItemsQuery CreateIntroFingerprintQuery()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions()
-                .IntroSkipOptions.MarkerEnabledLibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(Plugin.Instance.GetPluginOptions()
+                .IntroSkipOptions.MarkerEnabledLibraryScope);
             var librariesWithMarkerDetection = _libraryManager.GetVirtualFolders()
                 .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
                             f.LibraryOptions.EnableMarkerDetection)
@@ -508,7 +499,7 @@ namespace StrmAssistant.Common
             _logger?.Info("IntroFingerprintExtract - LibraryScope: " + (!librariesWithMarkerDetection.Any()
                 ? "NONE"
                 : string.Join(", ",
-                    (libraryIds.Contains("-1")
+                    (LibraryScopeResolver.IncludesFavorites(libraryIds)
                         ? new[] { Resources.Favorites }.Concat(librariesSelected.Select(l => l.Name))
                         : librariesSelected.Select(l => l.Name)).DefaultIfEmpty("ALL"))));
             _logger?.Info("IntroFingerprintExtract - MarkerEnabledLibraryScope(raw): " +
@@ -546,7 +537,7 @@ namespace StrmAssistant.Common
                 HasAudioStream = true
             };
 
-            if (libraryIds.Length != 0 && libraryIds.All(i => i == "-1"))
+            if (LibraryScopeResolver.IsFavoritesOnly(libraryIds))
             {
                 var favoriteSeasonParentIds = GetAllFavoriteSeasons().DefaultIfEmpty(-1).ToArray();
                 _logger?.Info("IntroFingerprintExtract - FavoriteSeasonParentIds: " + favoriteSeasonParentIds.Length);
@@ -574,6 +565,8 @@ namespace StrmAssistant.Common
             var afterBlacklistCount = 0;
             var items = new List<Episode>();
             var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var fingerprintMinutesLookup = new IntroDetectionFingerprintMinutesLookup(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions);
 
             foreach (var batch in GetItemBatches(queryItemIds))
             {
@@ -589,7 +582,8 @@ namespace StrmAssistant.Common
                     afterBlacklistCount++;
 
                     if (episode.RunTimeTicks <
-                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode)).Ticks)
+                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode,
+                            fingerprintMinutesLookup)).Ticks)
                     {
                         continue;
                     }
@@ -640,6 +634,8 @@ namespace StrmAssistant.Common
             var postPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var postAfterShortcut = 0;
             var postAfterBlacklist = 0;
+            var fingerprintMinutesLookup = new IntroDetectionFingerprintMinutesLookup(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions);
 
             foreach (var batch in GetItemBatches(allIds.ToList()))
             {
@@ -665,7 +661,8 @@ namespace StrmAssistant.Common
                     postAfterBlacklist++;
 
                     if (episode.RunTimeTicks <
-                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode)).Ticks)
+                        TimeSpan.FromMinutes(GetIntroDetectionFingerprintMinutesForItem(episode,
+                            fingerprintMinutesLookup)).Ticks)
                     {
                         continue;
                     }
@@ -679,8 +676,8 @@ namespace StrmAssistant.Common
             _logger?.Info("IntroFingerprintExtract - PreExtract stage counts: query=" + preIds.Length +
                           ", filtered=" + pre.Count +
                           ", isModSupported=" + isModSupported +
-                          ", favoriteScope=" + (!string.IsNullOrEmpty(markerEnabledLibraryScope) &&
-                                               markerEnabledLibraryScope.Contains("-1")));
+                          ", favoriteScope=" + LibraryScopeResolver.IncludesFavorites(
+                              LibraryScopeResolver.ParseScopeIds(markerEnabledLibraryScope)));
             _logger?.Info("IntroFingerprintExtract - Stage counts: query=" + postIds.Length +
                           ", modOrNonShortcut=" + postAfterShortcut +
                           ", blacklist=" + postAfterBlacklist +
@@ -690,22 +687,84 @@ namespace StrmAssistant.Common
             return (pre, post);
         }
 
-        private int GetIntroDetectionFingerprintMinutesForItem(BaseItem item)
+        /// <summary>
+        /// Answers "how many minutes of fingerprint does this item need" for a whole run.
+        ///
+        /// The per-library overrides are read once (<c>Overrides()</c> re-enumerated the option
+        /// collection on every single episode before), and the library of an item is looked up at
+        /// most once per parent instead of once per episode: every episode of a season resolves to
+        /// the same <see cref="ILibraryManager.GetCollectionFolders"/> result.
+        ///
+        /// The fallbacks mirror the previous inline code exactly, including the fact that only the
+        /// library-aware lookup clamps to [2, 20]:
+        ///  - no override configured (the common case)      → the raw global option value
+        ///  - override configured, no collection folder     → the raw global option value
+        ///  - override configured, library known            → GetIntroDetectionFingerprintMinutes()
+        /// </summary>
+        private sealed class IntroDetectionFingerprintMinutesLookup
         {
-            var introSkipOptions = Plugin.Instance.GetPluginOptions().IntroSkipOptions;
+            private readonly ILibraryManager _libraryManager;
+            private readonly IntroSkipOptions _introSkipOptions;
+            private readonly Dictionary<string, int> _minutesByLibraryId;
+            private readonly Dictionary<long, int> _minutesByParentId = new Dictionary<long, int>();
 
-            if (introSkipOptions.LibraryIntroDetectionFingerprintOptions?.Overrides().Any() == true)
+            public IntroDetectionFingerprintMinutesLookup(ILibraryManager libraryManager,
+                IntroSkipOptions introSkipOptions)
             {
+                _libraryManager = libraryManager;
+                _introSkipOptions = introSkipOptions;
+
+                if (introSkipOptions.LibraryIntroDetectionFingerprintOptions?.Overrides().Any() != true) return;
+
+                // Same id pairing as UpdateLibraryIntroDetectionFingerprintLength / the container
+                // library lookup: the assignment option id is the virtual folder's ItemId, which is
+                // the collection folder's InternalId.
+                _minutesByLibraryId = libraryManager.GetVirtualFolders()
+                    .GroupBy(f => f.ItemId)
+                    .ToDictionary(g => g.Key,
+                        g => introSkipOptions.GetIntroDetectionFingerprintMinutes(g.Key));
+            }
+
+            public int Get(BaseItem item)
+            {
+                if (_minutesByLibraryId is null) return _introSkipOptions.IntroDetectionFingerprintMinutes;
+
+                var parentId = item.ParentId;
+
+                if (parentId != 0 && _minutesByParentId.TryGetValue(parentId, out var cached))
+                {
+                    return cached;
+                }
+
+                var minutes = _introSkipOptions.IntroDetectionFingerprintMinutes;
+
                 var collectionFolder = _libraryManager.GetCollectionFolders(item).FirstOrDefault();
 
                 if (collectionFolder != null)
                 {
-                    return introSkipOptions.GetIntroDetectionFingerprintMinutes(
-                        collectionFolder.InternalId.ToString());
+                    minutes = _minutesByLibraryId.TryGetValue(collectionFolder.InternalId.ToString(), out var value)
+                        ? value
+                        : _introSkipOptions.GetIntroDetectionFingerprintMinutes(
+                            collectionFolder.InternalId.ToString());
                 }
-            }
 
-            return introSkipOptions.IntroDetectionFingerprintMinutes;
+                if (parentId != 0) _minutesByParentId[parentId] = minutes;
+
+                return minutes;
+            }
+        }
+
+        /// <summary>
+        /// Single item convenience overload. Loops share one <paramref name="lookup"/> instead, so
+        /// that the per-library overrides and the per-item library lookup are paid for once.
+        /// </summary>
+        private int GetIntroDetectionFingerprintMinutesForItem(BaseItem item,
+            IntroDetectionFingerprintMinutesLookup lookup = null)
+        {
+            lookup = lookup ?? new IntroDetectionFingerprintMinutesLookup(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions);
+
+            return lookup.Get(item);
         }
 
         public void UpdateLibraryIntroDetectionFingerprintLength()

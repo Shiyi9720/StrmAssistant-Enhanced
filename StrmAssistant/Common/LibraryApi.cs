@@ -141,7 +141,11 @@ namespace StrmAssistant.Common
         };
 
         public static List<string> LibraryPathsInScope;
-        public static Dictionary<User, bool> AllUsers = new Dictionary<User, bool>();
+
+        // Written whenever the user list is refreshed and enumerated concurrently by the queue
+        // threads (favorites, notifications, options UI), so it must be safe to read while a
+        // refresh is running.
+        public static ConcurrentDictionary<User, bool> AllUsers = new ConcurrentDictionary<User, bool>();
         public static string[] AdminOrderedViews = Array.Empty<string>();
 
         private const int DefaultImageCaptureTimeoutMs = 120000;
@@ -166,24 +170,14 @@ namespace StrmAssistant.Common
 
         public void UpdateLibraryPathsInScope()
         {
-            var validLibraryIds =
-                GetValidLibraryIds(Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope);
-
-            var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => !ExcludedCollectionTypes.Contains(f.CollectionType) &&
-                            (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
-                .ToList();
-
-            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
-                .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                    ? ls
-                    : ls + Path.DirectorySeparatorChar)
-                .ToList();
+            LibraryPathsInScope = LibraryScopeResolver.ResolveScopePaths(_libraryManager,
+                Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope,
+                f => !ExcludedCollectionTypes.Contains(f.CollectionType));
         }
 
         public bool IsLibraryInScope(BaseItem item)
         {
-            return !string.IsNullOrEmpty(item.Path) && LibraryPathsInScope.Any(l => item.Path.StartsWith(l));
+            return LibraryScopeResolver.IsPathInScope(item.Path, LibraryPathsInScope);
         }
 
         public void FetchUsers()
@@ -197,6 +191,18 @@ namespace StrmAssistant.Common
             foreach (var user in allUsers)
             {
                 AllUsers[user] = _userManager.GetUserById(user.InternalId).Policy.IsAdministrator;
+            }
+
+            // Users that were deleted (or disabled) used to stay in the dictionary forever, and the
+            // queue threads kept iterating them. Drop everything that is not part of this refresh.
+            var currentUsers = new HashSet<User>(allUsers);
+
+            foreach (var user in AllUsers.Keys)
+            {
+                if (!currentUsers.Contains(user))
+                {
+                    AllUsers.TryRemove(user, out _);
+                }
             }
 
             FetchAdminOrderedViews();
@@ -246,10 +252,11 @@ namespace StrmAssistant.Common
 
         public List<BaseItem> FetchExtractQueueItems(List<BaseItem> items)
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope
-                ?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(
+                Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope);
 
-            var includeFavorites = libraryIds == null || !libraryIds.Any() || libraryIds.Contains("-1");
+            // Media info also takes favorites for an empty scope, unlike the intro skip queues.
+            var includeFavorites = !libraryIds.Any() || LibraryScopeResolver.IncludesFavorites(libraryIds);
             var includeExtra = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.IncludeExtra;
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
@@ -261,16 +268,15 @@ namespace StrmAssistant.Common
 
                 var incomingItems = items.Where(item => item is Video || item is Audio).ToList();
 
-                if (libraryIds == null || !libraryIds.Any())
+                if (!libraryIds.Any())
                 {
                     resultItems = resultItems.Concat(incomingItems).ToList();
                 }
 
-                if (libraryIds != null && libraryIds.Any(id => id != "-1") && LibraryPathsInScope.Any())
+                if (LibraryScopeResolver.SelectsLibraries(libraryIds) && LibraryPathsInScope.Any())
                 {
-                    var filteredItems = incomingItems
-                        .Where(i => LibraryPathsInScope.Any(p => i.ContainingFolderPath.StartsWith(p)))
-                        .ToList();
+                    var filteredItems = LibraryScopeResolver.FilterInScope(incomingItems,
+                        i => i.ContainingFolderPath, LibraryPathsInScope);
                     resultItems = resultItems.Concat(filteredItems).ToList();
                 }
             }
@@ -334,8 +340,8 @@ namespace StrmAssistant.Common
 
         public List<BaseItem> FetchPreExtractTaskItems()
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(
+                Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.LibraryScope);
             var libraries = _libraryManager.GetVirtualFolders()
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id)).ToList();
             var librariesWithImageCapture = GetLibrariesWithImageCapture(libraries);
@@ -343,7 +349,7 @@ namespace StrmAssistant.Common
             _logger?.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
                 ? "ALL"
                 : string.Join(", ",
-                    libraryIds.Contains("-1")
+                    LibraryScopeResolver.IncludesFavorites(libraryIds)
                         ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
                         : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
@@ -352,7 +358,7 @@ namespace StrmAssistant.Common
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
 
             var favoritesWithExtra = Array.Empty<BaseItem>();
-            if (libraryIds.Contains("-1"))
+            if (LibraryScopeResolver.IncludesFavorites(libraryIds))
             {
                 var favorites = AllUsers.Select(e => e.Key)
                     .SelectMany(user => _libraryManager.GetItemList(new InternalItemsQuery
@@ -372,20 +378,14 @@ namespace StrmAssistant.Common
             var items = new List<BaseItem>();
             var extras = new List<BaseItem>();
 
-            if (!libraryIds.Any() || libraryIds.Any(id => id != "-1"))
+            if (!LibraryScopeResolver.IsFavoritesOnly(libraryIds))
             {
-                var pathScopes = libraryIds.Any(id => id != "-1") && libraries.Any()
-                    ? libraries.SelectMany(l => l.Locations).Select(ls =>
-                        ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                            ? ls
-                            : ls + Path.DirectorySeparatorChar).ToArray()
+                var pathScopes = LibraryScopeResolver.SelectsLibraries(libraryIds) && libraries.Any()
+                    ? LibraryScopeResolver.ToScopePaths(libraries).ToArray()
                     : null;
 
                 var imageScopes = enableImageCapture && librariesWithImageCapture.Any()
-                    ? librariesWithImageCapture.SelectMany(l => l.Locations).Select(ls =>
-                        ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                            ? ls
-                            : ls + Path.DirectorySeparatorChar).ToArray()
+                    ? LibraryScopeResolver.ToScopePaths(librariesWithImageCapture).ToArray()
                     : null;
 
                 var mediaInfoQuery = new InternalItemsQuery
@@ -491,9 +491,8 @@ namespace StrmAssistant.Common
 
         public List<BaseItem> FetchPostExtractTaskItems(bool includeAudio)
         {
-            var libraryIds = Plugin.Instance.GetPluginOptions()
-                .MediaInfoExtractOptions.LibraryScope.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .ToArray();
+            var libraryIds = LibraryScopeResolver.ParseScopeIds(Plugin.Instance.GetPluginOptions()
+                .MediaInfoExtractOptions.LibraryScope);
             var libraries = _libraryManager.GetVirtualFolders()
                 .Where(f => !libraryIds.Any() || libraryIds.Contains(f.Id))
                 .ToList();
@@ -501,7 +500,7 @@ namespace StrmAssistant.Common
             _logger?.Info("MediaInfoExtract - LibraryScope: " + (!libraryIds.Any()
                 ? "ALL"
                 : string.Join(", ",
-                    libraryIds.Contains("-1")
+                    LibraryScopeResolver.IncludesFavorites(libraryIds)
                         ? new[] { Resources.Favorites }.Concat(libraries.Select(l => l.Name))
                         : libraries.Select(l => l.Name).DefaultIfEmpty("NONE"))));
 
@@ -509,7 +508,7 @@ namespace StrmAssistant.Common
             _logger?.Info("Include Extra: " + includeExtra);
 
             var favoritesWithExtra = new List<BaseItem>();
-            if (libraryIds.Contains("-1"))
+            if (LibraryScopeResolver.IncludesFavorites(libraryIds))
             {
                 var favorites = AllUsers.Select(e => e.Key)
                     .SelectMany(user => _libraryManager.GetItemList(new InternalItemsQuery
@@ -530,16 +529,14 @@ namespace StrmAssistant.Common
             }
 
             var itemsWithExtras = new List<BaseItem>();
-            if (!libraryIds.Any() || libraryIds.Any(id => id != "-1"))
+            if (!LibraryScopeResolver.IsFavoritesOnly(libraryIds))
             {
                 var mediaTypes = includeAudio
                     ? new[] { MediaType.Video, MediaType.Audio }
                     : new[] { MediaType.Video };
 
-                var pathScopes = libraryIds.Any(id => id != "-1") && libraries.Any()
-                    ? libraries.SelectMany(l => l.Locations).Select(ls =>
-                        ls.EndsWith(Path.DirectorySeparatorChar.ToString()) ? ls : ls + Path.DirectorySeparatorChar)
-                        .ToArray()
+                var pathScopes = LibraryScopeResolver.SelectsLibraries(libraryIds) && libraries.Any()
+                    ? LibraryScopeResolver.ToScopePaths(libraries).ToArray()
                     : null;
 
                 var itemsQuery = new InternalItemsQuery
@@ -884,7 +881,7 @@ namespace StrmAssistant.Common
             var filePath = taskItem.Path;
             if (taskItem.IsShortcut)
             {
-                filePath = await GetStrmMountPath(filePath).ConfigureAwait(false);
+                filePath = await GetStrmMountPath(filePath, cancellationToken).ConfigureAwait(false);
             }
 
             if (string.IsNullOrEmpty(filePath)) return null;
@@ -1099,7 +1096,7 @@ namespace StrmAssistant.Common
             {
                 try
                 {
-                    inputPath = await GetStrmMountPath(inputPath).ConfigureAwait(false);
+                    inputPath = await GetStrmMountPath(inputPath, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -1623,11 +1620,70 @@ namespace StrmAssistant.Common
             return path != null && string.Equals(Path.GetExtension(path), ".strm", StringComparison.OrdinalIgnoreCase);
         }
 
-        public async Task<string> GetStrmMountPath(string strmPath)
+        /// <summary>
+        /// Resolves the local path of a .strm shortcut by asking Emby's mount manager. The token is
+        /// the caller's own: it used to be hard coded to <see cref="CancellationToken.None"/>, so a
+        /// cancelled extraction still waited for the mount (and for the network behind it).
+        /// </summary>
+        public async Task<string> GetStrmMountPath(string strmPath,
+            CancellationToken cancellationToken = default)
         {
-            using var mediaMount = await _mediaMountManager.Mount(strmPath, null, CancellationToken.None);
+            using var mediaMount = await _mediaMountManager.Mount(strmPath, null, cancellationToken)
+                .ConfigureAwait(false);
 
             return StrmUrlHelper.Normalize(mediaMount?.MountedPathInfo?.FullName);
+        }
+
+        /// <summary>How long a resolved .strm mount path may be reused by the ffprobe hot path.</summary>
+        private static readonly TimeSpan StrmMountPathCacheTtl = TimeSpan.FromMinutes(5);
+
+        /// <summary>Upper bound of the mount path cache; expired entries are dropped past it.</summary>
+        private const int StrmMountPathCacheLimit = 256;
+
+        private readonly ConcurrentDictionary<string, (string MountPath, DateTime CachedAt)> _strmMountPathCache =
+            new ConcurrentDictionary<string, (string MountPath, DateTime CachedAt)>();
+
+        /// <summary>
+        /// Synchronous, cached variant of <see cref="GetStrmMountPath"/> for the ffprobe/ffmpeg
+        /// hook, which Emby calls synchronously and therefore cannot await.
+        ///
+        /// It resolves the mount on the calling thread instead of <c>Task.Run(...).Result</c>, which
+        /// blocked the calling thread <em>and</em> occupied a second thread-pool thread for every
+        /// single probe, and it answers repeat probes of the same .strm from a short lived cache so
+        /// the hot path usually does not call the mount manager at all.
+        ///
+        /// Emby's ffprobe entry point takes no <see cref="CancellationToken"/>, so this overload is
+        /// the one place where the mount cannot be cancelled; the cached hit keeps that window
+        /// small. Callers that do own a token use <see cref="GetStrmMountPath"/>.
+        /// </summary>
+        public string GetStrmMountPathCached(string strmPath)
+        {
+            if (string.IsNullOrEmpty(strmPath)) return null;
+
+            if (_strmMountPathCache.TryGetValue(strmPath, out var cached) &&
+                DateTime.UtcNow - cached.CachedAt < StrmMountPathCacheTtl)
+            {
+                return cached.MountPath;
+            }
+
+            var mountPath = GetStrmMountPath(strmPath, CancellationToken.None).GetAwaiter().GetResult();
+
+            var now = DateTime.UtcNow;
+
+            _strmMountPathCache[strmPath] = (mountPath, now);
+
+            if (_strmMountPathCache.Count > StrmMountPathCacheLimit)
+            {
+                foreach (var entry in _strmMountPathCache)
+                {
+                    if (now - entry.Value.CachedAt >= StrmMountPathCacheTtl)
+                    {
+                        _strmMountPathCache.TryRemove(entry.Key, out _);
+                    }
+                }
+            }
+
+            return mountPath;
         }
 
         public BaseItem[] GetItemsByIds(long[] itemIds)

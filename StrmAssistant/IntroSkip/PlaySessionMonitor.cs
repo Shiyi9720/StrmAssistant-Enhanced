@@ -35,6 +35,19 @@ namespace StrmAssistant.IntroSkip
         private readonly object _introLock = new object();
         private readonly object _creditsLock = new object();
 
+        // A client that stops without a PlaybackStopped event (crash, network drop, app killed)
+        // used to leave its session data - and the marker write throttle of its episode - behind
+        // for the lifetime of the plugin. Clients send a TimeUpdate every few seconds, so anything
+        // that has been silent for a long time is gone.
+        private static readonly TimeSpan StalePlaySessionAge = TimeSpan.FromHours(2);
+
+        // The intro/credits update times only throttle marker writes within _updateInterval (10 s).
+        private static readonly TimeSpan StaleMarkerUpdateAge = TimeSpan.FromHours(1);
+
+        private static readonly TimeSpan StaleCleanupInterval = TimeSpan.FromMinutes(30);
+
+        private Timer _staleCleanupTimer;
+
         private static Task _introSkipProcessTask;
 
         public static List<string> LibraryPathsInScope;
@@ -57,18 +70,9 @@ namespace StrmAssistant.IntroSkip
 
         public void UpdateLibraryPathsInScope()
         {
-            var validLibraryIds = GetValidLibraryIds(Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope);
-
-            var libraries = _libraryManager.GetVirtualFolders()
-                .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
-                            (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))
-                .ToList();
-
-            LibraryPathsInScope = libraries.SelectMany(l => l.Locations)
-                .Select(ls => ls.EndsWith(Path.DirectorySeparatorChar.ToString())
-                    ? ls
-                    : ls + Path.DirectorySeparatorChar)
-                .ToList();
+            LibraryPathsInScope = LibraryScopeResolver.ResolveScopePaths(_libraryManager,
+                Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope,
+                f => f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null);
         }
 
         public void UpdateUsersInScope()
@@ -109,6 +113,9 @@ namespace StrmAssistant.IntroSkip
             _sessionManager.PlaybackStart += OnPlaybackStart;
             _sessionManager.PlaybackProgress += OnPlaybackProgress;
             _sessionManager.PlaybackStopped += OnPlaybackStopped;
+
+            _staleCleanupTimer = new Timer(_ => PruneStaleEntries(), null, StaleCleanupInterval,
+                StaleCleanupInterval);
 
             if (Plugin.Instance.GetPluginOptions().IntroSkipOptions.EnableIntroSkip &&
                 (_introSkipProcessTask == null || _introSkipProcessTask.IsCompleted))
@@ -418,12 +425,55 @@ namespace StrmAssistant.IntroSkip
 
             var playSessionData = _playSessionData[playSessionId];
 
+            playSessionData.LastActivityTime = DateTime.UtcNow;
+
             return playSessionData;
+        }
+
+        /// <summary>
+        /// Removes the state of sessions that stopped reporting without a PlaybackStopped event.
+        /// Called by <see cref="_staleCleanupTimer"/>; entries removed here are exactly the ones the
+        /// normal PlaybackStopped path would have removed.
+        /// </summary>
+        private void PruneStaleEntries()
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+
+                foreach (var entry in _playSessionData)
+                {
+                    if (now - entry.Value.LastActivityTime >= StalePlaySessionAge)
+                    {
+                        _playSessionData.TryRemove(entry.Key, out _);
+                    }
+                }
+
+                foreach (var entry in _lastIntroUpdateTimes)
+                {
+                    if (now - entry.Value >= StaleMarkerUpdateAge)
+                    {
+                        _lastIntroUpdateTimes.TryRemove(entry.Key, out _);
+                    }
+                }
+
+                foreach (var entry in _lastCreditsUpdateTimes)
+                {
+                    if (now - entry.Value >= StaleMarkerUpdateAge)
+                    {
+                        _lastCreditsUpdateTimes.TryRemove(entry.Key, out _);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("IntroSkip - Stale session cleanup failed: " + e.Message);
+            }
         }
 
         public bool IsLibraryInScope(BaseItem item)
         {
-            return !string.IsNullOrEmpty(item.Path) && LibraryPathsInScope.Any(l => item.Path.StartsWith(l));
+            return LibraryScopeResolver.IsPathInScope(item.Path, LibraryPathsInScope);
         }
 
         public bool IsUserInScope(long userInternalId)
@@ -537,6 +587,8 @@ namespace StrmAssistant.IntroSkip
             _sessionManager.PlaybackStart -= OnPlaybackStart;
             _sessionManager.PlaybackProgress -= OnPlaybackProgress;
             _sessionManager.PlaybackStopped -= OnPlaybackStopped;
+            _staleCleanupTimer?.Dispose();
+            _staleCleanupTimer = null;
             if (QueueManager.IntroSkipTokenSource != null) QueueManager.IntroSkipTokenSource.Cancel();
         }
     }

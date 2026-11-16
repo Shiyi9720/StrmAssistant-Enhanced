@@ -13,8 +13,6 @@ namespace StrmAssistant.ScheduledTask
     {
         private ILogger _logger => Plugin.Instance?.Logger;
 
-        private static readonly Random Random = new Random();
-
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
             _logger?.Info("RefreshPerson - Scheduled Task Execute");
@@ -59,7 +57,7 @@ namespace StrmAssistant.ScheduledTask
                     try
                     {
                         await Task.Delay(
-                                Random.Next(0,
+                                ConcurrentRandom.Next(0,
                                     Math.Max(0, tier2MaxConcurrentCount - QueueManager.Tier2Semaphore.CurrentCount) *
                                     MetadataApi.RequestIntervalMs), cancellationToken)
                             .ConfigureAwait(false);
@@ -94,7 +92,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                 }, cancellationToken);
                 tasks.Add(task);
-                Task.Delay(10).Wait();
+                await Task.Delay(10).ConfigureAwait(false);
             }
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
