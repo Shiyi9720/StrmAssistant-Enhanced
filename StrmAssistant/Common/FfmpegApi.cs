@@ -195,12 +195,17 @@ namespace StrmAssistant.Common
                     return new RunResult(output, ReadExitCode(runner));
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                // expected: the caller cancelled the run; an empty result means "no output".
+                Plugin.Instance?.Logger?.Debug("FfmpegApi - Run cancelled: " + name +
+                                               Environment.NewLine + e);
                 return RunResult.Empty;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("FfmpegApi - Run failed: " + name +
+                                               Environment.NewLine + e);
                 return RunResult.Empty;
             }
             finally
@@ -209,9 +214,10 @@ namespace StrmAssistant.Common
                 {
                     if (File.Exists(logPath)) File.Delete(logPath);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    Plugin.Instance?.Logger?.Debug("FfmpegApi - Failed to delete log file: " + logPath +
+                                                   Environment.NewLine + e);
                 }
             }
         }
@@ -222,9 +228,11 @@ namespace StrmAssistant.Common
             {
                 return runner.LastExitCode;
             }
-            catch
+            catch (Exception e)
             {
-                // An Emby build that does not populate LastExitCode must not fail the probe.
+                // expected: an Emby build that does not populate LastExitCode must not fail the probe.
+                Plugin.Instance?.Logger?.Debug("FfmpegApi - LastExitCode unavailable" +
+                                               Environment.NewLine + e);
                 return null;
             }
         }
@@ -275,8 +283,10 @@ namespace StrmAssistant.Common
             {
                 throw;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("FfmpegApi - Capability probe failed" +
+                                               Environment.NewLine + e);
                 return false;
             }
             finally
@@ -285,9 +295,10 @@ namespace StrmAssistant.Common
                 {
                     if (File.Exists(logPath)) File.Delete(logPath);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    Plugin.Instance?.Logger?.Debug("FfmpegApi - Failed to delete log file: " + logPath +
+                                                   Environment.NewLine + e);
                 }
             }
         }

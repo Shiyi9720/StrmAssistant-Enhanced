@@ -93,7 +93,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // The provider request was cancelled; the caller decides what to do next.
+                // expected: the provider request was cancelled; the caller decides what to do next.
             }
             catch (Exception e)
             {
@@ -786,8 +786,10 @@ namespace StrmAssistant.Common
                 // the rest of the TTL.
                 return MovieDbApi.GetEffectiveApiRoot().TrimEnd('/') + "|" + GetSelectionKey();
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("RemoteEpisodeGroup - Failed to build cache key" +
+                                               Environment.NewLine + e);
                 return string.Empty;
             }
         }
@@ -816,8 +818,10 @@ namespace StrmAssistant.Common
 
                 return Path.Combine(dataFolder, CacheFolderName);
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("RemoteEpisodeGroup - Failed to resolve cache folder; using temp" +
+                                               Environment.NewLine + e);
                 return Path.Combine(Path.GetTempPath(), "StrmAssistant", CacheFolderName);
             }
         }
@@ -874,9 +878,10 @@ namespace StrmAssistant.Common
                     {
                         File.Delete(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // Best effort cleanup only.
+                        Plugin.Instance?.Logger?.Debug("RemoteEpisodeGroup - Failed to delete temporary file" +
+                                                       Environment.NewLine + e);
                     }
                 }
             }
@@ -888,8 +893,10 @@ namespace StrmAssistant.Common
             {
                 return Plugin.Instance?.GetPluginOptions()?.MetadataEnhanceOptions;
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("RemoteEpisodeGroup - Failed to read options" +
+                                               Environment.NewLine + e);
                 return null;
             }
         }

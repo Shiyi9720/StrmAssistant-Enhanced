@@ -342,9 +342,11 @@ namespace StrmAssistant.Common
                     "Local metadata source ({0}) - Override hits: {1}, Cache hits: {2}, Online requests: {3}, Metadata writes: {4}, Image writes: {5}, Failures: {6}",
                     reason, overrideHits, cacheHits, onlineRequests, metadataWrites, imageWrites, failures);
             }
-            catch
+            catch (Exception e)
             {
-                // Statistics logging must never affect scraping.
+                // expected: statistics logging must never affect scraping.
+                Plugin.Instance?.Logger?.Debug("Local metadata source - Statistics log failed" +
+                                               Environment.NewLine + e);
             }
         }
 
@@ -488,9 +490,10 @@ namespace StrmAssistant.Common
             {
                 stream.Dispose();
             }
-            catch
+            catch (Exception e)
             {
-                // Best effort cleanup only.
+                _logger?.Debug("Local metadata source - Failed to dispose response stream" +
+                               Environment.NewLine + e);
             }
 
             response.Content = new MemoryStream(bytes);
@@ -558,9 +561,11 @@ namespace StrmAssistant.Common
                     {
                         if (File.ReadAllBytes(path).SequenceEqual(bytes)) return false;
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // Compare is an optimization only; continue with the atomic write.
+                        // expected: the comparison is an optimization only; continue with the atomic write.
+                        _logger?.Debug("Local metadata source - Failed to compare existing file: " + path +
+                                       Environment.NewLine + e);
                     }
                 }
 
@@ -594,9 +599,10 @@ namespace StrmAssistant.Common
                     {
                         File.Delete(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // Best effort cleanup only.
+                        _logger?.Debug("Local metadata source - Failed to delete temporary file: " + tempPath +
+                                       Environment.NewLine + e);
                     }
                 }
             }
@@ -761,8 +767,10 @@ namespace StrmAssistant.Common
                         return ".jpg";
                 }
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("Local metadata source - Failed to resolve image extension" +
+                                               Environment.NewLine + e);
                 return ".jpg";
             }
         }

@@ -56,8 +56,9 @@ namespace StrmAssistant.Common
                     return (Plugin.Instance?.GetPluginOptions()?.NetworkOptions?.LocalDiscoveryAddress ??
                             string.Empty).Trim();
                 }
-                catch
+                catch (Exception e)
                 {
+                    Plugin.Instance?.Logger?.Debug("Local discovery address option read failed: {0}", e.ToString());
                     return string.Empty;
                 }
             }
@@ -184,18 +185,20 @@ namespace StrmAssistant.Common
             {
                 _cancellation?.Cancel();
             }
-            catch
+            catch (Exception e)
             {
-                // Ignore: the listener is already shutting down.
+                // expected: the listener is already shutting down.
+                Plugin.Instance?.Logger?.Debug("Local discovery listener shutdown failed: {0}", e.ToString());
             }
 
             try
             {
                 _udpSocket?.Dispose();
             }
-            catch
+            catch (Exception e)
             {
-                // Ignore: the socket is already closed.
+                // expected: the socket is already closed.
+                Plugin.Instance?.Logger?.Debug("Local discovery socket dispose failed: {0}", e.ToString());
             }
 
             _udpSocket = null;
@@ -219,14 +222,16 @@ namespace StrmAssistant.Common
                     dualMode.Bind(new IPEndPoint(IPAddress.IPv6Any, UdpPort));
                     return dualMode;
                 }
-                catch
+                catch (Exception e)
                 {
+                    Plugin.Instance?.Logger?.Debug("Dual mode UDP bind failed; falling back to IPv4: {0}", e.ToString());
                     dualMode.Dispose();
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // Dual mode sockets are not available on every platform; fall back to IPv4.
+                // expected: dual mode sockets are not available on every platform; fall back to IPv4.
+                Plugin.Instance?.Logger?.Debug("Dual mode UDP socket unavailable: {0}", e.ToString());
             }
 
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -249,9 +254,10 @@ namespace StrmAssistant.Common
             {
                 socket.ExclusiveAddressUse = true;
             }
-            catch
+            catch (Exception e)
             {
-                // Only supported on Windows; Unix uses the SO_REUSEADDR rules described above.
+                // expected: only supported on Windows; Unix uses the SO_REUSEADDR rules described above.
+                Plugin.Instance?.Logger?.Debug("ExclusiveAddressUse is not supported here: {0}", e.ToString());
             }
         }
 
@@ -277,13 +283,20 @@ namespace StrmAssistant.Common
                 }
                 catch (ObjectDisposedException)
                 {
+                    // expected: the socket was disposed during shutdown.
                     break;
                 }
-                catch (SocketException)
+                catch (SocketException e)
                 {
                     if (token.IsCancellationRequested)
                     {
+                        // expected: shutdown interrupts the blocking receive.
                         break;
+                    }
+
+                    if (LogLimiter.ShouldLog("LocalDiscovery - receive failed", TimeSpan.FromMinutes(5)))
+                    {
+                        Plugin.Instance?.Logger?.Debug("Local discovery receive failed: {0}", e.ToString());
                     }
 
                     // Avoid a busy loop on transient socket errors (for example ICMP unreachable).
@@ -330,6 +343,7 @@ namespace StrmAssistant.Common
                 }
                 catch (ObjectDisposedException)
                 {
+                    // expected: the socket was disposed during shutdown.
                     break;
                 }
                 catch (Exception ex)

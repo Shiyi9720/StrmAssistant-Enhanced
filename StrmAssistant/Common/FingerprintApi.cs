@@ -244,9 +244,10 @@ namespace StrmAssistant.Common
                 {
                     if (File.Exists(tempPath)) File.Delete(tempPath);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    _logger?.Debug("IntroFingerprintExtract - Failed to delete temporary file: " + tempPath +
+                                   Environment.NewLine + e);
                 }
             }
         }

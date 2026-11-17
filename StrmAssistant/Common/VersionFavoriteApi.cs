@@ -56,8 +56,10 @@ namespace StrmAssistant.Common
                     return Plugin.Instance?.GetPluginOptions()?.ExperienceEnhanceOptions
                         ?.VersionFavoriteOptions?.EnableCrossLibraryFavoriteSeparation ?? false;
                 }
-                catch
+                catch (Exception e)
                 {
+                    Plugin.Instance?.Logger?.Debug("VersionFavoriteApi - Failed to read options" +
+                                                   Environment.NewLine + e);
                     return false;
                 }
             }

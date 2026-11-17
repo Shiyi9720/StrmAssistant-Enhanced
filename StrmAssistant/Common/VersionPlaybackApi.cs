@@ -466,8 +466,10 @@ namespace StrmAssistant.Common
                 return Plugin.Instance?.GetPluginOptions()?.ExperienceEnhanceOptions
                     ?.VersionPlaybackOptions?.PersistPerVersionResume ?? false;
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("VersionPlaybackApi - Failed to read options" +
+                                               Environment.NewLine + e);
                 return false;
             }
         }
@@ -765,8 +767,11 @@ namespace StrmAssistant.Common
                 {
                     path = Uri.UnescapeDataString(path);
                 }
-                catch (UriFormatException)
+                catch (UriFormatException e)
                 {
+                    // expected: the raw path is still usable when it is not escaped.
+                    Plugin.Instance?.Logger?.Debug("VersionPlaybackApi - Failed to unescape path: " + path +
+                                                   Environment.NewLine + e);
                 }
 
                 if (!string.IsNullOrWhiteSpace(path)) return path;
@@ -958,9 +963,10 @@ namespace StrmAssistant.Common
                 {
                     if (File.Exists(tempPath)) File.Delete(tempPath);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // Best effort cleanup only.
+                    Plugin.Instance?.Logger?.Debug("VersionPlaybackApi - Failed to delete temporary file" +
+                                                   Environment.NewLine + e);
                 }
             }
         }

@@ -351,8 +351,10 @@ namespace StrmAssistant.Common
             {
                 return Path.GetFullPath(root.Trim().Trim('"'));
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("LocalEpisodeGroup - Invalid root: " + root +
+                                               Environment.NewLine + e);
                 return null;
             }
         }

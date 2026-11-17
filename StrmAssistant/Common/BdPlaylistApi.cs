@@ -53,8 +53,10 @@ namespace StrmAssistant.Common
                     {
                         info = Parse(File.ReadAllBytes(file));
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        Plugin.Instance?.Logger?.Debug("BdPlaylistApi - Failed to parse playlist: " + file +
+                                                       Environment.NewLine + e);
                         continue;
                     }
 
@@ -72,9 +74,10 @@ namespace StrmAssistant.Common
                     if (File.Exists(candidate)) return candidate;
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                Plugin.Instance?.Logger?.Debug("BdPlaylistApi - Failed to select main clip" +
+                                               Environment.NewLine + e);
             }
 
             return null;
@@ -99,8 +102,10 @@ namespace StrmAssistant.Common
                 {
                     info = Parse(playlist);
                 }
-                catch
+                catch (Exception e)
                 {
+                    Plugin.Instance?.Logger?.Debug("BdPlaylistApi - Failed to parse playlist content" +
+                                                   Environment.NewLine + e);
                     continue;
                 }
 
@@ -140,8 +145,10 @@ namespace StrmAssistant.Common
                         var info = new FileInfo(f);
                         return info.Exists && info.Length > 0 && info.Length <= MaxPlaylistSize;
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        Plugin.Instance?.Logger?.Debug("BdPlaylistApi - Failed to inspect playlist: " + f +
+                                                       Environment.NewLine + e);
                         return false;
                     }
                 });

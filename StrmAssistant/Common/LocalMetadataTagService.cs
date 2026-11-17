@@ -124,8 +124,10 @@ namespace StrmAssistant.Common
             {
                 return Path.GetFullPath(root.Trim().Trim('"'));
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("LocalMetadataTagService - Invalid root: " + root +
+                                               Environment.NewLine + e);
                 return null;
             }
         }

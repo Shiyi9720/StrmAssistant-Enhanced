@@ -212,8 +212,10 @@ namespace StrmAssistant
                     Plugin.Instance?.Logger.Debug("[LoadDependency] {0} -> {1} loaded={2}", an.FullName, file, loaded != null);
                     return loaded;
                 }
-                catch
+                catch (Exception e)
                 {
+                    Plugin.Instance?.Logger?.Debug("[LoadDependency] Failed to load " + args.Name +
+                                                   Environment.NewLine + e);
                     return null;
                 }
             };
@@ -1850,9 +1852,11 @@ namespace StrmAssistant
                     "PluginOptions_EditorTitle_Strm_Assistant", culture);
                 if (!string.IsNullOrEmpty(text)) info.DisplayName = text;
             }
-            catch
+            catch (Exception e)
             {
-                // 显示名刷新失败不影响插件功能
+                // expected: refreshing the display name must not affect plugin functionality.
+                Instance?.Logger?.Debug("Plugin - Failed to refresh page info display name" +
+                                        Environment.NewLine + e);
             }
         }
 

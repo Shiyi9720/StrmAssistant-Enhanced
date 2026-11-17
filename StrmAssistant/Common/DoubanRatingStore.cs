@@ -257,9 +257,10 @@ namespace StrmAssistant.Common
                     {
                         if (File.Exists(tempPath)) File.Delete(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // Best effort cleanup only.
+                        Plugin.Instance?.Logger?.Debug("DoubanRatingStore - Failed to delete temporary file: " +
+                                                       tempPath + Environment.NewLine + e);
                     }
                 }
             }

@@ -111,8 +111,13 @@ namespace StrmAssistant.Common
                 {
                     return LanguageUtility.ConvertTraditionalToSimplified(s) ?? s;
                 }
-                catch
+                catch (Exception e)
                 {
+                    if (LogLimiter.ShouldLog("ChineseSearch - Simplified conversion", TimeSpan.FromMinutes(5)))
+                    {
+                        Plugin.Instance?.Logger?.Debug("ChineseSearch - Simplified conversion failed" +
+                                                       Environment.NewLine + e);
+                    }
                     return s;
                 }
             });
@@ -128,8 +133,13 @@ namespace StrmAssistant.Common
                 {
                     return LanguageUtility.ConvertSimplifiedToTraditional(s) ?? s;
                 }
-                catch
+                catch (Exception e)
                 {
+                    if (LogLimiter.ShouldLog("ChineseSearch - Traditional conversion", TimeSpan.FromMinutes(5)))
+                    {
+                        Plugin.Instance?.Logger?.Debug("ChineseSearch - Traditional conversion failed" +
+                                                       Environment.NewLine + e);
+                    }
                     return s;
                 }
             });
@@ -145,8 +155,13 @@ namespace StrmAssistant.Common
                 {
                     return Compact(WordsHelper.GetPinyin(s, false));
                 }
-                catch
+                catch (Exception e)
                 {
+                    if (LogLimiter.ShouldLog("ChineseSearch - Pinyin conversion", TimeSpan.FromMinutes(5)))
+                    {
+                        Plugin.Instance?.Logger?.Debug("ChineseSearch - Pinyin conversion failed" +
+                                                       Environment.NewLine + e);
+                    }
                     return string.Empty;
                 }
             });
@@ -162,8 +177,13 @@ namespace StrmAssistant.Common
                 {
                     return Compact(WordsHelper.GetFirstPinyin(s));
                 }
-                catch
+                catch (Exception e)
                 {
+                    if (LogLimiter.ShouldLog("ChineseSearch - Initials conversion", TimeSpan.FromMinutes(5)))
+                    {
+                        Plugin.Instance?.Logger?.Debug("ChineseSearch - Initials conversion failed" +
+                                                       Environment.NewLine + e);
+                    }
                     return string.Empty;
                 }
             });
@@ -231,9 +251,14 @@ namespace StrmAssistant.Common
                         if (compact.Length > 0 && !readings.Contains(compact)) readings.Add(compact);
                     }
                 }
-                catch
+                catch (Exception e)
                 {
-                    // Fall through to the single-reading conversion below.
+                    // expected: fall through to the single-reading conversion below.
+                    if (LogLimiter.ShouldLog("ChineseSearch - Polyphone expansion", TimeSpan.FromMinutes(5)))
+                    {
+                        Plugin.Instance?.Logger?.Debug("ChineseSearch - Polyphone expansion failed" +
+                                                       Environment.NewLine + e);
+                    }
                 }
 
                 if (readings.Count == 0)

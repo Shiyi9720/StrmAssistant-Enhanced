@@ -74,8 +74,10 @@ namespace StrmAssistant.Common
 
                 return info.Exists ? info.Length : 0;
             }
-            catch
+            catch (Exception e)
             {
+                Logger?.Debug("IsoExtract - Failed to read source size: " + source +
+                              Environment.NewLine + e);
                 return 0;
             }
         }
@@ -163,6 +165,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: cancellation leaves the extraction job to complete in the background.
                 return null;
             }
             catch (Exception e)
@@ -191,6 +194,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: cancellation leaves the extraction job to complete in the background.
                 return null;
             }
             catch (Exception e)
@@ -567,9 +571,11 @@ namespace StrmAssistant.Common
 
                     if (response.StatusCode == HttpStatusCode.OK) return response.ContentLength;
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored: fall back to a one byte range request
+                    // expected: fall back to a one byte range request.
+                    Logger?.Debug("IsoExtract - Size probe failed; trying range request" +
+                                  Environment.NewLine + e);
                 }
 
                 try
@@ -609,9 +615,10 @@ namespace StrmAssistant.Common
                         return response.ContentLength;
                     }
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    Logger?.Debug("IsoExtract - Range size probe failed" +
+                                  Environment.NewLine + e);
                 }
 
                 return null;

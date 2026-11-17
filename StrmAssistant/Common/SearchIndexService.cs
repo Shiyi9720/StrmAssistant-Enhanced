@@ -483,8 +483,10 @@ namespace StrmAssistant.Common
             {
                 value = property.GetValue(item);
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("ChineseSearch - Failed to read indexed property: " + property.Name +
+                               Environment.NewLine + e);
                 yield break;
             }
 

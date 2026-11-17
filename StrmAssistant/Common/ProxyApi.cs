@@ -156,9 +156,11 @@ namespace StrmAssistant.Common
                     await Task.Delay(RetireGracePeriod).ConfigureAwait(false);
                     client.Dispose();
                 }
-                catch
+                catch (Exception e)
                 {
-                    // Best effort; the handler is collected with the client.
+                    // expected: best effort; the handler is collected with the client.
+                    Plugin.Instance?.Logger?.Debug("ProxyApi - Failed to dispose retired client" +
+                                                   Environment.NewLine + e);
                 }
             });
         }

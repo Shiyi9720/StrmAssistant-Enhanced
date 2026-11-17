@@ -103,8 +103,9 @@ namespace StrmAssistant.ScheduledTask
                     {
                         await QueueManager.FingerprintSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        // expected: the scheduled task was cancelled, so it stops taking new items.
                         return;
                     }
 
@@ -205,9 +206,9 @@ namespace StrmAssistant.ScheduledTask
                                     await Task.Delay(cooldownSeconds.Value * 1000, cancellationToken)
                                         .ConfigureAwait(false);
                                 }
-                                catch
+                                catch (OperationCanceledException)
                                 {
-                                    // ignored
+                                    // expected: the cooldown delay was cancelled, so the task stops.
                                 }
                             }
 
@@ -270,8 +271,9 @@ namespace StrmAssistant.ScheduledTask
                     {
                         await QueueManager.Tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        // expected: the scheduled task was cancelled, so it stops taking new items.
                         return;
                     }
 

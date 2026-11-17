@@ -384,7 +384,7 @@ namespace StrmAssistant.Mod
             }
             catch
             {
-                // Never let logging break the delete path.
+                // expected: logging must never break the delete path.
             }
         }
     }

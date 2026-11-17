@@ -275,9 +275,13 @@ namespace StrmAssistant.Common
                     {
                         if (File.Exists(tempPath)) File.Delete(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+
+                        _logger?.Debug("VideoThumbnailApi - Failed to delete temporary file" +
+
+                                       Environment.NewLine + e);
+
                     }
                 }
 
@@ -419,9 +423,13 @@ namespace StrmAssistant.Common
                     {
                         if (File.Exists(tempPath)) File.Delete(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+
+                        _logger?.Debug("VideoThumbnailApi - Failed to delete temporary file" +
+
+                                       Environment.NewLine + e);
+
                     }
                 }
             }
@@ -467,9 +475,13 @@ namespace StrmAssistant.Common
                     {
                         if (File.Exists(tempPath)) File.Delete(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+
+                        _logger?.Debug("VideoThumbnailApi - Failed to delete temporary file" +
+
+                                       Environment.NewLine + e);
+
                     }
                 }
             }
@@ -535,9 +547,13 @@ namespace StrmAssistant.Common
                 {
                     if (File.Exists(tempPath)) File.Delete(tempPath);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+
+                    _logger?.Debug("VideoThumbnailApi - Failed to delete temporary file" +
+
+                                   Environment.NewLine + e);
+
                 }
             }
         }

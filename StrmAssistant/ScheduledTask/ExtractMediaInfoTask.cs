@@ -130,9 +130,9 @@ namespace StrmAssistant.ScheduledTask
                             {
                                 await Task.Delay(cooldownSeconds.Value * 1000, cancellationToken).ConfigureAwait(false);
                             }
-                            catch
+                            catch (OperationCanceledException)
                             {
-                                // ignored
+                                // expected: the cooldown delay was cancelled, so the task stops.
                             }
                         }
 

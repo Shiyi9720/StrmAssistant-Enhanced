@@ -43,8 +43,10 @@ namespace StrmAssistant.Common
                        (uri.IsDefaultPort || (uri.Port > 0 && uri.Port <= 65535)) &&
                        (string.IsNullOrEmpty(uri.UserInfo) || uri.UserInfo.Contains(":"));
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("CommonUtility - Invalid proxy URL: " + proxyUrl +
+                                               Environment.NewLine + e);
                 return false;
             }
         }
@@ -76,9 +78,10 @@ namespace StrmAssistant.Common
                     return true;
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                Plugin.Instance?.Logger?.Debug("CommonUtility - Network probe failed" +
+                                               Environment.NewLine + e);
             }
 
             return false;
@@ -96,9 +99,10 @@ namespace StrmAssistant.Common
                     return (true, stopwatch.Elapsed.TotalMilliseconds);
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                Plugin.Instance?.Logger?.Debug("CommonUtility - Timed network probe failed" +
+                                               Environment.NewLine + e);
             }
 
             return (false, null);
@@ -146,9 +150,10 @@ namespace StrmAssistant.Common
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                Plugin.Instance?.Logger?.Debug("CommonUtility - Ping probe failed" +
+                                               Environment.NewLine + e);
             }
 
             return (httpPing.HasValue, httpPing);

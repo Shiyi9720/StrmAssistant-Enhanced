@@ -78,7 +78,7 @@ namespace StrmAssistant.Common
                 }
                 catch
                 {
-                    // ignored: a malformed IFO must never break the extraction
+                    // expected: a malformed IFO must never break the extraction
                 }
             }
 
@@ -208,7 +208,7 @@ namespace StrmAssistant.Common
                     }
                     catch
                     {
-                        // ignored: keep the remaining chains
+                        // expected: keep the remaining chains
                     }
                 }
 

@@ -242,8 +242,10 @@ namespace StrmAssistant.Common
 
                 return Directory.GetFiles(directory, TitleFingerprintPattern).ToList();
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("IntroFingerprintImport - Failed to enumerate fingerprints" +
+                                               Environment.NewLine + e);
                 return new List<string>();
             }
         }
@@ -303,9 +305,11 @@ namespace StrmAssistant.Common
                     return libraryOptions.IntroDetectionFingerprintLength;
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // Fall back to the length encoded in the exported file name.
+                // expected: fall back to the length encoded in the exported file name.
+                Plugin.Instance?.Logger?.Debug("IntroFingerprintImport - Failed to read fingerprint length" +
+                                               Environment.NewLine + e);
             }
 
             var segments = System.IO.Path.GetFileNameWithoutExtension(entry.FileName ?? string.Empty).Split('_');

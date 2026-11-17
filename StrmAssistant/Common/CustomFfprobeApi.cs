@@ -130,9 +130,11 @@ namespace StrmAssistant.Common
                     }
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
-                // ignored
+                // expected: the caller cancelled the probe; the caller decides what to do next.
+                Plugin.Instance?.Logger?.Debug("CustomFfprobeApi - Probe cancelled" +
+                                               Environment.NewLine + e);
             }
             catch (Exception e)
             {
@@ -175,8 +177,10 @@ namespace StrmAssistant.Common
 
                 key = path + "|" + info.Length + "|" + info.LastWriteTimeUtc.Ticks;
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("CustomFfprobeApi - Failed to validate probe: " + path +
+                                               Environment.NewLine + e);
                 return false;
             }
 
@@ -320,9 +324,10 @@ namespace StrmAssistant.Common
                     {
                         if (File.Exists(tempZip)) File.Delete(tempZip);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+                        Plugin.Instance?.Logger?.Debug("CustomFfprobeApi - Failed to delete temp archive: " +
+                                                       tempZip + Environment.NewLine + e);
                     }
                 }
             }
@@ -501,8 +506,11 @@ namespace StrmAssistant.Common
 
                 return json;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                // expected: the caller cancelled the probe; no result is available.
+                Plugin.Instance?.Logger?.Debug("CustomFfprobeApi - Probe cancelled" +
+                                               Environment.NewLine + e);
                 return null;
             }
             catch (Exception e)

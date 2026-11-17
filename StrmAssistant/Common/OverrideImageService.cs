@@ -138,8 +138,10 @@ namespace StrmAssistant.Common
             {
                 fullRoot = Path.GetFullPath(root.Trim().Trim('"'));
             }
-            catch
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("OverrideImageService - Invalid root: " + root +
+                                               Environment.NewLine + e);
                 return result;
             }
 

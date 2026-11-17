@@ -228,9 +228,11 @@ namespace StrmAssistant.Web.Service
                 traditional = LanguageUtility.ConvertSimplifiedToTraditional(title);
                 simplified = LanguageUtility.ConvertTraditionalToSimplified(title);
             }
-            catch
+            catch (Exception e)
             {
-                // The conversion dependency is optional for this endpoint.
+                // expected: the conversion dependency is optional for this endpoint.
+                Plugin.Instance?.Logger?.Debug("DoubanService - Title conversion failed" +
+                                               Environment.NewLine + e);
             }
 
             if (!string.IsNullOrEmpty(traditional) &&

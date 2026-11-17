@@ -41,8 +41,10 @@ namespace StrmAssistant.Properties
                 {
                     return Plugin.Instance?.ApplicationPaths.PluginsPath;
                 }
-                catch
+                catch (Exception e)
                 {
+                    Plugin.Instance?.Logger?.Debug("SatelliteResourceManager - Failed to read plugins path" +
+                                                   Environment.NewLine + e);
                     return null;
                 }
             }
@@ -76,8 +78,10 @@ namespace StrmAssistant.Properties
                 {
                     assembly = Assembly.Load(File.ReadAllBytes(file));
                 }
-                catch
+                catch (Exception e)
                 {
+                    Plugin.Instance?.Logger?.Debug("SatelliteResourceManager - Failed to load assembly: " + file +
+                                                   Environment.NewLine + e);
                     assembly = null;
                 }
 

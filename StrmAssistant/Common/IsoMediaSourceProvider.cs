@@ -35,9 +35,11 @@ namespace StrmAssistant.Common
             {
                 size = new FileInfo(extractedPath).Length;
             }
-            catch
+            catch (Exception e)
             {
-                // Size is informational only.
+                // expected: size is informational only.
+                Plugin.Instance?.Logger?.Debug("IsoMediaSource - Failed to read extracted ISO size" +
+                                               Environment.NewLine + e);
             }
 
             mediaSources.Add(new MediaSourceInfo

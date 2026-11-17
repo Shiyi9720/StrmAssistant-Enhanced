@@ -133,7 +133,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
-                // The caller owns cancellation; nothing to clean up here.
+                // expected: the caller owns cancellation; nothing to clean up here.
             }
             catch (Exception e)
             {
@@ -169,6 +169,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: cancellation is reported to the caller as "not applied".
                 return false;
             }
             catch (Exception e)
@@ -264,6 +265,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: cancellation is reported to the caller as "not applied".
                 return false;
             }
             catch (Exception e)

@@ -65,9 +65,10 @@ namespace StrmAssistant.Common
             {
                 if (File.Exists(targetPath)) File.Delete(targetPath);
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                Plugin.Instance?.Logger?.Debug("DvP5Screenshot - Failed to delete target: " + targetPath +
+                                               Environment.NewLine + e);
             }
 
             return null;
@@ -106,9 +107,10 @@ namespace StrmAssistant.Common
                     {
                         if (File.Exists(targetPath)) File.Delete(targetPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+                        Plugin.Instance?.Logger?.Debug("DvP5Screenshot - Failed to delete target: " + targetPath +
+                                                       Environment.NewLine + e);
                     }
                 }
             }

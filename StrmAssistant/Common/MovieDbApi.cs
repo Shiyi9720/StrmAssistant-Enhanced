@@ -986,9 +986,10 @@ namespace StrmAssistant.Common
                     {
                         response?.Content?.Dispose();
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // Best effort cleanup only.
+                        Plugin.Instance?.Logger?.Debug("MovieDbApi - Failed to dispose stale response" +
+                                                       Environment.NewLine + e);
                     }
 
                     return await FinalizeAsync(prepared, CreateCachedResponse(staleResponse, true), isGet)
@@ -1054,9 +1055,10 @@ namespace StrmAssistant.Common
                 {
                     response.Content.Dispose();
                 }
-                catch
+                catch (Exception e)
                 {
-                    // Best effort cleanup only.
+                    Plugin.Instance?.Logger?.Debug("MovieDbApi - Failed to dispose response content" +
+                                                   Environment.NewLine + e);
                 }
 
                 response.Content = new MemoryStream(bytes);

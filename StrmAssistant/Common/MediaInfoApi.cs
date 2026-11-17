@@ -580,9 +580,10 @@ namespace StrmAssistant.Common
                                 {
                                     _fileSystem.DeleteFile(tempPath);
                                 }
-                                catch
+                                catch (Exception e)
                                 {
-                                    // ignored
+                                    _logger?.Debug("MediaInfoPersist - Failed to delete temporary file: " +
+                                                   tempPath + Environment.NewLine + e);
                                 }
                             }
                         }

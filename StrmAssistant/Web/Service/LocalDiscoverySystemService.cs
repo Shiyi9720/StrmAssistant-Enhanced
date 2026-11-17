@@ -1,3 +1,4 @@
+using System;
 using MediaBrowser.Controller.Api;
 using StrmAssistant.Common;
 using StrmAssistant.Web.Api;
@@ -29,9 +30,11 @@ namespace StrmAssistant.Web.Service
                     info.LocalAddresses = new[] { address };
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // Keep the server's own address when the option cannot be read.
+                // expected: keep the server's own address when the option cannot be read.
+                Plugin.Instance?.Logger?.Debug("LocalDiscoverySystem - Failed to read discovery option" +
+                                               Environment.NewLine + e);
             }
 
             return ToOptimizedResult(info);

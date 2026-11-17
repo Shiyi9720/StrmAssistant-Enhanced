@@ -126,6 +126,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: the caller cancelled the enrichment; no cleanup is required here.
             }
             catch (Exception e)
             {
@@ -270,6 +271,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: the caller cancelled the enrichment; no cleanup is required here.
             }
             catch (Exception e)
             {
@@ -398,6 +400,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: the caller cancelled the enrichment; no cleanup is required here.
             }
             catch (Exception e)
             {
@@ -1103,6 +1106,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: the caller cancelled the enrichment; no cleanup is required here.
             }
             catch (Exception e)
             {
@@ -1116,9 +1120,10 @@ namespace StrmAssistant.Common
                     {
                         _fileSystem.DeleteFile(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // Best effort cleanup only.
+                        _logger?.Debug("DoubanSupplement - Failed to delete temporary file" +
+                                       Environment.NewLine + e);
                     }
                 }
             }

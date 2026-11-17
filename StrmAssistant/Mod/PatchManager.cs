@@ -368,7 +368,7 @@ namespace StrmAssistant.Mod
             }
             catch
             {
-                // Diagnostics only; the detour effect above is what decides.
+                // expected: diagnostics only; the detour effect above is what decides.
                 registered = false;
             }
 

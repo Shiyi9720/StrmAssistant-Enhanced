@@ -222,6 +222,7 @@ namespace StrmAssistant.Common
             }
             catch (OperationCanceledException)
             {
+                // expected: cancellation is reported to the caller as "not applied".
                 return false;
             }
             catch (Exception e)
@@ -615,9 +616,10 @@ namespace StrmAssistant.Common
                     return info.Length;
                 }
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                Plugin.Instance?.Logger?.Debug("DiscMediaInfo - Failed to read disc size" +
+                               Environment.NewLine + e);
             }
 
             return probedSize ?? item.Size;
@@ -734,9 +736,11 @@ namespace StrmAssistant.Common
 
                     result[info.Name] = File.ReadAllBytes(file);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored: keep the IFOs that can be read
+                    // expected: keep the IFOs that can be read.
+                    Plugin.Instance?.Logger?.Debug("DiscMediaInfo - Failed to read IFO: " + file +
+                                   Environment.NewLine + e);
                 }
             }
 

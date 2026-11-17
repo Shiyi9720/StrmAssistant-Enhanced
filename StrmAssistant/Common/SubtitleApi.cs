@@ -220,8 +220,11 @@ namespace StrmAssistant.Common
                             false);
                     }
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
+                    // expected: an unreadable folder must not stop scanning the other sources.
+                    _logger?.Debug("ExternalSubtitle - Failed to scan folder for " + item.Path +
+                                   Environment.NewLine + e);
                 }
             }
 
@@ -230,8 +233,11 @@ namespace StrmAssistant.Common
                 startIndex += AddExternalTracks(streams, item.GetInternalMetadataPath(), item.Path, startIndex,
                     directoryService, libraryOptions, namingOptions, clearCache, false, true, false);
             }
-            catch (IOException)
+            catch (IOException e)
             {
+                // expected: a missing internal metadata folder must not stop scanning.
+                _logger?.Debug("ExternalSubtitle - Failed to scan internal metadata folder for " +
+                               item.Path + Environment.NewLine + e);
             }
 
             return streams;
@@ -567,9 +573,10 @@ namespace StrmAssistant.Common
 
                 return !currentSet.SetEquals(newSet);
             }
-            catch
+            catch (Exception e)
             {
-                // ignored
+                _logger?.Debug("ExternalSubtitle - Failed to compare subtitle files" +
+                               Environment.NewLine + e);
             }
 
             return false;
