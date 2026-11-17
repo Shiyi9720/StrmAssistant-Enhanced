@@ -54,7 +54,6 @@ namespace StrmAssistant.Common
         public static Task FingerprintProcessTask;
         public static Task EpisodeRefreshProcessTask;
 
-        public static bool IsMediaInfoProcessTaskRunning { get; private set; }
         public static bool IsEpisodeRefreshProcessTaskRunning { get; private set; }
 
         private static readonly object MediaInfoStartLock = new object();
@@ -374,8 +373,6 @@ namespace StrmAssistant.Common
                                     Plugin.Instance.GetPluginOptions().GeneralOptions
                                         .Tier2MaxConcurrentCount);
 
-                        IsMediaInfoProcessTaskRunning = true;
-
                         for (var itemIndex = 0; itemIndex < mediaInfoItems.Count; itemIndex++)
                         {
                             var taskItem = mediaInfoItems[itemIndex];
@@ -490,7 +487,6 @@ namespace StrmAssistant.Common
                         await Task.WhenAll(tasks).ConfigureAwait(false);
                         tasks.Clear();
 
-                        IsMediaInfoProcessTaskRunning = false;
                     }
 
                     Logger.Info("MediaInfoExtract - Clear Item Queue Stopped");
@@ -624,8 +620,6 @@ namespace StrmAssistant.Common
                                 }
                             }
                         }
-
-                        IsMediaInfoProcessTaskRunning = true;
 
                         for (var seasonIndex = 0; seasonIndex < groupedBySeason.Count; seasonIndex++)
                         {
@@ -834,7 +828,6 @@ namespace StrmAssistant.Common
                         }
                         await Task.WhenAll(seasonTasks).ConfigureAwait(false);
 
-                        IsMediaInfoProcessTaskRunning = false;
                     }
 
                     Logger.Info("IntroFingerprintExtract - Clear Item Queue Stopped");
