@@ -53,10 +53,20 @@ namespace StrmAssistant.Verification
 
         private static void ZeroRuntime(TestRunner runner)
         {
-            runner.Section("C3. zero runtime returns the position unchanged");
+            runner.Section("C3. unknown source runtime clamps to the target; no target = passthrough");
 
-            runner.EqualLong("C3 source runtime 0", 12345L,
-                ResumePositionMath.ConvertPosition(12345L, 0L, 100L));
+            // B2 regression: with an unknown source runtime the position cannot be converted
+            // proportionally, but it must still be clamped to the target version. A resume point
+            // past the end of the shorter target would otherwise make playback restart from zero.
+            runner.EqualLong("C3 source 0 clamps 80min position to 100min target",
+                100 * TicksPerMinute,
+                ResumePositionMath.ConvertPosition(170 * TicksPerMinute, 0L,
+                    100 * TicksPerMinute));
+            runner.EqualLong("C3 source 0 keeps a position inside the target",
+                80 * TicksPerMinute,
+                ResumePositionMath.ConvertPosition(80 * TicksPerMinute, 0L, 100 * TicksPerMinute));
+
+            // Without a target runtime there is nothing to clamp to; the position passes through.
             runner.EqualLong("C3 target runtime 0", 12345L,
                 ResumePositionMath.ConvertPosition(12345L, 100L, 0L));
             runner.EqualLong("C3 both runtimes 0", 12345L,

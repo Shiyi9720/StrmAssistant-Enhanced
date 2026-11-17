@@ -12,7 +12,12 @@ namespace StrmAssistant.Common
         internal static long ConvertPosition(long positionTicks, long sourceRuntime, long targetRuntime)
         {
             if (positionTicks <= 0) return 0;
-            if (sourceRuntime <= 0 || targetRuntime <= 0) return positionTicks;
+            if (targetRuntime <= 0) return positionTicks;
+
+            // The source runtime is unknown, so no proportional conversion is possible - but the
+            // position must still be clamped to the target version, otherwise a long cut's resume
+            // point lands past the end of a shorter version and playback restarts from zero.
+            if (sourceRuntime <= 0) return Math.Min(positionTicks, targetRuntime);
 
             var converted = (long)Math.Round(positionTicks * (double)targetRuntime / sourceRuntime,
                 MidpointRounding.AwayFromZero);
