@@ -1,33 +1,30 @@
 # 更新日志
 
-## 1.0.12
+## 1.0.14
 
 **修复**
 
-- 中文搜索拼音首字母查不到（issue #3「拼音无效」）：多音字过去只按词组词典选出的**单一读音**建立索引。以「凡人修仙传」为例，索引里是 `fanrenxiuxianchuan` / `frxxc`；用户输入同样合法的 `fanrenxiuxianzhuan` / `frxxz` 时，全拼还能靠模糊匹配命中，**首字母因为不参与模糊匹配直接返回 0**。现在 `SearchTextHelper.GetPinyinVariants` 会用 `WordsHelper.GetAllPinyin` 为每个多音字生成所有读音组合，全拼与首字母一并入索引；词组词典的读音仍排在第一位，原有精确匹配优先级不变。单条标题最多索引 16 种拼写，超出时保留主读音并逐个替换单个多音字，索引体积可控
-- 索引格式升至 `Version=5`：旧索引文件缺少多音字 key，升级后会自动重建一次，不会带着旧 key 继续服务
+- 入库自动提取去重（1.0.11）：`PendingMediaInfoItemIds` 原先在工作线程出队时就清除标记，而追更模式在 `ItemAdded` 时直接入队、不登记标记。追更先入队、入库自动提取 15 秒后再入队，而工作线程在这中间已经出队时，同一条目会被二次入队并重复处理。现在标记改为「入队时登记、处理结束（成功 / 跳过 / 失败）时清除」，出队不再清除；新增 `QueueManager.TryEnqueueMediaInfo` 统一追更、入库自动提取、收藏追更、指纹交接、章节补提取等全部入队路径；同一 `ItemAdded` 中追更先登记，自动提取在延迟前读取标记，已被追更认领就直接返回；被库范围 / 收藏 / 黑名单过滤掉的条目同轮释放标记，取消或取许可失败回滚的条目保留标记以便重试
+- 中文搜索拼音首字母查不到（1.0.12，issue #3「拼音无效」）：多音字过去只按词组词典选出的单一读音建立索引，例如「凡人修仙传」只存 `fanrenxiuxianchuan` / `frxxc`，用户输入同样合法的 `frxxz` 时首字母因为不参与模糊匹配直接返回 0。现在 `SearchTextHelper.GetPinyinVariants` 用 `WordsHelper.GetAllPinyin` 为每个多音字生成所有读音组合，全拼与首字母一并入索引；词组词典读音仍排第一，单条标题最多 16 种拼写。索引格式升至 `Version=5`，升级后自动重建一次
+- 快捷菜单整体保护：`ShortcutMenuHelper` 的 `strmAssistantCommandSource` 与 `dataExplorerCommandSource` 两个 `getCommands` 入口增加 try/catch，单个命令源构建命令时异常只回退本源的命令列表（返回空），不再拖垮影片/剧集详情页右键菜单的渲染；上一个版本只修了「删除版本」那一处判空
+
+**性能**
+
+- 本地元数据刷图目录枚举去重（1.0.13）：每个剧集条目的 Added/Updated 都会对同一 `<tmdbid>/images` 目录重复 `Directory.GetFiles` 再逐个正则匹配。新增 `Common/OverrideImageMatcher.cs` 统一命名匹配规则，并按目录缓存文件清单（2 分钟 TTL，目录最后写入时间变化立即重读；缺失目录不缓存，最多 512 条）。命名规则与原实现一致，补 44 条边界用例
+- 高频失败日志限流：拼音/繁简转换失败、本地发现 UDP 收包失败按 key 5 分钟记一条带堆栈的日志，避免故障时刷屏
+
+**可维护性**
+
+- 异常日志带上堆栈（1.0.13）：全仓三连写法 `Error(上下文)` / `Error(e.Message)` / `Debug(e.StackTrace)` 收敛为 `ErrorException(上下文, e)`，或单条日志内联堆栈；即使 `DebugMode` 关闭，真正的错误也保留完整堆栈；`QueueManager` 四个队列主循环与冷却延迟的 `catch { break; }` 收窄为 `OperationCanceledException` + 记录 `Exception`；播放驱动的高频后台更新失败用新增的 `Common/LogLimiter.cs` 限流
+- 静默 catch 收紧（第二轮）：`Common/DistributedExtractApi.cs` 19 处、`Common/MovieDbCache.cs` 9 处，以及全仓其余无日志 catch 一并处理。正经处理链路的失败记 `ErrorException` / Warn 并带上下文，探测与回退路径至少记一条带堆栈的 Debug；取消与纯回退路径用 `// expected:` 注明原因。全仓 C# catch 从「168 处无声」降为「42 处显式注明的取消/回退」，其余全部有日志、rethrow 或说明；`UiEnhancementScript.cs` 中 JS 字符串内的 try/catch 未改动
+- 队列回归测试：把入库去重的准入与 pending 标记规则抽到无 Emby 依赖的 `Common/MediaInfoQueueAdmission.cs`，`QueueManager.TryEnqueueMediaInfo` / `RequeueMediaInfo` 与处理完成/过滤释放全部委托给它；验证工程新增 26 条用例覆盖「入队登记、重复拒绝、defer 保留、完成清除、过滤释放、入队失败回滚、Initialize 清空」
 
 **说明**
 
-- 这不是 1.0.10 候选集改造引入的回归：对比 1.0.9 与当前代码，`BuildIndexedItem` 的拼音 key 生成逻辑未变，首字母一直只存单一读音；候选集（exact / prefix / 2-gram）经逐类验证不会筛掉拼音结果。真正缺的是「另一合法读音」的 key
-- 六类查询已在运行中的 Emby 上复测：中文全名、繁体、全拼、首字母、子串、模糊；`frxxz` 与 `frxxc` 均能命中「凡人修仙传」
-- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 215 条用例全过，新增拼音回归用例 24 条（覆盖多音字全拼/首字母、繁体、主读音优先级、变体上限与确定性）
-
-## 1.0.11
-
-**修复**
-
-- 入库自动提取去重边界：`PendingMediaInfoItemIds` 原先在工作线程**出队时**就清除标记，而追更模式（`CatchupMode`）在 `ItemAdded` 时直接入队、不登记标记。当追更先把条目入队、入库自动提取 15 秒后再入队，而工作线程在这中间已经出队时，标记失效，同一条目会被二次入队并重复处理（实测 12 条新条目中有 2 条被处理两次，关闭追更模式后正常）。现在标记的生命周期改为「入队时登记、**处理结束（成功 / 跳过 / 失败）时清除**」，出队不再清除
-- 两条入队路径统一登记：新增 `QueueManager.TryEnqueueMediaInfo`，追更 `ItemAdded`、入库自动提取、收藏追更、指纹入队交接、章节补提取全部走同一入口，同一 `InternalId` 在「已入队未处理完」期间无论哪条路径再来都只算一次，被拦下的重复请求记录为 `AutoExtract - Already queued`
-- 被追更认领的条目由追更提取：同一 `ItemAdded` 事件里，追更路径先入队并登记标记，入库自动提取在 15 秒延迟**之前**先读这个标记，本次入库已被追更认领就直接返回。只把清除时机挪到处理结束还不够：首轮处理若在 15 秒内结束（源不可读时不会产生媒体信息），自动提取仍会把同一条目再入队一次（实测同场景 12 条里有 7 条因此被处理两次），因此需要这层认领判断
-- 标记回收路径：被库范围 / 收藏 / 黑名单过滤掉、本轮不会进入处理的条目在同一轮清除标记；处理中被取消、许可获取失败而回滚重排的条目保留标记以便下次重试；`Initialize()` 清空队列时同步清空标记。条目被删除后由队列排空清除，不会长期残留
-
-**说明**
-
-- 仅调整去重时机与入队入口，处理流程、并发控制与失败重试语义不变；设置与数据文件格式不变
-- 追更模式与入库自动提取同时开启时，新条目由追更路径提取（它本来就在入库时立即入队，比 15 秒延迟更早）；自动提取只在追更没有认领该条目时生效
-- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 191 条用例全过
-- 已在运行中的 Emby 上按上次的 12 条 `.strm` 场景复测：每条只处理一次（处理事件共 12 次），`AutoExtract - Already queued` 拦截 12 次，`AutoExtract - Queued` 0 次
+- 功能行为、UI 文案、资源文件均不变；设置与数据文件格式不变
+- 升级后中文搜索索引会重建一次（索引格式升至 `Version=5`）
+- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 293 条用例全过（1.0.13 为 267 条）
+- 快捷菜单 JS 保护层仅在异常时生效，正常路径返回结果不变
 
 ## 1.0.10
 
