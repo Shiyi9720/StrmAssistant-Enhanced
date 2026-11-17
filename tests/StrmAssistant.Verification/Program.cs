@@ -24,6 +24,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "SatelliteResourceManager", SatelliteResourceTests.Run);
             RunGroup(runner, "SearchPinyin", SearchPinyinTests.Run);
             RunGroup(runner, "OverrideImageMatcher", OverrideImageMatcherTests.Run);
+            RunGroup(runner, "MediaInfoQueueAdmission", MediaInfoQueueAdmissionTests.Run);
 
             return runner.Finish();
         }

@@ -223,19 +223,8 @@ namespace StrmAssistant.Common
         {
             if (item is null) return false;
 
-            if (!PendingMediaInfoItemIds.TryAdd(item.InternalId, 0)) return false;
-
-            try
-            {
-                GetMediaInfoQueue(isFavorite).Enqueue(item);
-            }
-            catch
-            {
-                PendingMediaInfoItemIds.TryRemove(item.InternalId, out _);
-                throw;
-            }
-
-            return true;
+            return MediaInfoQueueAdmission.TryEnqueue(PendingMediaInfoItemIds, item.InternalId,
+                () => GetMediaInfoQueue(isFavorite).Enqueue(item));
         }
 
         /// <summary>
@@ -249,8 +238,8 @@ namespace StrmAssistant.Common
         {
             if (item is null) return;
 
-            PendingMediaInfoItemIds.TryAdd(item.InternalId, 0);
-            GetMediaInfoQueue(isFavorite).Enqueue(item);
+            MediaInfoQueueAdmission.Requeue(PendingMediaInfoItemIds, item.InternalId,
+                () => GetMediaInfoQueue(isFavorite).Enqueue(item));
         }
 
         private static ConcurrentQueue<BaseItem> GetMediaInfoQueue(bool isFavorite)
@@ -314,6 +303,7 @@ namespace StrmAssistant.Common
                     }
                     catch (OperationCanceledException)
                     {
+                        // expected: the queue is stopping; unprocessed items stay for the next run.
                         break;
                     }
                     catch (Exception e)
@@ -369,7 +359,7 @@ namespace StrmAssistant.Common
 
                     foreach (var droppedItem in dequeueItems.Where(i => !scheduledIds.Contains(i.InternalId)))
                     {
-                        PendingMediaInfoItemIds.TryRemove(droppedItem.InternalId, out _);
+                        MediaInfoQueueAdmission.Complete(PendingMediaInfoItemIds, droppedItem.InternalId);
                     }
 
                     if (mediaInfoItems.Count > 0)
@@ -396,6 +386,7 @@ namespace StrmAssistant.Common
                             }
                             catch (OperationCanceledException)
                             {
+                                // expected: cancellation requeues the remaining items and stops the loop.
                                 RequeueMediaInfoItems(mediaInfoItems, itemIndex, isFavorite);
                                 break;
                             }
@@ -476,7 +467,7 @@ namespace StrmAssistant.Common
                                         }
                                         catch (OperationCanceledException)
                                         {
-                                            // Expected when the queue stops.
+                                            // expected: the queue stopped while waiting.
                                         }
                                         catch (Exception e)
                                         {
@@ -490,7 +481,7 @@ namespace StrmAssistant.Common
                                     // may be queued again from now on. A permit failure or a
                                     // cancellation before the task started is handled above by
                                     // RequeueMediaInfoItems, which keeps the marker instead.
-                                    PendingMediaInfoItemIds.TryRemove(taskItem.InternalId, out _);
+                                    MediaInfoQueueAdmission.Complete(PendingMediaInfoItemIds, taskItem.InternalId);
                                 }
                             }, cancellationToken);
                             tasks.Add(task);
@@ -550,6 +541,7 @@ namespace StrmAssistant.Common
                     }
                     catch (OperationCanceledException)
                     {
+                        // expected: the queue is stopping; unprocessed items stay for the next run.
                         break;
                     }
                     catch (Exception e)
@@ -663,6 +655,7 @@ namespace StrmAssistant.Common
                                 }
                                 catch (OperationCanceledException)
                                 {
+                                    // expected: cancellation requeues the remaining episodes and stops the loop.
                                     RequeueFingerprintFrom(seasonIndex, episodeIndex);
                                     abortFingerprint = true;
                                     break;
@@ -747,7 +740,7 @@ namespace StrmAssistant.Common
                                             }
                                             catch (OperationCanceledException)
                                             {
-                                                // Expected when the queue stops.
+                                                // expected: the queue stopped while waiting.
                                             }
                                             catch (Exception e)
                                             {
@@ -798,6 +791,7 @@ namespace StrmAssistant.Common
                                     }
                                     catch (OperationCanceledException)
                                     {
+                                        // expected: cancellation stops this season; remaining work stays queued.
                                         return;
                                     }
                                     catch (Exception e)
@@ -890,6 +884,7 @@ namespace StrmAssistant.Common
                     }
                     catch (OperationCanceledException)
                     {
+                        // expected: the queue is stopping; unprocessed items stay for the next run.
                         break;
                     }
                     catch (Exception e)
@@ -956,6 +951,7 @@ namespace StrmAssistant.Common
                     }
                     catch (OperationCanceledException)
                     {
+                        // expected: the queue is stopping; unprocessed items stay for the next run.
                         break;
                     }
                     catch (Exception e)
@@ -997,6 +993,7 @@ namespace StrmAssistant.Common
                             }
                             catch (OperationCanceledException)
                             {
+                                // expected: cancellation re-enqueues the remaining refreshes and stops the loop.
                                 for (var i = itemIndex; i < itemsToRefresh.Count; i++)
                                 {
                                     EpisodeRefreshItemQueue.Enqueue(itemsToRefresh[i]);
