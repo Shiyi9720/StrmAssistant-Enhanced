@@ -9,6 +9,9 @@
 - 快捷菜单整体保护：`ShortcutMenuHelper` 的 `strmAssistantCommandSource` 与 `dataExplorerCommandSource` 两个 `getCommands` 入口增加 try/catch，单个命令源构建命令时异常只回退本源的命令列表（返回空），不再拖垮影片/剧集详情页右键菜单的渲染；上一个版本只修了「删除版本」那一处判空
 - 多版本续播旧格式记录过户（B1）：`IsSameRecordVersion` 的宽松放行分支在存量记录没有任何 id 字段、只能靠 `VersionKey`/`VersionSignature` 指纹标识时，会把记录复用到**当前播放的任意版本**——切到同内容另一版本播放时 A 版本的记录被移键到 B 下，A 的独立断点永久丢失。现在仅指纹记录必须与当前播放版本的指纹匹配才复用，不同则新建记录；已有 id 精确比对不变
 - 多版本续播片长未知夹取（B2）：`ResumePositionMath.ConvertPosition` 在源片长未知（`sourceRuntime<=0`）时直接返回原始断点，跳过目标片长夹取，170 分钟剪辑的 80 分钟断点套到 100 分钟版本上越界（客户端归零从头播）。现在该分支也返回 `Math.Min(positionTicks, targetRuntime)`；无目标片长时保持直通
+- 损坏的库范围值静默扩权：`GetValidLibraryIds` 原来把「所有段都解析失败」（选项文件损坏成 `abc`）与「未配置范围」都映射成空数组，而空数组在 `ResolveScopePaths` 里等于全库放行，损坏配置会静默把范围放大到全部库。新增 `LibraryScopeParser` 区分 Empty / WellFormed / Malformed：Malformed 记 Warn（含原始值）并由 resolver 返回不可匹配的哨兵前缀，所有调用方安全失败；正常配置行为不变
+- 刷图目录查询窗口竞态：`OverrideImageMatcher.GetFiles` 的 Exists → GetLastWriteTimeUtc → GetFiles 不是原子操作，目录在两步之间消失/失权时抛 `DirectoryNotFoundException` / `UnauthorizedAccessException`，只能靠外层静默跳图。现在三步合并进一个 try，按空目录处理且不缓存 miss
+- 分布式媒体根缓存过期窗口：worker 端缓存虚拟文件夹 5 分钟，新增库后其下文件最长 5 分钟被判 `path_not_allowed`。TTL 降到 30 秒，新增库最长 30 秒可用（不依赖不稳定的库事件）
 
 **性能**
 
@@ -20,12 +23,18 @@
 - 异常日志带上堆栈（1.0.13）：全仓三连写法 `Error(上下文)` / `Error(e.Message)` / `Debug(e.StackTrace)` 收敛为 `ErrorException(上下文, e)`，或单条日志内联堆栈；即使 `DebugMode` 关闭，真正的错误也保留完整堆栈；`QueueManager` 四个队列主循环与冷却延迟的 `catch { break; }` 收窄为 `OperationCanceledException` + 记录 `Exception`；播放驱动的高频后台更新失败用新增的 `Common/LogLimiter.cs` 限流
 - 静默 catch 收紧（第二轮）：`Common/DistributedExtractApi.cs` 19 处、`Common/MovieDbCache.cs` 9 处，以及全仓其余无日志 catch 一并处理。正经处理链路的失败记 `ErrorException` / Warn 并带上下文，探测与回退路径至少记一条带堆栈的 Debug；取消与纯回退路径用 `// expected:` 注明原因。全仓 C# catch 从「168 处无声」降为「42 处显式注明的取消/回退」，其余全部有日志、rethrow 或说明；`UiEnhancementScript.cs` 中 JS 字符串内的 try/catch 未改动
 - 队列回归测试：把入库去重的准入与 pending 标记规则抽到无 Emby 依赖的 `Common/MediaInfoQueueAdmission.cs`，`QueueManager.TryEnqueueMediaInfo` / `RequeueMediaInfo` 与处理完成/过滤释放全部委托给它；验证工程新增 26 条用例覆盖「入队登记、重复拒绝、defer 保留、完成清除、过滤释放、入队失败回滚、Initialize 清空」
+- 豆瓣评分表有界清理：评分条目原先只增不减。新增 `Common/DoubanRatingPruner.cs`，删除 180 天前的条目；仍超过 5 万条时按更新时间剔除最旧数据。阈值刻意放宽，避免删掉还需要重新请求的近期评分；`Load()` 后与 `Save()` 时（最多每 6 小时或超限时）执行
+- 删除无读取方的 `QueueManager.IsMediaInfoProcessTaskRunning` 死标志（原有 4 处赋值、0 处读取）
+
+**新增**
+
+- 单字中文搜索（默认关闭）：搜索设置新增「单字搜索」开关。开启后单字查询（如「蛛」）可包含匹配到「蜘蛛侠」，排在精确/前缀匹配之后。索引只在开关开启时构建 CJK unigram 层（仅标题类 key，总 posting 上限 200 万条），单字 posting 超过 4000 条时跳过，极常见字仍只走精确/前缀，避免候选爆炸；索引文件格式不变，切换开关只重建内存 lookup，无需重建索引
 
 **说明**
 
-- 功能行为、UI 文案、资源文件均不变；设置与数据文件格式不变
+- 默认配置下功能行为不变；除搜索设置新增「单字搜索」开关（默认关闭）及其三语资源外，未改动既有 UI 文案与资源；设置与数据文件格式不变
 - 升级后中文搜索索引会重建一次（索引格式升至 `Version=5`）
-- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 293 条用例全过（1.0.13 为 267 条）
+- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 361 条用例全过（1.0.13 为 267 条）
 - 快捷菜单 JS 保护层仅在异常时生效，正常路径返回结果不变
 
 ## 1.0.10
