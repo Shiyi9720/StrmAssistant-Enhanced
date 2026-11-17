@@ -25,6 +25,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "SearchPinyin", SearchPinyinTests.Run);
             RunGroup(runner, "OverrideImageMatcher", OverrideImageMatcherTests.Run);
             RunGroup(runner, "MediaInfoQueueAdmission", MediaInfoQueueAdmissionTests.Run);
+            RunGroup(runner, "LibraryScopeParser", LibraryScopeParserTests.Run);
 
             return runner.Finish();
         }

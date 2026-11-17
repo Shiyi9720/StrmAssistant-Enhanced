@@ -301,7 +301,11 @@ namespace StrmAssistant.Common
             if (clearAll)
             {
                 var currentScope = Plugin.Instance.GetPluginOptions().IntroSkipOptions.LibraryScope;
-                var validLibraryIds = GetValidLibraryIds(currentScope);
+                var validLibraryIds = GetValidLibraryIds(currentScope, out var scopeMalformed);
+
+                // A corrupt scope must not silently clear markers across every library.
+                if (scopeMalformed) return new List<BaseItem>();
+
                 var libraries = _libraryManager.GetVirtualFolders()
                     .Where(f => (f.CollectionType == CollectionType.TvShows.ToString() || f.CollectionType is null) &&
                                 (!validLibraryIds.Any() || validLibraryIds.Contains(f.Id)))

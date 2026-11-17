@@ -31,6 +31,7 @@
     <Compile Include="..\..\StrmAssistant\Common\OverrideImageMatcher.cs" Link="src\OverrideImageMatcher.cs" />
     <Compile Include="..\..\StrmAssistant\Common\MediaInfoQueueAdmission.cs" Link="src\MediaInfoQueueAdmission.cs" />
     <Compile Include="..\..\StrmAssistant\Common\LogLimiter.cs" Link="src\LogLimiter.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\LibraryScopeParser.cs" Link="src\LibraryScopeParser.cs" />
     <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />
   </ItemGroup>
 

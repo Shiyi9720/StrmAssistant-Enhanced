@@ -1,5 +1,6 @@
 using Emby.Media.Common.Extensions;
 using MediaBrowser.Controller.Entities;
+using StrmAssistant.Common;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -164,27 +165,36 @@ namespace StrmAssistant.Options
 
         public static string[] GetValidLibraryIds(string scope)
         {
-            var libraryIds = scope?.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            return GetValidLibraryIds(scope, out _);
+        }
 
-            var validLibraryIds = Array.Empty<string>();
+        /// <summary>
+        /// Resolves a library-scope option value to the ids that still exist.
+        /// <paramref name="malformed"/> is true when the value is non-empty but every segment
+        /// failed to parse; callers must fail safe (select nothing) instead of treating the
+        /// resulting empty array as the documented "all libraries" value.
+        /// </summary>
+        public static string[] GetValidLibraryIds(string scope, out bool malformed)
+        {
+            malformed = false;
 
-            if (libraryIds?.Any() is true)
+            var kind = LibraryScopeParser.Classify(scope, out var parsedIds);
+
+            if (kind == LibraryScopeKind.Malformed)
             {
-                var parsedIds = libraryIds.Select(id => long.TryParse(id, out var result) ? result : (long?)null)
-                    .Where(id => id.HasValue)
-                    .Select(id => id.Value)
-                    .ToArray();
-
-                if (parsedIds.Any())
-                {
-                    validLibraryIds = BaseItem.LibraryManager
-                        .GetInternalItemIds(new InternalItemsQuery { ItemIds = parsedIds })
-                        .Select(id => id.ToString())
-                        .ToArray();
-                }
+                malformed = true;
+                Plugin.Instance?.Logger?.Warn(
+                    "LibraryScope - Ignoring malformed scope value (expected comma separated library ids): \"" +
+                    scope + "\"");
+                return Array.Empty<string>();
             }
 
-            return validLibraryIds;
+            if (kind == LibraryScopeKind.Empty) return Array.Empty<string>();
+
+            return BaseItem.LibraryManager
+                .GetInternalItemIds(new InternalItemsQuery { ItemIds = parsedIds })
+                .Select(id => id.ToString())
+                .ToArray();
         }
     }
 }

@@ -34,6 +34,11 @@ namespace StrmAssistant.Common
         /// <summary>Scope id of the favorites pseudo library.</summary>
         internal const string FavoritesScopeId = "-1";
 
+        // A corrupt scope must select nothing. Query callers treat an empty path list as "no
+        // restriction", so the resolver returns one path that no real item path can start with
+        // (scope paths are absolute, this one is not).
+        internal const string MalformedScopePath = "<malformed-scope>";
+
         private static readonly char[] ScopeSeparators = { ',' };
 
         /// <summary>
@@ -86,7 +91,12 @@ namespace StrmAssistant.Common
         internal static List<string> ResolveScopePaths(ILibraryManager libraryManager, string scope,
             Func<VirtualFolderInfo, bool> libraryFilter, bool includeAllLibrariesWhenFavoritesOnly = false)
         {
-            var validLibraryIds = GetValidLibraryIds(scope);
+            var validLibraryIds = GetValidLibraryIds(scope, out var malformed);
+
+            if (malformed)
+            {
+                return new List<string> { MalformedScopePath };
+            }
 
             var allLibraries = !validLibraryIds.Any() ||
                                includeAllLibrariesWhenFavoritesOnly &&
