@@ -28,6 +28,7 @@
     <Compile Include="..\..\StrmAssistant\Common\VersionPlaybackApi.cs" Link="src\VersionPlaybackApi.cs" />
     <Compile Include="..\..\StrmAssistant\Common\LanguageUtility.cs" Link="src\LanguageUtility.cs" />
     <Compile Include="..\..\StrmAssistant\Common\SearchTextHelper.cs" Link="src\SearchTextHelper.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\OverrideImageMatcher.cs" Link="src\OverrideImageMatcher.cs" />
     <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />
   </ItemGroup>
 
