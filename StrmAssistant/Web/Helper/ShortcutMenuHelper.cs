@@ -153,6 +153,16 @@ namespace StrmAssistant.Web.Helper
             var injectShortcutCommand = @"
 const strmAssistantCommandSource = {
     getCommands: function(options) {
+        // A failure while building this source's commands must not break the detail page's
+        // context menu, so fall back to no commands for this source only.
+        try {
+            return strmAssistantCommandSource.getStrmAssistantCommands(options);
+        } catch (err) {
+            console.warn('StrmAssistant shortcut commands failed', err);
+            return [];
+        }
+    },
+    getStrmAssistantCommands: function(options) {
         const locale = this.globalize.getCurrentLocale().toLowerCase();
         const cjk = ['zh', 'ja', 'ko'].some(lang => locale.startsWith(lang));
         const lockCommandName = ({
@@ -387,15 +397,20 @@ setTimeout(() => {
                     const string injectDataExplorerCommand = @"
 const dataExplorerCommandSource = {
     getCommands(options) {
-        const commands = [];
-        if (options.items?.length === 1 && options.items[0].ProviderIds) {
-            commands.push({
-                name: 'Explore Item Data',
-                id: 'dataexplorer',
-                icon: 'manage_search'
-            });
+        try {
+            const commands = [];
+            if (options.items?.length === 1 && options.items[0].ProviderIds) {
+                commands.push({
+                    name: 'Explore Item Data',
+                    id: 'dataexplorer',
+                    icon: 'manage_search'
+                });
+            }
+            return commands;
+        } catch (err) {
+            console.warn('DataExplorer shortcut commands failed', err);
+            return [];
         }
-        return commands;
     },
     executeCommand(command, items) {
         return require(['components/dataexplorer/dataexplorer']).then((responses) => {
