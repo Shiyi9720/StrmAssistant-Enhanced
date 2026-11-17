@@ -75,11 +75,9 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                if (Plugin.Instance.DebugMode)
-                {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
-                }
+                // Reflective init of Emby internals; a failure here degrades thumbnail generation.
+                _logger?.Warn("VideoThumbnailApi - Init failed: " + e.Message + Environment.NewLine +
+                              e.StackTrace);
             }
 
             if (_thumbnailGenerator is null || _refreshThumbnailImages is null)
@@ -269,9 +267,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error($"ScreenshotPostProcess - Failed: {imagePath}");
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException($"ScreenshotPostProcess - Failed: {imagePath}", e);
                 }
                 finally
                 {
@@ -414,8 +410,8 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("DvP5Screenshot - Failed to replace chapter image: " + target.ImagePath);
-                    _logger?.Error(e.Message);
+                    _logger?.ErrorException("DvP5Screenshot - Failed to replace chapter image: " +
+                                            target.ImagePath, e);
                 }
                 finally
                 {
@@ -462,8 +458,8 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("DvP5Screenshot - Failed to write worker image: " + target.ImagePath);
-                    _logger?.Error(e.Message);
+                    _logger?.ErrorException("DvP5Screenshot - Failed to write worker image: " +
+                                            target.ImagePath, e);
                 }
                 finally
                 {
@@ -531,9 +527,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Error("ScreenshotCrop - Failed: " + imagePath);
-                _logger?.Error(e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.ErrorException("ScreenshotCrop - Failed: " + imagePath, e);
             }
             finally
             {

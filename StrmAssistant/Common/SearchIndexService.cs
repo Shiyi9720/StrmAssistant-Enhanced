@@ -339,8 +339,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _lastError = e.Message;
-                _logger?.Info("ChineseSearch - Index build failed: " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.Info("ChineseSearch - Index build failed: " + e.Message + Environment.NewLine + e.StackTrace);
             }
             finally
             {

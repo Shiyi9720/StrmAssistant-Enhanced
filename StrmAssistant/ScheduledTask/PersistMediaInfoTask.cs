@@ -83,9 +83,7 @@ namespace StrmAssistant
                     }
                     catch (Exception e)
                     {
-                        _logger?.Error($"MediaInfoPersist - Item failed: {taskItem.Name} - {taskItem.Path}");
-                        _logger?.Error(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException($"MediaInfoPersist - Item failed: {taskItem.Name} - {taskItem.Path}", e);
                     }
                     finally
                     {

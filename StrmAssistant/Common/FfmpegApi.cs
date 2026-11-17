@@ -340,8 +340,7 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance?.DebugMode == true)
                 {
-                    logger?.Debug(e.Message);
-                    logger?.Debug(e.StackTrace);
+                    logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                 }
             }
 

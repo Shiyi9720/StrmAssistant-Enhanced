@@ -77,9 +77,8 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
-                        _logger?.Info("EpisodeRefresh - Item failed: " + taskItem.Name + " - " + taskItem.Path);
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException("EpisodeRefresh - Item failed: " + taskItem.Name + " - " +
+                                                taskItem.Path, e);
                     }
                     finally
                     {

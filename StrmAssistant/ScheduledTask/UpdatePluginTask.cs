@@ -184,8 +184,7 @@ namespace StrmAssistant.ScheduledTask
 
                 _ = Plugin.NotificationApi.SendMessageToAdmins(
                     $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.Update_Failed_Message}", 1000);
-                _logger?.Error("Update failed: {0}", e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.Error("Update failed: {0}", e.Message + Environment.NewLine + e.StackTrace);
             }
 
             progress.Report(100);

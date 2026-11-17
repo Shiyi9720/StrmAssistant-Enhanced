@@ -27,8 +27,7 @@ namespace StrmAssistant.ScheduledTask
             }
             catch (Exception e)
             {
-                _logger?.Info("IntroFingerprintImport - Failed: " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.Info("IntroFingerprintImport - Failed: " + e.Message + Environment.NewLine + e.StackTrace);
             }
 
             progress.Report(100.0);

@@ -857,8 +857,7 @@ namespace StrmAssistant.Common
                 // this only guards against unexpected errors in the checks or in Emby APIs.
                 RecordImageCaptureFailure(taskItem.InternalId);
                 _logger?.Warn("ImageCapture - Unexpected failure: " + taskItem.Name + " - " + taskItem.Path +
-                              " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                              " - " + e.Message + Environment.NewLine + e.StackTrace);
             }
         }
 
@@ -1180,8 +1179,7 @@ namespace StrmAssistant.Common
                 {
                     // A read-only metadata folder is handled by the media-folder fallback below.
                     _logger?.Warn("ImageCapture - SaveImage failed: " + target.Name + " - " + target.Path + " - " +
-                                  e.Message);
-                    _logger?.Debug(e.StackTrace);
+                                  e.Message + Environment.NewLine + e.StackTrace);
                 }
 
                 var inMemoryInfo = target.GetImageInfo(ImageType.Primary, 0);
@@ -1255,8 +1253,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 RecordImageCaptureFailure(target.InternalId);
-                _logger?.Warn("ImageCapture - Failed: " + target.Name + " - " + target.Path + " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.Warn("ImageCapture - Failed: " + target.Name + " - " + target.Path + " - " + e.Message + Environment.NewLine + e.StackTrace);
                 return false;
             }
             finally
@@ -1346,8 +1343,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _logger?.Warn("ImageCapture - Failed to persist image info: " + item.Name + " - " + item.Path +
-                              " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                              " - " + e.Message + Environment.NewLine + e.StackTrace);
             }
         }
 
@@ -1455,8 +1451,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _logger?.Warn("ImageCapture - Failed to write media folder poster: " + item.Name + " - " +
-                              posterPath + " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                              posterPath + " - " + e.Message + Environment.NewLine + e.StackTrace);
             }
 
             return false;

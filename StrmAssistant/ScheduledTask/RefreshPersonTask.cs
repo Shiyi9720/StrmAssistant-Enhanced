@@ -334,9 +334,7 @@ namespace StrmAssistant.ScheduledTask
                                 catch (Exception e)
                                 {
                                     failureReason = RefreshFailureReason.RequestFailed;
-                                    _logger?.Error("RefreshPerson - Request Failed: " + taskItem.Name);
-                                    _logger?.Error(e.Message);
-                                    _logger?.Debug(e.StackTrace);
+                                    _logger?.ErrorException("RefreshPerson - Request Failed: " + taskItem.Name, e);
                                 }
 
                                 if (failureReason == RefreshFailureReason.None)
@@ -406,9 +404,7 @@ namespace StrmAssistant.ScheduledTask
                         catch (Exception e)
                         {
                             failureReason = RefreshFailureReason.RequestFailed;
-                            _logger?.Error("RefreshPerson - Item Failed: " + taskItem.Name);
-                            _logger?.Error(e.Message);
-                            _logger?.Debug(e.StackTrace);
+                            _logger?.ErrorException("RefreshPerson - Item Failed: " + taskItem.Name, e);
                         }
                         finally
                         {

@@ -312,8 +312,13 @@ namespace StrmAssistant.Common
                     {
                         await Task.Delay(remainingTime, cancellationToken).ConfigureAwait(false);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.ErrorException("QueueManager - Delay failed", e);
                         break;
                     }
                 }
@@ -396,7 +401,7 @@ namespace StrmAssistant.Common
                             }
                             catch (Exception e)
                             {
-                                Logger.Error("MediaInfoExtract - Acquire permit failed: " + e.Message);
+                                Logger.ErrorException("MediaInfoExtract - Acquire permit failed", e);
                                 RequeueMediaInfoItems(mediaInfoItems, itemIndex, isFavorite);
                                 break;
                             }
@@ -457,10 +462,8 @@ namespace StrmAssistant.Common
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Error("MediaInfoExtract - Item failed: " + taskItem.Name + " - " +
-                                                 taskItem.Path);
-                                    Logger.Error(e.Message);
-                                    Logger.Debug(e.StackTrace);
+                                    Logger.ErrorException("MediaInfoExtract - Item failed: " + taskItem.Name + " - " +
+                                                 taskItem.Path, e);
                                 }
                                 finally
                                 {
@@ -471,9 +474,13 @@ namespace StrmAssistant.Common
                                             await Task.Delay(cooldownSeconds.Value * 1000, cancellationToken)
                                                 .ConfigureAwait(false);
                                         }
-                                        catch
+                                        catch (OperationCanceledException)
                                         {
-                                            // ignored
+                                            // Expected when the queue stops.
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Logger.ErrorException("QueueManager - Cooldown delay failed", e);
                                         }
                                     }
 
@@ -541,8 +548,13 @@ namespace StrmAssistant.Common
                     {
                         await Task.Delay(remainingTime, cancellationToken).ConfigureAwait(false);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.ErrorException("QueueManager - Delay failed", e);
                         break;
                     }
                 }
@@ -657,7 +669,7 @@ namespace StrmAssistant.Common
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Error("IntroFingerprintExtract - Acquire permit failed: " + e.Message);
+                                    Logger.ErrorException("IntroFingerprintExtract - Acquire permit failed", e);
                                     RequeueFingerprintFrom(seasonIndex, episodeIndex);
                                     abortFingerprint = true;
                                     break;
@@ -721,10 +733,8 @@ namespace StrmAssistant.Common
                                     }
                                     catch (Exception e)
                                     {
-                                        Logger.Error("IntroFingerprintExtract - Episode failed: " + taskItem.Name +
-                                                     " - " + taskItem.Path);
-                                        Logger.Error(e.Message);
-                                        Logger.Debug(e.StackTrace);
+                                        Logger.ErrorException("IntroFingerprintExtract - Episode failed: " + taskItem.Name +
+                                                     " - " + taskItem.Path, e);
                                     }
                                     finally
                                     {
@@ -735,9 +745,13 @@ namespace StrmAssistant.Common
                                                 await Task.Delay(cooldownSeconds.Value * 1000, cancellationToken)
                                                     .ConfigureAwait(false);
                                             }
-                                            catch
+                                            catch (OperationCanceledException)
                                             {
-                                                // ignored
+                                                // Expected when the queue stops.
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                Logger.ErrorException("QueueManager - Cooldown delay failed", e);
                                             }
                                         }
 
@@ -782,8 +796,13 @@ namespace StrmAssistant.Common
                                     {
                                         await Tier2Semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                                     }
-                                    catch
+                                    catch (OperationCanceledException)
                                     {
+                                        return;
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Logger.ErrorException("IntroFingerprintExtract - Tier2 wait failed", e);
                                         return;
                                     }
 
@@ -808,10 +827,8 @@ namespace StrmAssistant.Common
                                     }
                                     catch (Exception e)
                                     {
-                                        Logger.Error("IntroFingerprintExtract - Season failed: " + taskSeason.Name +
-                                                     " - " + taskSeason.Path);
-                                        Logger.Error(e.Message);
-                                        Logger.Debug(e.StackTrace);
+                                        Logger.ErrorException("IntroFingerprintExtract - Season failed: " + taskSeason.Name +
+                                                     " - " + taskSeason.Path, e);
                                     }
                                     finally
                                     {
@@ -871,8 +888,13 @@ namespace StrmAssistant.Common
                     {
                         await Task.Delay(remainingTime, cancellationToken).ConfigureAwait(false);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.ErrorException("QueueManager - Delay failed", e);
                         break;
                     }
                 }
@@ -932,8 +954,13 @@ namespace StrmAssistant.Common
                     {
                         await Task.Delay(remainingTime, cancellationToken).ConfigureAwait(false);
                     }
-                    catch
+                    catch (OperationCanceledException)
                     {
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.ErrorException("QueueManager - Delay failed", e);
                         break;
                     }
                 }
@@ -979,7 +1006,7 @@ namespace StrmAssistant.Common
                             }
                             catch (Exception e)
                             {
-                                Logger.Error("EpisodeRefresh - Acquire permit failed: " + e.Message);
+                                Logger.ErrorException("EpisodeRefresh - Acquire permit failed", e);
 
                                 for (var i = itemIndex; i < itemsToRefresh.Count; i++)
                                 {
@@ -1033,10 +1060,8 @@ namespace StrmAssistant.Common
                                 }
                                 catch (Exception e)
                                 {
-                                    Logger.Error("EpisodeRefresh - Item failed: " + taskItem.Name + " - " +
-                                                 taskItem.Path);
-                                    Logger.Error(e.Message);
-                                    Logger.Debug(e.StackTrace);
+                                    Logger.ErrorException("EpisodeRefresh - Item failed: " + taskItem.Name + " - " +
+                                                 taskItem.Path, e);
                                 }
                                 finally
                                 {

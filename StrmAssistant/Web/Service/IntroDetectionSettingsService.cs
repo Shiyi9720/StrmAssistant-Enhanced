@@ -137,9 +137,7 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception e)
             {
-                _logger?.Error("IntroDetectionSettings - Save failed");
-                _logger?.Error(e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.ErrorException("IntroDetectionSettings - Save failed", e);
 
                 return new SaveIntroDetectionSettingsResponse { Success = false };
             }

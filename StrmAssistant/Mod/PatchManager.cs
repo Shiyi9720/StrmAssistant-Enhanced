@@ -443,15 +443,14 @@ namespace StrmAssistant.Mod
 
         private static void LoggerDebug(Exception e)
         {
-            if (Plugin.Instance == null || !Plugin.Instance.DebugMode) return;
+            if (Plugin.Instance == null) return;
 
-            Logger?.Debug(e.Message);
-            Logger?.Debug(e.StackTrace);
+            Logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
 
             if (e.InnerException != null)
             {
-                Logger?.Debug(e.InnerException.Message);
-                Logger?.Debug(e.InnerException.StackTrace);
+                Logger?.Debug(e.InnerException.Message + Environment.NewLine +
+                              e.InnerException.StackTrace);
             }
         }
 

@@ -56,8 +56,7 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception ex)
             {
-                Plugin.Instance.Logger.Error("RemovePerson - " + item.Name + " - " + ex.Message);
-                Plugin.Instance.Logger.Debug(ex.StackTrace);
+                Plugin.Instance.Logger.Error("RemovePerson - " + item.Name + " - " + ex.Message + Environment.NewLine + ex.StackTrace);
             }
         }
     }
