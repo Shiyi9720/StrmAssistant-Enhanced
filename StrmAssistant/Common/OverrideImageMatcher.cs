@@ -33,6 +33,9 @@ namespace StrmAssistant.Common
 
         private static long _enumerationCount;
 
+        /// <summary>Enumeration seam for the regression tests; production uses Directory.GetFiles.</summary>
+        internal static Func<string, string[]> FileEnumerator = Directory.GetFiles;
+
         /// <summary>
         /// Number of times a directory was actually enumerated. Used by the regression tests to
         /// assert that repeated lookups hit the cache.
@@ -48,34 +51,52 @@ namespace StrmAssistant.Common
         {
             if (string.IsNullOrEmpty(directory)) return Array.Empty<string>();
 
-            if (!Directory.Exists(directory))
+            // Existence, write time and enumeration are not atomic: the directory can disappear
+            // (or become unreadable) between any two calls. Treat that as an empty directory for
+            // this lookup instead of letting the exception escape to the scraping caller.
+            try
             {
+                if (!Directory.Exists(directory))
+                {
+                    DirectoryCache.TryRemove(directory, out _);
+                    return Array.Empty<string>();
+                }
+
+                var lastWriteUtc = Directory.GetLastWriteTimeUtc(directory);
+                var nowTicks = DateTime.UtcNow.Ticks;
+
+                if (DirectoryCache.TryGetValue(directory, out var cached) &&
+                    cached.LastWriteUtc == lastWriteUtc &&
+                    nowTicks - cached.CachedAtTicks <= CacheLifetime.Ticks)
+                {
+                    return cached.Files;
+                }
+
+                var files = FileEnumerator(directory);
+                DirectoryCache[directory] = new CachedDirectory
+                {
+                    Files = files,
+                    LastWriteUtc = lastWriteUtc,
+                    CachedAtTicks = nowTicks
+                };
+
+                Interlocked.Increment(ref _enumerationCount);
+                TrimCache(nowTicks);
+
+                return files;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // expected: the directory vanished during the lookup; do not cache a miss.
                 DirectoryCache.TryRemove(directory, out _);
                 return Array.Empty<string>();
             }
-
-            var lastWriteUtc = Directory.GetLastWriteTimeUtc(directory);
-            var nowTicks = DateTime.UtcNow.Ticks;
-
-            if (DirectoryCache.TryGetValue(directory, out var cached) &&
-                cached.LastWriteUtc == lastWriteUtc &&
-                nowTicks - cached.CachedAtTicks <= CacheLifetime.Ticks)
+            catch (UnauthorizedAccessException)
             {
-                return cached.Files;
+                // expected: the directory became unreadable; do not cache a miss.
+                DirectoryCache.TryRemove(directory, out _);
+                return Array.Empty<string>();
             }
-
-            var files = Directory.GetFiles(directory);
-            DirectoryCache[directory] = new CachedDirectory
-            {
-                Files = files,
-                LastWriteUtc = lastWriteUtc,
-                CachedAtTicks = nowTicks
-            };
-
-            Interlocked.Increment(ref _enumerationCount);
-            TrimCache(nowTicks);
-
-            return files;
         }
 
         /// <summary>

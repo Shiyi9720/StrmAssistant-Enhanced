@@ -13,6 +13,7 @@ namespace StrmAssistant.Verification
             FlatEpisodeNames(runner);
             ImageTypeNames(runner);
             DirectoryListingCache(runner);
+            DirectoryDisappearsDuringLookup(runner);
         }
 
         private static void FlatSeasonNames(TestRunner runner)
@@ -146,6 +147,57 @@ namespace StrmAssistant.Verification
             // Make the write-time change explicit; some filesystems have coarse timestamp
             // resolution when several entries are created within the same tick.
             Directory.SetLastWriteTimeUtc(directory, DateTime.UtcNow);
+        }
+
+
+        private static void DirectoryDisappearsDuringLookup(TestRunner runner)
+        {
+            runner.Section("OverrideImageMatcher - directory vanishes mid-lookup");
+
+            OverrideImageMatcher.ClearCache();
+
+            var directory = Path.Combine(Path.GetTempPath(),
+                "strmassistant-verification-race-" + Guid.NewGuid().ToString("N"));
+
+            var original = OverrideImageMatcher.FileEnumerator;
+
+            try
+            {
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(Path.Combine(directory, "poster.jpg"), "x");
+
+                var before = OverrideImageMatcher.EnumerationCount;
+
+                // Existence and last-write checks succeeded, then the directory disappeared
+                // before it could be enumerated.
+                OverrideImageMatcher.FileEnumerator = _ => throw new DirectoryNotFoundException();
+
+                var files = OverrideImageMatcher.GetFiles(directory);
+
+                runner.Check("vanished directory returns no files", files.Count == 0);
+                runner.EqualLong("vanished directory is not counted as enumerated",
+                    before, OverrideImageMatcher.EnumerationCount);
+
+                // The failed lookup must not have cached an empty listing.
+                OverrideImageMatcher.FileEnumerator = original;
+                var recovered = OverrideImageMatcher.GetFiles(directory);
+
+                runner.Check("next lookup recovers the listing", recovered.Count == 1);
+                runner.EqualLong("recovery enumerates again", before + 1,
+                    OverrideImageMatcher.EnumerationCount);
+            }
+            finally
+            {
+                OverrideImageMatcher.FileEnumerator = original;
+                try
+                {
+                    if (Directory.Exists(directory)) Directory.Delete(directory, true);
+                }
+                catch
+                {
+                    // best effort cleanup of the temp directory
+                }
+            }
         }
 
         private static void CheckSeason(TestRunner runner, string fileName, int season, bool expected)
