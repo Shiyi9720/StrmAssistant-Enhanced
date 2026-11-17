@@ -73,6 +73,7 @@ namespace StrmAssistant.Common
         private sealed class StoreState
         {
             private static readonly TimeSpan PersistInterval = TimeSpan.FromSeconds(10);
+            private static readonly TimeSpan PruneInterval = TimeSpan.FromHours(6);
 
             private readonly IJsonSerializer _jsonSerializer;
             private readonly string _storePath;
@@ -87,6 +88,7 @@ namespace StrmAssistant.Common
             private readonly Timer _flushTimer;
             private bool _dirty;
             private DateTime _lastPersistUtc = DateTime.MinValue;
+            private DateTime _lastPruneUtc = DateTime.MinValue;
             private int _flushScheduled;
 
             public StoreState(IJsonSerializer jsonSerializer, string storePath)
@@ -114,6 +116,19 @@ namespace StrmAssistant.Common
                         RatingCount = ratingCount,
                         UpdatedAtUtc = DateTime.UtcNow
                     };
+
+                    var now = DateTime.UtcNow;
+
+                    // Bound the table: ratings are costly to re-fetch, so only entries older than
+                    // 180 days or beyond the 50k cap are dropped. Pruning is amortized (once per
+                    // save at most every six hours, or immediately when the cap is crossed).
+                    if (now - _lastPruneUtc >= PruneInterval ||
+                        _entries.Count > DoubanRatingPruner.MaxEntries)
+                    {
+                        DoubanRatingPruner.Prune(_entries,
+                            entry => entry?.UpdatedAtUtc ?? DateTime.MinValue, now);
+                        _lastPruneUtc = now;
+                    }
 
                     _dirty = true;
                 }
@@ -146,6 +161,18 @@ namespace StrmAssistant.Common
                     {
                         if (pair.Value != null) _entries[pair.Key] = pair.Value;
                     }
+
+                    var removed = DoubanRatingPruner.Prune(_entries,
+                        entry => entry?.UpdatedAtUtc ?? DateTime.MinValue, DateTime.UtcNow);
+
+                    if (removed > 0)
+                    {
+                        _dirty = true;
+                        Plugin.Instance.Logger?.Debug("DoubanRatings - Pruned " + removed +
+                                                      " stale entries on load");
+                    }
+
+                    _lastPruneUtc = DateTime.UtcNow;
                 }
                 catch (Exception e)
                 {
