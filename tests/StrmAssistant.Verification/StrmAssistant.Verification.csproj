@@ -26,7 +26,15 @@
     <Compile Include="..\..\StrmAssistant\Common\CustomFfprobeApi.cs" Link="src\CustomFfprobeApi.cs" />
     <Compile Include="..\..\StrmAssistant\Common\StrmUrlHelper.cs" Link="src\StrmUrlHelper.cs" />
     <Compile Include="..\..\StrmAssistant\Common\VersionPlaybackApi.cs" Link="src\VersionPlaybackApi.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\LanguageUtility.cs" Link="src\LanguageUtility.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\SearchTextHelper.cs" Link="src\SearchTextHelper.cs" />
     <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SearchTextHelper: pinyin generation and simplified/traditional conversion. -->
+    <PackageReference Include="ToolGood.Words.Pinyin" Version="3.1.0" />
+    <PackageReference Include="CHTCHSConv" Version="1.0.0" />
   </ItemGroup>
 
   <ItemGroup>
