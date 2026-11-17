@@ -144,9 +144,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("SeriesNotification - Failed: " + pending.SeriesName);
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException("SeriesNotification - Failed: " + pending.SeriesName, e);
                 }
             }
         }
@@ -219,9 +217,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Error("UserNotification - Failed to clear notification settings: " + user.Name);
-                _logger?.Error(e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.ErrorException("UserNotification - Failed to clear notification settings: " + user.Name, e);
             }
         }
 

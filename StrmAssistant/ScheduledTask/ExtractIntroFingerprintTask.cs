@@ -193,10 +193,8 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (Exception e)
                         {
-                            _logger?.Error(
-                                $"IntroFingerprintExtract - Episode failed: {taskEpisode.Name} - {taskEpisode.Path}");
-                            _logger?.Error(e.Message);
-                            _logger?.Debug(e.StackTrace);
+                            _logger?.ErrorException(
+                                $"IntroFingerprintExtract - Episode failed: {taskEpisode.Name} - {taskEpisode.Path}", e);
                         }
                         finally
                         {
@@ -297,10 +295,8 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
-                        _logger?.Error("IntroFingerprintExtract - Season failed: " + taskSeason.Name + " - " +
-                                      taskSeason.Path);
-                        _logger?.Error(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException("IntroFingerprintExtract - Season failed: " + taskSeason.Name + " - " +
+                                      taskSeason.Path, e);
                     }
                     finally
                     {

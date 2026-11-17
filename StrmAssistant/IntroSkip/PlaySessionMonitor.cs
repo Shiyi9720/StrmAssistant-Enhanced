@@ -405,8 +405,7 @@ namespace StrmAssistant.IntroSkip
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error("AutoMarkPreviousEpisodes - Failed: " + ex.Message);
-                    _logger?.Debug(ex.StackTrace);
+                    _logger?.Error("AutoMarkPreviousEpisodes - Failed: " + ex.Message + Environment.NewLine + ex.StackTrace);
                 }
             });
         }
@@ -523,8 +522,11 @@ namespace StrmAssistant.IntroSkip
                     }
                     catch (Exception e)
                     {
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        // Playback-driven background update; expected to fail now and then.
+                        if (LogLimiter.ShouldLog("PlaySessionMonitor IntroUpdate", TimeSpan.FromMinutes(5)))
+                        {
+                            _logger?.Warn("IntroUpdate - Update failed: " + e.Message + Environment.NewLine + e.StackTrace);
+                        }
                     }
                 });
 
@@ -567,8 +569,11 @@ namespace StrmAssistant.IntroSkip
                     }
                     catch (Exception e)
                     {
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        // Playback-driven background update; expected to fail now and then.
+                        if (LogLimiter.ShouldLog("PlaySessionMonitor IntroUpdate", TimeSpan.FromMinutes(5)))
+                        {
+                            _logger?.Warn("IntroUpdate - Update failed: " + e.Message + Environment.NewLine + e.StackTrace);
+                        }
                     }
                 });
 

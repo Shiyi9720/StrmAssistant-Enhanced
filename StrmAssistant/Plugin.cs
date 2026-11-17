@@ -584,8 +584,8 @@ namespace StrmAssistant
             }
             catch (Exception ex)
             {
-                Logger.Debug(ex.Message);
-                Logger.Debug(ex.StackTrace);
+                // Event handlers must never throw, but failures need to be visible.
+                Logger.ErrorException("Plugin event handler failed", ex);
             }
 
             try
@@ -595,8 +595,7 @@ namespace StrmAssistant
             catch (Exception ex)
             {
                 // Never let the ItemAdded handler throw: library scans would inherit the failure.
-                Logger.Warn("AutoExtract - ItemAdded handling failed: " + ex.Message);
-                Logger.Debug(ex.StackTrace);
+                Logger.Warn("AutoExtract - ItemAdded handling failed: " + ex.Message + Environment.NewLine + ex.StackTrace);
             }
         }
 
@@ -681,8 +680,7 @@ namespace StrmAssistant
             catch (Exception ex)
             {
                 Logger.Warn("AutoExtract - ItemAdded handling failed: " + addedItem?.Name + " - " +
-                            addedItem?.Path + " - " + ex.Message);
-                Logger.Debug(ex.StackTrace);
+                            addedItem?.Path + " - " + ex.Message + Environment.NewLine + ex.StackTrace);
             }
         }
 
@@ -712,8 +710,8 @@ namespace StrmAssistant
             }
             catch (Exception ex)
             {
-                Logger.Debug(ex.Message);
-                Logger.Debug(ex.StackTrace);
+                // Event handlers must never throw, but failures need to be visible.
+                Logger.ErrorException("Plugin event handler failed", ex);
             }
 
             if (!_currentMediaInfoRestoreMode && e.Item is Video)
@@ -767,8 +765,8 @@ namespace StrmAssistant
             }
             catch (Exception ex)
             {
-                Logger.Debug(ex.Message);
-                Logger.Debug(ex.StackTrace);
+                // Event handlers must never throw, but failures need to be visible.
+                Logger.ErrorException("Plugin event handler failed", ex);
             }
         }
 

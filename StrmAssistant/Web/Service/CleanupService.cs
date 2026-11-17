@@ -46,8 +46,7 @@ namespace StrmAssistant.Web.Service
                 }
                 catch (Exception ex)
                 {
-                    Plugin.Instance.Logger.Error("Cleanup - Failed to delete " + path + " - " + ex.Message);
-                    Plugin.Instance.Logger.Debug(ex.StackTrace);
+                    Plugin.Instance.Logger.Error("Cleanup - Failed to delete " + path + " - " + ex.Message + Environment.NewLine + ex.StackTrace);
                 }
             }
 
@@ -95,8 +94,7 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception ex)
             {
-                Plugin.Instance.Logger.Error("ClearChapterImages - " + item.Name + " - " + ex.Message);
-                Plugin.Instance.Logger.Debug(ex.StackTrace);
+                Plugin.Instance.Logger.Error("ClearChapterImages - " + item.Name + " - " + ex.Message + Environment.NewLine + ex.StackTrace);
             }
         }
     }
@@ -151,8 +149,7 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception ex)
             {
-                Plugin.Instance.Logger.Error("ClearBif - " + video.Name + " - " + ex.Message);
-                Plugin.Instance.Logger.Debug(ex.StackTrace);
+                Plugin.Instance.Logger.Error("ClearBif - " + video.Name + " - " + ex.Message + Environment.NewLine + ex.StackTrace);
             }
         }
     }
@@ -177,8 +174,7 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception ex)
             {
-                Plugin.Instance.Logger.Error("ClearMediaInfo - " + item.Name + " - " + ex.Message);
-                Plugin.Instance.Logger.Debug(ex.StackTrace);
+                Plugin.Instance.Logger.Error("ClearMediaInfo - " + item.Name + " - " + ex.Message + Environment.NewLine + ex.StackTrace);
             }
         }
     }

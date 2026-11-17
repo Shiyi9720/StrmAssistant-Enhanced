@@ -194,9 +194,7 @@ namespace StrmAssistant.ScheduledTask
                     catch (Exception e)
                     {
                         failed++;
-                        _logger?.Error($"PinyinSort - Item failed: {item?.Name}");
-                        _logger?.Error(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException($"PinyinSort - Item failed: {item?.Name}", e);
                     }
                 }
 
@@ -212,9 +210,7 @@ namespace StrmAssistant.ScheduledTask
                     catch (Exception e)
                     {
                         failed += changed.Count;
-                        _logger?.Error("PinyinSort - Saving batch failed");
-                        _logger?.Error(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException("PinyinSort - Saving batch failed", e);
                     }
                 }
 

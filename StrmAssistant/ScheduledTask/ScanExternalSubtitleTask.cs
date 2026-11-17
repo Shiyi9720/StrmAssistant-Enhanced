@@ -91,9 +91,8 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
-                        _logger?.Info("ExternalSubtitle - Item failed: " + taskItem.Name + " - " + taskItem.Path);
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException("ExternalSubtitle - Item failed: " + taskItem.Name + " - " +
+                                                taskItem.Path, e);
                     }
                     finally
                     {

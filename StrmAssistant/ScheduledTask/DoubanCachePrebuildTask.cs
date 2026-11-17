@@ -175,9 +175,8 @@ namespace StrmAssistant.ScheduledTask
                         catch (Exception e)
                         {
                             failed++;
-                            _logger?.Warn("DoubanCachePrebuild - Item failed: " + item.Name);
-                            _logger?.Debug(e.Message);
-                            _logger?.Debug(e.StackTrace);
+                            _logger?.Warn("DoubanCachePrebuild - Item failed: " + item.Name +
+                                          Environment.NewLine + e.StackTrace);
                         }
 
                         if (DoubanCacheApi.IsTemporarilyBlocked)

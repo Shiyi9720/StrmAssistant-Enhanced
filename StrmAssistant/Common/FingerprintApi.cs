@@ -97,11 +97,9 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                if (Plugin.Instance.DebugMode)
-                {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
-                }
+                // Reflective init of Emby internals; a failure here degrades intro detection.
+                _logger?.Warn("FingerprintApi - Init failed: " + e.Message + Environment.NewLine +
+                              e.StackTrace);
             }
 
             if (_audioFingerprintManager is null || _createTitleFingerprint is null ||
@@ -175,10 +173,8 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Error("IntroFingerprintExtract - Failed to Record Intro Detection Failure: " + item.Name +
-                               " - " + item.Path);
-                _logger?.Error(e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.ErrorException("IntroFingerprintExtract - Failed to Record Intro Detection Failure: " + item.Name +
+                               " - " + item.Path, e);
             }
         }
 

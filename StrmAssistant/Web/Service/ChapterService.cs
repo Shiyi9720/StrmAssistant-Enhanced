@@ -71,9 +71,7 @@ namespace StrmAssistant.Web.Service
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("IntroRedetect - Failed: " + item.Name);
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException("IntroRedetect - Failed: " + item.Name, e);
                 }
                 finally
                 {
@@ -125,9 +123,7 @@ namespace StrmAssistant.Web.Service
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("IntroRedetect - Season failed: " + season.Name + " - " + season.Path);
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException("IntroRedetect - Season failed: " + season.Name + " - " + season.Path, e);
                 }
                 finally
                 {

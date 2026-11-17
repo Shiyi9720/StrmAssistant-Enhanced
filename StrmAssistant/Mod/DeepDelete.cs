@@ -379,12 +379,8 @@ namespace StrmAssistant.Mod
             {
                 var logger = Plugin.Instance?.Logger;
 
-                logger?.Error($"DeepDelete - Failed to {action}: {e.GetType().Name}: {e.Message}");
-
-                if (Plugin.Instance?.DebugMode == true)
-                {
-                    logger?.Debug(e.StackTrace);
-                }
+                logger?.Error($"DeepDelete - Failed to {action}: {e.GetType().Name}: {e.Message}" +
+                              Environment.NewLine + e.StackTrace);
             }
             catch
             {

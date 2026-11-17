@@ -253,9 +253,7 @@ namespace StrmAssistant.ScheduledTask
                     catch (Exception e)
                     {
                         failed++;
-                        _logger?.Error("BeautifyMissingMetadata - Series failed: " + series.Name);
-                        _logger?.Error(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException("BeautifyMissingMetadata - Series failed: " + series.Name, e);
                     }
 
                     progress?.Report(Math.Min(100.0, processed * 100.0 / total));

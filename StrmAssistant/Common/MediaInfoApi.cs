@@ -89,8 +89,7 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                 }
             }
 
@@ -126,8 +125,7 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                 }
 
                 _logger?.Warn($"{nameof(MediaInfoApi)} Init Failed");
@@ -395,8 +393,7 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                 }
             }
         }
@@ -477,9 +474,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("MediaInfoPersist - Serialization Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException("MediaInfoPersist - Serialization Failed (" + source + "): " + mediaInfoJsonPath, e);
                 }
             }
 
@@ -632,9 +627,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("MediaInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException("MediaInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath, e);
                 }
             }
 
@@ -677,8 +670,8 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.Error("MediaInfoPersist - Cleanup failed: " + e.Message +
+                                   Environment.NewLine + e.StackTrace);
                 }
             }
         }
@@ -731,9 +724,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    _logger?.Error("ChapterInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath);
-                    _logger?.Error(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException("ChapterInfoPersist - Deserialization Failed (" + source + "): " + mediaInfoJsonPath, e);
                 }
             }
 

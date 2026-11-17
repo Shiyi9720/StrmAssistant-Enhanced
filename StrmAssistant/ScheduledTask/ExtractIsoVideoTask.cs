@@ -75,9 +75,7 @@ namespace StrmAssistant.ScheduledTask
                 }
                 catch (Exception e)
                 {
-                    _logger?.Info("IsoExtract - Item failed: " + item.Path);
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.ErrorException("IsoExtract - Item failed: " + item.Path, e);
                 }
 
                 current++;

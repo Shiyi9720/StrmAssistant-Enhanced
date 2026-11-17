@@ -216,8 +216,8 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance?.DebugMode != true) return;
 
-                Plugin.Instance.Logger.Debug("ImageExtractionTimeout - " + exception.Message);
-                Plugin.Instance.Logger.Debug(exception.StackTrace);
+                Plugin.Instance.Logger.Debug("ImageExtractionTimeout - " + exception.Message +
+                                             Environment.NewLine + exception.StackTrace);
             }
         }
     }

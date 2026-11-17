@@ -49,9 +49,7 @@ namespace StrmAssistant.Web.Service
                 }
                 catch (Exception e)
                 {
-                    Plugin.Instance.Logger?.Error("RecursiveRefresh - Failed: " + item.Name);
-                    Plugin.Instance.Logger?.Error(e.Message);
-                    Plugin.Instance.Logger?.Debug(e.StackTrace);
+                    Plugin.Instance.Logger?.ErrorException("RecursiveRefresh - Failed: " + item.Name, e);
                 }
                 finally
                 {
@@ -135,9 +133,7 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger?.Error("RecursiveRefresh - Item failed: " + item.Name);
-                Plugin.Instance.Logger?.Error(e.Message);
-                Plugin.Instance.Logger?.Debug(e.StackTrace);
+                Plugin.Instance.Logger?.ErrorException("RecursiveRefresh - Item failed: " + item.Name, e);
             }
         }
     }

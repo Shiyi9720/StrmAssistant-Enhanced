@@ -85,9 +85,7 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (Exception e)
                         {
-                            _logger?.Info("MovieMetadataRefresh - Item failed: " + taskItem.Name);
-                            _logger?.Debug(e.Message);
-                            _logger?.Debug(e.StackTrace);
+                            _logger?.ErrorException("MovieMetadataRefresh - Item failed: " + taskItem.Name, e);
                         }
                         finally
                         {

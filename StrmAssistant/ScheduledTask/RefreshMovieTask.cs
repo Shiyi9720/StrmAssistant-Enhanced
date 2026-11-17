@@ -80,9 +80,8 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
-                        _logger?.Info("MovieRefresh - Item failed: " + taskItem.Name + " - " + taskItem.Path);
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException("MovieRefresh - Item failed: " + taskItem.Name + " - " +
+                                                taskItem.Path, e);
                     }
                     finally
                     {

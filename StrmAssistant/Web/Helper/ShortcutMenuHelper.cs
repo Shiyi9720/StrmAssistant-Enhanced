@@ -127,9 +127,7 @@ namespace StrmAssistant.Web.Helper
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Error($"{nameof(ShortcutMenuHelper)} Init Failed");
-                Plugin.Instance.Logger.Error(e.Message);
-                Plugin.Instance.Logger.Debug(e.StackTrace);
+                Plugin.Instance.Logger.ErrorException($"{nameof(ShortcutMenuHelper)} Init Failed", e);
             }
         }
 

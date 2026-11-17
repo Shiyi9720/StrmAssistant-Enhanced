@@ -129,8 +129,8 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Debug("DoubanSupplement - Failed: " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.Debug("DoubanSupplement - Failed: " + e.Message + Environment.NewLine +
+                               e.StackTrace);
             }
         }
 

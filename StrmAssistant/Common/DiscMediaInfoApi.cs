@@ -226,8 +226,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Info("DiscMediaInfo - Failed: " + item.Path + " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.Info("DiscMediaInfo - Failed: " + item.Path + " - " + e.Message + Environment.NewLine + e.StackTrace);
                 return false;
             }
         }

@@ -120,9 +120,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
-                        _logger?.Error($"MediaInfoExtract - Item failed: {taskItem.Name} - {taskItem.Path}");
-                        _logger?.Error(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.ErrorException($"MediaInfoExtract - Item failed: {taskItem.Name} - {taskItem.Path}", e);
                     }
                     finally
                     {

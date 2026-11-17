@@ -80,9 +80,7 @@ namespace StrmAssistant.Web.Service
                         if (e is IOException || e is UnauthorizedAccessException)
                         {
                             proceedToDelete = false;
-                            _logger?.Error("DeleteVersion - Failed to delete file: " + path.FullName);
-                            _logger?.Error(e.Message);
-                            _logger?.Debug(e.StackTrace);
+                            _logger?.ErrorException("DeleteVersion - Failed to delete file: " + path.FullName, e);
                         }
                     }
                 }
@@ -95,9 +93,11 @@ namespace StrmAssistant.Web.Service
                     {
                         _fileSystem.DeleteDirectory(item.GetInternalMetadataPath(), true, true);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // ignored
+                        // Metadata folder cleanup is best effort; keep the reason visible.
+                        Plugin.Instance.Logger.Debug("DeleteVersion - Metadata folder cleanup failed: " +
+                                                     ex.Message + Environment.NewLine + ex.StackTrace);
                     }
                 }
             }

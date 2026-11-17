@@ -195,8 +195,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                Logger.Info("IsoExtract - Failed: " + isoPath + " - " + e.Message);
-                Logger.Debug(e.StackTrace);
+                Logger.Info("IsoExtract - Failed: " + isoPath + " - " + e.Message + Environment.NewLine + e.StackTrace);
                 Jobs.TryRemove(isoPath, out _);
                 return null;
             }

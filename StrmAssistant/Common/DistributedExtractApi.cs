@@ -357,8 +357,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _logger?.Info("DistributedExtract - Failed to write chapter images: " + item.Name + " - " +
-                              e.Message);
-                _logger?.Debug(e.StackTrace);
+                              e.Message + Environment.NewLine + e.StackTrace);
                 applied = false;
             }
 
@@ -761,8 +760,7 @@ namespace StrmAssistant.Common
                     }
                     catch (Exception e)
                     {
-                        _logger?.Info("DistributedExtract - Apply failed: " + itemDescription + " - " + e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.Info("DistributedExtract - Apply failed: " + itemDescription + " - " + e.Message + Environment.NewLine + e.StackTrace);
                         return new MediaInfoDistributionAttempt
                         {
                             Attempted = true,
@@ -797,8 +795,9 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 sawWorkerError = true;
-                _logger?.Debug("DistributedExtract - Failed: " + itemDescription + " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                // One line per item failure; full detail is needed to diagnose worker nodes.
+                _logger?.Debug("DistributedExtract - Failed: " + itemDescription + " - " + e.Message +
+                               Environment.NewLine + e.StackTrace);
             }
 
             return new MediaInfoDistributionAttempt
@@ -909,8 +908,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Info("DistributedExtract - Worker probe failed: " + request.Path + " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                _logger?.Info("DistributedExtract - Worker probe failed: " + request.Path + " - " + e.Message + Environment.NewLine + e.StackTrace);
                 return Fail(e.Message);
             }
         }
@@ -1058,8 +1056,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _logger?.Info("DistributedExtract - Worker thumbnail extraction failed: " + request.Path +
-                              " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                              " - " + e.Message + Environment.NewLine + e.StackTrace);
                 return FailThumbnail(e.Message);
             }
             finally
@@ -1178,8 +1175,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _logger?.Info("DistributedExtract - Worker HDR Vivid detection failed: " + request.Path +
-                              " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                              " - " + e.Message + Environment.NewLine + e.StackTrace);
                 return FailHdrVivid(e.Message);
             }
         }
@@ -1350,8 +1346,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _logger?.Info("DistributedExtract - Worker DV P5 extraction failed: " + request.Path +
-                              " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                              " - " + e.Message + Environment.NewLine + e.StackTrace);
                 return FailDvP5(e.Message);
             }
         }
@@ -1449,8 +1444,7 @@ namespace StrmAssistant.Common
             catch (Exception e)
             {
                 _logger?.Info("DistributedExtract - Worker fingerprint extraction failed: " + request.Path +
-                              " - " + e.Message);
-                _logger?.Debug(e.StackTrace);
+                              " - " + e.Message + Environment.NewLine + e.StackTrace);
                 return FailFingerprint(e.Message);
             }
         }

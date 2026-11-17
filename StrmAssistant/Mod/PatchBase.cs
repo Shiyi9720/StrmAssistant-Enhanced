@@ -29,12 +29,8 @@ namespace StrmAssistant.Mod
                 PatchTracker.FailureReason = reason;
                 PatchTracker.FallbackPatchApproach = PatchApproach.None;
 
-                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed: {reason}");
-
-                if (Plugin.Instance.DebugMode)
-                {
-                    Plugin.Instance.Logger.Debug(e.StackTrace);
-                }
+                Plugin.Instance.Logger.Warn($"{PatchTracker.PatchType.Name} Init Failed: {reason}" +
+                                            Environment.NewLine + e.StackTrace);
             }
 
             if (PatchTracker.FallbackPatchApproach == PatchApproach.None) return;

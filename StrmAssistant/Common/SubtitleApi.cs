@@ -121,8 +121,7 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                 }
             }
 
@@ -161,8 +160,7 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.Instance.DebugMode)
                     {
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                     }
                 }
             }
@@ -181,8 +179,7 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.Instance.DebugMode)
                     {
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                     }
                 }
             }
@@ -284,8 +281,7 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                 }
 
                 return 0;
@@ -442,8 +438,7 @@ namespace StrmAssistant.Common
             {
                 if (Plugin.Instance.DebugMode)
                 {
-                    _logger?.Debug(e.Message);
-                    _logger?.Debug(e.StackTrace);
+                    _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                 }
             }
 
@@ -916,8 +911,7 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.Instance.DebugMode)
                     {
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                     }
                 }
             }
@@ -953,8 +947,7 @@ namespace StrmAssistant.Common
                 {
                     if (Plugin.Instance.DebugMode)
                     {
-                        _logger?.Debug(e.Message);
-                        _logger?.Debug(e.StackTrace);
+                        _logger?.Debug(e.Message + Environment.NewLine + e.StackTrace);
                     }
                 }
             }
