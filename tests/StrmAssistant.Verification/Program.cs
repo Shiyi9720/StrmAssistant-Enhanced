@@ -23,6 +23,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "ResumeSequence", ResumeSequenceTests.Run);
             RunGroup(runner, "SatelliteResourceManager", SatelliteResourceTests.Run);
             RunGroup(runner, "SearchPinyin", SearchPinyinTests.Run);
+            RunGroup(runner, "OverrideImageMatcher", OverrideImageMatcherTests.Run);
 
             return runner.Finish();
         }

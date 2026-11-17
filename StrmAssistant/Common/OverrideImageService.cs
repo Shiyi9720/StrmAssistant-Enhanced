@@ -32,11 +32,6 @@ namespace StrmAssistant.Common
         private const string CollectionsFolderName = "tmdb-collections";
 
         private static readonly Regex TmdbIdRegex = new Regex(@"^\d+$", RegexOptions.Compiled);
-        private static readonly Regex ImageTypeRegex = new Regex(@"^(?<type>[a-z]+)\.[a-z0-9]+$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex SeasonEpisodeImageRegex = new Regex(
-            @"^(?:season-(?<season>\d+)|episode-(?<episodeSeason>\d+)-(?<episode>\d+))\.(?<extension>jpg|jpeg|png|webp)$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly ConcurrentDictionary<long, byte> InFlight =
             new ConcurrentDictionary<long, byte>();
         private static readonly object StateSync = new object();
@@ -281,32 +276,11 @@ namespace StrmAssistant.Common
                          Path.Combine(root, OverrideFolderName, tmdbId, ImagesFolderName)
                      }.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (!Directory.Exists(directory)) continue;
-
-                foreach (var path in Directory.GetFiles(directory))
+                foreach (var path in OverrideImageMatcher.GetFiles(directory))
                 {
-                    var match = SeasonEpisodeImageRegex.Match(Path.GetFileName(path));
-
-                    if (!match.Success) continue;
-
-                    if (episode.HasValue)
+                    if (!OverrideImageMatcher.IsSeasonEpisodeImage(Path.GetFileName(path), season, episode))
                     {
-                        if (!match.Groups["episode"].Success ||
-                            !int.TryParse(match.Groups["episodeSeason"].Value, out var imageSeason) ||
-                            !int.TryParse(match.Groups["episode"].Value, out var imageEpisode) ||
-                            imageSeason != season || imageEpisode != episode.Value)
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        if (match.Groups["episode"].Success ||
-                            !int.TryParse(match.Groups["season"].Value, out var imageSeason) ||
-                            imageSeason != season)
-                        {
-                            continue;
-                        }
+                        continue;
                     }
 
                     files.Add(new OverrideImageFile
@@ -331,15 +305,12 @@ namespace StrmAssistant.Common
 
             foreach (var directory in imageDirectories.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (!Directory.Exists(directory)) continue;
-
-                foreach (var path in Directory.GetFiles(directory))
+                foreach (var path in OverrideImageMatcher.GetFiles(directory))
                 {
-                    var match = ImageTypeRegex.Match(Path.GetFileName(path));
-
-                    if (!match.Success) continue;
-
-                    var typeName = match.Groups["type"].Value.ToLowerInvariant();
+                    if (!OverrideImageMatcher.TryGetImageTypeName(Path.GetFileName(path), out var typeName))
+                    {
+                        continue;
+                    }
 
                     if (!allowedTypes.Contains(typeName)) continue;
 
