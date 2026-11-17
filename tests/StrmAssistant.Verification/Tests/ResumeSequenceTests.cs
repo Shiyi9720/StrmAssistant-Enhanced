@@ -31,6 +31,7 @@ namespace StrmAssistant.Verification
             MergedSourceExactWins(runner);
             MergedSourceThreeVersions(runner);
             MergedSourceFinishedIsShared(runner);
+            LegacyFingerprintRecordNotReusedAcrossVersions(runner);
         }
 
         /// <summary>
@@ -109,6 +110,135 @@ namespace StrmAssistant.Verification
                 readC != null && readC.Played, readC is null ? "no entry" : "played=" + readC.Played);
             runner.EqualLong("F1 recordless version C position is 0", 0,
                 readC?.PositionTicks ?? -1);
+        }
+
+        /// <summary>
+        /// B1 regression: a legacy record that carries no ids at all (old store format kept its
+        /// VersionKey/VersionSignature) must only be adopted for a playback of the SAME version.
+        /// The old loose branch reused it for any version of the group, moving A's resume point
+        /// to B and losing A's independent position permanently.
+        /// </summary>
+        private static void LegacyFingerprintRecordNotReusedAcrossVersions(TestRunner runner)
+        {
+            runner.Section("F5. legacy fingerprint-only record is not reused for another version");
+
+            var storeDirectory = Path.Combine(Path.GetTempPath(),
+                "strmassistant-verify-legacy-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(storeDirectory);
+            Plugin.Instance.ApplicationPaths.PluginConfigurationsPath = storeDirectory;
+            Plugin.Instance.Logger = Plugin.Instance.Logger ?? new ConsoleLogger("verify");
+            Plugin.Instance.Options.ExperienceEnhanceOptions.VersionPlaybackOptions
+                .PersistPerVersionResume = true;
+
+            var user = new PlaybackUser {InternalId = 7};
+
+            var sourceA = Source("srcA", "1000", "/library/Legacy.Movie.2024.1080p.mkv",
+                60 * TicksPerMinute, 1080);
+            var sourceB = Source("srcB", "2000", "/library/Legacy.Movie.2024.2160p.mkv",
+                80 * TicksPerMinute, 2160);
+
+            // Write an old-format store: no ItemId / MediaSourceItemId / MediaSourceId, only the
+            // file-identity fingerprints of version A. Load() keeps such records as they are.
+            var store = new
+            {
+                Records = new object[]
+                {
+                    new
+                    {
+                        UserId = 7L,
+                        ItemKey = "name|legacy movie|2024",
+                        NameKey = "name|legacy movie|2024",
+                        ItemId = "",
+                        MediaSourceId = "",
+                        MediaSourceItemId = "",
+                        VersionKey = "legacy movie 2024 1080p",
+                        VersionSignature = "1080p|hevc|",
+                        PositionTicks = 24 * TicksPerMinute,
+                        Played = false,
+                        RunTimeTicks = 60 * TicksPerMinute,
+                        LastPlayedDate = DateTime.UtcNow
+                    }
+                }
+            };
+
+            var storePath = Path.Combine(storeDirectory, "StrmAssistant.VersionPlayback.json");
+            File.WriteAllText(storePath, JsonSerializer.Serialize(store));
+
+            var sessions = new FakeSessionManager();
+            var api = new VersionPlaybackApi(sessions, Plugin.Instance.JsonSerializer);
+            api.Initialize();
+
+            try
+            {
+                var movieA = Movie(1000, "Legacy Movie", 2024, sourceA);
+                var movieB = Movie(2000, "Legacy Movie", 2024, sourceB);
+
+                // The user PLAYS version B without ever having read it. The write path must not
+                // adopt A's fingerprint-only record for B: with the pre-fix loose branch it moved
+                // A's record to B's per-version key, destroying A's independent resume point.
+                sessions.RaiseProgress(new PlaybackProgressEventArgs
+                {
+                    Item = movieB,
+                    Users = new List<PlaybackUser> {user},
+                    MediaSource = sourceB,
+                    MediaSourceId = sourceB.Id,
+                    PlaybackPositionTicks = 10 * TicksPerMinute
+                });
+
+                // Version A still owns the legacy record with its original position.
+                var readA = api.GetVersionPlayback(user.InternalId, movieA)
+                    .FirstOrDefault(e => e.MediaSourceId == "srcA");
+                runner.Check("F5 same version keeps the legacy record", readA != null);
+                runner.EqualLong("F5 A resumes at the legacy 24min", 24 * TicksPerMinute,
+                    readA?.PositionTicks ?? -1);
+
+                // Version B has its own record from its playback, not A's 24 minutes.
+                var readB = api.GetVersionPlayback(user.InternalId, movieB)
+                    .FirstOrDefault(e => e.MediaSourceId == "srcB");
+                runner.Check("F5 B does not adopt A's record", readB != null);
+                runner.EqualLong("F5 B resumes at its own 10min", 10 * TicksPerMinute,
+                    readB?.PositionTicks ?? -1);
+
+                // Reading A after B played must still be A's 24 minutes, not converted state.
+                var readAAfter = api.GetVersionPlayback(user.InternalId, movieA)
+                    .FirstOrDefault(e => e.MediaSourceId == "srcA");
+                runner.EqualLong("F5 A keeps its 24min after B played", 24 * TicksPerMinute,
+                    readAAfter?.PositionTicks ?? -1);
+
+                // A fingerprint-only record of the SAME version is still adopted on write.
+                var movieA2 = Movie(1000, "Legacy Movie", 2024, sourceA);
+                sessions.RaiseProgress(new PlaybackProgressEventArgs
+                {
+                    Item = movieA2,
+                    Users = new List<PlaybackUser> {user},
+                    MediaSource = sourceA,
+                    MediaSourceId = sourceA.Id,
+                    PlaybackPositionTicks = 30 * TicksPerMinute
+                });
+                var readASame = api.GetVersionPlayback(user.InternalId, movieA)
+                    .FirstOrDefault(e => e.MediaSourceId == "srcA");
+                runner.EqualLong("F5 same-version playback updates A to 30min", 30 * TicksPerMinute,
+                    readASame?.PositionTicks ?? -1);
+            }
+            finally
+            {
+                api.Dispose();
+                Plugin.Instance.Options.ExperienceEnhanceOptions.VersionPlaybackOptions
+                    .PersistPerVersionResume = false;
+                TryDeleteDirectory(storeDirectory);
+            }
+        }
+
+        private static void TryDeleteDirectory(string path)
+        {
+            try
+            {
+                if (Directory.Exists(path)) Directory.Delete(path, true);
+            }
+            catch
+            {
+                // best effort cleanup of the temp store
+            }
         }
 
         /// <summary>

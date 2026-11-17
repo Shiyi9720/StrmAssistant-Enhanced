@@ -381,7 +381,8 @@ namespace StrmAssistant.Common
                         // per-version key, so switching versions does not accumulate duplicates.
                         var existing = _records.Values
                             .Where(r => r.UserId == user.InternalId &&
-                                        IsSameRecordVersion(r, itemId, mediaSourceId))
+                                        IsSameRecordVersion(r, itemId, mediaSourceId, versionKey,
+                                            versionSignature))
                             .OrderByDescending(r => r.LastPlayedDate)
                             .FirstOrDefault();
 
@@ -546,7 +547,7 @@ namespace StrmAssistant.Common
         }
 
         private static bool IsSameRecordVersion(VersionPlaybackRecord record, string itemId,
-            string mediaSourceId)
+            string mediaSourceId, string versionKey, string versionSignature)
         {
             if (record.UserId <= 0) return false;
 
@@ -564,8 +565,16 @@ namespace StrmAssistant.Common
                 return false;
             }
 
-            return !string.IsNullOrEmpty(recordItemId) || !string.IsNullOrEmpty(record.MediaSourceId) ||
-                   !string.IsNullOrEmpty(record.VersionKey) || !string.IsNullOrEmpty(record.VersionSignature);
+            if (string.IsNullOrEmpty(recordItemId) && string.IsNullOrEmpty(record.MediaSourceId))
+            {
+                // The record only carries file-identity fingerprints. Reusing it for another
+                // concrete version would move its resume point across versions, so require the
+                // fingerprints to match the version actually being played.
+                return MatchesKey(record.VersionKey, versionKey) ||
+                       MatchesKey(record.VersionSignature, versionSignature);
+            }
+
+            return true;
         }
 
         private static string RecordItemId(VersionPlaybackRecord record)
