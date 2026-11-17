@@ -382,8 +382,11 @@ namespace StrmAssistant.Common
             {
                 bytes = Convert.FromBase64String(data);
             }
-            catch (FormatException)
+            catch (FormatException e)
             {
+                Plugin.Instance?.Logger?.Debug(
+                    "DistributedExtract - Invalid base64 thumbnail from worker" +
+                    Environment.NewLine + e);
                 return false;
             }
 
@@ -615,8 +618,11 @@ namespace StrmAssistant.Common
                 {
                     bytes = Convert.FromBase64String(image.Data);
                 }
-                catch (FormatException)
+                catch (FormatException e)
                 {
+                    Plugin.Instance?.Logger?.Debug(
+                        "DistributedExtract - Invalid base64 DV P5 frame from worker" +
+                        Environment.NewLine + e);
                     return null;
                 }
 
@@ -709,6 +715,8 @@ namespace StrmAssistant.Common
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
+                        // expected: the node health record below surfaces the timeout to the
+                        // caller; a stack trace would only show the cancelled HTTP wait.
                         sawTimeout = true;
                         RecordNodeFailure(node, health, "timeout");
                         continue;
@@ -719,8 +727,9 @@ namespace StrmAssistant.Common
                     }
                     catch (Exception e)
                     {
+                        // expected: the health record below carries the exception and stack.
                         sawWorkerError = true;
-                        RecordNodeFailure(node, health, e.Message);
+                        RecordNodeFailure(node, health, e.Message + Environment.NewLine + e.StackTrace);
                         continue;
                     }
 
@@ -902,8 +911,11 @@ namespace StrmAssistant.Common
                     ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
                 };
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                // expected: a timeout is returned to the caller as a failure result.
+                _logger?.Debug("DistributedExtract - Worker probe timed out after " + timeoutSeconds +
+                               " seconds" + Environment.NewLine + e);
                 return Fail("Probe timed out after " + timeoutSeconds + " seconds", "timeout");
             }
             catch (Exception e)
@@ -1045,12 +1057,18 @@ namespace StrmAssistant.Common
                     ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
                 };
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                // expected: a timeout is returned to the caller as a failure result.
+                _logger?.Debug("DistributedExtract - Worker thumbnail extraction timed out after " +
+                               timeoutSeconds + " seconds" + Environment.NewLine + e);
                 return FailThumbnail("Extraction timed out after " + timeoutSeconds + " seconds", "timeout");
             }
-            catch (TimeoutException)
+            catch (TimeoutException e)
             {
+                // expected: a timeout is returned to the caller as a failure result.
+                _logger?.Debug("DistributedExtract - Worker thumbnail extraction timed out after " +
+                               timeoutSeconds + " seconds" + Environment.NewLine + e);
                 return FailThumbnail("Extraction timed out after " + timeoutSeconds + " seconds", "timeout");
             }
             catch (Exception e)
@@ -1065,9 +1083,10 @@ namespace StrmAssistant.Common
                 {
                     if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory, true);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    _logger?.Debug("DistributedExtract - Failed to delete thumbnail temp directory: " +
+                                   tempDirectory + Environment.NewLine + e);
                 }
             }
         }
@@ -1168,8 +1187,11 @@ namespace StrmAssistant.Common
                     ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
                 };
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                // expected: a timeout is returned to the caller as a failure result.
+                _logger?.Debug("DistributedExtract - Worker HDR Vivid detection timed out after " +
+                               timeoutSeconds + " seconds" + Environment.NewLine + e);
                 return FailHdrVivid("Detection timed out after " + timeoutSeconds + " seconds");
             }
             catch (Exception e)
@@ -1321,9 +1343,10 @@ namespace StrmAssistant.Common
                         {
                             File.Delete(tempPath);
                         }
-                        catch
+                        catch (Exception e)
                         {
-                            // ignored
+                            _logger?.Debug("DistributedExtract - Failed to delete DV P5 temp file: " +
+                                           tempPath + Environment.NewLine + e);
                         }
                     }
                 }
@@ -1339,8 +1362,11 @@ namespace StrmAssistant.Common
                     ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
                 };
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                // expected: a timeout is returned to the caller as a failure result.
+                _logger?.Debug("DistributedExtract - Worker DV P5 extraction timed out after " +
+                               timeoutSeconds + " seconds" + Environment.NewLine + e);
                 return FailDvP5("Extraction timed out after " + timeoutSeconds + " seconds");
             }
             catch (Exception e)
@@ -1431,13 +1457,19 @@ namespace StrmAssistant.Common
                     ElapsedMs = (long)(DateTime.UtcNow - started).TotalMilliseconds
                 };
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException e)
             {
+                // expected: a timeout is returned to the caller as a failure result.
+                _logger?.Debug("DistributedExtract - Worker fingerprint extraction timed out after " +
+                               timeoutSeconds + " seconds" + Environment.NewLine + e);
                 return FailFingerprint("Fingerprint extraction timed out after " + timeoutSeconds + " seconds",
                     "timeout");
             }
-            catch (TimeoutException)
+            catch (TimeoutException e)
             {
+                // expected: a timeout is returned to the caller as a failure result.
+                _logger?.Debug("DistributedExtract - Worker fingerprint extraction timed out after " +
+                               timeoutSeconds + " seconds" + Environment.NewLine + e);
                 return FailFingerprint("Fingerprint extraction timed out after " + timeoutSeconds + " seconds",
                     "timeout");
             }
@@ -1647,9 +1679,10 @@ namespace StrmAssistant.Common
                     {
                         if (File.Exists(tempPath)) File.Delete(tempPath);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+                        _logger?.Debug("DistributedExtract - Failed to delete chapter image temp file: " +
+                                       tempPath + Environment.NewLine + e);
                     }
                 }
 
@@ -1689,15 +1722,17 @@ namespace StrmAssistant.Common
                     {
                         File.Delete(file);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        // ignored
+                        _logger?.Debug("DistributedExtract - Failed to delete stale chapter image: " +
+                                       file + Environment.NewLine + e);
                     }
                 }
             }
             catch (Exception e)
             {
-                _logger?.Debug("DistributedExtract - Failed to clean chapter images: " + e.Message);
+                _logger?.Debug("DistributedExtract - Failed to clean chapter images" +
+                               Environment.NewLine + e);
             }
         }
 
@@ -1709,8 +1744,10 @@ namespace StrmAssistant.Common
             {
                 data = Convert.FromBase64String(response.Data);
             }
-            catch (FormatException)
+            catch (FormatException e)
             {
+                _logger?.Debug("DistributedExtract - Invalid base64 fingerprint from worker" +
+                               Environment.NewLine + e);
                 return false;
             }
 
@@ -1733,9 +1770,10 @@ namespace StrmAssistant.Common
                 {
                     if (File.Exists(tempPath)) File.Delete(tempPath);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignored
+                    _logger?.Debug("DistributedExtract - Failed to delete fingerprint temp file: " +
+                                   tempPath + Environment.NewLine + e);
                 }
             }
 
@@ -1934,8 +1972,10 @@ namespace StrmAssistant.Common
             {
                 fullPath = Path.GetFullPath(path);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger?.Debug("DistributedExtract - Invalid media path: " + path +
+                               Environment.NewLine + e);
                 return false;
             }
 
@@ -2071,8 +2111,10 @@ namespace StrmAssistant.Common
 
                 return full;
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Plugin.Instance?.Logger?.Debug("DistributedExtract - Invalid media root: " + path +
+                                               Environment.NewLine + e);
                 return null;
             }
         }

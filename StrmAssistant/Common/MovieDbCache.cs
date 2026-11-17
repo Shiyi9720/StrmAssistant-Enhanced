@@ -84,7 +84,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                LogDebug("MovieDbCache - Key calculation failed: " + e.Message);
+                LogDebug("MovieDbCache - Key calculation failed", e);
                 return null;
             }
         }
@@ -127,7 +127,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    LogDebug("MovieDbCache - Read failed: " + e.Message);
+                    LogDebug("MovieDbCache - Read failed", e);
                     return false;
                 }
 
@@ -139,7 +139,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    LogDebug("MovieDbCache - Corrupt entry discarded: " + e.Message);
+                    LogDebug("MovieDbCache - Corrupt entry discarded", e);
                     DeleteEntry(key, path);
                     return false;
                 }
@@ -227,9 +227,9 @@ namespace StrmAssistant.Common
                         {
                             File.Delete(tempPath);
                         }
-                        catch
+                        catch (Exception e)
                         {
-                            // Best effort cleanup only.
+                            LogDebug("MovieDbCache - Failed to delete temporary file: " + tempPath, e);
                         }
                     }
                 }
@@ -238,7 +238,7 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                LogDebug("MovieDbCache - Write failed: " + e.Message);
+                LogDebug("MovieDbCache - Write failed", e);
             }
         }
 
@@ -250,8 +250,10 @@ namespace StrmAssistant.Common
             {
                 return SecretParamRegex.Replace(url, "$1***");
             }
-            catch
+            catch (Exception e)
             {
+                // expected: URL sanitising is cosmetic; returning the original is the safe fallback.
+                LogDebug("MovieDbCache - Failed to sanitise URL", e);
                 return url;
             }
         }
@@ -262,8 +264,9 @@ namespace StrmAssistant.Common
             {
                 return Plugin.Instance?.GetPluginOptions()?.MetadataEnhanceOptions;
             }
-            catch
+            catch (Exception e)
             {
+                LogDebug("MovieDbCache - Failed to read plugin options", e);
                 return null;
             }
         }
@@ -296,8 +299,9 @@ namespace StrmAssistant.Common
 
                 return Path.Combine(dataFolder, CacheDirectoryName);
             }
-            catch
+            catch (Exception e)
             {
+                LogDebug("MovieDbCache - Failed to resolve cache directory; using temp", e);
                 return Path.Combine(Path.GetTempPath(), "StrmAssistant", CacheDirectoryName);
             }
         }
@@ -329,9 +333,9 @@ namespace StrmAssistant.Common
             {
                 File.Delete(path);
             }
-            catch
+            catch (Exception e)
             {
-                // Ignore, the entry will be retried on the next request.
+                LogDebug("MovieDbCache - Failed to delete corrupt entry: " + path, e);
             }
 
             ForgetSize(key);
@@ -348,9 +352,10 @@ namespace StrmAssistant.Common
             {
                 File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
             }
-            catch
+            catch (Exception e)
             {
                 // LRU precision is not important enough to fail a cache hit.
+                LogDebug("MovieDbCache - Failed to update access time: " + path, e);
             }
         }
 
@@ -376,16 +381,16 @@ namespace StrmAssistant.Common
                                 _sizes[Path.GetFileNameWithoutExtension(file)] = length;
                                 total += length;
                             }
-                            catch
+                            catch (Exception e)
                             {
-                                // Ignore files that disappear during the scan.
+                                LogDebug("MovieDbCache - Failed to read entry size: " + file, e);
                             }
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    LogDebug("MovieDbCache - Size scan failed: " + e.Message);
+                    LogDebug("MovieDbCache - Size scan failed", e);
                 }
 
                 Interlocked.Exchange(ref _totalSize, total);
@@ -416,8 +421,9 @@ namespace StrmAssistant.Common
                             {
                                 return new FileInfo(path);
                             }
-                            catch
+                            catch (Exception e)
                             {
+                                LogDebug("MovieDbCache - Skipping unreadable entry during eviction", e);
                                 return null;
                             }
                         })
@@ -427,7 +433,7 @@ namespace StrmAssistant.Common
                 }
                 catch (Exception e)
                 {
-                    LogDebug("MovieDbCache - Eviction scan failed: " + e.Message);
+                    LogDebug("MovieDbCache - Eviction scan failed", e);
                     return;
                 }
 
@@ -445,8 +451,9 @@ namespace StrmAssistant.Common
                         length = file.Length;
                         file.Delete();
                     }
-                    catch
+                    catch (Exception e)
                     {
+                        LogDebug("MovieDbCache - Failed to evict entry: " + file.Name, e);
                         continue;
                     }
 
@@ -512,13 +519,20 @@ namespace StrmAssistant.Common
 
         private static void LogDebug(string message)
         {
+            LogDebug(message, null);
+        }
+
+        private static void LogDebug(string message, Exception exception)
+        {
             try
             {
-                Plugin.Instance?.Logger?.Debug(message);
+                Plugin.Instance?.Logger?.Debug(exception is null
+                    ? message
+                    : message + Environment.NewLine + exception);
             }
             catch
             {
-                // Logging must never break cache handling.
+                // expected: logging must never break cache handling, so this catch stays silent.
             }
         }
     }
