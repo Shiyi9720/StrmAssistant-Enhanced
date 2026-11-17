@@ -41,6 +41,11 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(AliasSearch), SimpleCondition.IsTrue)]
         public bool TmdbAliasSearch { get; set; } = false;
 
+        [DisplayNameL("SearchOptions_SingleCharacterSearch_Single_Character_Search", typeof(Resources))]
+        [DescriptionL("SearchOptions_SingleCharacterSearch_Also_match_one_Chinese_character_anywhere_in_a_title__Results_are_ranked_below_exact_and_prefix_matches_and_very_common_characters_may_still_fall_back_to_exact_prefix_only__Default_is_OFF_", typeof(Resources))]
+        [VisibleCondition(nameof(EnableChineseSearch), SimpleCondition.IsTrue)]
+        public bool EnableSingleCharacterSearch { get; set; } = false;
+
         [DisplayNameL("SearchOptions_HideSearchSuggestions_Hide_Search_Suggestions", typeof(Resources))]
         [DescriptionL("SearchOptions_HideSearchSuggestions_Hide_the_recommendation_and_related_lists_on_the_search_page__Default_is_ON_", typeof(Resources))]
         public bool HideSearchSuggestions { get; set; } = true;

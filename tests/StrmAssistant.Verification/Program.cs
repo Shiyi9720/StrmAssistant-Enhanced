@@ -28,6 +28,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "LibraryScopeParser", LibraryScopeParserTests.Run);
             RunGroup(runner, "DoubanRatingPruner", DoubanRatingPrunerTests.Run);
             RunGroup(runner, "MediaRootsCachePolicy", MediaRootsCachePolicyTests.Run);
+            RunGroup(runner, "SingleCharacterSearchPolicy", SingleCharacterSearchPolicyTests.Run);
 
             return runner.Finish();
         }

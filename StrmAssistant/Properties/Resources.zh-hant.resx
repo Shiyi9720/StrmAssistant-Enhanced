@@ -1832,4 +1832,10 @@
   <data name="Update_NeedRestart" xml:space="preserve">
     <value>已下載新版本，請重啟 Emby 生效</value>
   </data>
+  <data name="SearchOptions_SingleCharacterSearch_Single_Character_Search" xml:space="preserve">
+    <value>單字搜尋</value>
+  </data>
+  <data name="SearchOptions_SingleCharacterSearch_Also_match_one_Chinese_character_anywhere_in_a_title__Results_are_ranked_below_exact_and_prefix_matches_and_very_common_characters_may_still_fall_back_to_exact_prefix_only__Default_is_OFF_" xml:space="preserve">
+    <value>額外匹配標題中任意位置的單個漢字（例如「蛛」可找到「蜘蛛俠」）。結果排在精確/前綴匹配之後；極常見字可能仍只回傳精確/前綴匹配。預設關閉。</value>
+  </data>
 </root>

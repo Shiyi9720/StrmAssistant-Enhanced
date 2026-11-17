@@ -1917,4 +1917,10 @@
   <data name="Update_NeedRestart" xml:space="preserve">
     <value>New version downloaded. Restart Emby to apply.</value>
   </data>
+  <data name="SearchOptions_SingleCharacterSearch_Single_Character_Search" xml:space="preserve">
+    <value>Single Character Search</value>
+  </data>
+  <data name="SearchOptions_SingleCharacterSearch_Also_match_one_Chinese_character_anywhere_in_a_title__Results_are_ranked_below_exact_and_prefix_matches_and_very_common_characters_may_still_fall_back_to_exact_prefix_only__Default_is_OFF_" xml:space="preserve">
+    <value>Also match one Chinese character anywhere in a title (for example 蛛 finds 蜘蛛侠). Results rank below exact and prefix matches; very common characters may still return exact/prefix matches only. Default is OFF.</value>
+  </data>
 </root>

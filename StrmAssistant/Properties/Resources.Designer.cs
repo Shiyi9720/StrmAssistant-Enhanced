@@ -4904,5 +4904,23 @@ namespace StrmAssistant.Properties
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to SearchOptions_SingleCharacterSearch_Single_Character_Search.
+        /// </summary>
+        public static string SearchOptions_SingleCharacterSearch_Single_Character_Search {
+            get {
+                return ResourceManager.GetString("SearchOptions_SingleCharacterSearch_Single_Character_Search", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to SearchOptions_SingleCharacterSearch_Also_match_one_Chinese_character_anywhere_in_a_title__Results_are_ranked_below_exact_and_prefix_matches_and_very_common_characters_may_still_fall_back_to_exact_prefix_only__Default_is_OFF_.
+        /// </summary>
+        public static string SearchOptions_SingleCharacterSearch_Also_match_one_Chinese_character_anywhere_in_a_title__Results_are_ranked_below_exact_and_prefix_matches_and_very_common_characters_may_still_fall_back_to_exact_prefix_only__Default_is_OFF_ {
+            get {
+                return ResourceManager.GetString("SearchOptions_SingleCharacterSearch_Also_match_one_Chinese_character_anywhere_in_a_title__Results_are_ranked_below_exact_and_prefix_matches_and_very_common_characters_may_still_fall_back_to_exact_prefix_only__Default_is_OFF_", resourceCulture);
+            }
+        }
+
     }
 }

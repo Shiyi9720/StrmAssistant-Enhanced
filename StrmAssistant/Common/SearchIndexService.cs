@@ -69,7 +69,8 @@ namespace StrmAssistant.Common
             {
                 Exact = new Dictionary<string, int[]>(StringComparer.Ordinal),
                 Prefix = new Dictionary<string, int[]>(StringComparer.Ordinal),
-                Bigrams = null
+                Bigrams = null,
+                Unigrams = null
             };
 
             public Dictionary<string, int[]> Exact;
@@ -78,6 +79,10 @@ namespace StrmAssistant.Common
             // Null when the library is too large to index every 2-gram within the memory cap;
             // matching then falls back to the old full scan for contains matches.
             public Dictionary<string, int[]> Bigrams;
+
+            // Single CJK character postings, only built when the single-character search option
+            // is on. Null when the option is off or the posting cap was hit.
+            public Dictionary<string, int[]> Unigrams;
         }
 
         private sealed class SearchState
@@ -150,8 +155,38 @@ namespace StrmAssistant.Common
                 return;
             }
 
+            RefreshLookup();
             Interlocked.Increment(ref _version);
             EnsureStarted(TimeSpan.FromSeconds(2));
+        }
+
+        /// <summary>
+        /// Rebuilds only the in-memory lookup so option changes that affect candidate
+        /// collection (single-character search) take effect without touching the index file.
+        /// </summary>
+        private void RefreshLookup()
+        {
+            IndexedItem[] snapshot;
+
+            lock (_sync)
+            {
+                snapshot = _state?.Snapshot;
+            }
+
+            if (snapshot is null || snapshot.Length == 0) return;
+
+            var lookup = BuildLookup(snapshot, GetOptions().EnableSingleCharacterSearch);
+
+            lock (_sync)
+            {
+                if (!ReferenceEquals(_state?.Snapshot, snapshot)) return;
+
+                _state = new SearchState
+                {
+                    Snapshot = snapshot,
+                    Lookup = lookup
+                };
+            }
         }
 
         private void EnsureStarted(TimeSpan delay)
@@ -306,7 +341,7 @@ namespace StrmAssistant.Common
                 }
 
                 var snapshot = dictionary.Values.ToArray();
-                var lookup = BuildLookup(snapshot);
+                var lookup = BuildLookup(snapshot, GetOptions().EnableSingleCharacterSearch);
 
                 lock (_sync)
                 {
@@ -709,13 +744,18 @@ namespace StrmAssistant.Common
             }
         }
 
-        private static SearchLookup BuildLookup(IndexedItem[] snapshot)
+        private static SearchLookup BuildLookup(IndexedItem[] snapshot, bool includeUnigrams)
         {
             var exact = new Dictionary<string, List<int>>(StringComparer.Ordinal);
             var prefix = new Dictionary<string, List<int>>(StringComparer.Ordinal);
             var bigrams = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            var unigrams = includeUnigrams
+                ? new Dictionary<string, List<int>>(StringComparer.Ordinal)
+                : null;
             var bigramPostings = 0L;
+            var unigramPostings = 0L;
             var bigramsEnabled = true;
+            var unigramsEnabled = includeUnigrams;
 
             for (var index = 0; index < snapshot.Length; index++)
             {
@@ -731,6 +771,36 @@ namespace StrmAssistant.Common
                     AddPosting(prefix, text.Substring(0, 1), index);
 
                     if (text.Length >= 2) AddPosting(prefix, text.Substring(0, 2), index);
+
+                    if (unigramsEnabled && IsTitleKeyKind(key.Kind))
+                    {
+                        foreach (var character in text)
+                        {
+                            if (!SearchTextHelper.IsCjk(character)) continue;
+
+                            var gram = character.ToString();
+
+                            if (!unigrams.TryGetValue(gram, out var unigramPosting))
+                            {
+                                unigramPosting = new List<int>();
+                                unigrams[gram] = unigramPosting;
+                            }
+
+                            if (unigramPosting.Count == 0 || unigramPosting[unigramPosting.Count - 1] != index)
+                            {
+                                unigramPosting.Add(index);
+                                unigramPostings++;
+                            }
+
+                            if (unigramPostings <= SingleCharacterSearchPolicy.MaxUnigramPostings) continue;
+
+                            // Above the cap the unigram layer costs more than it saves; drop it and
+                            // let single-character queries fall back to exact/prefix only.
+                            unigramsEnabled = false;
+                            unigrams = null;
+                            break;
+                        }
+                    }
 
                     if (!bigramsEnabled) continue;
 
@@ -763,8 +833,20 @@ namespace StrmAssistant.Common
             {
                 Exact = ToArrays(exact),
                 Prefix = ToArrays(prefix),
-                Bigrams = bigramsEnabled ? ToArrays(bigrams) : null
+                Bigrams = bigramsEnabled ? ToArrays(bigrams) : null,
+                Unigrams = unigramsEnabled ? ToArrays(unigrams) : null
             };
+        }
+
+        private static bool IsTitleKeyKind(byte kind)
+        {
+            var searchKeyKind = (SearchKeyKind) kind;
+
+            return searchKeyKind == SearchKeyKind.Name ||
+                   searchKeyKind == SearchKeyKind.OriginalTitle ||
+                   searchKeyKind == SearchKeyKind.SortName ||
+                   searchKeyKind == SearchKeyKind.Alias ||
+                   searchKeyKind == SearchKeyKind.Actor;
         }
 
         private static void AddPosting(Dictionary<string, List<int>> map, string key, int index)
@@ -825,6 +907,7 @@ namespace StrmAssistant.Common
             var fuzzyChecks = 0;
             var queryHasChinese = variants.Any(v => v.HasChinese);
             var smartRanking = options.SmartRanking;
+            var singleCharContains = options.EnableSingleCharacterSearch;
             var cancelled = false;
 
             void Accept(IndexMatch best)
@@ -843,7 +926,7 @@ namespace StrmAssistant.Common
 
             // Exact/prefix/contains candidates come from the in-memory lookup, so only these
             // items need the full tier evaluation.
-            var candidates = CollectCandidates(state.Lookup, variants);
+            var candidates = CollectCandidates(state.Lookup, variants, singleCharContains);
 
             foreach (var index in candidates)
             {
@@ -854,7 +937,7 @@ namespace StrmAssistant.Common
                 }
 
                 Accept(FindBest(snapshot[index], variants, queryHasChinese, smartRanking,
-                    options.PinyinSearch, options.AliasSearch, ref fuzzyChecks));
+                    options.PinyinSearch, options.AliasSearch, singleCharContains, ref fuzzyChecks));
             }
 
             var containsScanNeeded = state.Lookup.Bigrams == null && variants.Any(v => v.Text.Length >= 2);
@@ -877,7 +960,8 @@ namespace StrmAssistant.Common
                         }
 
                         Accept(FindBest(snapshot[index], variants, queryHasChinese, smartRanking,
-                            options.PinyinSearch, options.AliasSearch, ref fuzzyChecks));
+                            options.PinyinSearch, options.AliasSearch, singleCharContains,
+                            ref fuzzyChecks));
                     }
                 }
                 else
@@ -910,7 +994,8 @@ namespace StrmAssistant.Common
             return strong;
         }
 
-        private static HashSet<int> CollectCandidates(SearchLookup lookup, List<QueryVariant> variants)
+        private static HashSet<int> CollectCandidates(SearchLookup lookup, List<QueryVariant> variants,
+            bool allowSingleCharContains)
         {
             var candidates = new HashSet<int>();
 
@@ -933,6 +1018,19 @@ namespace StrmAssistant.Common
                 if (lookup.Exact.TryGetValue(text, out var exact)) AddAll(exact);
 
                 if (lookup.Prefix.TryGetValue(QueryPrefixBucket(text), out var prefix)) AddAll(prefix);
+
+                if (text.Length == 1)
+                {
+                    if (allowSingleCharContains && lookup.Unigrams != null &&
+                        lookup.Unigrams.TryGetValue(text, out var unigram) &&
+                        SingleCharacterSearchPolicy.MayUsePosting(true, text, variant.HasChinese,
+                            unigram.Length))
+                    {
+                        AddAll(unigram);
+                    }
+
+                    continue;
+                }
 
                 if (lookup.Bigrams == null || text.Length < 2) continue;
 
@@ -962,7 +1060,8 @@ namespace StrmAssistant.Common
         }
 
         private static IndexMatch FindBest(IndexedItem item, List<QueryVariant> variants,
-            bool queryHasChinese, bool smartRanking, bool allowPinyin, bool allowAlias, ref int fuzzyChecks)
+            bool queryHasChinese, bool smartRanking, bool allowPinyin, bool allowAlias,
+            bool allowSingleCharContains, ref int fuzzyChecks)
         {
             IndexMatch best = null;
 
@@ -985,7 +1084,7 @@ namespace StrmAssistant.Common
                         continue;
                     }
 
-                    var tier = GetTier(key, variant, ref fuzzyChecks);
+                    var tier = GetTier(key, variant, allowSingleCharContains, ref fuzzyChecks);
 
                     if (tier < 0) continue;
 
@@ -1110,7 +1209,8 @@ namespace StrmAssistant.Common
             return -1;
         }
 
-        private static int GetTier(IndexedKey key, QueryVariant variant, ref int fuzzyChecks)
+        private static int GetTier(IndexedKey key, QueryVariant variant, bool allowSingleCharContains,
+            ref int fuzzyChecks)
         {
             var kind = (SearchKeyKind)key.Kind;
 
@@ -1131,7 +1231,11 @@ namespace StrmAssistant.Common
                 return TierPrefix;
             }
 
-            if (variant.Text.Length >= 2 && key.Key.Length > variant.Text.Length &&
+            var allowsContains = variant.Text.Length >= 2 ||
+                                 SingleCharacterSearchPolicy.AllowsContains(
+                                     allowSingleCharContains, variant.Text, variant.HasChinese);
+
+            if (allowsContains && key.Key.Length > variant.Text.Length &&
                 key.Key.IndexOf(variant.Text, StringComparison.Ordinal) > 0)
             {
                 if (kind != SearchKeyKind.Initials)
@@ -1269,7 +1373,7 @@ namespace StrmAssistant.Common
 
                 // Keys were persisted with the index, so loading no longer repeats the
                 // pinyin/simplified/traditional conversion for every title.
-                var lookup = BuildLookup(indexed);
+                var lookup = BuildLookup(indexed, GetOptions().EnableSingleCharacterSearch);
 
                 lock (_sync)
                 {
@@ -1478,7 +1582,7 @@ namespace StrmAssistant.Common
                         if (!changed) return;
 
                         var snapshot = dictionary.Values.ToArray();
-                        var lookup = BuildLookup(snapshot);
+                        var lookup = BuildLookup(snapshot, GetOptions().EnableSingleCharacterSearch);
 
                         _items = dictionary;
                         _state = new SearchState
