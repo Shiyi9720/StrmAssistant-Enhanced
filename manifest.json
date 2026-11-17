@@ -9,6 +9,15 @@
     "imageUrl": "https://raw.githubusercontent.com/Shiyi9720/StrmAssistant-Enhanced/main/StrmAssistant/Properties/thumb.png",
     "versions": [
       {
+        "version": "1.0.13",
+        "changelog": "**性能**\n\n- 本地元数据自动刷图目录枚举去重：开启本地元数据源后，每个剧集条目的 Added/Updated 都会对同一 `<tmdbid>/images` 目录做至少两次 `Directory.GetFiles` 再逐个正则匹配，整季扫描是「集数 × 目录文件数」次 NAS IO。新增 `Common/OverrideImageMatcher.cs` 统一命名匹配规则，并按目录缓存文件清单（2 分钟 TTL，目录最后写入时间一变立即重读，新增/删除图片即时可见；缺失目录不缓存，最多 512 条）。命名规则（零填充季/集号、大小写、jpg/jpeg/png/webp 与目录布局的任意字母数字后缀）与原实现完全一致，并补 44 条回归用例覆盖边界（超长数字、非法后缀、大小写、中文名等）\n\n**可维护性**\n\n- 异常日志带上堆栈：全仓 87 处 `Debug(e.StackTrace)`、33 处只记 `Error(e.Message)` 的写法，在默认配置下堆栈不可见。错误路径改为 `ErrorException(上下文, e)` 或单条日志内联堆栈（约 90 处，44 个文件），保留 item 名/路径/阶段等上下文；即使 DebugMode 关闭，真正的错误也有完整堆栈\n- 宽泛捕获收窄：`QueueManager` 四个队列主循环的 `catch { break; }` 收窄为 `OperationCanceledException`（正常停止）+ `Exception`（记 ErrorException 后退出），冷却延迟与片头指纹 Tier2 信号量等待同理；`DeleteVersion` 元数据目录清理的空 catch 降为带堆栈的 Debug，不再静默吞掉\n- 高频路径防刷屏：播放驱动的片头/片尾标记后台更新失败改用新增的 `Common/LogLimiter.cs` 限流（同一来源 5 分钟记一条带堆栈的 Warn）；探测性反射调用（字幕/缩略图/媒体信息内部 API 初始化）保持 Debug 级与 DebugMode 门控，但堆栈不再被截掉\n\n**说明**\n\n- 功能行为、UI 文案、资源文件均不变；设置与数据文件格式不变\n- 自动化验证工程扩到 267 条用例（新增本地刷图命名匹配与目录缓存 44 条）",
+        "targetAbi": "4.10.2.0",
+        "sourceUrl": "https://github.com/Shiyi9720/StrmAssistant-Enhanced/releases/download/v1.0.13/StrmAssistant-1.0.13.zip",
+        "checksum": "CD8CC17700F8FD6CBF24BB492AF5FCBA",
+        "timestamp": "2026-11-17T10:22:19Z",
+        "dependencies": []
+      },
+      {
         "version": "1.0.12",
         "changelog": "**修复**\n\n- 中文搜索拼音首字母查不到（issue #3「拼音无效」）：多音字过去只按词组词典选出的**单一读音**建立索引。以「凡人修仙传」为例，索引里是 `fanrenxiuxianchuan` / `frxxc`；用户输入同样合法的 `fanrenxiuxianzhuan` / `frxxz` 时，全拼还能靠模糊匹配命中，**首字母因为不参与模糊匹配直接返回 0**。现在 `SearchTextHelper.GetPinyinVariants` 会用 `WordsHelper.GetAllPinyin` 为每个多音字生成所有读音组合，全拼与首字母一并入索引；词组词典的读音仍排在第一位，原有精确匹配优先级不变。单条标题最多索引 16 种拼写，超出时保留主读音并逐个替换单个多音字，索引体积可控\n- 索引格式升至 `Version=5`：旧索引文件缺少多音字 key，升级后会自动重建一次，不会带着旧 key 继续服务\n\n**说明**\n\n- 这不是 1.0.10 候选集改造引入的回归：对比 1.0.9 与当前代码，`BuildIndexedItem` 的拼音 key 生成逻辑未变，首字母一直只存单一读音；候选集（exact / prefix / 2-gram）经逐类验证不会筛掉拼音结果。真正缺的是「另一合法读音」的 key\n- 六类查询已在运行中的 Emby 上复测：中文全名、繁体、全拼、首字母、子串、模糊；`frxxz` 与 `frxxc` 均能命中「凡人修仙传」\n- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 215 条用例全过，新增拼音回归用例 24 条（覆盖多音字全拼/首字母、繁体、主读音优先级、变体上限与确定性）",
         "targetAbi": "4.10.2.0",

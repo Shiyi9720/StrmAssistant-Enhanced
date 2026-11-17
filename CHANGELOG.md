@@ -1,5 +1,22 @@
 # 更新日志
 
+## 1.0.13
+
+**性能**
+
+- 本地元数据自动刷图目录枚举去重：开启本地元数据源后，每个剧集条目的 Added/Updated 都会对同一 `<tmdbid>/images` 目录做至少两次 `Directory.GetFiles` 再逐个正则匹配，整季扫描是「集数 × 目录文件数」次 NAS IO。新增 `Common/OverrideImageMatcher.cs` 统一命名匹配规则，并按目录缓存文件清单（2 分钟 TTL，目录最后写入时间一变立即重读，新增/删除图片即时可见；缺失目录不缓存，最多 512 条）。命名规则（零填充季/集号、大小写、jpg/jpeg/png/webp 与目录布局的任意字母数字后缀）与原实现完全一致，并补 44 条回归用例覆盖边界（超长数字、非法后缀、大小写、中文名等）
+
+**可维护性**
+
+- 异常日志带上堆栈：全仓 87 处 `Debug(e.StackTrace)`、33 处只记 `Error(e.Message)` 的写法，在默认配置下堆栈不可见。错误路径改为 `ErrorException(上下文, e)` 或单条日志内联堆栈（约 90 处，44 个文件），保留 item 名/路径/阶段等上下文；即使 DebugMode 关闭，真正的错误也有完整堆栈
+- 宽泛捕获收窄：`QueueManager` 四个队列主循环的 `catch { break; }` 收窄为 `OperationCanceledException`（正常停止）+ `Exception`（记 ErrorException 后退出），冷却延迟与片头指纹 Tier2 信号量等待同理；`DeleteVersion` 元数据目录清理的空 catch 降为带堆栈的 Debug，不再静默吞掉
+- 高频路径防刷屏：播放驱动的片头/片尾标记后台更新失败改用新增的 `Common/LogLimiter.cs` 限流（同一来源 5 分钟记一条带堆栈的 Warn）；探测性反射调用（字幕/缩略图/媒体信息内部 API 初始化）保持 Debug 级与 DebugMode 门控，但堆栈不再被截掉
+
+**说明**
+
+- 功能行为、UI 文案、资源文件均不变；设置与数据文件格式不变
+- 自动化验证工程扩到 267 条用例（新增本地刷图命名匹配与目录缓存 44 条）
+
 ## 1.0.12
 
 **修复**
