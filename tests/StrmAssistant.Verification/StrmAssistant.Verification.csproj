@@ -33,6 +33,7 @@
     <Compile Include="..\..\StrmAssistant\Common\LogLimiter.cs" Link="src\LogLimiter.cs" />
     <Compile Include="..\..\StrmAssistant\Common\LibraryScopeParser.cs" Link="src\LibraryScopeParser.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DoubanRatingPruner.cs" Link="src\DoubanRatingPruner.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\MediaRootsCachePolicy.cs" Link="src\MediaRootsCachePolicy.cs" />
     <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />
   </ItemGroup>
 

@@ -47,7 +47,6 @@ namespace StrmAssistant.Common
         private const int MaxThumbnailBytes = 10 * 1024 * 1024;
         private const int MaxThumbnailWidth = 7680;
         private const int MaxExtractionTimeSeconds = 24 * 60 * 60;
-        private static readonly TimeSpan MediaRootsCacheDuration = TimeSpan.FromSeconds(300);
         private static readonly StringComparison PathComparison =
             Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         private static readonly long FirstChapterTicks = TimeSpan.FromSeconds(15).Ticks;
@@ -2064,7 +2063,8 @@ namespace StrmAssistant.Common
 
             lock (_mediaRootsLock)
             {
-                if (_mediaRootsCache != null && now - _mediaRootsCacheUtc < MediaRootsCacheDuration)
+                if (_mediaRootsCache != null &&
+                    MediaRootsCachePolicy.IsFresh(_mediaRootsCacheUtc, now))
                 {
                     return _mediaRootsCache;
                 }
