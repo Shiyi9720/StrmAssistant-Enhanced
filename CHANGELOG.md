@@ -7,6 +7,8 @@
 - 入库自动提取去重（1.0.11）：`PendingMediaInfoItemIds` 原先在工作线程出队时就清除标记，而追更模式在 `ItemAdded` 时直接入队、不登记标记。追更先入队、入库自动提取 15 秒后再入队，而工作线程在这中间已经出队时，同一条目会被二次入队并重复处理。现在标记改为「入队时登记、处理结束（成功 / 跳过 / 失败）时清除」，出队不再清除；新增 `QueueManager.TryEnqueueMediaInfo` 统一追更、入库自动提取、收藏追更、指纹交接、章节补提取等全部入队路径；同一 `ItemAdded` 中追更先登记，自动提取在延迟前读取标记，已被追更认领就直接返回；被库范围 / 收藏 / 黑名单过滤掉的条目同轮释放标记，取消或取许可失败回滚的条目保留标记以便重试
 - 中文搜索拼音首字母查不到（1.0.12，issue #3「拼音无效」）：多音字过去只按词组词典选出的单一读音建立索引，例如「凡人修仙传」只存 `fanrenxiuxianchuan` / `frxxc`，用户输入同样合法的 `frxxz` 时首字母因为不参与模糊匹配直接返回 0。现在 `SearchTextHelper.GetPinyinVariants` 用 `WordsHelper.GetAllPinyin` 为每个多音字生成所有读音组合，全拼与首字母一并入索引；词组词典读音仍排第一，单条标题最多 16 种拼写。索引格式升至 `Version=5`，升级后自动重建一次
 - 快捷菜单整体保护：`ShortcutMenuHelper` 的 `strmAssistantCommandSource` 与 `dataExplorerCommandSource` 两个 `getCommands` 入口增加 try/catch，单个命令源构建命令时异常只回退本源的命令列表（返回空），不再拖垮影片/剧集详情页右键菜单的渲染；上一个版本只修了「删除版本」那一处判空
+- 多版本续播旧格式记录过户（B1）：`IsSameRecordVersion` 的宽松放行分支在存量记录没有任何 id 字段、只能靠 `VersionKey`/`VersionSignature` 指纹标识时，会把记录复用到**当前播放的任意版本**——切到同内容另一版本播放时 A 版本的记录被移键到 B 下，A 的独立断点永久丢失。现在仅指纹记录必须与当前播放版本的指纹匹配才复用，不同则新建记录；已有 id 精确比对不变
+- 多版本续播片长未知夹取（B2）：`ResumePositionMath.ConvertPosition` 在源片长未知（`sourceRuntime<=0`）时直接返回原始断点，跳过目标片长夹取，170 分钟剪辑的 80 分钟断点套到 100 分钟版本上越界（客户端归零从头播）。现在该分支也返回 `Math.Min(positionTicks, targetRuntime)`；无目标片长时保持直通
 
 **性能**
 
