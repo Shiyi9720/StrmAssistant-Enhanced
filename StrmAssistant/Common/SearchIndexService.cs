@@ -29,7 +29,9 @@ namespace StrmAssistant.Common
     /// </summary>
     public sealed class SearchIndexService
     {
-        internal const int CurrentVersion = 4;
+        // 5: pinyin keys include alternate readings of polyphonic characters. Bumping the
+        // version makes an existing index file rebuild instead of loading keys that lack them.
+        internal const int CurrentVersion = 5;
 
         public const int TierExact = 0;
         public const int TierPrefix = 1;
@@ -557,17 +559,19 @@ namespace StrmAssistant.Common
 
                 foreach (var pinyinSource in pinyinSources)
                 {
-                    var pinyin = SearchTextHelper.ToPinyin(pinyinSource);
-
-                    if (string.IsNullOrEmpty(pinyin)) continue;
-
-                    AddKey(pinyin, SearchKeyKind.Pinyin, true);
-
-                    var initials = SearchTextHelper.ToPinyinInitials(pinyinSource);
-
-                    if (!string.IsNullOrEmpty(initials) && initials != pinyin)
+                    // Polyphonic characters are indexed with every reading, not just the one
+                    // the phrase dictionary picks. Otherwise a valid spelling such as
+                    // "fanrenxiuxianzhuan"/"frxxz" for 凡人修仙传 (indexed as ...chuan/frxxc)
+                    // never matches: initials deliberately have no fuzzy fallback.
+                    foreach (var variant in SearchTextHelper.GetPinyinVariants(pinyinSource))
                     {
-                        AddKey(initials, SearchKeyKind.Initials, true);
+                        AddKey(variant.Pinyin, SearchKeyKind.Pinyin, true);
+
+                        if (!string.IsNullOrEmpty(variant.Initials) &&
+                            variant.Initials != variant.Pinyin)
+                        {
+                            AddKey(variant.Initials, SearchKeyKind.Initials, true);
+                        }
                     }
                 }
 

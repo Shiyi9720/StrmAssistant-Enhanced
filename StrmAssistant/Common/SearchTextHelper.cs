@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using ToolGood.Words.Pinyin;
@@ -16,6 +17,13 @@ namespace StrmAssistant.Common
         private const int MaxCacheSize = 200000;
         private const int CacheTrimCheckMask = 1023;
 
+        /// <summary>
+        /// Upper bound for the pinyin spellings stored per title. Polyphonic characters are
+        /// indexed with their alternate readings as well, but the combination count is capped
+        /// so a long title full of polyphones cannot multiply the index size without limit.
+        /// </summary>
+        internal const int MaxPinyinVariants = 16;
+
         private static readonly Regex CjkRegex =
             new Regex("[\\u3400-\\u4DBF\\u4E00-\\u9FFF]", RegexOptions.Compiled);
 
@@ -30,6 +38,9 @@ namespace StrmAssistant.Common
 
         private static readonly ConcurrentDictionary<string, string> InitialsCache =
             new ConcurrentDictionary<string, string>(StringComparer.Ordinal);
+
+        private static readonly ConcurrentDictionary<string, PinyinVariant[]> PinyinVariantCache =
+            new ConcurrentDictionary<string, PinyinVariant[]>(StringComparer.Ordinal);
 
         private static int _cacheOperations;
 
@@ -159,6 +170,155 @@ namespace StrmAssistant.Common
         }
 
         /// <summary>
+        /// One pinyin spelling of a title: the full pinyin and its initials.
+        /// </summary>
+        public sealed class PinyinVariant
+        {
+            public string Pinyin { get; set; }
+            public string Initials { get; set; }
+        }
+
+        /// <summary>
+        /// Pinyin spellings for a title, primary (phrase dictionary) spelling first.
+        /// ToolGood.Words resolves a polyphonic character from the surrounding phrase, so the
+        /// same title can be spelled differently depending on the word: 凡人修仙传 becomes
+        /// "fanrenxiuxianchuan" while 阿甘正传 becomes "aganzhengzhuan". A user who types the
+        /// other valid reading (e.g. "fanrenxiuxianzhuan" or the initials "frxxz") used to get
+        /// nothing for initials, because initials never fell back to a fuzzy tier. Index every
+        /// alternate reading instead, bounded by <see cref="MaxPinyinVariants"/>.
+        /// </summary>
+        public static PinyinVariant[] GetPinyinVariants(string input)
+        {
+            if (string.IsNullOrEmpty(input) || !HasChinese(input)) return Array.Empty<PinyinVariant>();
+
+            return CachedConvert(PinyinVariantCache, input, BuildPinyinVariants);
+        }
+
+        private static PinyinVariant[] BuildPinyinVariants(string input)
+        {
+            var result = new List<PinyinVariant>(4);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+
+            void Add(string pinyin, string initials)
+            {
+                if (string.IsNullOrEmpty(pinyin) || !seen.Add(pinyin)) return;
+
+                result.Add(new PinyinVariant { Pinyin = pinyin, Initials = initials });
+            }
+
+            // Keep the phrase-dictionary spelling first: it is what the index produced before
+            // alternate readings were added, so existing exact matches keep their precedence.
+            Add(ToPinyin(input), ToPinyinInitials(input));
+
+            var parts = new List<List<string>>(input.Length);
+
+            foreach (var c in input)
+            {
+                if (!IsCjk(c))
+                {
+                    if (char.IsLetterOrDigit(c)) parts.Add(new List<string> { c.ToString() });
+                    continue;
+                }
+
+                var readings = new List<string>(2);
+
+                try
+                {
+                    foreach (var reading in WordsHelper.GetAllPinyin(c, false))
+                    {
+                        var compact = Compact(reading);
+
+                        if (compact.Length > 0 && !readings.Contains(compact)) readings.Add(compact);
+                    }
+                }
+                catch
+                {
+                    // Fall through to the single-reading conversion below.
+                }
+
+                if (readings.Count == 0)
+                {
+                    var reading = Compact(ToPinyin(c.ToString()));
+
+                    if (reading.Length > 0) readings.Add(reading);
+                }
+
+                if (readings.Count > 0) parts.Add(readings);
+            }
+
+            if (parts.Count == 0) return result.ToArray();
+
+            long combinations = 1;
+
+            foreach (var part in parts)
+            {
+                combinations *= part.Count;
+
+                if (combinations > MaxPinyinVariants) break;
+            }
+
+            if (combinations <= MaxPinyinVariants)
+            {
+                var indices = new int[parts.Count];
+
+                while (true)
+                {
+                    if (result.Count >= MaxPinyinVariants) break;
+
+                    var pinyin = new StringBuilder(input.Length + 8);
+                    var initials = new StringBuilder(parts.Count);
+
+                    for (var i = 0; i < parts.Count; i++)
+                    {
+                        var reading = parts[i][indices[i]];
+                        pinyin.Append(reading);
+                        initials.Append(reading[0]);
+                    }
+
+                    Add(pinyin.ToString(), initials.ToString());
+
+                    var position = parts.Count - 1;
+
+                    while (position >= 0)
+                    {
+                        if (++indices[position] < parts[position].Count) break;
+
+                        indices[position] = 0;
+                        position--;
+                    }
+
+                    if (position < 0) break;
+                }
+            }
+            else
+            {
+                // Too many combinations: keep the primary spelling plus one alternate reading
+                // at a time. That still covers the usual single-polyphone title cheaply.
+                for (var position = 0; position < parts.Count && result.Count < MaxPinyinVariants;
+                     position++)
+                {
+                    for (var reading = 1; reading < parts[position].Count &&
+                                           result.Count < MaxPinyinVariants; reading++)
+                    {
+                        var pinyin = new StringBuilder(input.Length + 8);
+                        var initials = new StringBuilder(parts.Count);
+
+                        for (var i = 0; i < parts.Count; i++)
+                        {
+                            var value = parts[i][i == position ? reading : 0];
+                            pinyin.Append(value);
+                            initials.Append(value[0]);
+                        }
+
+                        Add(pinyin.ToString(), initials.ToString());
+                    }
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        /// <summary>
         /// True when <paramref name="query"/>'s characters appear in <paramref name="value"/>
         /// in the same order. This is the cheap fuzzy tier (abbreviations and omitted letters).
         /// </summary>
@@ -228,14 +388,33 @@ namespace StrmAssistant.Common
 
             var value = converter(input);
 
-            if ((++_cacheOperations & CacheTrimCheckMask) == 0 && cache.Count > MaxCacheSize)
-            {
-                cache.Clear();
-            }
+            TrimCache(cache);
 
             cache[input] = value;
 
             return value;
+        }
+
+        private static T[] CachedConvert<T>(ConcurrentDictionary<string, T[]> cache, string input,
+            Func<string, T[]> converter)
+        {
+            if (cache.TryGetValue(input, out var cached)) return cached;
+
+            var value = converter(input);
+
+            TrimCache(cache);
+
+            cache[input] = value;
+
+            return value;
+        }
+
+        private static void TrimCache<T>(ConcurrentDictionary<string, T> cache)
+        {
+            if ((++_cacheOperations & CacheTrimCheckMask) == 0 && cache.Count > MaxCacheSize)
+            {
+                cache.Clear();
+            }
         }
     }
 }

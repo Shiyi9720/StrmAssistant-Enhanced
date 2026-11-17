@@ -22,6 +22,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "ProbeExitCode", ProbeExitCodeTests.Run);
             RunGroup(runner, "ResumeSequence", ResumeSequenceTests.Run);
             RunGroup(runner, "SatelliteResourceManager", SatelliteResourceTests.Run);
+            RunGroup(runner, "SearchPinyin", SearchPinyinTests.Run);
 
             return runner.Finish();
         }
