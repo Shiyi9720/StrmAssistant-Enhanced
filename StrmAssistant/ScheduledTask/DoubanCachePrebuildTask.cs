@@ -194,9 +194,19 @@ namespace StrmAssistant.ScheduledTask
             }
 
             progress?.Report(100.0);
-            _logger?.Info("DoubanCachePrebuild - Scheduled Task Complete");
             _logger?.Info($"DoubanCachePrebuild - Fetched: {fetched}, Already cached: {alreadyCached}, " +
                           $"Not found: {notFound}, Failed: {failed}, Rate limited: {stoppedByBlock}");
+
+            var succeeded = fetched + alreadyCached + notFound;
+            _logger?.Info("DoubanCachePrebuild - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, 0));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("DoubanCachePrebuild", succeeded, failed, 0);
+            }
+
+            _logger?.Info("DoubanCachePrebuild - Scheduled Task Complete");
         }
 
         public string Category => Resources.ResourceManager.GetString("PluginOptions_EditorTitle_Strm_Assistant",

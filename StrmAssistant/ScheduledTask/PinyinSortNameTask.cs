@@ -222,10 +222,21 @@ namespace StrmAssistant.ScheduledTask
                 }
             }
 
-            _logger?.Info("PinyinSort - Scheduled Task Complete");
             _logger?.Info($"PinyinSort - Updated: {updated}, Locked: {skippedLocked}, " +
                           $"Customized: {skippedCustomized}, Non-Chinese: {skippedNonChinese}, " +
                           $"Unchanged: {skippedUnchanged}, Missing: {skippedMissing}, Failed: {failed}");
+
+            var skipped = skippedLocked + skippedCustomized + skippedNonChinese + skippedUnchanged +
+                          skippedMissing;
+            _logger?.Info("PinyinSort - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(updated, failed, skipped));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("PinyinSort", updated, failed, skipped);
+            }
+
+            _logger?.Info("PinyinSort - Scheduled Task Complete");
 
             progress?.Report(100.0);
         }

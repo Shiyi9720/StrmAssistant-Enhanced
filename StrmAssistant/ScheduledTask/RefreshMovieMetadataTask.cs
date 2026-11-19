@@ -34,6 +34,7 @@ namespace StrmAssistant.ScheduledTask
             double total = itemsToRefresh.Count;
             var index = 0;
             var current = 0;
+            var failed = 0;
 
             try
             {
@@ -86,6 +87,7 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (Exception e)
                         {
+                            Interlocked.Increment(ref failed);
                             _logger?.ErrorException("MovieMetadataRefresh - Item failed: " + taskItem.Name, e);
                         }
                         finally
@@ -111,6 +113,16 @@ namespace StrmAssistant.ScheduledTask
             }
 
             progress.Report(100.0);
+
+            var succeeded = current - failed;
+            _logger?.Info("MovieMetadataRefresh - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, 0));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("MovieMetadataRefresh", succeeded, failed, 0);
+            }
+
             _logger?.Info("MovieMetadataRefresh - Scheduled Task Complete");
         }
 

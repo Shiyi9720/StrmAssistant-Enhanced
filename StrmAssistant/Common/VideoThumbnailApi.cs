@@ -34,9 +34,7 @@ namespace StrmAssistant.Common
 
         private readonly object _thumbnailGenerator;
         private readonly MethodInfo _refreshThumbnailImages;
-
-        private static readonly Version AppVer = Plugin.Instance.ApplicationHost.ApplicationVersion;
-        private static readonly Version Ver4936 = new Version("4.9.0.36");
+        private readonly int _refreshThumbnailParameterCount;
 
         public VideoThumbnailApi(ILibraryManager libraryManager, IFileSystem fileSystem,
             IImageExtractionManager imageExtractionManager, IItemRepository itemRepository,
@@ -72,6 +70,7 @@ namespace StrmAssistant.Common
                 });
                 _refreshThumbnailImages = thumbnailGenerator.GetMethod("RefreshThumbnailImages",
                     BindingFlags.Public | BindingFlags.Instance);
+                _refreshThumbnailParameterCount = _refreshThumbnailImages?.GetParameters().Length ?? 0;
             }
             catch (Exception e)
             {
@@ -83,6 +82,16 @@ namespace StrmAssistant.Common
             if (_thumbnailGenerator is null || _refreshThumbnailImages is null)
             {
                 _logger?.Warn($"{nameof(VideoThumbnailApi)} Init Failed");
+            }
+            else if (!ThumbnailRefreshSignature.IsSupported(_refreshThumbnailParameterCount))
+            {
+                _logger?.Warn("VideoThumbnailApi - Unsupported RefreshThumbnailImages signature: " +
+                              _refreshThumbnailParameterCount + " parameter(s), thumbnail extraction disabled");
+            }
+            else
+            {
+                _logger?.Info("VideoThumbnailApi - RefreshThumbnailImages signature: " +
+                              _refreshThumbnailParameterCount + " parameter(s)");
             }
         }
 
@@ -96,7 +105,8 @@ namespace StrmAssistant.Common
                 return false;
             }
 
-            var mediaSource = AppVer >= Ver4936
+            // The 8 parameter version has no mediaSource parameter at all.
+            var mediaSource = _refreshThumbnailParameterCount >= 9
                 ? item.GetMediaSources(false, false, libraryOptions).FirstOrDefault()
                 : null;
 
@@ -153,17 +163,31 @@ namespace StrmAssistant.Common
                 }
             }
 
-            var parameters = AppVer >= Ver4936
-                ? new object[]
+            if (_thumbnailGenerator is null || _refreshThumbnailImages is null)
+            {
+                if (LogLimiter.ShouldLog("VideoThumbnailApi unavailable", TimeSpan.FromMinutes(5)))
                 {
-                    item, mediaSource, null, libraryOptions, directoryService, chapters, extractImages,
-                    saveChapters, cancellationToken
+                    _logger?.Warn("VideoThumbnailApi - Thumbnail generator is unavailable; skipped: " +
+                                  item.Path);
                 }
-                : new object[]
+
+                return false;
+            }
+
+            var parameters = ThumbnailRefreshSignature.Build(_refreshThumbnailParameterCount, item,
+                mediaSource, null, libraryOptions, directoryService, chapters, extractImages, saveChapters,
+                cancellationToken);
+
+            if (parameters is null)
+            {
+                if (LogLimiter.ShouldLog("VideoThumbnailApi unsupported signature", TimeSpan.FromMinutes(5)))
                 {
-                    item, null, libraryOptions, directoryService, chapters, extractImages, saveChapters,
-                    cancellationToken
-                };
+                    _logger?.Warn("VideoThumbnailApi - Unsupported RefreshThumbnailImages signature: " +
+                                  _refreshThumbnailParameterCount + " parameter(s); skipped: " + item.Path);
+                }
+
+                return false;
+            }
 
             var task = _refreshThumbnailImages.Invoke(_thumbnailGenerator, parameters) as Task;
 

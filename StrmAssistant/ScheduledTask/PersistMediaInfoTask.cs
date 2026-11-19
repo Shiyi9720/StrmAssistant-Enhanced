@@ -39,6 +39,7 @@ namespace StrmAssistant
             var index = 0;
             var current = 0;
             var skip = 0;
+            var failed = 0;
 
             var tasks = new List<Task>();
 
@@ -84,6 +85,7 @@ namespace StrmAssistant
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref failed);
                         _logger?.ErrorException($"MediaInfoPersist - Item failed: {taskItem.Name} - {taskItem.Path}", e);
                     }
                     finally
@@ -100,7 +102,17 @@ namespace StrmAssistant
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             progress.Report(100.0);
+
+            var succeeded = current - skip - failed;
+            _logger?.Info("MediaInfoPersist - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, skip));
             _logger?.Info($"MediaInfoPersist - Number of items skipped: {skip}");
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("MediaInfoPersist", succeeded, failed, skip);
+            }
+
             _logger?.Info("MediaInfoPersist - Scheduled Task Complete");
         }
 

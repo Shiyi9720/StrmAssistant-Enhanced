@@ -53,6 +53,8 @@ namespace StrmAssistant.ScheduledTask
 
             double total = items.Count;
             var current = 0;
+            var skip = 0;
+            var failed = 0;
 
             foreach (var item in items)
             {
@@ -65,6 +67,7 @@ namespace StrmAssistant.ScheduledTask
 
                     if (string.IsNullOrEmpty(result))
                     {
+                        skip++;
                         _logger?.Info("IsoExtract - Skipped: " + item.Path);
                     }
                 }
@@ -75,6 +78,7 @@ namespace StrmAssistant.ScheduledTask
                 }
                 catch (Exception e)
                 {
+                    failed++;
                     _logger?.ErrorException("IsoExtract - Item failed: " + item.Path, e);
                 }
 
@@ -83,6 +87,16 @@ namespace StrmAssistant.ScheduledTask
             }
 
             progress.Report(100.0);
+
+            var succeeded = current - skip - failed;
+            _logger?.Info("IsoExtract - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, skip));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("IsoExtract", succeeded, failed, skip);
+            }
+
             _logger?.Info("IsoExtract - Scheduled Task Complete");
         }
 

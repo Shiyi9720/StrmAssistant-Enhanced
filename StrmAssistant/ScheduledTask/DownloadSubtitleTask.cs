@@ -32,6 +32,7 @@ namespace StrmAssistant.ScheduledTask
             double total = items.Count;
             var index = 0;
             var current = 0;
+            var failed = 0;
 
             var tasks = new List<Task>();
 
@@ -75,6 +76,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref failed);
                         _logger?.ErrorException("SubtitleDownload - Item failed: " + taskItem.Name + " - " + taskItem.Path, e);
                     }
                     finally
@@ -94,6 +96,16 @@ namespace StrmAssistant.ScheduledTask
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             progress.Report(100.0);
+
+            var succeeded = current - failed;
+            _logger?.Info("SubtitleDownload - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, 0));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("SubtitleDownload", succeeded, failed, 0);
+            }
+
             _logger?.Info("SubtitleDownload - Scheduled Task Complete");
         }
 

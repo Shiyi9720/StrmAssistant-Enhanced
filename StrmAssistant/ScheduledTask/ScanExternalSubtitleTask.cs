@@ -40,6 +40,7 @@ namespace StrmAssistant.ScheduledTask
             double total = items.Count;
             var index = 0;
             var current = 0;
+            var failed = 0;
 
             var tasks = new List<Task>();
 
@@ -92,6 +93,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref failed);
                         _logger?.ErrorException("ExternalSubtitle - Item failed: " + taskItem.Name + " - " +
                                                 taskItem.Path, e);
                     }
@@ -111,6 +113,16 @@ namespace StrmAssistant.ScheduledTask
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             progress.Report(100.0);
+
+            var succeeded = current - failed;
+            _logger?.Info("ExternalSubtitle - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, 0));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("ExternalSubtitle", succeeded, failed, 0);
+            }
+
             _logger?.Info("ExternalSubtitle - Scheduled Task Complete");
         }
 

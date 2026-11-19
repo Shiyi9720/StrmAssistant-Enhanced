@@ -77,6 +77,8 @@ namespace StrmAssistant.ScheduledTask
             var processedSeasons = 0;
             var episodeSkipCount = 0;
             var seasonSkipCount = 0;
+            var episodeFailed = 0;
+            var seasonFailed = 0;
             var distributionStats = new DistributionStats();
             var episodeWeight = !mediaInfoRestoreMode ? 0.8 : 1.0;
             var seasonWeight = !mediaInfoRestoreMode ? 0.2 : 0.0;
@@ -194,6 +196,7 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (Exception e)
                         {
+                            Interlocked.Increment(ref episodeFailed);
                             _logger?.ErrorException(
                                 $"IntroFingerprintExtract - Episode failed: {taskEpisode.Name} - {taskEpisode.Path}", e);
                         }
@@ -297,6 +300,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref seasonFailed);
                         _logger?.ErrorException("IntroFingerprintExtract - Season failed: " + taskSeason.Name + " - " +
                                       taskSeason.Path, e);
                     }
@@ -322,10 +326,26 @@ namespace StrmAssistant.ScheduledTask
             if (episodes.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
+
+            var episodeSucceeded = processedEpisodes - episodeSkipCount - episodeFailed;
+            var seasonSucceeded = processedSeasons - seasonSkipCount - seasonFailed;
+            _logger?.Info("IntroFingerprintExtract - Episodes: " +
+                          ScheduledTaskFailurePolicy.Summary(episodeSucceeded, episodeFailed, episodeSkipCount));
+            _logger?.Info("IntroFingerprintExtract - Seasons: " +
+                          ScheduledTaskFailurePolicy.Summary(seasonSucceeded, seasonFailed, seasonSkipCount));
             _logger?.Info($"IntroFingerprintExtract - Number of seasons skipped: {seasonSkipCount}");
             _logger?.Info($"IntroFingerprintExtract - Number of episodes skipped: {episodeSkipCount}");
             _logger?.Info("IntroFingerprintExtract - Distribution Summary - " +
                           distributionStats.ToLogMessage());
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("IntroFingerprintExtract episodes",
+                    episodeSucceeded, episodeFailed, episodeSkipCount);
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("IntroFingerprintExtract seasons",
+                    seasonSucceeded, seasonFailed, seasonSkipCount);
+            }
+
             _logger?.Info("IntroFingerprintExtract - Scheduled Task Complete");
         }
 

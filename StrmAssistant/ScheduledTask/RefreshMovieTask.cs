@@ -32,6 +32,7 @@ namespace StrmAssistant.ScheduledTask
             double total = itemsToRefresh.Count;
             var index = 0;
             var current = 0;
+            var failed = 0;
 
             var tasks = new List<Task>();
 
@@ -81,6 +82,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref failed);
                         _logger?.ErrorException("MovieRefresh - Item failed: " + taskItem.Name + " - " +
                                                 taskItem.Path, e);
                     }
@@ -100,6 +102,16 @@ namespace StrmAssistant.ScheduledTask
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             progress.Report(100.0);
+
+            var succeeded = current - failed;
+            _logger?.Info("MovieRefresh - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, 0));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("MovieRefresh", succeeded, failed, 0);
+            }
+
             _logger?.Info("MovieRefresh - Scheduled Task Complete");
         }
 

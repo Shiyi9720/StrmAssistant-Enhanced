@@ -56,6 +56,7 @@ namespace StrmAssistant.ScheduledTask
             var index = 0;
             var current = 0;
             var skip = 0;
+            var failed = 0;
             var distributionStats = new DistributionStats();
 
             var tasks = new List<Task>();
@@ -114,6 +115,8 @@ namespace StrmAssistant.ScheduledTask
                                 result = await Plugin.VideoThumbnailApi
                                     .RefreshThumbnailImages(taskItem, libraryOptions, directoryService, chapters, true,
                                         true, cancellationToken, distributionStats).ConfigureAwait(false);
+
+                                if (!result) Interlocked.Increment(ref failed);
                             }
                             else
                             {
@@ -127,6 +130,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref failed);
                         _logger?.ErrorException($"VideoThumbnailExtract - Item failed: {taskItem.Name} - {taskItem.Path}", e);
                     }
                     finally
@@ -162,8 +166,17 @@ namespace StrmAssistant.ScheduledTask
             if (items.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
+            var succeeded = current - skip - failed;
+            _logger?.Info("VideoThumbnailExtract - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, skip));
             _logger?.Info($"VideoThumbnailExtract - Number of items skipped: {skip}");
             _logger?.Info("VideoThumbnailExtract - Distribution Summary - " + distributionStats.ToLogMessage());
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("VideoThumbnailExtract", succeeded, failed, skip);
+            }
+
             _logger?.Info("VideoThumbnailExtract - Scheduled Task Complete");
         }
 

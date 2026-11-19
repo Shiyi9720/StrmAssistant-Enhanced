@@ -29,6 +29,7 @@ namespace StrmAssistant.ScheduledTask
             double total = itemsToRefresh.Count;
             var index = 0;
             var current = 0;
+            var failed = 0;
 
             var tasks = new List<Task>();
 
@@ -78,6 +79,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref failed);
                         _logger?.ErrorException("EpisodeRefresh - Item failed: " + taskItem.Name + " - " +
                                                 taskItem.Path, e);
                     }
@@ -99,6 +101,16 @@ namespace StrmAssistant.ScheduledTask
             IsRunning = false;
 
             progress.Report(100.0);
+
+            var succeeded = current - failed;
+            _logger?.Info("EpisodeRefresh - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, 0));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("EpisodeRefresh", succeeded, failed, 0);
+            }
+
             _logger?.Info("EpisodeRefresh - Scheduled Task Complete");
         }
 

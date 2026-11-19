@@ -44,6 +44,7 @@ namespace StrmAssistant.ScheduledTask
             var index = 0;
             var current = 0;
             var skip = 0;
+            var failed = 0;
             var distributionStats = new MediaInfoExtractionStats();
 
             var tasks = new List<Task>();
@@ -120,6 +121,7 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (Exception e)
                     {
+                        Interlocked.Increment(ref failed);
                         _logger?.ErrorException($"MediaInfoExtract - Item failed: {taskItem.Name} - {taskItem.Path}", e);
                     }
                     finally
@@ -155,8 +157,17 @@ namespace StrmAssistant.ScheduledTask
             if (items.Count > 0) IsRunning = false;
 
             progress.Report(100.0);
+            var succeeded = current - skip - failed;
+            _logger?.Info("MediaInfoExtract - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, skip));
             _logger?.Info($"MediaInfoExtract - Number of items skipped: {skip}");
             _logger?.Info("MediaInfoExtract - Distribution Summary - " + distributionStats.ToLogMessage());
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("MediaInfoExtract", succeeded, failed, skip);
+            }
+
             _logger?.Info("MediaInfoExtract - Scheduled Task Complete");
         }
 

@@ -29,6 +29,8 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "DoubanRatingPruner", DoubanRatingPrunerTests.Run);
             RunGroup(runner, "MediaRootsCachePolicy", MediaRootsCachePolicyTests.Run);
             RunGroup(runner, "SingleCharacterSearchPolicy", SingleCharacterSearchPolicyTests.Run);
+            RunGroup(runner, "ThumbnailRefreshSignature", ThumbnailRefreshSignatureTests.Run);
+            RunGroup(runner, "ScheduledTaskFailurePolicy", ScheduledTaskFailurePolicyTests.Run);
 
             return runner.Finish();
         }
