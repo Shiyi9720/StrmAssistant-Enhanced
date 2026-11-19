@@ -1,5 +1,25 @@
 # 更新日志
 
+## 1.0.15
+
+**修复**
+
+- 视频缩略图全部失败（严重）：Emby 4.10.2 的 `ThumbnailGenerator.RefreshThumbnailImages` 已是 10 个参数（在 `extractImages` 与 `saveChapters` 之间新增 `replaceExistingImages`），插件仍按 9 个参数反射调用，每次 Invoke 都抛 `TargetParameterCountException`，日志里每条目都是 `Item failed`。现在按 `GetParameters().Length` 自适应 8 / 9 / 10 三种签名（8 参数无 `mediaSource`，9 参数为 4.9.36+，10 参数为 4.10.2）；`replaceExistingImages` 传 `false`，依据是 Emby 自带 `ChapterImagesTask` 在 4.10.2 IL 中传 `ldc.i4.0`，且该参数用于覆盖已存在的章节图，本任务只处理没有章节图的条目；未知参数数量不再盲目 Invoke，记限流 Warn 并跳过
+- 计划任务把「全部失败」当「完成」：Emby 只在 `Execute` 抛异常时标记失败，原实现逐条 catch 后正常返回，缩略图任务 6/6 失败仍显示完成。新增 `ScheduledTaskFailurePolicy`，任务统计 succeeded / failed / skipped，当有失败且没有任何成功、也没有主动跳过时抛异常，让 Emby 标记该次运行失败；已接入缩略图、媒体信息、片头指纹、剧集/影片刷新、影片元数据刷新、外挂字幕、字幕下载、媒体信息持久化、ISO 提取、拼音排序与豆瓣缓存任务
+- 6 部 BDMV/strm 影片永远没有媒体信息：`BDMV/STREAM` 里只有 `.strm`（内容形如 `http://172.17.0.1:9527/d/xxx.m2ts?/00000.m2ts`），`FindMainVideo` 只认 `.m2ts/.mts/.vob`，每 6 小时记一次 `No playable video found`。现在 `DiscMainVideoResolver` 在 STREAM 没有真实片源时读取 `.strm` 第一行 URL，`ExtractAsync` 对该 URL 走 ffprobe / Emby HTTP 探测；本地 BDMV 根目录仍用于容器类型与大小。实测容器内 ffprobe 可直接读出 h264 + 2×DTS + 5×PGS；这 6 个目录没有 `PLAYLIST`，章节仍为空
+- 豆瓣请求失败日志不可见：`DoubanSupplement - Request failed: Forbidden` 原先只记 Debug，默认级别下无法判断豆瓣补全是否在工作。现在改为 Warn 并用 `LogLimiter` 按 5 分钟一条限流
+- 中文搜索真实失败只记 Debug：索引匹配、原生搜索、可见性查询的非取消异常改为 Warn + 5 分钟限流；查询超时/取消仍记 Debug，避免刷屏
+
+**配置**
+
+- 片头探测客户端范围：线上 `IntroSkipOptions.ClientScope` 由 `Emby,Infuse,SenPlayer` 改为 `Emby,Infuse,SenPlayer,Rex`，覆盖实际在用的 `Rex-Standard/1.2`（匹配逻辑为不区分大小写的包含匹配）。代码默认值不变
+
+**说明**
+
+- 默认配置下功能行为不变；设置文件与数据文件格式不变
+- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 427 条用例全过（1.0.14 为 361 条）
+- 线上验证计划：部署 1.0.15 后运行一次 `Extract Video Thumbnail` 与 `Extract MediaInfo`，确认缩略图无 `TargetParameterCountException`、6 部 BDMV 影片出现 MediaStreams 且不再每 6 小时重试；片头探测在 `Rex` 客户端播放后出现 `ClientScope` 命中日志
+
 ## 1.0.14
 
 **修复**
