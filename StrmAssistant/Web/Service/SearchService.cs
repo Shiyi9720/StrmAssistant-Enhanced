@@ -148,7 +148,16 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Debug("ChineseSearch - Index match failed: " + e.Message);
+                // The per-query timeout is expected; anything else means the index is unusable
+                // for this search and must be visible even with DebugMode off.
+                if (e is OperationCanceledException)
+                {
+                    Plugin.Instance.Logger.Debug("ChineseSearch - Index match timed out");
+                }
+                else if (LogLimiter.ShouldLog("ChineseSearch - Index match failed", TimeSpan.FromMinutes(5)))
+                {
+                    Plugin.Instance.Logger.Warn("ChineseSearch - Index match failed: " + e.Message);
+                }
             }
 
             try
@@ -185,7 +194,14 @@ namespace StrmAssistant.Web.Service
             }
             catch (Exception e)
             {
-                Plugin.Instance.Logger.Debug("ChineseSearch - Native search failed: " + e.Message);
+                if (e is OperationCanceledException)
+                {
+                    Plugin.Instance.Logger.Debug("ChineseSearch - Native search cancelled");
+                }
+                else if (LogLimiter.ShouldLog("ChineseSearch - Native search failed", TimeSpan.FromMinutes(5)))
+                {
+                    Plugin.Instance.Logger.Warn("ChineseSearch - Native search failed: " + e.Message);
+                }
             }
 
             if (candidates.Count == 0)
@@ -234,7 +250,16 @@ namespace StrmAssistant.Web.Service
                 }
                 catch (Exception e)
                 {
-                    Plugin.Instance.Logger.Debug("ChineseSearch - Visibility query failed: " + e.Message);
+                    if (e is OperationCanceledException)
+                    {
+                        Plugin.Instance.Logger.Debug("ChineseSearch - Visibility query cancelled");
+                    }
+                    else if (LogLimiter.ShouldLog("ChineseSearch - Visibility query failed",
+                                 TimeSpan.FromMinutes(5)))
+                    {
+                        Plugin.Instance.Logger.Warn("ChineseSearch - Visibility query failed: " + e.Message);
+                    }
+
                     continue;
                 }
 

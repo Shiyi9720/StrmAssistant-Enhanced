@@ -1030,7 +1030,14 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Debug("DoubanSupplement - Request failed: " + e.Message);
+                // Real failures (for example "Forbidden" after Emby's HttpClient throws instead
+                // of returning a 403 response) must be visible with the default log level, but a
+                // blocked source fails once per item, so limit it to one line every 5 minutes.
+                if (LogLimiter.ShouldLog("DoubanSupplement - Request failed", TimeSpan.FromMinutes(5)))
+                {
+                    _logger?.Warn("DoubanSupplement - Request failed: " + e.Message);
+                }
+
                 return null;
             }
             finally
