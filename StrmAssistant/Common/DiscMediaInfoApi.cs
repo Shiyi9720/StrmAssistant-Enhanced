@@ -101,7 +101,15 @@ namespace StrmAssistant.Common
         /// </summary>
         public bool IsRemoteSource(BaseItem item)
         {
-            return GetRemoteDiscSource(item) != null;
+            if (GetRemoteDiscSource(item) != null) return true;
+
+            // A local BDMV/VIDEO_TS folder can hold .strm shortcuts instead of the media files.
+            // Its probe also goes over the network, so a failure must fall back to the regular
+            // refresh path just like an item whose own path is a remote shortcut.
+            var root = GetDiscRoot(item);
+            var source = root is null ? null : FindMainVideo(root);
+
+            return CustomFfprobeApi.IsRemoteUrl(source);
         }
 
         private static string GetRemoteDiscSource(BaseItem item)
@@ -112,38 +120,12 @@ namespace StrmAssistant.Common
 
             if (LibraryApi.IsFileShortcut(path))
             {
-                path = ReadShortcutTarget(path);
+                path = DiscMainVideoResolver.ReadStrmTarget(path);
             }
 
             return !string.IsNullOrEmpty(path) && CustomFfprobeApi.IsRemoteUrl(path)
                 ? StrmUrlHelper.Normalize(path)
                 : null;
-        }
-
-        /// <summary>
-        /// Reads the first usable line of a .strm file, mirroring Emby's StrmMounter.
-        /// </summary>
-        private static string ReadShortcutTarget(string strmPath)
-        {
-            try
-            {
-                if (!File.Exists(strmPath)) return null;
-
-                foreach (var line in File.ReadLines(strmPath))
-                {
-                    var value = line.Replace("\t", string.Empty).Replace("\r", string.Empty).Trim();
-
-                    if (value.Length == 0 || value.StartsWith("#", StringComparison.Ordinal)) continue;
-
-                    return StrmUrlHelper.Normalize(value);
-                }
-            }
-            catch (Exception e)
-            {
-                Plugin.Instance.Logger?.Debug("DiscMediaInfo - Shortcut read failed: " + e.Message);
-            }
-
-            return null;
         }
 
         private static string GetUrlPath(string url)
@@ -174,8 +156,17 @@ namespace StrmAssistant.Common
 
         private static bool IsRemoteBdmvFile(string url)
         {
-            var path = GetUrlPath(url);
+            if (HasDiscFileExtension(GetUrlPath(url))) return true;
 
+            // The downloader writes "...?/00000.m2ts" as the shortcut target, so the title type
+            // can live in the suffix even when the request URL itself has no extension.
+            var question = url.IndexOf('?');
+
+            return question >= 0 && HasDiscFileExtension(url.Substring(question + 1));
+        }
+
+        private static bool HasDiscFileExtension(string path)
+        {
             return path.EndsWith(".m2ts", StringComparison.OrdinalIgnoreCase) ||
                    path.EndsWith(".mts", StringComparison.OrdinalIgnoreCase) ||
                    path.EndsWith(".vob", StringComparison.OrdinalIgnoreCase) ||
@@ -212,9 +203,28 @@ namespace StrmAssistant.Common
                         return false;
                     }
 
-                    discPath = item.Path;
-                    mediaInfo = await ProbeWithEmbyAsync(item, source, MediaProtocol.File,
-                        cancellationToken).ConfigureAwait(false);
+                    if (CustomFfprobeApi.IsRemoteUrl(source))
+                    {
+                        // BDMV/STREAM/*.strm: the container is local but the title is a URL. The
+                        // local disc root still supplies container type, chapters and size.
+                        var remoteSource = source;
+                        (source, discPath, mediaInfo) =
+                            await ProbeDiscShortcutAsync(item, remoteSource, cancellationToken).ConfigureAwait(false);
+
+                        if (mediaInfo is null)
+                        {
+                            _logger?.Info("DiscMediaInfo - Remote probe failed: " + remoteSource);
+                            return false;
+                        }
+
+                        discPath = GetDiscRoot(item) ?? discPath;
+                    }
+                    else
+                    {
+                        discPath = item.Path;
+                        mediaInfo = await ProbeWithEmbyAsync(item, source, MediaProtocol.File,
+                            cancellationToken).ConfigureAwait(false);
+                    }
                 }
 
                 return await ApplyMediaInfoAsync(item, mediaInfo, source, discPath, cancellationToken)
@@ -292,6 +302,26 @@ namespace StrmAssistant.Common
             }
 
             return (null, null, null);
+        }
+
+        /// <summary>
+        /// Probes a URL that is known to be the main title of a local disc structure (a
+        /// BDMV/STREAM/*.strm target). Unlike <see cref="ResolveRemoteProbeAsync"/> this accepts
+        /// any container type, because the shortcut inside the disc folder already tells us what
+        /// the title is; the file name does not have to end in .m2ts.
+        /// </summary>
+        private async Task<(string Source, string DiscPath, MediaInfo MediaInfo)> ProbeDiscShortcutAsync(
+            BaseItem item, string url, CancellationToken cancellationToken)
+        {
+            var probed = await CustomFfprobeApi.ProbeAsync(url, false, MediaProtocol.Http,
+                cancellationToken).ConfigureAwait(false);
+
+            if (HasVideo(probed)) return (url, url, probed);
+
+            var mediaInfo = await ProbeWithEmbyAsync(item, url, MediaProtocol.Http, cancellationToken)
+                .ConfigureAwait(false);
+
+            return (url, url, mediaInfo);
         }
 
         private static bool HasVideo(MediaInfo mediaInfo)
@@ -634,17 +664,18 @@ namespace StrmAssistant.Common
                 if (Directory.Exists(streamFolder))
                 {
                     // Prefer the clip referenced by the longest playlist, which is the main
-                    // feature far more reliably than "largest file".
+                    // feature far more reliably than "largest file". Shortcut-only structures
+                    // (a .strm in STREAM) resolve to the URL written in that file.
                     var clip = BdPlaylistApi.GetMainClip(streamFolder, Path.Combine(root, "BDMV", "PLAYLIST"));
 
-                    return clip ?? GetLargestFile(streamFolder, ".m2ts", ".mts");
+                    return clip ?? DiscMainVideoResolver.FindStreamSource(streamFolder);
                 }
 
                 var videoTsFolder = Path.Combine(root, "VIDEO_TS");
 
                 if (Directory.Exists(videoTsFolder))
                 {
-                    return GetLargestFile(videoTsFolder, ".vob");
+                    return DiscMainVideoResolver.FindDvdSource(videoTsFolder);
                 }
             }
             catch (Exception e)
@@ -653,18 +684,6 @@ namespace StrmAssistant.Common
             }
 
             return null;
-        }
-
-        private static string GetLargestFile(string folder, params string[] extensions)
-        {
-            return Directory.EnumerateFiles(folder)
-                .Where(f => extensions.Any(e =>
-                    f.EndsWith(e, StringComparison.OrdinalIgnoreCase)))
-                .Select(f => new FileInfo(f))
-                .Where(f => f.Exists)
-                .OrderByDescending(f => f.Length)
-                .Select(f => f.FullName)
-                .FirstOrDefault();
         }
 
         private List<ChapterInfo> ReadDiscChapters(BaseItem item, string source, string discPath)

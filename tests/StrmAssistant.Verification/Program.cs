@@ -31,6 +31,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "SingleCharacterSearchPolicy", SingleCharacterSearchPolicyTests.Run);
             RunGroup(runner, "ThumbnailRefreshSignature", ThumbnailRefreshSignatureTests.Run);
             RunGroup(runner, "ScheduledTaskFailurePolicy", ScheduledTaskFailurePolicyTests.Run);
+            RunGroup(runner, "DiscMainVideoResolver", DiscMainVideoResolverTests.Run);
 
             return runner.Finish();
         }

@@ -37,6 +37,7 @@
     <Compile Include="..\..\StrmAssistant\Common\SingleCharacterSearchPolicy.cs" Link="src\SingleCharacterSearchPolicy.cs" />
     <Compile Include="..\..\StrmAssistant\Common\ThumbnailRefreshSignature.cs" Link="src\ThumbnailRefreshSignature.cs" />
     <Compile Include="..\..\StrmAssistant\Common\ScheduledTaskFailurePolicy.cs" Link="src\ScheduledTaskFailurePolicy.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\DiscMainVideoResolver.cs" Link="src\DiscMainVideoResolver.cs" />
     <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />
   </ItemGroup>
 
