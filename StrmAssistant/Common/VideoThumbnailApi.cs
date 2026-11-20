@@ -106,9 +106,8 @@ namespace StrmAssistant.Common
             }
 
             // The 8 parameter version has no mediaSource parameter at all.
-            var mediaSource = _refreshThumbnailParameterCount >= 9
-                ? item.GetMediaSources(false, false, libraryOptions).FirstOrDefault()
-                : null;
+            var mediaSource = ThumbnailRefreshSignature.ResolveMediaSource(_refreshThumbnailParameterCount,
+                () => item.GetMediaSources(false, false, libraryOptions).FirstOrDefault());
 
             if (mediaSource != null)
             {
@@ -174,9 +173,9 @@ namespace StrmAssistant.Common
                 return false;
             }
 
-            var parameters = ThumbnailRefreshSignature.Build(_refreshThumbnailParameterCount, item,
-                mediaSource, null, libraryOptions, directoryService, chapters, extractImages, saveChapters,
-                cancellationToken);
+            var parameters = ThumbnailRefreshSignature.BuildCall(_refreshThumbnailParameterCount, item,
+                mediaSource, null, libraryOptions, directoryService, chapters, extractImages,
+                saveChapters, cancellationToken);
 
             if (parameters is null)
             {

@@ -9,7 +9,9 @@ namespace StrmAssistant.Verification
     /// <summary>
     /// Emby changed RefreshThumbnailImages from 8 to 9 to 10 parameters. A wrong argument count
     /// made every reflective call throw TargetParameterCountException, so these cases pin the
-    /// argument order for each signature Emby has shipped.
+    /// argument order for each signature Emby has shipped. The "caller" section exercises the
+    /// same BuildCall / ResolveMediaSource functions VideoThumbnailApi invokes, so a regression
+    /// at the call site fails here even though the Emby-dependent class cannot be linked.
     /// </summary>
     internal static class ThumbnailRefreshSignatureTests
     {
@@ -23,9 +25,6 @@ namespace StrmAssistant.Verification
             runner.Check("7 parameters unsupported", !ThumbnailRefreshSignature.IsSupported(7));
             runner.Check("11 parameters unsupported", !ThumbnailRefreshSignature.IsSupported(11));
             runner.Check("0 parameters unsupported", !ThumbnailRefreshSignature.IsSupported(0));
-
-            runner.Check("replaceExistingImages is false",
-                !ThumbnailRefreshSignature.ReplaceExistingImages);
 
             runner.Section("thumbnail refresh - 8 parameter argument order");
 
@@ -77,6 +76,80 @@ namespace StrmAssistant.Verification
                     ("replaceExistingImages", false), ("saveChapters", true),
                     ("cancellationToken", cancellationToken)
                 });
+
+            runner.Section("thumbnail refresh - media source resolution follows the signature");
+
+            var mediaSourceResolutions = 0;
+
+            Func<object> resolveMediaSource = () =>
+            {
+                mediaSourceResolutions++;
+                return mediaSource;
+            };
+
+            runner.Check("8 parameters do not resolve a media source",
+                ThumbnailRefreshSignature.ResolveMediaSource(8, resolveMediaSource) is null &&
+                mediaSourceResolutions == 0);
+
+            var nineMediaSource = ThumbnailRefreshSignature.ResolveMediaSource(9, resolveMediaSource);
+
+            runner.Check("9 parameters resolve the media source once",
+                ReferenceEquals(nineMediaSource, mediaSource) && mediaSourceResolutions == 1);
+
+            var tenMediaSource = ThumbnailRefreshSignature.ResolveMediaSource(10, resolveMediaSource);
+
+            runner.Check("10 parameters resolve the media source once",
+                ReferenceEquals(tenMediaSource, mediaSource) && mediaSourceResolutions == 2);
+
+            runner.Section("thumbnail refresh - caller argument array (VideoThumbnailApi)");
+
+            var eightCall = ThumbnailRefreshSignature.BuildCall(8, item, mediaSource, videoStream,
+                libraryOptions, directoryService, chapters, true, false, cancellationToken);
+
+            CheckSignature(runner, "caller 8 parameters", eightCall, typeof(FakeSignatures), "Eight",
+                new (string Name, object Value)[]
+                {
+                    ("item", item), ("videoStream", videoStream), ("libraryOptions", libraryOptions),
+                    ("directoryService", directoryService), ("chapters", chapters),
+                    ("extractImages", true), ("saveChapters", false),
+                    ("cancellationToken", cancellationToken)
+                });
+
+            var nineCall = ThumbnailRefreshSignature.BuildCall(9, item, mediaSource, videoStream,
+                libraryOptions, directoryService, chapters, true, false, cancellationToken);
+
+            CheckSignature(runner, "caller 9 parameters", nineCall, typeof(FakeSignatures), "Nine",
+                new (string Name, object Value)[]
+                {
+                    ("item", item), ("mediaSource", mediaSource), ("videoStream", videoStream),
+                    ("libraryOptions", libraryOptions), ("directoryService", directoryService),
+                    ("chapters", chapters), ("extractImages", true), ("saveChapters", false),
+                    ("cancellationToken", cancellationToken)
+                });
+
+            var tenCall = ThumbnailRefreshSignature.BuildCall(10, item, mediaSource, videoStream,
+                libraryOptions, directoryService, chapters, true, false, cancellationToken);
+
+            CheckSignature(runner, "caller 10 parameters", tenCall, typeof(FakeSignatures), "Ten",
+                new (string Name, object Value)[]
+                {
+                    ("item", item), ("mediaSource", mediaSource), ("videoStream", videoStream),
+                    ("libraryOptions", libraryOptions), ("directoryService", directoryService),
+                    ("chapters", chapters), ("extractImages", true),
+                    ("replaceExistingImages", false), ("saveChapters", false),
+                    ("cancellationToken", cancellationToken)
+                });
+
+            runner.Check("caller 8 parameters ignore a non-null media source",
+                eightCall != null && eightCall.Length == 8 &&
+                !eightCall.Contains(mediaSource));
+
+            runner.Check("caller build returns null for 7 parameters",
+                ThumbnailRefreshSignature.BuildCall(7, item, mediaSource, videoStream, libraryOptions,
+                    directoryService, chapters, true, false, cancellationToken) is null);
+            runner.Check("caller build returns null for 11 parameters",
+                ThumbnailRefreshSignature.BuildCall(11, item, mediaSource, videoStream, libraryOptions,
+                    directoryService, chapters, true, false, cancellationToken) is null);
 
             runner.Section("thumbnail refresh - unknown signatures are refused");
 
