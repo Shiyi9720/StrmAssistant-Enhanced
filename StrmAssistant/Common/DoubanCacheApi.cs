@@ -217,7 +217,15 @@ namespace StrmAssistant.Common
                     return null;
                 }
 
-                if (response.StatusCode != HttpStatusCode.OK) return null;
+                // A missing subject is a normal "no result" (a stale Douban id falls through to
+                // the title search); every other non-success status is a real request failure.
+                if (response.StatusCode == HttpStatusCode.NotFound) return null;
+
+                if (response.StatusCode != HttpStatusCode.OK)
+                {
+                    throw new InvalidOperationException(
+                        "Douban request failed with HTTP " + (int)response.StatusCode);
+                }
 
                 await using var contentStream = response.Content;
 
@@ -229,8 +237,10 @@ namespace StrmAssistant.Common
             }
             catch (Exception e)
             {
-                _logger?.Debug("DoubanCachePrebuild - Request failed: " + e.Message);
-                return null;
+                // Returning null here used to turn every transport / parse failure into
+                // "not found", so a run where every request failed still reported Completed.
+                throw new InvalidOperationException(
+                    "Douban request failed: " + url + " - " + e.Message, e);
             }
             finally
             {

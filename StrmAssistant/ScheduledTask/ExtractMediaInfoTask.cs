@@ -117,7 +117,15 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Info($"MediaInfoExtract - Item cancelled: {taskItem.Name} - {taskItem.Path}");
+                        if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                        {
+                            _logger?.Info("MediaInfoExtract - Scheduled Task Cancelled");
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref failed);
+                            _logger?.Warn($"MediaInfoExtract - Item timed out: {taskItem.Name} - {taskItem.Path}");
+                        }
                     }
                     catch (Exception e)
                     {
@@ -165,7 +173,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("MediaInfoExtract", succeeded, failed, skip);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("MediaInfoExtract", succeeded, failed, skip);
             }
 
             _logger?.Info("MediaInfoExtract - Scheduled Task Complete");

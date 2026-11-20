@@ -169,8 +169,14 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (OperationCanceledException)
                         {
-                            _logger?.Info("DoubanCachePrebuild - Scheduled Task Cancelled");
-                            return;
+                            if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                            {
+                                _logger?.Info("DoubanCachePrebuild - Scheduled Task Cancelled");
+                                return;
+                            }
+
+                            failed++;
+                            _logger?.Warn("DoubanCachePrebuild - Item timed out: " + item.Name);
                         }
                         catch (Exception e)
                         {
@@ -203,7 +209,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("DoubanCachePrebuild", succeeded, failed, 0);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("DoubanCachePrebuild", succeeded, failed, 0);
             }
 
             _logger?.Info("DoubanCachePrebuild - Scheduled Task Complete");

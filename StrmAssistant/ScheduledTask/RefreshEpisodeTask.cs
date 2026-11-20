@@ -75,7 +75,16 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Info("EpisodeRefresh - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                        {
+                            _logger?.Info("EpisodeRefresh - Scheduled Task Cancelled");
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref failed);
+                            _logger?.Warn("EpisodeRefresh - Item timed out: " + taskItem.Name + " - " +
+                                          taskItem.Path);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -108,7 +117,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("EpisodeRefresh", succeeded, failed, 0);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("EpisodeRefresh", succeeded, failed, 0);
             }
 
             _logger?.Info("EpisodeRefresh - Scheduled Task Complete");

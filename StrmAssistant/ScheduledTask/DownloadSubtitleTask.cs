@@ -33,6 +33,7 @@ namespace StrmAssistant.ScheduledTask
             var index = 0;
             var current = 0;
             var failed = 0;
+            var skip = 0;
 
             var tasks = new List<Task>();
 
@@ -67,12 +68,35 @@ namespace StrmAssistant.ScheduledTask
                             return;
                         }
 
-                        await Plugin.SubtitleApi.DownloadSubtitles(taskItem, cancellationToken)
+                        var outcome = await Plugin.SubtitleApi.DownloadSubtitles(taskItem, cancellationToken)
                             .ConfigureAwait(false);
+
+                        switch (outcome)
+                        {
+                            case SubtitleDownloadOutcome.ProviderUnavailable:
+                                // The provider is missing for every item, so this is a real
+                                // failure rather than a normal "no subtitle found".
+                                Interlocked.Increment(ref failed);
+                                _logger?.Warn("SubtitleDownload - Item failed (provider unavailable): " +
+                                              taskItem.Name + " - " + taskItem.Path);
+                                break;
+                            case SubtitleDownloadOutcome.DisabledForLibrary:
+                                Interlocked.Increment(ref skip);
+                                break;
+                        }
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Info("SubtitleDownload - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                        {
+                            _logger?.Info("SubtitleDownload - Scheduled Task Cancelled");
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref failed);
+                            _logger?.Warn("SubtitleDownload - Item timed out: " + taskItem.Name + " - " +
+                                          taskItem.Path);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -97,13 +121,13 @@ namespace StrmAssistant.ScheduledTask
 
             progress.Report(100.0);
 
-            var succeeded = current - failed;
+            var succeeded = current - failed - skip;
             _logger?.Info("SubtitleDownload - Outcome: " +
-                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, 0));
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, skip));
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("SubtitleDownload", succeeded, failed, 0);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("SubtitleDownload", succeeded, failed, skip);
             }
 
             _logger?.Info("SubtitleDownload - Scheduled Task Complete");

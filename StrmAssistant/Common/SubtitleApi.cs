@@ -648,7 +648,8 @@ namespace StrmAssistant.Common
             }
         }
 
-        public async Task<bool> DownloadSubtitles(BaseItem item, CancellationToken cancellationToken)
+        public async Task<SubtitleDownloadOutcome> DownloadSubtitles(BaseItem item,
+            CancellationToken cancellationToken)
         {
             var subtitleManager = GetSubtitleManager();
             var provider = GetOpenSubtitlesProvider();
@@ -656,7 +657,7 @@ namespace StrmAssistant.Common
             if (subtitleManager is null || provider is null)
             {
                 _logger?.Warn("SubtitleDownload - OpenSubtitles provider is not available");
-                return false;
+                return SubtitleDownloadOutcome.ProviderUnavailable;
             }
 
             var libraryOptions = _libraryManager.GetLibraryOptions(item);
@@ -665,7 +666,7 @@ namespace StrmAssistant.Common
                     StringComparer.OrdinalIgnoreCase) == true)
             {
                 _logger?.Info("SubtitleDownload - OpenSubtitles is disabled for library: " + item.Path);
-                return false;
+                return SubtitleDownloadOutcome.DisabledForLibrary;
             }
 
             var targetLanguages = GetTargetSubtitleLanguages(item, libraryOptions);
@@ -716,7 +717,7 @@ namespace StrmAssistant.Common
                     .ConfigureAwait(false);
             }
 
-            return downloaded;
+            return downloaded ? SubtitleDownloadOutcome.Downloaded : SubtitleDownloadOutcome.NoResult;
         }
 
         private async Task<RemoteSubtitleInfo> SearchSubtitles(ISubtitleProvider provider, BaseItem item,
@@ -882,8 +883,10 @@ namespace StrmAssistant.Common
                 }
                 catch (RateLimitExceededException)
                 {
+                    // Giving up silently used to make the item look like "no subtitle found".
+                    // Surface it so the scheduled task counts the item as failed instead.
                     _logger?.Warn("SubtitleDownload - Rate limit still reached during " + description + ", give up");
-                    return default;
+                    throw;
                 }
             }
         }

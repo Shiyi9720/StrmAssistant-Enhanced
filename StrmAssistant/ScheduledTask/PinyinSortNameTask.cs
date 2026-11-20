@@ -233,7 +233,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("PinyinSort", updated, failed, skipped);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("PinyinSort", updated, failed, skipped);
             }
 
             _logger?.Info("PinyinSort - Scheduled Task Complete");

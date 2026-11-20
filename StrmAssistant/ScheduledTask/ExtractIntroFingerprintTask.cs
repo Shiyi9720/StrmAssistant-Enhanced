@@ -191,8 +191,16 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (OperationCanceledException)
                         {
-                            _logger?.Info(
-                                $"IntroFingerprintExtract - Episode cancelled: {taskEpisode.Name} - {taskEpisode.Path}");
+                            if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                            {
+                                _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                            }
+                            else
+                            {
+                                Interlocked.Increment(ref episodeFailed);
+                                _logger?.Warn(
+                                    $"IntroFingerprintExtract - Episode timed out: {taskEpisode.Name} - {taskEpisode.Path}");
+                            }
                         }
                         catch (Exception e)
                         {
@@ -295,8 +303,16 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Info("IntroFingerprintExtract - Season cancelled: " + taskSeason.Name + " - " +
-                                     taskSeason.Path);
+                        if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                        {
+                            _logger?.Info("IntroFingerprintExtract - Scheduled Task Cancelled");
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref seasonFailed);
+                            _logger?.Warn("IntroFingerprintExtract - Season timed out: " + taskSeason.Name + " - " +
+                                          taskSeason.Path);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -340,9 +356,9 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("IntroFingerprintExtract episodes",
+                ScheduledTaskFailurePolicy.ThrowIfFailed("IntroFingerprintExtract episodes",
                     episodeSucceeded, episodeFailed, episodeSkipCount);
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("IntroFingerprintExtract seasons",
+                ScheduledTaskFailurePolicy.ThrowIfFailed("IntroFingerprintExtract seasons",
                     seasonSucceeded, seasonFailed, seasonSkipCount);
             }
 

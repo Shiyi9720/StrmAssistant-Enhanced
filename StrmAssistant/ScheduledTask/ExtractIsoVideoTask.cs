@@ -73,8 +73,14 @@ namespace StrmAssistant.ScheduledTask
                 }
                 catch (OperationCanceledException)
                 {
-                    _logger?.Info("IsoExtract - Scheduled Task Cancelled");
-                    return;
+                    if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                    {
+                        _logger?.Info("IsoExtract - Scheduled Task Cancelled");
+                        return;
+                    }
+
+                    failed++;
+                    _logger?.Warn("IsoExtract - Item timed out: " + item.Path);
                 }
                 catch (Exception e)
                 {
@@ -94,7 +100,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("IsoExtract", succeeded, failed, skip);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("IsoExtract", succeeded, failed, skip);
             }
 
             _logger?.Info("IsoExtract - Scheduled Task Complete");

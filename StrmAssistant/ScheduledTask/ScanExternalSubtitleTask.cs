@@ -89,7 +89,16 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Info("ExternalSubtitle - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                        {
+                            _logger?.Info("ExternalSubtitle - Scheduled Task Cancelled");
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref failed);
+                            _logger?.Warn("ExternalSubtitle - Item timed out: " + taskItem.Name + " - " +
+                                          taskItem.Path);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -120,7 +129,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("ExternalSubtitle", succeeded, failed, 0);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("ExternalSubtitle", succeeded, failed, 0);
             }
 
             _logger?.Info("ExternalSubtitle - Scheduled Task Complete");

@@ -78,7 +78,16 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Info("MovieRefresh - Item cancelled: " + taskItem.Name + " - " + taskItem.Path);
+                        if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                        {
+                            _logger?.Info("MovieRefresh - Scheduled Task Cancelled");
+                        }
+                        else
+                        {
+                            Interlocked.Increment(ref failed);
+                            _logger?.Warn("MovieRefresh - Item timed out: " + taskItem.Name + " - " +
+                                          taskItem.Path);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -109,7 +118,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("MovieRefresh", succeeded, failed, 0);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("MovieRefresh", succeeded, failed, 0);
             }
 
             _logger?.Info("MovieRefresh - Scheduled Task Complete");

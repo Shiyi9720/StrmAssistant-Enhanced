@@ -83,7 +83,15 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (OperationCanceledException)
                         {
-                            _logger?.Info("MovieMetadataRefresh - Item cancelled: " + taskItem.Name);
+                            if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                            {
+                                _logger?.Info("MovieMetadataRefresh - Scheduled Task Cancelled");
+                            }
+                            else
+                            {
+                                Interlocked.Increment(ref failed);
+                                _logger?.Warn("MovieMetadataRefresh - Item timed out: " + taskItem.Name);
+                            }
                         }
                         catch (Exception e)
                         {
@@ -120,7 +128,7 @@ namespace StrmAssistant.ScheduledTask
 
             if (!cancellationToken.IsCancellationRequested)
             {
-                ScheduledTaskFailurePolicy.ThrowIfTotalFailure("MovieMetadataRefresh", succeeded, failed, 0);
+                ScheduledTaskFailurePolicy.ThrowIfFailed("MovieMetadataRefresh", succeeded, failed, 0);
             }
 
             _logger?.Info("MovieMetadataRefresh - Scheduled Task Complete");
