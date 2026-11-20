@@ -7,6 +7,7 @@ using MediaBrowser.Model.Globalization;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Tasks;
+using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
@@ -72,6 +73,8 @@ namespace StrmAssistant.ScheduledTask
         {
             await Task.Yield();
             progress.Report(0);
+
+            var failed = 0;
 
             try
             {
@@ -171,8 +174,16 @@ namespace StrmAssistant.ScheduledTask
                     _logger?.Info("No need to update");
                 }
             }
+            catch (OperationCanceledException)
+            {
+                // expected: the server is shutting down; not an update failure.
+                _logger?.Info("UpdatePlugin - Scheduled Task Cancelled");
+                return;
+            }
             catch (Exception e)
             {
+                failed = 1;
+
                 _activityManager.Create(new ActivityLogEntry
                 {
                     Name = string.Format(_localizationManager.GetLocalizedString("NameInstallFailedOn"), Category,
@@ -188,6 +199,8 @@ namespace StrmAssistant.ScheduledTask
             }
 
             progress.Report(100);
+            _logger?.Info("UpdatePlugin - Outcome: " + ScheduledTaskFailurePolicy.Summary(0, failed, 0));
+            ScheduledTaskFailurePolicy.ThrowIfFailed("UpdatePlugin", 0, failed, 0);
         }
 
         private static Version ParseVersion(string v)

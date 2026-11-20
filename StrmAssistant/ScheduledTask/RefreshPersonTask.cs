@@ -398,8 +398,16 @@ namespace StrmAssistant.ScheduledTask
                         }
                         catch (OperationCanceledException)
                         {
-                            wasCancelled = true;
-                            _logger?.Info("RefreshPerson - Item Cancelled: " + taskItem.Name);
+                            if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                            {
+                                wasCancelled = true;
+                                _logger?.Info("RefreshPerson - Scheduled Task Cancelled");
+                            }
+                            else
+                            {
+                                failureReason = RefreshFailureReason.RequestFailed;
+                                _logger?.Warn("RefreshPerson - Item timed out: " + taskItem.Name);
+                            }
                         }
                         catch (Exception e)
                         {
@@ -473,6 +481,15 @@ namespace StrmAssistant.ScheduledTask
                 $"Locked={skippedLockedCount}, NoTmdbId={skippedNoTmdbIdCount}, " +
                 $"RecentlyRefreshed={skippedRecentCount}, Scope={skippedScopeCount}, " +
                 $"LockedField={skippedLockedFieldCount}");
+            _logger?.Info("RefreshPerson - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeededCount, failedCount, skippedCount));
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfFailed("RefreshPerson", succeededCount, failedCount,
+                    skippedCount);
+            }
+
             _logger?.Info("RefreshPerson - Scheduled Task Complete");
         }
 

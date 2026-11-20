@@ -247,8 +247,15 @@ namespace StrmAssistant.ScheduledTask
                     }
                     catch (OperationCanceledException)
                     {
-                        _logger?.Info("BeautifyMissingMetadata - Scheduled Task Cancelled");
-                        return;
+                        if (ScheduledTaskFailurePolicy.IsTaskCancellation(cancellationToken))
+                        {
+                            _logger?.Info("BeautifyMissingMetadata - Scheduled Task Cancelled");
+                            return;
+                        }
+
+                        // A per-series timeout must not abort the whole run.
+                        failed++;
+                        _logger?.Warn("BeautifyMissingMetadata - Series timed out: " + series.Name);
                     }
                     catch (Exception e)
                     {
@@ -265,12 +272,25 @@ namespace StrmAssistant.ScheduledTask
                 }
             }
 
-            _logger?.Info("BeautifyMissingMetadata - Scheduled Task Complete");
+            // Only NoTmdbId skips a whole series. Existing / locked / unmatched episode titles
+            // are episode-level decisions made while the series itself was processed normally.
+            var succeeded = processed - failed - skippedNoTmdb;
+
             _logger?.Info($"BeautifyMissingMetadata - Filled: {filled}, Series: {processed}, " +
                           $"Episodes: {checkedEpisodes}, Existing: {skippedExisting}, Locked: {skippedLocked}, " +
                           $"NoTmdbId: {skippedNoTmdb}, NoMatch: {skippedNoMatch}, Failed: {failed}");
+            _logger?.Info("BeautifyMissingMetadata - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(succeeded, failed, skippedNoTmdb));
 
             progress?.Report(100.0);
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                ScheduledTaskFailurePolicy.ThrowIfFailed("BeautifyMissingMetadata", succeeded, failed,
+                    skippedNoTmdb);
+            }
+
+            _logger?.Info("BeautifyMissingMetadata - Scheduled Task Complete");
         }
 
         /// <summary>

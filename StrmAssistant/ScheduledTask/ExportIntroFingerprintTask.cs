@@ -1,5 +1,6 @@
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
+using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,8 @@ namespace StrmAssistant.ScheduledTask
         {
             _logger?.Info("IntroFingerprintExport - Scheduled Task Execute");
 
+            var failed = 0;
+
             try
             {
                 Plugin.FingerprintLibraryApi.Export(progress, cancellationToken);
@@ -27,10 +30,14 @@ namespace StrmAssistant.ScheduledTask
             }
             catch (Exception e)
             {
-                _logger?.Info("IntroFingerprintExport - Failed: " + e.Message + Environment.NewLine + e.StackTrace);
+                failed = 1;
+                _logger?.ErrorException("IntroFingerprintExport - Failed", e);
             }
 
             progress.Report(100.0);
+            _logger?.Info("IntroFingerprintExport - Outcome: " +
+                          ScheduledTaskFailurePolicy.Summary(0, failed, 0));
+            ScheduledTaskFailurePolicy.ThrowIfFailed("IntroFingerprintExport", 0, failed, 0);
             _logger?.Info("IntroFingerprintExport - Scheduled Task Complete");
 
             return Task.CompletedTask;
