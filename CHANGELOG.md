@@ -1,5 +1,26 @@
 # 更新日志
 
+## 1.0.16
+
+**安全与可靠性**
+
+- 自动更新下载无校验：`UpdatePluginTask` 原来把网络流直接 `FileMode.Create` 写进线上主 DLL，下载被截断、代理/ CDN 返回错误内容或 GitHub 返回错误文件时都会把插件写成半成品。现在先下载到插件目录下的临时文件（`StrmAssistantLite.dll.<guid>.download`），流式算 SHA256，与 GitHub release asset API 返回的 `digest`（`sha256:...`）比对；只有一致才进入安装步骤。release asset 没有可用 digest 时同样拒绝安装，不会退回到 manifest 里那个「目录包 zip 的 MD5」（两者校验对象不同）
+- 校验失败的处理：删除临时文件、现有 DLL 保持原样，ActivityLog 记 `PluginUpdateFailed`（Error，Overview 带期望/实际哈希）、管理员通知、计划任务标为 Failed；临时文件在 `finally` 中清理，异常中断也不会遗留
+- 覆盖前不再直接丢弃旧版本：先把当前主程序复制为 `<plugins>/StrmAssistantLite.dll.bak-<旧版本>-<UTC 时间戳>`，保留最近 3 份，超出的按文件名里的时间戳自动清理；备份失败（例如同名备份已存在）直接中止安装，不覆盖
+- 原子安装与回滚：校验通过的临时文件用 `File.Replace` 整体替换目标（同一目录、同一文件系统），替换失败时从备份恢复原文件；失败路径同时保留临时下载供排查。全新安装（目标不存在）则直接移动，不需要备份
+- 「已是最新」不再每周给管理员发通知：这只是正常结果，改为 Info 日志；版本号无法解析（例如 tag/程序集版本不是合法版本串）由 Info 升为 Warn，不再静默跳过
+
+**说明**
+
+- checksum 来源选择方案 A（GitHub release asset API 的 `digest`）：发版时单个 DLL 资产会由 GitHub 计算 `sha256:<hex>`，实测 v1.0.15 与临时测试 release 的 `StrmAssistantLite.dll` 资产都返回该字段；无需额外上传 `.sha256` 文件，也不会出现「比对值与被下载文件不同步」的风险。该机制防的是下载损坏/代理篡改/错误资产，不防 GitHub 账号本身被攻破
+- 自动化验证工程 518 条用例全过（1.0.15 为 472 条）；新增 `Common/PluginUpdateInstaller.cs`，覆盖 digest 解析与比对、文件 SHA256、备份命名/保留/清理、原子替换、移动失败回滚、备份同名中止、临时文件缺失等 53 条用例
+- 线上实测（1.0.16 部署后）：
+  - 正常更新：临时发布 v1.0.17 → 任务发现新版本，SHA256 `086dbcdc…` 与资产 digest 一致，生成 `.bak-1.0.16-20261121T082616909Z`，替换成功、任务 Completed；重启后插件正常加载（Harmony self-test passed、搜索索引加载），`/Plugins` 版本随新程序集变化
+  - 校验失败：用故意写错期望哈希的测试构建触发，日志为 `Checksum mismatch ... expected sha256:0000…, got sha256:086dbcdc…`，线上 DLL 哈希保持 `5a6ed20b…` 不变、未生成新备份、临时文件已清理，任务状态 Failed，ActivityLog 记录 `PluginUpdateFailed` Error
+  - 备份保留：预置 3 份旧备份后执行更新，新建 1 份并删除最旧的 1 份，目录中稳定保持 3 份
+  - 测试用的临时 v1.0.17 release 已删除，`/releases/latest` 回到 v1.0.15，线上重新部署回干净的 1.0.16
+- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；未改动 UI 文案、资源文件、依赖与 `search-index.json`
+
 ## 1.0.15
 
 **修复**
