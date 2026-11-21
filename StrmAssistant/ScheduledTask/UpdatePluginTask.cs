@@ -104,7 +104,9 @@ namespace StrmAssistant.ScheduledTask
 
                 if (currentVersion == null || remoteVersion == null)
                 {
-                    _logger?.Info("Skip auto update: version is not comparable ({0} -> {1})",
+                    // Not an error path on its own, but a silent skip hides a broken tag/assembly
+                    // version, so surface it instead of leaving it at Info.
+                    _logger?.Warn("Skip auto update: version is not comparable ({0} -> {1})",
                         Plugin.Instance.CurrentVersion, apiResult?.tag_name);
                     return;
                 }
@@ -113,44 +115,100 @@ namespace StrmAssistant.ScheduledTask
                 {
                     _logger?.Info("Found new plugin version: {0}", remoteVersion);
 
-                    var url = (apiResult?.assets ?? new List<ApiAssetInfo>())
-                        .FirstOrDefault(asset => asset.name == PluginAssemblyFilename)
-                        ?.browser_download_url;
+                    var asset = (apiResult?.assets ?? new List<ApiAssetInfo>())
+                        .FirstOrDefault(a => a.name == PluginAssemblyFilename);
+                    var url = asset?.browser_download_url;
                     if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) throw new Exception("Invalid download url");
 
-                    var githubProxy = Plugin.Instance.GetPluginOptions().AboutOptions.GitHubProxy;
-
-                    await using (var responseStream = await _httpClient.Get(new HttpRequestOptions
-                                     {
-                                         Url = string.IsNullOrWhiteSpace(githubProxy)
-                                             ? url
-                                             : $"{githubProxy.TrimEnd('/')}/{url.TrimStart('/')}",
-                                         CancellationToken = cancellationToken,
-                                         UserAgent = Plugin.Instance.UserAgent,
-                                         EnableDefaultUserAgent = false,
-                                         Progress = progress,
-                                         RequestHeaders =
-                                         {
-                                             ["Authorization"] = !string.IsNullOrWhiteSpace(githubToken)
-                                                 ? $"token {githubToken}"
-                                                 : string.Empty
-                                         }
-                                     })
-                                     .ConfigureAwait(false))
+                    // GitHub computes this digest over the uploaded asset, so it covers exactly
+                    // the bytes we are about to install. No digest means the download cannot be
+                    // proven intact; an unverified self-update is worse than skipping the update.
+                    var expectedHash = PluginUpdateInstaller.NormalizeSha256Digest(asset.digest);
+                    if (expectedHash == null)
                     {
-                        using (var memoryStream = new MemoryStream())
+                        throw new InvalidDataException(
+                            $"Release asset {PluginAssemblyFilename} has no usable sha256 digest; refusing to install {remoteVersion}");
+                    }
+
+                    var dllFilePath = Path.Combine(_applicationPaths.PluginsPath, PluginAssemblyFilename);
+                    var tempFilePath = Path.Combine(_applicationPaths.PluginsPath,
+                        PluginAssemblyFilename + "." + Guid.NewGuid().ToString("N") + ".download");
+                    var backupFilePath = Path.Combine(_applicationPaths.PluginsPath,
+                        PluginUpdateInstaller.BuildBackupFileName(PluginAssemblyFilename,
+                            Plugin.Instance.CurrentVersion, DateTimeOffset.UtcNow));
+
+                    try
+                    {
+                        var githubProxy = Plugin.Instance.GetPluginOptions().AboutOptions.GitHubProxy;
+
+                        await using (var responseStream = await _httpClient.Get(new HttpRequestOptions
+                                         {
+                                             Url = string.IsNullOrWhiteSpace(githubProxy)
+                                                 ? url
+                                                 : $"{githubProxy.TrimEnd('/')}/{url.TrimStart('/')}",
+                                             CancellationToken = cancellationToken,
+                                             UserAgent = Plugin.Instance.UserAgent,
+                                             EnableDefaultUserAgent = false,
+                                             Progress = progress,
+                                             RequestHeaders =
+                                             {
+                                                 ["Authorization"] = !string.IsNullOrWhiteSpace(githubToken)
+                                                     ? $"token {githubToken}"
+                                                     : string.Empty
+                                             }
+                                         })
+                                         .ConfigureAwait(false))
+                        await using (var fileStream = new FileStream(tempFilePath, FileMode.CreateNew,
+                                         FileAccess.Write, FileShare.None))
                         {
-                            await responseStream.CopyToAsync(memoryStream, 81920, cancellationToken)
+                            await responseStream.CopyToAsync(fileStream, 81920, cancellationToken)
                                 .ConfigureAwait(false);
+                            await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        }
 
-                            memoryStream.Seek(0, SeekOrigin.Begin);
-                            var dllFilePath = Path.Combine(_applicationPaths.PluginsPath, PluginAssemblyFilename);
+                        var actualHash = PluginUpdateInstaller.ComputeSha256(tempFilePath);
+                        if (!PluginUpdateInstaller.MatchesSha256(expectedHash, actualHash))
+                        {
+                            throw new InvalidDataException(
+                                $"Checksum mismatch for {PluginAssemblyFilename}: expected sha256:{expectedHash}, got sha256:{actualHash}");
+                        }
 
-                            await using (var fileStream =
-                                         new FileStream(dllFilePath, FileMode.Create, FileAccess.Write))
+                        // The verified file is still a separate file at this point; only the
+                        // final rename makes it live, and the old assembly is backed up first.
+                        if (!PluginUpdateInstaller.TryInstall(tempFilePath, dllFilePath, backupFilePath,
+                                out var installError))
+                        {
+                            throw new IOException("Install failed: " + installError);
+                        }
+
+                        _logger?.Info("Plugin update installed: {0} -> {1} (sha256 {2}, backup {3})",
+                            Plugin.Instance.CurrentVersion, remoteVersion, actualHash,
+                            Path.GetFileName(backupFilePath));
+
+                        var pruned = PluginUpdateInstaller.PruneBackups(_applicationPaths.PluginsPath,
+                            PluginAssemblyFilename, PluginUpdateInstaller.DefaultBackupRetention,
+                            out var pruneError);
+                        if (pruneError != null)
+                        {
+                            _logger?.Warn("UpdatePlugin - Failed to prune old backups: {0}", pruneError);
+                        }
+                        else if (pruned > 0)
+                        {
+                            _logger?.Info("UpdatePlugin - Removed {0} old backup(s)", pruned);
+                        }
+                    }
+                    finally
+                    {
+                        if (File.Exists(tempFilePath))
+                        {
+                            try
                             {
-                                await memoryStream.CopyToAsync(fileStream, 81920, cancellationToken)
-                                    .ConfigureAwait(false);
+                                File.Delete(tempFilePath);
+                            }
+                            catch (Exception cleanupError)
+                            {
+                                _logger?.Warn("UpdatePlugin - Failed to delete temporary download {0}: {1}",
+                                    tempFilePath, cleanupError.Message);
                             }
                         }
                     }
@@ -169,9 +227,10 @@ namespace StrmAssistant.ScheduledTask
                 }
                 else
                 {
-                    _ = Plugin.NotificationApi.SendMessageToAdmins(
-                        $"[{Resources.PluginOptions_EditorTitle_Strm_Assistant}] {Resources.No_Update_Message}", 1000);
-                    _logger?.Info("No need to update");
+                    // The weekly trigger used to page the admins even when there was nothing to
+                    // do. "Already current" is the normal outcome, so log it instead.
+                    _logger?.Info("No need to update: current {0}, remote {1}",
+                        Plugin.Instance.CurrentVersion, remoteVersion);
                 }
             }
             catch (OperationCanceledException)
@@ -223,6 +282,9 @@ namespace StrmAssistant.ScheduledTask
             public string name { get; set; }
 
             public string browser_download_url { get; set; }
+
+            // "sha256:<hex>" computed by GitHub for the uploaded asset.
+            public string digest { get; set; }
         }
     }
 }
