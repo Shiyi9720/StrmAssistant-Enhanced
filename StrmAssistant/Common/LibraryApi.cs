@@ -377,6 +377,10 @@ namespace StrmAssistant.Common
 
             var items = new List<BaseItem>();
             var extras = new List<BaseItem>();
+            var musicItems = new List<BaseItem>();
+            var includeMusic = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableMusicMediaInfo &&
+                               Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode !=
+                               PersistMediaInfoOption.None.ToString();
 
             if (!LibraryScopeResolver.IsFavoritesOnly(libraryIds))
             {
@@ -441,14 +445,35 @@ namespace StrmAssistant.Common
                     }
                 }
 
+                // Music items always carry an audio stream, so the video "missing media info"
+                // filter can never select them. Non-forced runs use the sidecar as the
+                // missing/present signal instead (the same rule as the new implementation).
+                var musicIds = Array.Empty<long>();
+                if (includeMusic)
+                {
+                    var musicQuery = new InternalItemsQuery
+                    {
+                        Recursive = true,
+                        IsFolder = false,
+                        IsVirtualItem = false,
+                        HasPath = true,
+                        MediaTypes = new[] { MediaType.Audio }
+                    };
+
+                    if (pathScopes != null) musicQuery.PathStartsWithAny = pathScopes;
+                    musicIds = GetItemIds(musicQuery);
+                }
+
                 var mediaInfoSet = new HashSet<long>(mediaInfoIds);
                 var imageCaptureSet = new HashSet<long>(imageCaptureIds);
                 var extrasSet = new HashSet<long>(extrasMediaInfoIds);
+                var musicSet = new HashSet<long>(musicIds);
                 extrasSet.UnionWith(extrasImageCaptureIds);
 
                 var allIds = new HashSet<long>(mediaInfoSet);
                 allIds.UnionWith(imageCaptureSet);
                 allIds.UnionWith(extrasSet);
+                allIds.UnionWith(musicSet);
                 var orderedIds = allIds.ToList();
 
                 foreach (var batch in GetItemBatches(orderedIds))
@@ -460,6 +485,7 @@ namespace StrmAssistant.Common
                         // Extras from the image-capture query were not filtered by image in the
                         // original code; only the main item path applied that filter.
                         if (extrasSet.Contains(id)) extras.Add(item);
+                        if (musicSet.Contains(id)) musicItems.Add(item);
 
                         if (mediaInfoSet.Contains(id))
                         {
@@ -484,9 +510,45 @@ namespace StrmAssistant.Common
             }
 
             var filtered = FilterUnprocessed(allowed);
+
+            if (includeMusic)
+            {
+                // A music item that already has its sidecar is done; one that does not is
+                // selected even though Emby's own probe already produced an audio stream.
+                var missingMusic = musicItems
+                    .GroupBy(i => i.InternalId)
+                    .Select(g => g.First())
+                    .Where(i => !blacklist.IsExcluded(i) && !HasMediaInfoSidecar(i))
+                    .ToList();
+
+                _logger?.Info("MediaInfoExtract - Music items missing sidecar: " + missingMusic.Count);
+
+                filtered = filtered
+                    .Concat(missingMusic)
+                    .GroupBy(i => i.InternalId)
+                    .Select(g => g.First())
+                    .ToList();
+            }
+
             var results = OrderByDescending(filtered);
 
             return results;
+        }
+
+        private bool HasMediaInfoSidecar(BaseItem item)
+        {
+            try
+            {
+                if (item is null || string.IsNullOrEmpty(item.Path)) return false;
+
+                var mediaInfoJsonPath = MediaInfoApi.GetMediaInfoJsonPath(item);
+                return !string.IsNullOrEmpty(mediaInfoJsonPath) && _fileSystem.FileExists(mediaInfoJsonPath);
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("MediaInfoPersist - Sidecar check failed: " + item?.Name + " - " + e.Message);
+                return false;
+            }
         }
 
         public List<BaseItem> FetchPostExtractTaskItems(bool includeAudio)

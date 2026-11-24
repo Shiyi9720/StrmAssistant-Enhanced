@@ -108,6 +108,11 @@ namespace StrmAssistant.Options
         public string ExternalAudioExtensions { get; set; } =
             "flac,ac3,dts,dtshd,mka,aac,mp3,truehd,thd";
 
+        [DisplayName("音乐媒体信息提取")]
+        [Description("让音乐条目（Audio）也进入媒体信息提取：非强制任务只挑选缺少 -mediainfo.json 的音乐，" +
+                     "避免每次全量重刷；提取结果按现有视频机制持久化到 JSON。需要媒体信息持久化不为「不持久化」。默认关闭。")]
+        public bool EnableMusicMediaInfo { get; set; } = false;
+
         [DisplayNameL("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Media_Info_Exclude_Keywords", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_", typeof(Resources))]
         public string MediaInfoExcludeKeywords { get; set; } = string.Empty;
