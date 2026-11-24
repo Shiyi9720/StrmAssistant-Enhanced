@@ -3,6 +3,7 @@ using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Serialization;
@@ -75,7 +76,7 @@ namespace StrmAssistant.Common
 
                 if (files.Count == 0) return;
 
-                var libraryOptions = _libraryManager.GetLibraryOptions(item);
+                var libraryOptions = _libraryManager.GetLibraryOptions(item) ?? new LibraryOptions();
                 var directoryService = new DirectoryService(Plugin.Instance.Logger, Plugin.Instance.FileSystem);
 
                 foreach (var file in files)
@@ -89,7 +90,11 @@ namespace StrmAssistant.Common
 
                     lock (StateSync)
                     {
-                        if (_state.TryGetValue(key, out var existing) && existing.Stamp == stamp)
+                        // The stamp alone is not enough: a refresh with "replace all images"
+                        // removes the image while the file itself is unchanged, so the item's
+                        // current image is part of the "already applied" test.
+                        if (_state.TryGetValue(key, out var existing) && existing.Stamp == stamp &&
+                            item.GetImageInfo(file.ImageType, file.ImageIndex ?? 0) != null)
                         {
                             continue;
                         }
@@ -97,13 +102,13 @@ namespace StrmAssistant.Common
 
                     try
                     {
-                        using (var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read,
-                                   FileShare.Read))
-                        {
-                            await _providerManager.SaveImage(item, libraryOptions, stream,
-                                GetMimeType(file.Path).AsMemory(), file.ImageType, file.ImageIndex, null,
-                                directoryService, true, CancellationToken.None).ConfigureAwait(false);
-                        }
+                        // Path overload: Emby opens the file itself. saveLocallyWithMedia is
+                        // explicitly false (null is what throws inside ImageSaver on 4.10.2)
+                        // so STRM libraries on read-only mounts write into Emby's metadata dir.
+                        await _providerManager.SaveImage(item, libraryOptions, file.Path,
+                            GetMimeType(file.Path).AsMemory(), file.ImageType, file.ImageIndex,
+                            false, Array.Empty<long>(), directoryService, false,
+                            CancellationToken.None).ConfigureAwait(false);
 
                         RecordApplied(key, stamp, item.DateLastRefreshed.UtcTicks);
                         Plugin.Instance?.Logger?.Debug("Override image applied - {0} ({1})",
@@ -111,6 +116,24 @@ namespace StrmAssistant.Common
                     }
                     catch (Exception e)
                     {
+                        // Emby writes the new image into its metadata folder and then tries to
+                        // delete the previous image next to the media file. On a read-only STRM
+                        // mount (115/WebDAV) that delete throws after the new image was written.
+                        // Keep the result when the item now points at the internal copy.
+                        var saved = item.GetImageInfo(file.ImageType, file.ImageIndex ?? 0);
+                        var internalRoot = item.GetInternalMetadataPath();
+
+                        if (saved != null && !string.IsNullOrEmpty(saved.Path) &&
+                            !string.IsNullOrEmpty(internalRoot) &&
+                            saved.Path.StartsWith(internalRoot, StringComparison.OrdinalIgnoreCase))
+                        {
+                            RecordApplied(key, stamp, item.DateLastRefreshed.UtcTicks);
+                            Plugin.Instance?.Logger?.Debug(
+                                "Override image applied - {0} ({1}); previous local image could not be removed: {2}",
+                                item.Name, file.Path, e.Message);
+                            continue;
+                        }
+
                         Plugin.Instance?.Logger?.Debug("Override image apply failed - " + file.Path + ": " +
                                                        e.Message);
                     }

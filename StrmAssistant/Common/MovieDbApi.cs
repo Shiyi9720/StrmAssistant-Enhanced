@@ -53,10 +53,13 @@ namespace StrmAssistant.Common
         private static LruCache _itemLanguageCache = new LruCache(200);
         private static LruCache _originalLanguageCache = new LruCache(300);
 
-        public MovieDbApi(ILibraryManager libraryManager)
+        private readonly IProviderManager _providerManager;
+
+        public MovieDbApi(ILibraryManager libraryManager, IProviderManager providerManager)
         {
             _logger = Plugin.Instance.Logger;
             _libraryManager = libraryManager;
+            _providerManager = providerManager;
         }
 
         public void Initialize()
@@ -69,19 +72,12 @@ namespace StrmAssistant.Common
                     .Distinct()
                     .ToList();
 
-                foreach (var provider in providers)
-                {
-                    var httpClientField = FindHttpClientField(provider.GetType());
+                PatchProviders(providers, "export");
 
-                    if (httpClientField is null) continue;
-
-                    var httpClient = httpClientField.GetValue(provider) as IHttpClient;
-
-                    if (httpClient is null || httpClient is MovieDbHttpClient) continue;
-
-                    httpClientField.SetValue(provider, new MovieDbHttpClient(ProxyApi.Wrap(httpClient)));
-                    _logger?.Info("MovieDb provider is patched: {0}", provider.GetType().Name);
-                }
+                // On 4.10.2 the application-host exports can be transient instances that never
+                // serve a refresh; the live ones are held by the singleton ProviderManager. Both
+                // sets are wrapped so the local source reliably intercepts an actual refresh.
+                PatchLiveProviderManager();
 
                 _itemLanguageCache = new LruCache(200);
                 _originalLanguageCache = new LruCache(300);
@@ -91,6 +87,155 @@ namespace StrmAssistant.Common
             {
                 _logger?.ErrorException("MovieDbApi Initialize", e);
             }
+        }
+
+        private void PatchProviders(IEnumerable<object> providers, string source)
+        {
+            foreach (var provider in providers ?? Enumerable.Empty<object>())
+            {
+                var httpClientField = FindHttpClientField(provider.GetType());
+
+                if (httpClientField is null) continue;
+
+                var httpClient = httpClientField.GetValue(provider) as IHttpClient;
+
+                if (httpClient is null || httpClient is MovieDbHttpClient) continue;
+
+                httpClientField.SetValue(provider, new MovieDbHttpClient(ProxyApi.Wrap(httpClient)));
+                _logger?.Info("MovieDb provider is patched ({0}): {1}", source,
+                    provider.GetType().Name);
+            }
+        }
+
+        /// <summary>
+        /// Re-applies the wrapper to the live provider arrays. Called at plugin load and again on
+        /// every refresh start, because ProviderManager may populate (or replace) its arrays
+        /// after this plugin is constructed.
+        /// </summary>
+        public void EnsureLiveProvidersPatched()
+        {
+            try
+            {
+                PatchLiveProviderManager();
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("MovieDbApi live provider patch - " + e.Message);
+            }
+        }
+
+        private void PatchLiveProviderManager()
+        {
+            var manager = _providerManager;
+
+            if (manager is null) return;
+
+            var managerType = manager.GetType();
+
+            var metadataProvidersField = managerType.GetField("_metadataProviders",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            var imageProvidersProperty = managerType.GetProperty("ImageProviders",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            var metadataProviders = metadataProvidersField?.GetValue(manager);
+            var imageProviders = imageProvidersProperty?.GetValue(manager);
+
+            var metadataCount = CountProviders(metadataProviders);
+            var imageCount = CountProviders(imageProviders);
+
+            if (Interlocked.Exchange(ref _liveProviderReport, 1) == 0 ||
+                metadataCount != _lastMetadataProviderCount ||
+                imageCount != _lastImageProviderCount)
+            {
+                _lastMetadataProviderCount = metadataCount;
+                _lastImageProviderCount = imageCount;
+                _logger?.Info(
+                    "MovieDb live providers - metadata: {0} ({1}), image: {2} ({3}, {4})",
+                    metadataProvidersField != null, metadataCount,
+                    imageProvidersProperty != null, imageCount,
+                    imageProviders?.GetType().Name ?? "null");
+            }
+
+            PatchProviderCollection(metadataProviders, "live metadata");
+            PatchProviderCollection(imageProviders, "live image");
+        }
+
+        private int _liveProviderReport;
+        private int _lastMetadataProviderCount = -1;
+        private int _lastImageProviderCount = -1;
+
+        private static int CountProviders(object providers)
+        {
+            if (providers is Array array) return array.Length;
+            if (providers is System.Collections.ICollection collection) return collection.Count;
+            return -1;
+        }
+
+        private void PatchProviderCollection(object providers, string source)
+        {
+            if (providers is Array array)
+            {
+                for (var index = 0; index < array.Length; index++)
+                {
+                    TryPatchProvider(array.GetValue(index), source);
+                }
+
+                return;
+            }
+
+            if (!(providers is System.Collections.IList list)) return;
+
+            for (var index = 0; index < list.Count; index++)
+            {
+                TryPatchProvider(list[index], source);
+            }
+        }
+
+        /// <summary>
+        /// Wraps one provider instance found by a caller that resolved it itself (for example
+        /// MetadataApi's transient export lookup). Idempotent and safe to call on any object.
+        /// </summary>
+        public static void EnsureProviderPatched(object provider)
+        {
+            if (provider is null || !IsMovieDbProvider(provider)) return;
+
+            try
+            {
+                var httpClientField = FindHttpClientField(provider.GetType());
+
+                if (httpClientField is null) return;
+
+                var httpClient = httpClientField.GetValue(provider) as IHttpClient;
+
+                if (httpClient is null || httpClient is MovieDbHttpClient) return;
+
+                httpClientField.SetValue(provider, new MovieDbHttpClient(ProxyApi.Wrap(httpClient)));
+                Plugin.Instance?.Logger?.Debug("MovieDb provider is patched (on-demand): {0}",
+                    provider.GetType().Name);
+            }
+            catch (Exception e)
+            {
+                Plugin.Instance?.Logger?.Debug("MovieDbApi on-demand patch - " + e.Message);
+            }
+        }
+
+        private bool TryPatchProvider(object provider, string source)
+        {
+            if (provider is null || !IsMovieDbProvider(provider)) return false;
+
+            var httpClientField = FindHttpClientField(provider.GetType());
+
+            if (httpClientField is null) return false;
+
+            var httpClient = httpClientField.GetValue(provider) as IHttpClient;
+
+            if (httpClient is null || httpClient is MovieDbHttpClient) return false;
+
+            httpClientField.SetValue(provider, new MovieDbHttpClient(ProxyApi.Wrap(httpClient)));
+            _logger?.Info("MovieDb provider is patched ({0}): {1}", source,
+                provider.GetType().Name);
+            return true;
         }
 
         private static bool IsMovieDbProvider(object provider)

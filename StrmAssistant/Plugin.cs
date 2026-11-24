@@ -325,7 +325,7 @@ namespace StrmAssistant
             UnifiedRatingService.Initialize(jsonSerializer);
             UnifiedRatingService.ApplyOptions(GetOptions());
             CustomSpecialsOrderService.Initialize(libraryManager, jsonSerializer);
-            MovieDbApi = new MovieDbApi(libraryManager);
+            MovieDbApi = new MovieDbApi(libraryManager, providerManager);
             MetadataApi = new MetadataApi(libraryManager, fileSystem, configurationManager, localizationManager,
                 jsonSerializer, httpClient);
             VideoThumbnailApi = new VideoThumbnailApi(libraryManager, fileSystem, imageExtractionManager, itemRepository,
@@ -355,6 +355,7 @@ namespace StrmAssistant
             _libraryManager.ItemRemoved += OnItemRemoved;
             _libraryManager.ItemUpdated += OnItemUpdated;
             _providerManager.RefreshCompleted += OnRefreshCompleted;
+            _providerManager.RefreshStarted += OnRefreshStarted;
             _userManager.UserCreated += OnUserCreated;
             _userManager.UserDeleted += OnUserDeleted;
             Properties.Resources.ResetCachedResources();
@@ -365,6 +366,17 @@ namespace StrmAssistant
                 {
                     await System.Threading.Tasks.Task.Delay(delay).ConfigureAwait(false);
                     RefreshPageInfoDisplayName();
+                }
+            });
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                // ProviderManager populates its live provider arrays after this plugin is
+                // constructed. Retry the wrapper once the server has settled as well, so a
+                // metadata refresh always uses the local source.
+                foreach (var delay in new[] { 5000, 20000, 60000 })
+                {
+                    await System.Threading.Tasks.Task.Delay(delay).ConfigureAwait(false);
+                    MovieDbApi?.EnsureLiveProvidersPatched();
                 }
             });
             _userManager.UserConfigurationUpdated += OnUserConfigurationUpdated;
@@ -403,11 +415,29 @@ namespace StrmAssistant
             }
         }
 
+        private void OnRefreshStarted(object sender, GenericEventArgs<RefreshProgressInfo> e)
+        {
+            MovieDbApi?.EnsureLiveProvidersPatched();
+        }
+
         private void OnRefreshCompleted(object sender, GenericEventArgs<RefreshProgressInfo> e)
         {
             if (e.Argument.Item is Video)
             {
                 MediaInfoApi.RemoveBlacklistedSubtitleStreams(e.Argument.Item, "Refresh Completed");
+            }
+
+            // ItemUpdated fires several times while a refresh is still saving; re-apply the
+            // local-source item files after the final save so a full refresh cannot overwrite
+            // the tags, external ids, sort order or override image applied by this plugin.
+            var refreshedItem = e.Argument.Item;
+
+            if (refreshedItem != null)
+            {
+                _ = OverrideImageService.ApplyAsync(refreshedItem);
+                LocalMetadataTagService.Apply(refreshedItem);
+                LocalExternalIdService.Apply(refreshedItem);
+                LocalEpisodeOrderService.Apply(refreshedItem);
             }
 
             if (_libraryManager.IsScanRunning) return;

@@ -169,6 +169,10 @@ namespace StrmAssistant.Common
 
             if (GetMovieDbPersonProvider() is IRemoteMetadataProvider<Person, PersonLookupInfo> provider)
             {
+                // ApplicationHost exports can be transient, so the instance resolved here may not
+                // be the one wrapped at startup. Patch it before it makes its request.
+                MovieDbApi.EnsureProviderPatched(provider);
+
                 return await GetMetadataFromProvider(provider, directoryService, lookupInfo, cancellationToken)
                     .ConfigureAwait(false);
             }
