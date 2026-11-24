@@ -131,6 +131,10 @@ namespace StrmAssistant.Options
         // The three UI behaviours below were injected unconditionally before they had switches;
         // their defaults are ON so an upgrade keeps the existing behaviour (the other five UI
         // switches — reverse order, log order, SxxExx, auto-mark, natural sort — default off).
+        [DisplayName("仪表盘")]
+        [Description("在仪表盘页面显示内存占用、可取消的活动任务、活动会话、搜索索引条目/键数与队列长度。默认关闭。")]
+        public bool EnableDashboardPanel { get; set; } = false;
+
         [DisplayName("总集数代替未观看（总集数 / 入库数）")]
         [Description("在剧集详情页显示“总集数 / 入库数”。默认开启。")]
         public bool EpisodeStatsTotalCount { get; set; } = true;

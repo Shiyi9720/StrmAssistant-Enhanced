@@ -36,6 +36,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "MetadataDiff", MetadataDiffTests.Run);
             RunGroup(runner, "ProviderSearchKeys", ProviderSearchKeysTests.Run);
             RunGroup(runner, "TagListMatcher", TagListMatcherTests.Run);
+            RunGroup(runner, "DashboardStats", DashboardStatsTests.Run);
 
             return runner.Finish();
         }

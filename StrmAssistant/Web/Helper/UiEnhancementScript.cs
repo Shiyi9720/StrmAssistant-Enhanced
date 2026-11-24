@@ -49,6 +49,7 @@ namespace StrmAssistant.Web.Helper
                 options?.ExperienceEnhanceOptions.EpisodeStatsTotalCount ?? true;
             var collectionMembership =
                 options?.ExperienceEnhanceOptions.CollectionMembership ?? true;
+            var dashboardPanel = options?.ExperienceEnhanceOptions.EnableDashboardPanel ?? false;
 
             return "\n" + GetStyleScript(hideSearchSuggestions) + "\n" + GetDoubanRatingScript() + "\n" +
                    GetScript(multiVersionSort, multiVersionSortByPath) + "\n" +
@@ -56,7 +57,8 @@ namespace StrmAssistant.Web.Helper
                    "\n" + GetVersionFavoriteScript(versionFavorites) +
                    "\n" + GetLibraryBadgeScript(libraryItemCountBadge) + "\n" + GetEpisodeStatsScript(episodeStatsFormat, episodeStatsTotalCount) + "\n" +
                    GetCollectionMembershipScript(collectionMembership) + "\n" +
-                   GetDashboardTasksScript() + "\n" + GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
+                   (dashboardPanel ? GetDashboardOverviewScript() : GetDashboardTasksScript()) + "\n" +
+                   GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
                    GetChineseSearchScript(chineseSearch) + "\n" +
                    GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n" +
                    GetMultiSelectActionsScript(multiSelectActions) + "\n" +
@@ -3653,6 +3655,345 @@ namespace StrmAssistant.Web.Helper
     start();
 })();
 ";
+        }
+
+        /// <summary>
+        /// Opt-in dashboard panel: memory, cancellable running tasks, active playback sessions,
+        /// search index counters (with the existing rebuild button) and queue lengths. Polls the
+        /// dashboard endpoint every five seconds and falls back to the task-only panel on error.
+        /// </summary>
+        private static string GetDashboardOverviewScript()
+        {
+            return @"
+(function () {
+    'use strict';
+
+    var labels = {
+        title: '@@TITLE@@',
+        memory: '@@MEMORY@@',
+        current: '@@CURRENT@@',
+        peak: '@@PEAK@@',
+        limit: '@@LIMIT@@',
+        tasks: '@@TASKS@@',
+        sessions: '@@SESSIONS@@',
+        search: '@@SEARCH@@',
+        items: '@@ITEMS@@',
+        keys: '@@KEYS@@',
+        queues: '@@QUEUES@@',
+        mediaInfo: '@@MEDIAINFO@@',
+        fingerprint: '@@FINGERPRINT@@',
+        intro: '@@INTRO@@',
+        episodeRefresh: '@@EPISODEREFRESH@@',
+        favorites: '@@FAVORITES@@',
+        none: '@@NONE@@',
+        cancel: '@@CANCEL@@',
+        cancelled: '@@CANCELLED@@',
+        rebuild: '@@REBUILD@@',
+        queued: '@@QUEUED@@',
+        failed: '@@FAILED@@',
+        settings: '@@SETTINGS@@'
+    };
+
+    var panel = null;
+    var body = null;
+    var timer = null;
+    var apiClient = null;
+
+    function withApiClient(callback) {
+        if (apiClient) {
+            callback(apiClient);
+            return;
+        }
+        try {
+            require(['connectionManager']).then(function (modules) {
+                var connectionManager = modules && modules[0];
+                var client = connectionManager && connectionManager.currentApiClient &&
+                    connectionManager.currentApiClient();
+                if (client) {
+                    apiClient = client;
+                    callback(client);
+                }
+            }, function () { });
+        } catch (e) { }
+    }
+
+    function isDashboard() {
+        return (location.hash || '').toLowerCase().indexOf('#/dashboard') === 0;
+    }
+
+    function mb(value) {
+        if (value === null || value === undefined || value <= 0) return '—';
+        return (value / 1048576).toFixed(0) + ' MB';
+    }
+
+    function pct(value) {
+        if (value === null || value === undefined || isNaN(value)) return '—';
+        return Math.round(value * 10) / 10 + '%';
+    }
+
+    function section(title) {
+        var box = document.createElement('div');
+        box.style.cssText = 'margin-top:.55em';
+
+        var heading = document.createElement('div');
+        heading.textContent = title;
+        heading.style.cssText = 'font-weight:600;opacity:.9;margin-bottom:.15em';
+
+        var rows = document.createElement('div');
+
+        box.appendChild(heading);
+        box.appendChild(rows);
+        body.appendChild(box);
+
+        return rows;
+    }
+
+    function row(container, label, value) {
+        var line = document.createElement('div');
+        line.style.cssText = 'display:flex;justify-content:space-between;gap:.6em;padding:.1em 0';
+
+        var name = document.createElement('span');
+        name.textContent = label;
+        name.style.opacity = '.75';
+
+        var text = document.createElement('span');
+        text.textContent = value;
+        text.style.textAlign = 'right';
+
+        line.appendChild(name);
+        line.appendChild(text);
+        container.appendChild(line);
+
+        return line;
+    }
+
+    function ensurePanel() {
+        if (panel) return panel;
+
+        panel = document.createElement('div');
+        panel.id = 'strmAssistantTasksPanel';
+        panel.style.cssText = 'position:fixed;right:1.5em;bottom:1.5em;z-index:1000;width:22em;' +
+            'max-width:calc(100% - 3em);max-height:70vh;overflow:auto;background:rgba(16,16,16,.92);' +
+            'color:#fff;border-radius:.5em;padding:.75em 1em;font-size:.85em;' +
+            'box-shadow:0 4px 16px rgba(0,0,0,.5)';
+
+        var header = document.createElement('div');
+        header.textContent = labels.title;
+        header.style.cssText = 'font-weight:600;margin-bottom:.25em';
+
+        body = document.createElement('div');
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = labels.rebuild;
+        button.style.cssText = 'margin-top:.6em;width:100%;padding:.4em;border:0;border-radius:.3em;' +
+            'cursor:pointer;background:#52b54b;color:#fff';
+
+        button.addEventListener('click', function () {
+            button.disabled = true;
+
+            withApiClient(function (client) {
+                client.ajax({
+                    type: 'POST',
+                    url: client.getUrl('StrmAssistant/Search/Rebuild'),
+                    dataType: 'json'
+                }).then(function (result) {
+                    button.textContent = result && result.Queued ? labels.queued : labels.failed;
+                }, function () {
+                    button.textContent = labels.failed;
+                }).then(function () {
+                    setTimeout(function () {
+                        button.textContent = labels.rebuild;
+                        button.disabled = false;
+                    }, 4000);
+                });
+            });
+        });
+
+        var settingsLink = document.createElement('a');
+        settingsLink.href = '#';
+        settingsLink.textContent = labels.settings;
+        settingsLink.style.cssText = 'display:block;margin-top:.4em;color:#6fc3ff;' +
+            'text-decoration:none;font-size:.95em';
+
+        settingsLink.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            withApiClient(function (client) {
+                var url = client.getUrl('StrmAssistant/IntroDetectionSettings');
+                var accessToken = client.accessToken ? client.accessToken() : '';
+
+                if (accessToken && url.indexOf('api_key=') === -1) {
+                    url += (url.indexOf('?') === -1 ? '?' : '&') +
+                        'api_key=' + encodeURIComponent(accessToken);
+                }
+
+                window.open(url, '_blank');
+            });
+        });
+
+        panel.appendChild(header);
+        panel.appendChild(body);
+        panel.appendChild(button);
+        panel.appendChild(settingsLink);
+        document.body.appendChild(panel);
+
+        return panel;
+    }
+
+    function addCancelButton(line, task) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = labels.cancel;
+        button.style.cssText = 'border:0;border-radius:.25em;background:#c0392b;color:#fff;' +
+            'font-size:.85em;padding:.1em .45em;cursor:pointer';
+
+        button.addEventListener('click', function () {
+            button.disabled = true;
+
+            withApiClient(function (client) {
+                client.ajax({
+                    type: 'POST',
+                    url: client.getUrl('StrmAssistant/Dashboard/Cancel'),
+                    data: JSON.stringify({ Key: task.Key }),
+                    contentType: 'application/json',
+                    dataType: 'json'
+                }).then(function (result) {
+                    button.textContent = result && result.Success
+                        ? labels.cancelled
+                        : (result && result.Message ? result.Message : labels.failed);
+                }, function () {
+                    button.textContent = labels.failed;
+                });
+            });
+        });
+
+        line.appendChild(button);
+    }
+
+    function render(data) {
+        ensurePanel();
+        body.innerHTML = '';
+
+        if (!data || !data.Enabled) {
+            row(section(labels.title), '', labels.none);
+            return;
+        }
+
+        var memory = data.Memory || {};
+        var memoryRows = section(labels.memory);
+        row(memoryRows, labels.current,
+            mb(memory.WorkingSetBytes) + ' / ' + pct(memory.UsagePercent));
+        row(memoryRows, labels.peak, mb(memory.PeakWorkingSetBytes));
+        if (memory.ContainerLimitBytes) {
+            row(memoryRows, labels.limit,
+                mb(memory.ContainerLimitBytes) + ' (' + (memory.LimitSource || '') + ')');
+        }
+
+        var taskRows = section(labels.tasks);
+        var tasks = data.Tasks || [];
+        if (!tasks.length) {
+            row(taskRows, '', labels.none);
+        } else {
+            tasks.forEach(function (task) {
+                var value = task.Progress === null || task.Progress === undefined
+                    ? task.State
+                    : Math.round(task.Progress) + '%';
+                var line = row(taskRows, task.Name, value);
+                if (task.Cancellable) addCancelButton(line, task);
+            });
+        }
+
+        var sessionRows = section(labels.sessions);
+        var sessions = data.Sessions || [];
+        if (!sessions.length) {
+            row(sessionRows, '', labels.none);
+        } else {
+            sessions.forEach(function (session) {
+                var name = session.ItemName || '';
+                if (session.SeriesName) name = session.SeriesName + ' / ' + name;
+                row(sessionRows, (session.UserName || '') + ' · ' + (session.DeviceName || ''),
+                    name + (session.IsPaused ? ' ⏸' : ''));
+            });
+        }
+
+        var search = data.Search || {};
+        var searchRows = section(labels.search);
+        row(searchRows, labels.items, String(search.ItemCount || 0));
+        row(searchRows, labels.keys, String(search.KeyCount || 0));
+        if (search.IsBuilding) {
+            row(searchRows, '', pct(search.Progress));
+        }
+
+        var queues = data.Queues || {};
+        var queueRows = section(labels.queues);
+        row(queueRows, labels.mediaInfo,
+            queues.MediaInfoQueued + ' / ' + queues.MediaInfoRunning);
+        row(queueRows, labels.fingerprint,
+            queues.FingerprintQueued + ' / ' + queues.FingerprintRunning);
+        row(queueRows, labels.intro, String(queues.IntroQueued || 0));
+        row(queueRows, labels.episodeRefresh, String(queues.EpisodeRefreshQueued || 0));
+        row(queueRows, labels.favorites, String(queues.FavoriteQueued || 0));
+    }
+
+    function refresh() {
+        if (!isDashboard()) {
+            if (panel) panel.style.display = 'none';
+            return;
+        }
+
+        ensurePanel().style.display = '';
+
+        withApiClient(function (client) {
+            client.getJSON(client.getUrl('StrmAssistant/Dashboard')).then(function (result) {
+                render(result);
+            }, function () {
+                render(null);
+            });
+        });
+    }
+
+    function start() {
+        if (timer) return;
+        timer = setInterval(refresh, 5000);
+        refresh();
+    }
+
+    window.addEventListener('hashchange', refresh);
+    document.addEventListener('DOMContentLoaded', start);
+
+    if (document.readyState !== 'loading') start();
+})();
+"
+                .Replace("@@TITLE@@", JsString("DashboardOverview_Title_Dashboard", "仪表盘"))
+                .Replace("@@MEMORY@@", JsString("DashboardOverview_Memory_Memory", "内存"))
+                .Replace("@@CURRENT@@", JsString("DashboardOverview_Current_Current", "当前"))
+                .Replace("@@PEAK@@", JsString("DashboardOverview_Peak_Peak", "峰值"))
+                .Replace("@@LIMIT@@", JsString("DashboardOverview_Limit_Limit", "上限"))
+                .Replace("@@TASKS@@", JsString("DashboardOverview_Tasks_Active_Tasks", "活动任务"))
+                .Replace("@@SESSIONS@@", JsString("DashboardOverview_Sessions_Active_Sessions", "活动会话"))
+                .Replace("@@SEARCH@@", JsString("DashboardOverview_Search_Search_Index", "搜索索引"))
+                .Replace("@@ITEMS@@", JsString("DashboardOverview_Items_Items", "条目"))
+                .Replace("@@KEYS@@", JsString("DashboardOverview_Keys_Keys", "键"))
+                .Replace("@@QUEUES@@", JsString("DashboardOverview_Queues_Queues", "队列"))
+                .Replace("@@MEDIAINFO@@", JsString("DashboardOverview_MediaInfo_Media_Info", "媒体信息"))
+                .Replace("@@FINGERPRINT@@", JsString("DashboardOverview_Fingerprint_Fingerprint", "指纹"))
+                .Replace("@@INTRO@@", JsString("DashboardOverview_Intro_Intro", "片头"))
+                .Replace("@@EPISODEREFRESH@@",
+                    JsString("DashboardOverview_EpisodeRefresh_Episode_Refresh", "剧集刷新"))
+                .Replace("@@FAVORITES@@", JsString("DashboardOverview_Favorites_Favorites", "收藏"))
+                .Replace("@@NONE@@", JsString("DashboardOverview_None_None", "无"))
+                .Replace("@@CANCEL@@", JsString("DashboardOverview_Cancel_Cancel", "取消"))
+                .Replace("@@CANCELLED@@", JsString("DashboardOverview_Cancelled_Cancelled", "已取消"))
+                .Replace("@@REBUILD@@", JsString("DashboardTasks_RebuildSearchIndex_Rebuild_Search_Index",
+                    "Rebuild Search Index"))
+                .Replace("@@QUEUED@@", JsString("DashboardTasks_RebuildQueued_Search_index_rebuild_queued",
+                    "Search index rebuild queued"))
+                .Replace("@@FAILED@@", JsString("DashboardTasks_RebuildFailed_Failed_to_queue_search_index_rebuild",
+                    "Failed to queue search index rebuild"))
+                .Replace("@@SETTINGS@@", JsString(
+                    "IntroDetectionSettings_Title_Per_Library_Intro_Detection_Length",
+                    "Per-Library Intro Detection Length"));
         }
 
         internal static string JsString(string resourceName, string fallback)

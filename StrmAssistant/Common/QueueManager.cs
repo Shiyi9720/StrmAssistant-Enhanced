@@ -165,6 +165,31 @@ namespace StrmAssistant.Common
             }
         }
 
+        /// <summary>
+        /// Read-only queue lengths for the dashboard. Sampling is lock-free: a queue may drain
+        /// between the two reads, so the numbers are a snapshot rather than a consistent total.
+        /// </summary>
+        public static DashboardQueueSnapshot GetQueueSnapshot()
+        {
+            return new DashboardQueueSnapshot
+            {
+                MediaInfoQueued = MediaInfoExtractItemQueue.Count,
+                MediaInfoRunning = MasterSemaphore is null
+                    ? 0
+                    : DashboardStats.RunningCount(MasterSemaphore.Limit, MasterSemaphore.CurrentCount),
+                FingerprintQueued = FingerprintItemQueue.Count,
+                FingerprintRunning = FingerprintSemaphore is null
+                    ? 0
+                    : DashboardStats.RunningCount(FingerprintSemaphore.Limit,
+                        FingerprintSemaphore.CurrentCount),
+                IntroQueued = IntroSkipItemQueue.Count,
+                EpisodeRefreshQueued = EpisodeRefreshItemQueue.Count,
+                FavoriteQueued = FavoriteMediaInfoExtractItemQueue.Count +
+                                 FavoriteFingerprintItemQueue.Count +
+                                 FavoriteIntroSkipItemQueue.Count
+            };
+        }
+
         public static void UpdateMasterSemaphore(int maxConcurrentCount)
         {
             if (_currentMasterMaxConcurrentCount != maxConcurrentCount)

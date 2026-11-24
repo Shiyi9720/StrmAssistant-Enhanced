@@ -134,6 +134,8 @@ namespace StrmAssistant.Common
                 Ready = _ready,
                 IsBuilding = _isBuilding,
                 ItemCount = _state.Snapshot.Length,
+                KeyCount = CountLookupKeys(_state.Lookup),
+                PendingChanges = _pendingUpdates.Count,
                 BuiltAtUtc = _builtAtUtc,
                 Progress = _progressPercent,
                 LastError = _lastError
@@ -144,6 +146,18 @@ namespace StrmAssistant.Common
         /// Called after plugin load. The first attempt is delayed so that a large index build or
         /// load never competes with the server's own startup work.
         /// </summary>
+        /// <summary>
+        /// Total number of lookup keys across every tier. Null dictionaries mean the tier was not
+        /// built (large library or option off) and simply contribute zero.
+        /// </summary>
+        private static int CountLookupKeys(SearchLookup lookup)
+        {
+            if (lookup is null) return 0;
+
+            return (lookup.Exact?.Count ?? 0) + (lookup.Prefix?.Count ?? 0) +
+                   (lookup.Bigrams?.Count ?? 0) + (lookup.Unigrams?.Count ?? 0);
+        }
+
         public void Initialize()
         {
             EnsureStarted(TimeSpan.FromSeconds(15));
@@ -1631,6 +1645,8 @@ namespace StrmAssistant.Common
         public bool Ready { get; set; }
         public bool IsBuilding { get; set; }
         public int ItemCount { get; set; }
+        public int KeyCount { get; set; }
+        public int PendingChanges { get; set; }
         public DateTime? BuiltAtUtc { get; set; }
         public double Progress { get; set; }
         public string LastError { get; set; }
