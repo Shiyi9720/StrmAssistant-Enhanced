@@ -43,13 +43,19 @@ namespace StrmAssistant.Web.Helper
             var suppressPluginUpdates = options?.ExperienceEnhanceOptions.SuppressPluginUpdates ?? false;
             var suppressPluginUpdatePlugins =
                 options?.ExperienceEnhanceOptions.SuppressPluginUpdatePlugins ?? string.Empty;
+            var libraryItemCountBadge =
+                options?.ExperienceEnhanceOptions.LibraryItemCountBadge ?? true;
+            var episodeStatsTotalCount =
+                options?.ExperienceEnhanceOptions.EpisodeStatsTotalCount ?? true;
+            var collectionMembership =
+                options?.ExperienceEnhanceOptions.CollectionMembership ?? true;
 
             return "\n" + GetStyleScript(hideSearchSuggestions) + "\n" + GetDoubanRatingScript() + "\n" +
                    GetScript(multiVersionSort, multiVersionSortByPath) + "\n" +
                    GetVersionNamesScript(multiVersionFriendlyNames, multiVersionForceFileName) + "\n" + GetPlaybackScript() +
                    "\n" + GetVersionFavoriteScript(versionFavorites) +
-                   "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
-                   GetCollectionMembershipScript() + "\n" +
+                   "\n" + GetLibraryBadgeScript(libraryItemCountBadge) + "\n" + GetEpisodeStatsScript(episodeStatsFormat, episodeStatsTotalCount) + "\n" +
+                   GetCollectionMembershipScript(collectionMembership) + "\n" +
                    GetDashboardTasksScript() + "\n" + GetEpisodeDisplayStyleScript(episodeDisplayStyle) + "\n" +
                    GetChineseSearchScript(chineseSearch) + "\n" +
                    GetReverseOrderScript(reverseSeasonEpisodeOrder) + "\n" +
@@ -2522,8 +2528,10 @@ namespace StrmAssistant.Web.Helper
         /// Item count badges on the home screen media library cards. Counts are fetched per library
         /// view and matched to the rendered cards by the view item id.
         /// </summary>
-        private static string GetLibraryBadgeScript()
+        private static string GetLibraryBadgeScript(bool enabled)
         {
+            if (!enabled) return string.Empty;
+
             return @"
 (function () {
     'use strict';
@@ -2693,8 +2701,10 @@ namespace StrmAssistant.Web.Helper
         /// episode total, so the numbers come from the episodes known to the server (including
         /// virtual episodes created by the missing episodes feature).
         /// </summary>
-        private static string GetEpisodeStatsScript(string format)
+        private static string GetEpisodeStatsScript(string format, bool enabled)
         {
+            if (!enabled) return string.Empty;
+
             return @"
 (function () {
     'use strict';
@@ -2845,8 +2855,10 @@ namespace StrmAssistant.Web.Helper
         /// series' seasons, which Emby's own query does not return, so the section's fetch
         /// function is replaced with the combined result.
         /// </summary>
-        private static string GetCollectionMembershipScript()
+        private static string GetCollectionMembershipScript(bool enabled)
         {
+            if (!enabled) return string.Empty;
+
             return @"
 (function () {
     'use strict';

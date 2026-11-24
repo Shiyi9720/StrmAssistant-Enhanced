@@ -127,5 +127,20 @@ namespace StrmAssistant.Options
         [DescriptionL("ExperienceEnhanceOptions_SuppressPluginUpdates_Plugin_names_separated_by_comma_or_semicolon_like_MovieDb_Tvdb__Default_is_BLANK_", typeof(Resources))]
         [VisibleCondition(nameof(SuppressPluginUpdates), SimpleCondition.IsTrue)]
         public string SuppressPluginUpdatePlugins { get; set; } = string.Empty;
+
+        // The three UI behaviours below were injected unconditionally before they had switches;
+        // their defaults are ON so an upgrade keeps the existing behaviour (the other five UI
+        // switches — reverse order, log order, SxxExx, auto-mark, natural sort — default off).
+        [DisplayName("总集数代替未观看（总集数 / 入库数）")]
+        [Description("在剧集详情页显示“总集数 / 入库数”。默认开启。")]
+        public bool EpisodeStatsTotalCount { get; set; } = true;
+
+        [DisplayName("主屏库数量角标")]
+        [Description("在首页媒体库卡片上显示条目数量角标。默认开启。")]
+        public bool LibraryItemCountBadge { get; set; } = true;
+
+        [DisplayName("合集归属")]
+        [Description("在条目详情页显示所属合集 / 播放列表。默认开启。")]
+        public bool CollectionMembership { get; set; } = true;
     }
 }
