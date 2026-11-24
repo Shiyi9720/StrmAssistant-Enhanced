@@ -498,7 +498,12 @@ namespace StrmAssistant.Common
                 return false;
             }
 
-            if (!Plugin.LibraryApi.IsLibraryInScope(workItem)) return false;
+            if (!Plugin.LibraryApi.IsLibraryInScope(workItem))
+            {
+                _logger?.Info("MediaInfoPersist - Serialization Skipped - Out of scope (" + source + "): " +
+                              workItem?.Path);
+                return false;
+            }
 
             var ds = directoryService ?? new DirectoryService(_logger, _fileSystem);
 
@@ -516,7 +521,16 @@ namespace StrmAssistant.Common
                 return false;
             }
 
-            if (Plugin.LibraryApi.HasMediaInfo(workItem)) return true;
+            // A music item always has an audio stream, so HasMediaInfo cannot stand in for
+            // "already restored": the sidecar is the real present/missing signal. Without this
+            // exception the music extraction would be skipped before it ever writes a sidecar.
+            var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
+            var musicSidecarMode = workItem is Audio && options.EnableMusicMediaInfo &&
+                                   options.PersistMediaInfoMode !=
+                                   StrmAssistant.Options.MediaInfoExtractOptions.PersistMediaInfoOption.None
+                                       .ToString();
+
+            if (!musicSidecarMode && Plugin.LibraryApi.HasMediaInfo(workItem)) return true;
 
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
             var file = directoryService.GetFile(mediaInfoJsonPath);

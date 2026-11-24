@@ -29,6 +29,8 @@ namespace StrmAssistant.ScheduledTask
 
             var persistMediaInfoMode = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.PersistMediaInfoMode;
             _logger?.Info("Persist MediaInfo Mode: " + persistMediaInfoMode);
+            _logger?.Info("Enable Music MediaInfo: " +
+                          Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableMusicMediaInfo);
             var mediaInfoRestoreMode = persistMediaInfoMode == PersistMediaInfoOption.Restore.ToString();
 
             var enableImageCapture = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.EnableImageCapture;
