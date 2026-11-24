@@ -112,6 +112,10 @@ namespace StrmAssistant.Options
         [DescriptionL("MediaInfoExtractOptions_MediaInfoExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_mediainfo_exclude_are_skipped__Default_is_EMPTY_", typeof(Resources))]
         public string MediaInfoExcludeKeywords { get; set; } = string.Empty;
 
+        [DisplayName("标签黑名单")]
+        [Description("逗号或分号分隔的标签名；条目或任一父级带有这些标签时跳过媒体信息提取。与关键词黑名单并列生效。默认留空。")]
+        public string MediaInfoExcludeTags { get; set; } = string.Empty;
+
         [DisplayNameL("MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Video_Thumbnail_Exclude_Keywords", typeof(Resources))]
         [DescriptionL("MediaInfoExtractOptions_VideoThumbnailExcludeKeywords_Comma_separated_keywords_or_wildcards__Items_matching_the_keywords_or_tagged_videothumbnail_exclude_are_skipped__Default_is_EMPTY_", typeof(Resources))]
         public string VideoThumbnailExcludeKeywords { get; set; } = string.Empty;

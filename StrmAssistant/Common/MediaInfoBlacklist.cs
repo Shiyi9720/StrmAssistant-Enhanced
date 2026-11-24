@@ -8,16 +8,18 @@ namespace StrmAssistant.Common
     {
         public const string ExcludeTagName = "mediainfo-exclude";
 
-        private MediaInfoBlacklist(string keywords) : base(ExcludeTagName, keywords)
+        private MediaInfoBlacklist(string keywords, string tags) : base(ExcludeTagName, keywords, tags)
         {
         }
 
         public static MediaInfoBlacklist FromOptions()
         {
-            var keywords = Plugin.Instance.GetPluginOptions()
-                .MediaInfoExtractOptions.MediaInfoExcludeKeywords ?? string.Empty;
+            var options = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions;
+            var keywords = options.MediaInfoExcludeKeywords ?? string.Empty;
+            var tags = options.MediaInfoExcludeTags ?? string.Empty;
+            var key = keywords + "\u0001" + tags;
 
-            return GetShared(keywords, () => new MediaInfoBlacklist(keywords));
+            return GetShared(key, () => new MediaInfoBlacklist(keywords, tags));
         }
     }
 }

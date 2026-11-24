@@ -38,11 +38,22 @@ namespace StrmAssistant.Common
         private readonly ConcurrentDictionary<long, bool> _ownMatches =
             new ConcurrentDictionary<long, bool>();
         private readonly string _excludeTag;
+        private readonly HashSet<string> _configuredTags;
 
         protected ItemBlacklist(string excludeTag, string keywords)
+            : this(excludeTag, keywords, null)
+        {
+        }
+
+        /// <summary>
+        /// <paramref name="tags"/> is the user-configured tag blacklist (same separators as the
+        /// keywords). A tag match excludes the item just like the fixed <paramref name="excludeTag"/>.
+        /// </summary>
+        protected ItemBlacklist(string excludeTag, string keywords, string tags)
         {
             _excludeTag = excludeTag;
             _parsedKeywords = ParsedKeywordCache.GetOrAdd(keywords ?? string.Empty, ParseKeywords);
+            _configuredTags = TagListMatcher.Parse(tags);
         }
 
         public bool HasKeywords => _parsedKeywords.Keywords.Count > 0;
@@ -100,6 +111,14 @@ namespace StrmAssistant.Common
             var tags = item.Tags;
 
             if (tags is null || tags.Length == 0) return false;
+
+            if (_configuredTags.Count > 0)
+            {
+                foreach (var tag in tags)
+                {
+                    if (!string.IsNullOrWhiteSpace(tag) && _configuredTags.Contains(tag.Trim())) return true;
+                }
+            }
 
             return tags.Any(tag => string.Equals(tag?.Trim(), _excludeTag, StringComparison.OrdinalIgnoreCase));
         }
