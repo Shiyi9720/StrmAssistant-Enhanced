@@ -87,5 +87,14 @@ namespace StrmAssistant.Options
         [DisplayNameL("GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names", typeof(Resources))]
         [DescriptionL("GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_", typeof(Resources))]
         public bool MultiVersionFriendlyNames { get; set; } = true;
+
+        [DisplayName("强制显示文件全名")]
+        [Description("多版本列表直接显示完整文件名（含扩展名），不再美化。默认关闭。")]
+        [VisibleCondition(nameof(MultiVersionFriendlyNames), SimpleCondition.IsTrue)]
+        public bool MultiVersionForceFileName { get; set; } = false;
+
+        [DisplayName("多版本按路径排序")]
+        [Description("多版本列表按文件路径排序，而不是按画质。默认关闭。")]
+        public bool MultiVersionSortByPath { get; set; } = false;
     }
 }

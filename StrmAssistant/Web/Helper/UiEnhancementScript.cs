@@ -15,8 +15,11 @@ namespace StrmAssistant.Web.Helper
             var options = Plugin.Instance?.GetPluginOptions();
 
             var multiVersionSort = options?.GeneralOptions.MultiVersionSort ?? true;
+            var multiVersionSortByPath = options?.GeneralOptions.MultiVersionSortByPath ?? false;
             var multiVersionFriendlyNames =
                 options?.GeneralOptions.MultiVersionFriendlyNames ?? true;
+            var multiVersionForceFileName =
+                options?.GeneralOptions.MultiVersionForceFileName ?? false;
             var reverseSeasonEpisodeOrder =
                 options?.ExperienceEnhanceOptions.ReverseSeasonEpisodeOrder ?? false;
             var episodeDisplayStyle = options?.ExperienceEnhanceOptions.EpisodeDisplayStyle ??
@@ -42,8 +45,8 @@ namespace StrmAssistant.Web.Helper
                 options?.ExperienceEnhanceOptions.SuppressPluginUpdatePlugins ?? string.Empty;
 
             return "\n" + GetStyleScript(hideSearchSuggestions) + "\n" + GetDoubanRatingScript() + "\n" +
-                   GetScript(multiVersionSort) + "\n" +
-                   GetVersionNamesScript(multiVersionFriendlyNames) + "\n" + GetPlaybackScript() +
+                   GetScript(multiVersionSort, multiVersionSortByPath) + "\n" +
+                   GetVersionNamesScript(multiVersionFriendlyNames, multiVersionForceFileName) + "\n" + GetPlaybackScript() +
                    "\n" + GetVersionFavoriteScript(versionFavorites) +
                    "\n" + GetLibraryBadgeScript() + "\n" + GetEpisodeStatsScript(episodeStatsFormat) + "\n" +
                    GetCollectionMembershipScript() + "\n" +
@@ -321,6 +324,12 @@ namespace StrmAssistant.Web.Helper
         '.strmAssistantVersionToken-resolution{color:#6fc3ff}' +
         '.strmAssistantVersionToken-source{color:#8fd694}' +
         '.strmAssistantVersionToken-codec{color:#ffd166}' +
+        '.strmAssistantVersionToken-dolby-vision{color:#c792ea}' +
+        '.strmAssistantVersionToken-hdr10plus{color:#ff9f43}' +
+        '.strmAssistantVersionToken-hdr10{color:#ffd166}' +
+        '.strmAssistantVersionToken-hdr{color:#ffe08a}' +
+        '.strmAssistantVersionToken-atmos{color:#4dd0e1}' +
+        '.strmAssistantVersionToken-dtsx{color:#4dd0e1}' +
         '.strmAssistantVersionToken-audio{color:#d8a7ff}' +
         '.strmAssistantDoubanSection{padding-top:.5em}' +
         '.strmAssistantDoubanMore{margin-left:auto;background:none;border:0;color:inherit;cursor:pointer;' +
@@ -1692,13 +1701,14 @@ namespace StrmAssistant.Web.Helper
 ";
         }
 
-        private static string GetScript(bool multiVersionSort)
+        private static string GetScript(bool multiVersionSort, bool multiVersionSortByPath)
         {
             return @"
 (function () {
     'use strict';
 
-    var enableMultiVersionSort = " + (multiVersionSort ? "true" : "false") + @";
+    var enableMultiVersionSort = " + ((multiVersionSort || multiVersionSortByPath) ? "true" : "false") + @";
+    var sortByPath = " + (multiVersionSortByPath ? "true" : "false") + @";
 
     if (enableMultiVersionSort) {
         var sortPatched = false;
@@ -1728,6 +1738,12 @@ namespace StrmAssistant.Web.Helper
         }
 
         function compareSources(a, b) {
+            if (sortByPath) {
+                var pa = String((a && a.Path) || '');
+                var pb = String((b && b.Path) || '');
+                var byPath = pa.localeCompare(pb, undefined, { numeric: true, sensitivity: 'base' });
+                if (byPath !== 0) return byPath;
+            }
             var x = qualityScore(a);
             var y = qualityScore(b);
             return (y.height - x.height) || (y.width - x.width) || (y.codec - x.codec) || (y.size - x.size);
@@ -1799,13 +1815,14 @@ namespace StrmAssistant.Web.Helper
         /// decorated before Emby renders the select options, and a small highlighted list mirrors
         /// the same sources without touching the item title or any other lists.
         /// </summary>
-        private static string GetVersionNamesScript(bool enabled)
+        private static string GetVersionNamesScript(bool enabled, bool forceFullFileName)
         {
             return @"
 (function () {
     'use strict';
 
     var enabled = " + (enabled ? "true" : "false") + @";
+    var forceFullFileName = " + (forceFullFileName ? "true" : "false") + @";
     if (!enabled) return;
     if (window.__strmAssistantVersionNamesPatched) return;
 
@@ -1814,7 +1831,9 @@ namespace StrmAssistant.Web.Helper
     var scheduled = false;
 
     var extensionPattern = /\.(?:mkv|mp4|avi|ts|m2ts|iso|strm|mov|wmv|flv|webm|rmvb|m4v|mpg|mpeg)$/i;
-    var highlightPattern = /\b(?:2160p|1080p|720p|576p|480p|8k|4k|uhd|blu-?ray|bdrip|brrip|remux|web-?dl|webdl|webrip|hdtv|dvdrip|hdrip|amzn|nf|dsnp|atvp|hmax|h\s*26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg-?2|10-?bit|8-?bit|hdr10\+?|hdr|dolby\s+vision|dv|dts(?:-?hd)?(?:\s+ma)?|truehd|atmos|ddp?|eac3|ac3|aac|flac|opus)\b/gi;
+    // Ends in a lookahead, not \b: HDR10+ ends with '+', so a trailing \b would backtrack to
+    // HDR10 and lose the '+'. DTS:X / DTS-X are matched before the generic DTS branch.
+    var highlightPattern = /\b(?:2160p|1080p|720p|576p|480p|8k|4k|uhd|blu-?ray|bdrip|brrip|remux|web-?dl|webdl|webrip|hdtv|dvdrip|hdrip|amzn|nf|dsnp|atvp|hmax|h\s*26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg-?2|10-?bit|8-?bit|hdr10\+?|hdr|dolby\s+vision|dv|dts[:\s-]?x|dts(?:-?hd)?(?:\s+ma)?|truehd|atmos|ddp?|eac3|ac3|aac|flac|opus)(?![a-z0-9])/gi;
 
     function decode(value) {
         try { return decodeURIComponent(value); } catch (e) { return value; }
@@ -1850,12 +1869,21 @@ namespace StrmAssistant.Web.Helper
     }
 
     function classifyToken(token) {
-        var value = token.toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ')
-            .replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+        var value = token.toLowerCase().replace(/[-:]/g, ' ').replace(/\s+/g, ' ')
+            .replace(/^[^a-z0-9+]+|[^a-z0-9+]+$/g, '');
         if (/^(?:2160p|1080p|720p|576p|480p|8k|4k|uhd)$/.test(value)) return 'resolution';
         if (/^(?:blu ray|bdrip|brrip|remux|web dl|webdl|webrip|hdtv|dvdrip|hdrip|amzn|nf|dsnp|atvp|hmax)$/.test(value)) return 'source';
-        if (/^(?:h 26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg 2|10 bit|10bit|8 bit|8bit|hdr10\+?|hdr|dolby vision|dv)$/.test(value)) return 'codec';
-        if (/^(?:dts|dts hd|dts hd ma|truehd|atmos|dd|ddp|eac3|ac3|aac|flac|opus)$/.test(value)) return 'audio';
+        // Dynamic-range tokens get their own kinds so DV / HDR10+ / HDR10 / plain HDR are
+        // visually distinct instead of all collapsing into 'codec'.
+        if (/^(?:dolby vision|dv)$/.test(value)) return 'dolby-vision';
+        if (/^hdr10\+$/.test(value)) return 'hdr10plus';
+        if (/^hdr10$/.test(value)) return 'hdr10';
+        if (/^hdr$/.test(value)) return 'hdr';
+        if (/^(?:h 26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg 2|10 bit|10bit|8 bit|8bit)$/.test(value)) return 'codec';
+        // Object-based audio gets its own kinds; other audio keeps the generic 'audio'.
+        if (/^atmos$/.test(value)) return 'atmos';
+        if (/^dts x$/.test(value)) return 'dtsx';
+        if (/^(?:dts|dts hd|dts hd ma|truehd|dd|ddp|eac3|ac3|aac|flac|opus)$/.test(value)) return 'audio';
         return '';
     }
 
@@ -1891,7 +1919,9 @@ namespace StrmAssistant.Web.Helper
 
         var prettyName = source.__strmAssistantFriendlyName;
         if (!prettyName) {
-            prettyName = getPrettyName(source);
+            // Force-full-file-name wins over the beautified name: keep the extension and the
+            // original separators so the version list shows exactly the file on disk.
+            prettyName = forceFullFileName ? getFileName(source) : getPrettyName(source);
             source.__strmAssistantFriendlyName = prettyName;
         }
         if (prettyName) source.Name = prettyName;
