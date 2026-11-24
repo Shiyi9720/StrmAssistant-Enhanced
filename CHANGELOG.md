@@ -62,8 +62,13 @@
 **说明**
 
 - 两个新开关均默认关闭；全默认状态下快捷命令集与多版本名称/配色与 1.0.16 一致，其余新功能也全部保持默认关闭（UI 行为包中总集数/角标/合集归属三项按既有决策默认开启）
-- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 736 条用例全过（1.0.16 为 518 条，backport 批次累计 +194，本次两个开关 +24）
-- 已在隔离 Emby 实例（18096）验证：1.0.16 与本版全默认下发的 `shortcuts.js` 行为一致（仅注入框架差异）、两个开关打开后新命令与 DV/Atmos 标识生效、插件加载正常、设置页可开
+- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 749 条用例全过（1.0.16 为 518 条，backport 批次累计 +194，两个开关 +24，回归修复 +13）
+
+**回归修复（完整补验发现）**
+
+- 本地 TMDB 缓存写回格式错误：被动缓存把嵌套对象/数组/数字/布尔写成 `{id: 18, name: Drama}` 这种非 JSON 文本，缓存命中时把该文本原样返回给 Emby，`MovieDbProvider` 在 `AddGenre(null)` 抛异常并丢弃整条响应（表现为 patches / 分级回退在缓存命中后完全失效）。改为用 `System.Text.Json` 按字节级复制原文档再追加 `_meta`，新增 13 条断言
+- `deep.delete` 通知是死代码：`DeepDeleteSendNotification` 从未被调用、通知类型也未注册。现在深度删除成功后向全部用户发送，并注册到通知类型列表
+- 合集条目增删通知（`collection.items.added` / `collection.items.removed`）永不触发：Emby 的合集成员变更走 `ICollectionManager.ItemsAddedToCollection` / `ItemsRemovedFromCollection`，条目的父级仍是库而不是 `BoxSet`，原来的 `e.Parent is BoxSet` 分支不可能命中。改为订阅 `ICollectionManager` 事件，按变更条目逐条发送
 
 ## 1.0.16
 

@@ -171,7 +171,7 @@ namespace StrmAssistant.Mod
         }
 
         [HarmonyPostfix]
-        private static void DeleteItemPostfix(List<string> __state)
+        private static void DeleteItemPostfix(BaseItem item, List<string> __state)
         {
             if (__state is null || __state.Count == 0) return;
 
@@ -192,6 +192,17 @@ namespace StrmAssistant.Mod
                 {
                     LogFailure("delete " + target, e);
                 }
+            }
+
+            try
+            {
+                Plugin.NotificationApi?.DeepDeleteSendNotification(item,
+                    new HashSet<string>(__state, StringComparer.OrdinalIgnoreCase));
+            }
+            catch (Exception e)
+            {
+                // A notification failure must never affect the delete that already happened.
+                LogFailure("notify", e);
             }
         }
 

@@ -7,6 +7,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Controller;
+using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Drawing;
 using MediaBrowser.Controller.Entities;
@@ -84,6 +85,7 @@ namespace StrmAssistant
         public readonly IApplicationPaths ApplicationPaths;
 
         private readonly ILibraryManager _libraryManager;
+        private readonly ICollectionManager _collectionManager;
         private readonly IUserManager _userManager;
         private readonly IUserDataManager _userDataManager;
         private readonly IProviderManager _providerManager;
@@ -233,7 +235,7 @@ namespace StrmAssistant
             IHttpClient httpClient, IServerApplicationHost serverApplicationHost,
             IServerConfigurationManager configurationManager, ITaskManager taskManager,
             IImageExtractionManager imageExtractionManager, IServerApplicationPaths serverApplicationPaths,
-            IImageProcessor imageProcessor) : base(applicationHost)
+            IImageProcessor imageProcessor, ICollectionManager collectionManager) : base(applicationHost)
         {
             Instance = this;
             // 尽早记录插件目录：后续任何服务（如需要 0Harmony 的 UnifiedRatingService）都可能触发依赖解析
@@ -244,6 +246,7 @@ namespace StrmAssistant
             ApplicationPaths = applicationPaths;
 
             _libraryManager = libraryManager;
+            _collectionManager = collectionManager;
             _userManager = userManager;
             _userDataManager = userDataManager;
             _providerManager = providerManager;
@@ -358,6 +361,10 @@ namespace StrmAssistant
             _libraryManager.ItemAdded += OnItemAdded;
             _libraryManager.ItemRemoved += OnItemRemoved;
             _libraryManager.ItemUpdated += OnItemUpdated;
+            // Emby's collection membership API raises these instead of ItemAdded/ItemRemoved
+            // with a BoxSet parent, so the two item-level collection events were never sent.
+            _collectionManager.ItemsAddedToCollection += OnCollectionItemsAdded;
+            _collectionManager.ItemsRemovedFromCollection += OnCollectionItemsRemoved;
             _providerManager.RefreshCompleted += OnRefreshCompleted;
             _providerManager.RefreshStarted += OnRefreshStarted;
             _userManager.UserCreated += OnUserCreated;
@@ -766,6 +773,45 @@ namespace StrmAssistant
             {
                 var directoryService = new DirectoryService(Logger, _fileSystem);
                 MediaInfoApi.DeleteMediaInfoJson(e.Item, directoryService, "Item Removed Event");
+            }
+        }
+
+        private void OnCollectionItemsAdded(object sender, CollectionModifiedEventArgs e)
+        {
+            NotifyCollectionMembershipChanged(e, true);
+        }
+
+        private void OnCollectionItemsRemoved(object sender, CollectionModifiedEventArgs e)
+        {
+            NotifyCollectionMembershipChanged(e, false);
+        }
+
+        /// <summary>
+        /// Emby reports collection membership changes through ICollectionManager's events; the
+        /// items keep their library parent, so the BoxSet parent check in OnItemAdded/Removed
+        /// never matches. Each changed item is reported individually, which is what the
+        /// collection.items.added / collection.items.removed event ids are for.
+        /// </summary>
+        private void NotifyCollectionMembershipChanged(CollectionModifiedEventArgs e, bool added)
+        {
+            try
+            {
+                if (!GetOptions().NotificationOptions.EnableCollectionNotification) return;
+                if (e?.Collection is null || e.ItemsChanged is null) return;
+
+                foreach (var itemId in e.ItemsChanged)
+                {
+                    var item = _libraryManager.GetItemById(itemId);
+
+                    if (item is null) continue;
+
+                    NotificationApi.CollectionItemUpdateSendNotification(e.Collection, item, added);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Event handlers must never throw, but failures need to be visible.
+                Logger.ErrorException("Plugin collection event handler failed", ex);
             }
         }
 

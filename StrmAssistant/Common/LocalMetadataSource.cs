@@ -514,28 +514,24 @@ namespace StrmAssistant.Common
         private static string AttachMetadata(string body, LocalMetadataTarget target,
             LocalMetadataCaptureContext context)
         {
-            if (_jsonSerializer is null || string.IsNullOrWhiteSpace(body)) return body;
+            if (string.IsNullOrWhiteSpace(body)) return body;
 
-            try
+            var meta = context ?? new LocalMetadataCaptureContext
             {
-                var document = _jsonSerializer.DeserializeFromString<Dictionary<string, object>>(body);
+                source = "online",
+                request = target.Kind + ":" + target.TmdbId,
+                url = target.RequestUrl
+            };
 
-                if (document is null) return body;
+            var annotated = LocalMetadataCapture.Annotate(body, meta);
 
-                document["_meta"] = context ?? new LocalMetadataCaptureContext
-                {
-                    source = "online",
-                    request = target.Kind + ":" + target.TmdbId,
-                    url = target.RequestUrl
-                };
-
-                return _jsonSerializer.SerializeToString(document);
-            }
-            catch (Exception e)
+            if (ReferenceEquals(annotated, body))
             {
-                LogDebug("Local metadata source - Metadata annotation failed", e);
-                return body;
+                LogDebug("Local metadata source - Metadata annotation skipped (body is not a JSON object)",
+                    null);
             }
+
+            return annotated;
         }
 
         private static bool WriteBytesFile(string path, byte[] bytes)

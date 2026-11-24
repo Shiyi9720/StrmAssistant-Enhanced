@@ -42,6 +42,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "LocalMetadataPatcher", LocalMetadataPatcherTests.Run);
             RunGroup(runner, "CertificationFallback", CertificationFallbackTests.Run);
             RunGroup(runner, "LocalMetadataItemRules", LocalMetadataItemRulesTests.Run);
+            RunGroup(runner, "LocalMetadataCapture", LocalMetadataCaptureTests.Run);
             RunGroup(runner, "Discover", DiscoverTests.Run);
             RunGroup(runner, "ExternalAudioPlan", ExternalAudioPlanTests.Run);
             RunGroup(runner, "UiBehaviorFlags", UiBehaviorFlagsTests.Run);

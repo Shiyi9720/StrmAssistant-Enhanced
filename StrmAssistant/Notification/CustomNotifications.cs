@@ -63,6 +63,13 @@ namespace StrmAssistant.Notification
                     Name = Resources.Notification_ImageUpdate_EventName,
                     CategoryId = "strm.assistant",
                     CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
+                },
+                new NotificationTypeInfo
+                {
+                    Id = "deep.delete",
+                    Name = Resources.Notification_DeepDelete_EventName,
+                    CategoryId = "strm.assistant",
+                    CategoryName = Resources.PluginOptions_EditorTitle_Strm_Assistant
                 }
             };
         }

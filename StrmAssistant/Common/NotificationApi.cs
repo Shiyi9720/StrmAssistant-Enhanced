@@ -231,26 +231,33 @@ namespace StrmAssistant.Common
             }
         }
 
-        public void DeepDeleteSendNotification(BaseItem item, User user, HashSet<string> mountPaths)
+        public void DeepDeleteSendNotification(BaseItem item, HashSet<string> mountPaths)
         {
             Resources.Culture = Thread.CurrentThread.CurrentUICulture;
 
             var mountPathList = string.Join(Environment.NewLine, mountPaths);
+            var users = LibraryApi.AllUsers.Keys.ToList();
 
-            var request = new NotificationRequest
+            // A deep delete removes a shared source file, so it is not a per-user event: the
+            // original plugin notified every user.
+            foreach (var user in users)
             {
-                Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
-                        Resources.Notification_DeepDelete_EventName,
-                EventId = "deep.delete",
-                User = user,
-                Item = item,
-                Description =
-                    string.Format(
-                        Resources.Notification_DeepDelete_EventDescription.Replace("\\n", Environment.NewLine),
-                        item.Name, item.Path, mountPathList)
-            };
+                var request = new NotificationRequest
+                {
+                    Title = Resources.PluginOptions_EditorTitle_Strm_Assistant + " - " +
+                            Resources.Notification_DeepDelete_EventName,
+                    EventId = "deep.delete",
+                    User = user,
+                    Item = item,
+                    Description =
+                        string.Format(
+                            Resources.Notification_DeepDelete_EventDescription.Replace("\\n",
+                                Environment.NewLine),
+                            item.Name, item.Path, mountPathList)
+                };
 
-            _notificationManager.SendNotification(request);
+                _notificationManager.SendNotification(request);
+            }
         }
 
         public void CollectionCreatedSendNotification(BoxSet collection)

@@ -52,6 +52,7 @@
     <Compile Include="..\..\StrmAssistant\Common\LocalMetadataPatcher.cs" Link="src\LocalMetadataPatcher.cs" />
     <Compile Include="..\..\StrmAssistant\Common\CertificationFallback.cs" Link="src\CertificationFallback.cs" />
     <Compile Include="..\..\StrmAssistant\Common\LocalMetadataItemRules.cs" Link="src\LocalMetadataItemRules.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\LocalMetadataCapture.cs" Link="src\LocalMetadataCapture.cs" />
     <Compile Include="..\..\StrmAssistant\Common\PluginUpdateInstaller.cs" Link="src\PluginUpdateInstaller.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DiscMainVideoResolver.cs" Link="src\DiscMainVideoResolver.cs" />
     <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />
