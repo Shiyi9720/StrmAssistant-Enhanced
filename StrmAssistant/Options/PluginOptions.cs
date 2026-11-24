@@ -51,6 +51,48 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
         public bool EnableLocalEpisodeGroup { get; set; } = false;
 
+        // Advanced local-source capabilities. Each one is an independent switch and defaults to
+        // off; all of them require EnableLocalMetadataSource (the master switch above).
+        [DisplayName("本地元数据：图片覆盖")]
+        [Description("用 override/<tmdbid>/images 下的 poster/fanart/clearlogo/landscape/banner/discart/clearart 覆盖条目图片。默认关闭。")]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool LocalImageOverrideEnabled { get; set; } = false;
+
+        [DisplayName("本地元数据：标签合并")]
+        [Description("把 tags.json 里的标签合并进电影/剧集（保留 TMDB 标签，去重）。默认关闭。")]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool LocalTagsEnabled { get; set; } = false;
+
+        [DisplayName("本地元数据：字段补丁")]
+        [Description("把 patches/*.json 按文件名顺序做字段级合并（对象递归、数组/标量替换、null 删除字段），只作用于返回 Emby 的响应，不回写缓存。默认关闭。")]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool LocalPatchesEnabled { get; set; } = false;
+
+        [DisplayName("本地元数据：外部 ID")]
+        [Description("把 external_ids.json 的 tmdb/imdb/tvdb/tvrage/douban/bgm 写入条目的外部 ID。默认关闭。")]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool LocalExternalIdsEnabled { get; set; } = false;
+
+        [DisplayName("本地元数据：剧集播放顺序")]
+        [Description("把 episodeorder.json（兼容旧 specials.json）写入剧集的 SortIndexNumber 播放顺序。默认关闭。")]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool LocalEpisodeOrderEnabled { get; set; } = false;
+
+        [DisplayName("本地元数据：内容分级回退")]
+        [Description("当 TMDB 缺少首选国家与 US 分级时，按配置的国家链取一个分级并换算为目标分级体系；不猜未知分级、不覆盖已有官方分级。默认关闭。")]
+        [VisibleCondition(nameof(EnableLocalMetadataSource), SimpleCondition.IsTrue)]
+        public bool CertificationFallbackEnabled { get; set; } = false;
+
+        [DisplayName("本地元数据：内容分级国家链")]
+        [Description("按顺序尝试的国家代码，逗号分隔。默认 US,JP,GB,DE,FR,CN。")]
+        [VisibleCondition(nameof(CertificationFallbackEnabled), SimpleCondition.IsTrue)]
+        public string CertificationFallbackCountries { get; set; } = "US,JP,GB,DE,FR,CN";
+
+        [DisplayName("本地元数据：内容分级自定义映射")]
+        [Description("额外映射，格式 来源=目标，逗号或分号分隔，例如 FSK 16=R。默认留空。")]
+        [VisibleCondition(nameof(CertificationFallbackEnabled), SimpleCondition.IsTrue)]
+        public string CertificationFallbackMappings { get; set; } = string.Empty;
+
         [DisplayNameL("PluginOptions_UnifiedRatingMode_Unified_Content_Rating", typeof(Resources))]
         [DescriptionL("PluginOptions_UnifiedRatingMode_Map_source_ratings_to_one_target_rating__Record_Only_logs_matches__Enforce_Unified_Rating_rewrites_OfficialRating_before_it_is_saved__Default_is_Off_", typeof(Resources))]
         public UnifiedRatingMode UnifiedRatingMode { get; set; } = UnifiedRatingMode.Off;

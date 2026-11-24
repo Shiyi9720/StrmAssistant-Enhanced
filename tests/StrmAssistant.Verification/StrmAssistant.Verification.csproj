@@ -43,6 +43,11 @@
     <Compile Include="..\..\StrmAssistant\Common\DashboardStats.cs" Link="src\DashboardStats.cs" />
     <Compile Include="..\..\StrmAssistant\Common\PersonRefreshRules.cs" Link="src\PersonRefreshRules.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DoubanCastRules.cs" Link="src\DoubanCastRules.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\MiniJson.cs" Link="src\MiniJson.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\LocalMetadataFileKind.cs" Link="src\LocalMetadataFileKind.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\LocalMetadataPatcher.cs" Link="src\LocalMetadataPatcher.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\CertificationFallback.cs" Link="src\CertificationFallback.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\LocalMetadataItemRules.cs" Link="src\LocalMetadataItemRules.cs" />
     <Compile Include="..\..\StrmAssistant\Common\PluginUpdateInstaller.cs" Link="src\PluginUpdateInstaller.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DiscMainVideoResolver.cs" Link="src\DiscMainVideoResolver.cs" />
     <Compile Include="..\..\StrmAssistant\Properties\SatelliteResourceManager.cs" Link="src\SatelliteResourceManager.cs" />

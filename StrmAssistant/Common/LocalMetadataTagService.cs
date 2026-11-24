@@ -47,7 +47,11 @@ namespace StrmAssistant.Common
             {
                 var options = Plugin.Instance?.GetPluginOptions();
 
-                if (options is null || !options.EnableLocalMetadataSource) return;
+                if (options is null || !options.EnableLocalMetadataSource ||
+                    !options.LocalTagsEnabled)
+                {
+                    return;
+                }
 
                 var root = NormalizeRoot(options.LocalMetadataRoot);
 

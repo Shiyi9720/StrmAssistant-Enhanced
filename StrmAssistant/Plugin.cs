@@ -319,6 +319,8 @@ namespace StrmAssistant
             RemoteEpisodeGroup.Initialize(libraryManager, jsonSerializer, _httpClient, Logger);
             LocalMetadataSource.Initialize(Logger, _jsonSerializer, ProxyApi.Wrap(_httpClient));
             LocalMetadataTagService.Initialize(libraryManager, jsonSerializer);
+            LocalExternalIdService.Initialize(libraryManager);
+            LocalEpisodeOrderService.Initialize(libraryManager);
             OverrideImageService.Initialize(libraryManager, providerManager, jsonSerializer);
             UnifiedRatingService.Initialize(jsonSerializer);
             UnifiedRatingService.ApplyOptions(GetOptions());
@@ -485,6 +487,8 @@ namespace StrmAssistant
             SearchIndexService.NotifyItemChanged(e.Item);
             _ = OverrideImageService.ApplyAsync(e.Item);
             LocalMetadataTagService.Apply(e.Item);
+            LocalExternalIdService.Apply(e.Item);
+            LocalEpisodeOrderService.Apply(e.Item);
             CustomSpecialsOrderService.Apply(e.Item);
 
             try
@@ -737,6 +741,8 @@ namespace StrmAssistant
             SearchIndexService.NotifyItemChanged(e.Item);
             _ = OverrideImageService.ApplyAsync(e.Item);
             LocalMetadataTagService.Apply(e.Item);
+            LocalExternalIdService.Apply(e.Item);
+            LocalEpisodeOrderService.Apply(e.Item);
             CustomSpecialsOrderService.Apply(e.Item);
 
             try

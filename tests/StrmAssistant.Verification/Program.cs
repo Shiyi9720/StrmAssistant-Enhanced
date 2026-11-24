@@ -39,6 +39,9 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "DashboardStats", DashboardStatsTests.Run);
             RunGroup(runner, "PersonRefreshRules", PersonRefreshRulesTests.Run);
             RunGroup(runner, "DoubanCastRules", DoubanCastRulesTests.Run);
+            RunGroup(runner, "LocalMetadataPatcher", LocalMetadataPatcherTests.Run);
+            RunGroup(runner, "CertificationFallback", CertificationFallbackTests.Run);
+            RunGroup(runner, "LocalMetadataItemRules", LocalMetadataItemRulesTests.Run);
 
             return runner.Finish();
         }

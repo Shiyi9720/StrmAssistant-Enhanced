@@ -937,7 +937,11 @@ namespace StrmAssistant.Common
 
                 if (localResponse != null)
                 {
-                    return await PostProcessAsync(prepared, localResponse).ConfigureAwait(false);
+                    var processedLocal = await PostProcessAsync(prepared, localResponse)
+                        .ConfigureAwait(false);
+
+                    return await ApplyLocalEnhancementsAsync(prepared, processedLocal)
+                        .ConfigureAwait(false);
                 }
 
                 var cacheKey = isGet && !string.IsNullOrEmpty(prepared?.CacheableUrl)
@@ -1021,7 +1025,74 @@ namespace StrmAssistant.Common
                         prepared?.CreateCaptureContext()).ConfigureAwait(false);
                 }
 
-                return processed;
+                // Enhancement is a per-request projection: it runs after the response cache and
+                // the passive cache have stored the unmodified body.
+                return await ApplyLocalEnhancementsAsync(prepared, processed).ConfigureAwait(false);
+            }
+
+            /// <summary>
+            /// Applies certification fallback and field patches to a TMDB response on its way to
+            /// Emby. Never applied to images, non-JSON or failed responses.
+            /// </summary>
+            private static async Task<HttpResponseInfo> ApplyLocalEnhancementsAsync(
+                PreparedRequest prepared, HttpResponseInfo response)
+            {
+                var target = prepared?.LocalMetadataTarget;
+
+                if (target is null || response?.Content is null) return response;
+                if (!IsSuccessful(response) || !IsJsonResponse(response)) return response;
+
+                var options = Plugin.Instance?.GetPluginOptions();
+
+                if (options is null || !options.EnableLocalMetadataSource ||
+                    (!options.LocalPatchesEnabled && !options.CertificationFallbackEnabled))
+                {
+                    return response;
+                }
+
+                var root = LocalMetadataFiles.NormalizeRoot(options.LocalMetadataRoot);
+
+                if (root is null) return response;
+
+                try
+                {
+                    var body = await ReadBodyAsync(response).ConfigureAwait(false);
+
+                    if (string.IsNullOrEmpty(body)) return response;
+
+                    var bytes = Encoding.UTF8.GetBytes(body);
+                    var enhanced = LocalMetadataEnhancements.Apply(bytes,
+                        MapLocalMetadataKind(target.Kind), target.TmdbId, root);
+
+                    if (enhanced is null || ReferenceEquals(enhanced, bytes)) return response;
+
+                    response.Content = new MemoryStream(enhanced);
+                    response.ContentLength = enhanced.Length;
+                }
+                catch (Exception e)
+                {
+                    Plugin.Instance?.Logger?.Debug("MovieDbApi local enhancement - " + e.Message);
+                }
+
+                return response;
+            }
+
+            private static LocalMetadataFileKind MapLocalMetadataKind(
+                LocalMetadataSource.LocalMetadataTargetKind kind)
+            {
+                switch (kind)
+                {
+                    case LocalMetadataSource.LocalMetadataTargetKind.Movie:
+                        return LocalMetadataFileKind.Movie;
+                    case LocalMetadataSource.LocalMetadataTargetKind.Series:
+                        return LocalMetadataFileKind.Series;
+                    case LocalMetadataSource.LocalMetadataTargetKind.Season:
+                        return LocalMetadataFileKind.Season;
+                    case LocalMetadataSource.LocalMetadataTargetKind.Episode:
+                        return LocalMetadataFileKind.Episode;
+                    default:
+                        return LocalMetadataFileKind.Collection;
+                }
             }
 
             private static bool IsSuccessful(HttpResponseInfo response)

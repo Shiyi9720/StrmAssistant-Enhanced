@@ -66,7 +66,7 @@ namespace StrmAssistant.Common
                 var options = Plugin.Instance?.GetPluginOptions();
 
                 if (options is null || !options.EnableLocalMetadataSource ||
-                    !options.LocalMetadataAutoRefreshImages)
+                    !options.LocalImageOverrideEnabled)
                 {
                     return;
                 }
