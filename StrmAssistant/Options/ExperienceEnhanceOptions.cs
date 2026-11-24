@@ -2,6 +2,7 @@ using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Common;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
+using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -94,6 +95,11 @@ namespace StrmAssistant.Options
         [DisplayNameL("ExperienceEnhanceOptions_MultiSelectActions_Multi_Select_Actions", typeof(Resources))]
         [DescriptionL("ExperienceEnhanceOptions_MultiSelectActions_Enable_multi_select_actions_on_season_pages__delete__download_and_convert__and_allow_selecting_multiple_libraries_to_scan_library_files__Default_is_OFF_", typeof(Resources))]
         public bool MultiSelectActions { get; set; } = false;
+
+        [DisplayName("快捷菜单扩展命令与多选")]
+        [Description("在右键菜单增加“清除章节图（含 BIF）”“解锁全部字段”“删除重复演员”，并支持多选批量执行。默认关闭，关闭时命令集与 1.0.16 完全一致。")]
+        public bool ShortcutMenuExtendedCommands { get; set; } =
+            UiBehaviorFlags.ShortcutMenuExtendedCommandsDefault;
 
         [DisplayNameL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_Missing_Metadata", typeof(Resources))]
         [DescriptionL("UIFunctionOptions_BeautifyMissingMetadata_Beautify_missing_metadata_for_episode_display__Default_is_OFF_", typeof(Resources))]

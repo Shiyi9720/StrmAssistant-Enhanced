@@ -44,6 +44,7 @@
     <Compile Include="..\..\StrmAssistant\Common\ThumbnailRefreshSignature.cs" Link="src\ThumbnailRefreshSignature.cs" />
     <Compile Include="..\..\StrmAssistant\Common\ScheduledTaskFailurePolicy.cs" Link="src\ScheduledTaskFailurePolicy.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DashboardStats.cs" Link="src\DashboardStats.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\UiBehaviorFlags.cs" Link="src\UiBehaviorFlags.cs" />
     <Compile Include="..\..\StrmAssistant\Common\PersonRefreshRules.cs" Link="src\PersonRefreshRules.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DoubanCastRules.cs" Link="src\DoubanCastRules.cs" />
     <Compile Include="..\..\StrmAssistant\Common\MiniJson.cs" Link="src\MiniJson.cs" />

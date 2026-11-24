@@ -44,6 +44,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "LocalMetadataItemRules", LocalMetadataItemRulesTests.Run);
             RunGroup(runner, "Discover", DiscoverTests.Run);
             RunGroup(runner, "ExternalAudioPlan", ExternalAudioPlanTests.Run);
+            RunGroup(runner, "UiBehaviorFlags", UiBehaviorFlagsTests.Run);
 
             return runner.Finish();
         }

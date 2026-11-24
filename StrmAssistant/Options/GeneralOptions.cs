@@ -2,6 +2,7 @@ using Emby.Web.GenericEdit;
 using Emby.Web.GenericEdit.Common;
 using MediaBrowser.Model.Attributes;
 using MediaBrowser.Model.LocalizationAttributes;
+using StrmAssistant.Common;
 using StrmAssistant.Properties;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -87,6 +88,12 @@ namespace StrmAssistant.Options
         [DisplayNameL("GeneralOptions_MultiVersionFriendlyNames_Multi_Version_Friendly_File_Names", typeof(Resources))]
         [DescriptionL("GeneralOptions_MultiVersionFriendlyNames_Show_beautified_file_names_with_highlighted_resolution__source_and_codec_in_the_multi_version_list__Default_is_ON_", typeof(Resources))]
         public bool MultiVersionFriendlyNames { get; set; } = true;
+
+        [DisplayName("多版本显示 DV/HDR/Atmos 标识")]
+        [Description("多版本列表按 Dolby Vision、HDR10+、HDR10、Atmos、DTS:X 分别着色标识。默认关闭，关闭时显示效果与 1.0.16 完全一致。")]
+        [VisibleCondition(nameof(MultiVersionFriendlyNames), SimpleCondition.IsTrue)]
+        public bool VersionNamingExtendedTokens { get; set; } =
+            UiBehaviorFlags.VersionNamingExtendedTokensDefault;
 
         [DisplayName("强制显示文件全名")]
         [Description("多版本列表直接显示完整文件名（含扩展名），不再美化。默认关闭。")]

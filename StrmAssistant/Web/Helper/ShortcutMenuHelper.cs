@@ -1,4 +1,5 @@
 using MediaBrowser.Controller.Configuration;
+using StrmAssistant.Common;
 using System;
 using System.IO;
 using System.Linq;
@@ -24,7 +25,21 @@ namespace StrmAssistant.Web.Helper
         {
             return (_shortcutsJs ?? string.Empty) + (_injectShortcutCommand ?? string.Empty) +
                    GetHiddenBoxSetsStateScript() + GetIntroRedetectStateScript() +
-                   GetSplitMultiVersionStateScript() + UiEnhancementScript.Get();
+                   GetSplitMultiVersionStateScript() + GetShortcutMenuStateScript() +
+                   UiEnhancementScript.Get();
+        }
+
+        /// <summary>
+        /// Publishes the shortcut-menu extension flag. Built per request so the switch takes
+        /// effect without a server restart; the injected command source reads it at menu time.
+        /// </summary>
+        private static string GetShortcutMenuStateScript()
+        {
+            var extended = Plugin.Instance?.GetPluginOptions()?.ExperienceEnhanceOptions
+                ?.ShortcutMenuExtendedCommands ??
+                UiBehaviorFlags.ShortcutMenuExtendedCommandsDefault;
+
+            return UiBehaviorFlags.ShortcutMenuStateScript(extended);
         }
 
         /// <summary>
@@ -151,6 +166,10 @@ namespace StrmAssistant.Web.Helper
             }
 
             var injectShortcutCommand = @"
+const strmAssistantExtendedCommands = function () {
+    return !!(window.strmAssistantShortcutMenu && window.strmAssistantShortcutMenu.extended);
+};
+
 const strmAssistantCommandSource = {
     getCommands: function(options) {
         // A failure while building this source's commands must not break the detail page's
@@ -269,17 +288,20 @@ const strmAssistantCommandSource = {
                 result.push({ name: clearChapterImagesName, id: 'clear_chapter_images', icon: 'image' });
                 result.push({ name: clearBifName, id: 'clear_bif', icon: 'photo_library' });
                 result.push({ name: clearMediaInfoName, id: 'clear_media_info', icon: 'info' });
-                const clearChapterImagesBifName = locale === 'zh-cn' ? '清除章节图（含 BIF）' :
-                    (['zh-hk', 'zh-tw'].includes(locale) ? '清除章節圖（含 BIF）' : 'Clear Chapter Images (incl. BIF)');
-                result.push({ name: clearChapterImagesBifName, id: 'clear_chapter_images_bif', icon: 'collections' });
+                if (strmAssistantExtendedCommands()) {
+                    const clearChapterImagesBifName = locale === 'zh-cn' ? '清除章节图（含 BIF）' :
+                        (['zh-hk', 'zh-tw'].includes(locale) ? '清除章節圖（含 BIF）' : 'Clear Chapter Images (incl. BIF)');
+                    result.push({ name: clearChapterImagesBifName, id: 'clear_chapter_images_bif', icon: 'collections' });
+                }
             }
-            if (options.items[0].hasOwnProperty('LockData') && options.items[0].Type !== 'CollectionFolder' &&
+            if (strmAssistantExtendedCommands() &&
+                options.items[0].hasOwnProperty('LockData') && options.items[0].Type !== 'CollectionFolder' &&
                 (options.user && options.user.Policy.IsAdministrator || false)) {
                 const unlockAllFieldsName = locale === 'zh-cn' ? '解锁全部字段' :
                     (['zh-hk', 'zh-tw'].includes(locale) ? '解鎖全部欄位' : 'Unlock All Fields');
                 result.push({ name: unlockAllFieldsName, id: 'unlock_all_fields', icon: 'lock_open' });
             }
-            if (['Movie', 'Series', 'Episode'].includes(options.items[0].Type) &&
+            if (strmAssistantExtendedCommands() && ['Movie', 'Series', 'Episode'].includes(options.items[0].Type) &&
                 (options.user && options.user.Policy.IsAdministrator || false)) {
                 const dedupePeopleName = locale === 'zh-cn' ? '删除重复演员' :
                     (['zh-hk', 'zh-tw'].includes(locale) ? '刪除重複演員' : 'Remove Duplicate Actors');
@@ -302,7 +324,8 @@ const strmAssistantCommandSource = {
                 result.push({ name: lockCommandName, id: 'lock', icon: 'lock' });
                 result.push({ name: unlockCommandName, id: 'unlock', icon: 'lock_open' });
             }
-            if (isAdmin && options.items.every(item => ['Movie', 'Episode', 'MusicVideo', 'Video', 'Trailer'].includes(item.Type))) {
+            if (strmAssistantExtendedCommands() && isAdmin &&
+                options.items.every(item => ['Movie', 'Episode', 'MusicVideo', 'Video', 'Trailer'].includes(item.Type))) {
                 const clearChapterImagesBifName = locale === 'zh-cn' ? '清除章节图（含 BIF）' :
                     (['zh-hk', 'zh-tw'].includes(locale) ? '清除章節圖（含 BIF）' : 'Clear Chapter Images (incl. BIF)');
                 const clearMediaInfoName = locale === 'zh-cn' ? '清除媒体信息' :
@@ -310,7 +333,8 @@ const strmAssistantCommandSource = {
                 result.push({ name: clearChapterImagesBifName, id: 'clear_chapter_images_bif', icon: 'collections' });
                 result.push({ name: clearMediaInfoName, id: 'clear_media_info', icon: 'info' });
             }
-            if (isAdmin && options.items.every(item => item.hasOwnProperty('LockData') && item.Type !== 'VirtualFolder')) {
+            if (strmAssistantExtendedCommands() && isAdmin &&
+                options.items.every(item => item.hasOwnProperty('LockData') && item.Type !== 'VirtualFolder')) {
                 const unlockAllFieldsName = locale === 'zh-cn' ? '解锁全部字段' :
                     (['zh-hk', 'zh-tw'].includes(locale) ? '解鎖全部欄位' : 'Unlock All Fields');
                 result.push({ name: unlockAllFieldsName, id: 'unlock_all_fields', icon: 'lock_open' });
@@ -382,7 +406,8 @@ const strmAssistantCommandSource = {
                     }
                     return responses[0][actions[command]](targets[0]);
                 }
-                if (items.length > 1 && typeof responses[0][actions[command]] === 'function') {
+                if (strmAssistantExtendedCommands() && items.length > 1 &&
+                    typeof responses[0][actions[command]] === 'function') {
                     return Promise.all(items.map(item =>
                         responses[0][actions[command]](item.Id, item.Name)));
                 }

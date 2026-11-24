@@ -1,5 +1,70 @@
 # 更新日志
 
+## 1.1.0
+
+本版把三个批次的能力合并进旧插件「神医助手」（13 个功能提交 + 5 个修复提交），并新增两个默认关闭的开关，把上一轮回归中「默认即生效、无独立开关」的两处 UI 改动收进开关。
+
+**UI 行为包**
+
+- 8 个独立开关：倒序季集、日志倒序、强制 SxxExx、自动标记前集已播、自然排序、总集数代替未观看、主屏库数量角标、合集归属。后三项按「默认开、保持现状」的既有决策，其余默认关闭；关闭时对应脚本整段不注入
+- **新增「快捷菜单扩展命令与多选」`ShortcutMenuExtendedCommands`（默认关闭）**：关闭时右键菜单只保留 1.0.16 原有命令集，不多不少；打开后才出现「清除章节图（含 BIF）」「解锁全部字段」「删除重复演员」与多选批量执行
+- **新增「多版本显示 DV/HDR/Atmos 标识」`VersionNamingExtendedTokens`（默认关闭）**：关闭时 `classifyToken` 与高亮正则逐字保持 1.0.16 的实现（DV/HDR 归入 codec、Atmos/DTS 归入 audio），打开后才按 Dolby Vision、HDR10+、HDR10、HDR、Atmos、DTS:X 分别着色
+
+**快捷菜单**
+
+- 新增「清除章节图（含 BIF）」「解锁全部字段」「删除重复演员」三条命令与多选批量执行，配套 `/Items/{id}/ClearChapterImagesAndBif`、`/Items/{id}/UnlockAllFields`、`/Items/{id}/DedupePeople` 三个端点；以上均受 `ShortcutMenuExtendedCommands` 控制，默认关闭
+
+**通知**
+
+- `metadata.update` 通知补上 20 字段差异与季集上下文；集合变更、集合条目增删、深度删除通知沿用既有实现
+
+**搜索**
+
+- 搜索支持 `douban:` / `bgm:` / `bangumi:` / `tmdb:` / `imdb:` / `tvdb:` 前缀 id 直查；索引格式升至 `Version=6`，升级后首次启动自动重建一次
+
+**多版本显示**
+
+- 打开 `VersionNamingExtendedTokens` 后区分 DV / HDR10+ / HDR10 / HDR 与 Atmos / DTS:X 标识；HDR10+ 用字符前视保留结尾的 `+`，DTS:X / DTS-X 先于通用 DTS 匹配
+- 「强制显示文件全名」`MultiVersionForceFileName` 与「多版本按路径排序」`MultiVersionSortByPath` 保持原有默认关闭
+
+**标签黑名单**
+
+- 新增 `MediaInfoExcludeTags`：条目及父级标签精确匹配（大小写不敏感、支持逗号/分号/换行分隔），与既有 `mediainfo-exclude` 关键词黑名单并列
+
+**仪表盘**
+
+- 新增「仪表盘」开关：显示内存当前/峰值/使用率与容器上限、可取消的活动任务、活动会话、搜索索引条目/键数与队列长度，并提供重建索引入口
+
+**演员刷新**
+
+- 演员刷新增强：合并季演员行、只写有变化的字段、预先下载头像、补生卒信息；由 `RefreshPersonEnhancedMode` 控制，默认关闭并保留原 legacy 分支
+
+**豆瓣客串**
+
+- 豆瓣客串演员中文化：按 `latin_name` 映射并用完整演员列表写回（Emby `UpdatePeople` 先删后插），新增 `EnableDoubanCastLocalization` 开关
+
+**本地 TMDB 六小项（各自独立开关，默认关闭）**
+
+- `patches/*.json` 字段级合并、图片覆盖、`tags.json`、`external_ids.json`、`episodeorder.json`（兼容旧 `specials.json`）、内容分级按国家链回退；坏补丁跳过，只作用于返回给 Emby 的响应
+
+**探索发现频道**
+
+- 豆瓣合集浏览（`IChannel`）、在线预告片、MoviePilot 订阅（webhook / API 两种模式）；豆瓣海报经 `/StrmAssistant/DiscoverImage` 代理（仅放行豆瓣域名）
+
+**外挂音频**
+
+- 媒体信息提取主流程接入外挂音轨扫描：本地刷新后对比同目录音轨与条目外挂音频流，有变化才扫描（幂等），复用 Emby 4.10 `AudioTrackResolver` 并支持配置扩展名；音乐条目自身外挂音轨不纳入
+
+**音乐媒体信息持久化**
+
+- 新增默认关闭的「音乐媒体信息提取」开关；非强制任务用 `-mediainfo.json` sidecar 是否存在判断缺失，修复音乐条目因天然有音频流而永远不写 sidecar 的问题
+
+**说明**
+
+- 两个新开关均默认关闭；全默认状态下快捷命令集与多版本名称/配色与 1.0.16 一致，其余新功能也全部保持默认关闭（UI 行为包中总集数/角标/合集归属三项按既有决策默认开启）
+- 构建 0 error（仅保留既有 `CS0618 LibraryApi.IsFolder` 警告）；自动化验证工程 736 条用例全过（1.0.16 为 518 条，backport 批次累计 +194，本次两个开关 +24）
+- 已在隔离 Emby 实例（18096）验证：1.0.16 与本版全默认下发的 `shortcuts.js` 行为一致（仅注入框架差异）、两个开关打开后新命令与 DV/Atmos 标识生效、插件加载正常、设置页可开
+
 ## 1.0.16
 
 **安全与可靠性**

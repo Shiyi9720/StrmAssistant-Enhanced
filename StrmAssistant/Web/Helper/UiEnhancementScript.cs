@@ -1,4 +1,5 @@
-﻿using StrmAssistant.Options;
+﻿using StrmAssistant.Common;
+using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using System.Linq;
 
@@ -20,6 +21,9 @@ namespace StrmAssistant.Web.Helper
                 options?.GeneralOptions.MultiVersionFriendlyNames ?? true;
             var multiVersionForceFileName =
                 options?.GeneralOptions.MultiVersionForceFileName ?? false;
+            var versionNamingExtendedTokens =
+                options?.GeneralOptions.VersionNamingExtendedTokens ??
+                UiBehaviorFlags.VersionNamingExtendedTokensDefault;
             var reverseSeasonEpisodeOrder =
                 options?.ExperienceEnhanceOptions.ReverseSeasonEpisodeOrder ?? false;
             var episodeDisplayStyle = options?.ExperienceEnhanceOptions.EpisodeDisplayStyle ??
@@ -51,9 +55,11 @@ namespace StrmAssistant.Web.Helper
                 options?.ExperienceEnhanceOptions.CollectionMembership ?? true;
             var dashboardPanel = options?.ExperienceEnhanceOptions.EnableDashboardPanel ?? false;
 
-            return "\n" + GetStyleScript(hideSearchSuggestions) + "\n" + GetDoubanRatingScript() + "\n" +
+            return "\n" + GetStyleScript(hideSearchSuggestions, versionNamingExtendedTokens) + "\n" +
+                   GetDoubanRatingScript() + "\n" +
                    GetScript(multiVersionSort, multiVersionSortByPath) + "\n" +
-                   GetVersionNamesScript(multiVersionFriendlyNames, multiVersionForceFileName) + "\n" + GetPlaybackScript() +
+                   GetVersionNamesScript(multiVersionFriendlyNames, multiVersionForceFileName,
+                       versionNamingExtendedTokens) + "\n" + GetPlaybackScript() +
                    "\n" + GetVersionFavoriteScript(versionFavorites) +
                    "\n" + GetLibraryBadgeScript(libraryItemCountBadge) + "\n" + GetEpisodeStatsScript(episodeStatsFormat, episodeStatsTotalCount) + "\n" +
                    GetCollectionMembershipScript(collectionMembership) + "\n" +
@@ -299,10 +305,20 @@ namespace StrmAssistant.Web.Helper
                 .Replace("@@FAILED@@", failed);
         }
 
-        private static string GetStyleScript(bool hideSearchSuggestions)
+        private static string GetStyleScript(bool hideSearchSuggestions, bool extendedVersionTokens)
         {
             var searchSuggestionsStyle =
                 hideSearchSuggestions ? ".searchSuggestions{display:none!important}" : string.Empty;
+            // The extra token colours are only emitted when the extended naming switch is on, so
+            // the off state keeps the v1.0.16 stylesheet unchanged.
+            var extendedVersionTokenStyle = extendedVersionTokens
+                ? "        '.strmAssistantVersionToken-dolby-vision{color:#c792ea}' +\n" +
+                  "        '.strmAssistantVersionToken-hdr10plus{color:#ff9f43}' +\n" +
+                  "        '.strmAssistantVersionToken-hdr10{color:#ffd166}' +\n" +
+                  "        '.strmAssistantVersionToken-hdr{color:#ffe08a}' +\n" +
+                  "        '.strmAssistantVersionToken-atmos{color:#4dd0e1}' +\n" +
+                  "        '.strmAssistantVersionToken-dtsx{color:#4dd0e1}' +\n"
+                : string.Empty;
 
             return @"
 (function () {
@@ -332,13 +348,7 @@ namespace StrmAssistant.Web.Helper
         '.strmAssistantVersionToken-resolution{color:#6fc3ff}' +
         '.strmAssistantVersionToken-source{color:#8fd694}' +
         '.strmAssistantVersionToken-codec{color:#ffd166}' +
-        '.strmAssistantVersionToken-dolby-vision{color:#c792ea}' +
-        '.strmAssistantVersionToken-hdr10plus{color:#ff9f43}' +
-        '.strmAssistantVersionToken-hdr10{color:#ffd166}' +
-        '.strmAssistantVersionToken-hdr{color:#ffe08a}' +
-        '.strmAssistantVersionToken-atmos{color:#4dd0e1}' +
-        '.strmAssistantVersionToken-dtsx{color:#4dd0e1}' +
-        '.strmAssistantVersionToken-audio{color:#d8a7ff}' +
+@@EXTENDED_VERSION_TOKEN_STYLE@@        '.strmAssistantVersionToken-audio{color:#d8a7ff}' +
         '.strmAssistantDoubanSection{padding-top:.5em}' +
         '.strmAssistantDoubanMore{margin-left:auto;background:none;border:0;color:inherit;cursor:pointer;' +
         'font-size:.9em;opacity:.75}' +
@@ -358,7 +368,8 @@ namespace StrmAssistant.Web.Helper
         '@@SEARCH_SUGGESTIONS@@';
     (document.head || document.documentElement).appendChild(style);
 })();
-".Replace("@@SEARCH_SUGGESTIONS@@", searchSuggestionsStyle);
+".Replace("@@SEARCH_SUGGESTIONS@@", searchSuggestionsStyle)
+                .Replace("@@EXTENDED_VERSION_TOKEN_STYLE@@", extendedVersionTokenStyle);
         }
 
         /// <summary>
@@ -1823,8 +1834,12 @@ namespace StrmAssistant.Web.Helper
         /// decorated before Emby renders the select options, and a small highlighted list mirrors
         /// the same sources without touching the item title or any other lists.
         /// </summary>
-        private static string GetVersionNamesScript(bool enabled, bool forceFullFileName)
+        private static string GetVersionNamesScript(bool enabled, bool forceFullFileName,
+            bool extendedTokens)
         {
+            var highlightPattern = UiBehaviorFlags.VersionHighlightPattern(extendedTokens);
+            var tokenClassifier = UiBehaviorFlags.VersionTokenClassifier(extendedTokens);
+
             return @"
 (function () {
     'use strict';
@@ -1839,9 +1854,7 @@ namespace StrmAssistant.Web.Helper
     var scheduled = false;
 
     var extensionPattern = /\.(?:mkv|mp4|avi|ts|m2ts|iso|strm|mov|wmv|flv|webm|rmvb|m4v|mpg|mpeg)$/i;
-    // Ends in a lookahead, not \b: HDR10+ ends with '+', so a trailing \b would backtrack to
-    // HDR10 and lose the '+'. DTS:X / DTS-X are matched before the generic DTS branch.
-    var highlightPattern = /\b(?:2160p|1080p|720p|576p|480p|8k|4k|uhd|blu-?ray|bdrip|brrip|remux|web-?dl|webdl|webrip|hdtv|dvdrip|hdrip|amzn|nf|dsnp|atvp|hmax|h\s*26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg-?2|10-?bit|8-?bit|hdr10\+?|hdr|dolby\s+vision|dv|dts[:\s-]?x|dts(?:-?hd)?(?:\s+ma)?|truehd|atmos|ddp?|eac3|ac3|aac|flac|opus)(?![a-z0-9])/gi;
+    var highlightPattern = /" + highlightPattern + @"/gi;
 
     function decode(value) {
         try { return decodeURIComponent(value); } catch (e) { return value; }
@@ -1877,22 +1890,7 @@ namespace StrmAssistant.Web.Helper
     }
 
     function classifyToken(token) {
-        var value = token.toLowerCase().replace(/[-:]/g, ' ').replace(/\s+/g, ' ')
-            .replace(/^[^a-z0-9+]+|[^a-z0-9+]+$/g, '');
-        if (/^(?:2160p|1080p|720p|576p|480p|8k|4k|uhd)$/.test(value)) return 'resolution';
-        if (/^(?:blu ray|bdrip|brrip|remux|web dl|webdl|webrip|hdtv|dvdrip|hdrip|amzn|nf|dsnp|atvp|hmax)$/.test(value)) return 'source';
-        // Dynamic-range tokens get their own kinds so DV / HDR10+ / HDR10 / plain HDR are
-        // visually distinct instead of all collapsing into 'codec'.
-        if (/^(?:dolby vision|dv)$/.test(value)) return 'dolby-vision';
-        if (/^hdr10\+$/.test(value)) return 'hdr10plus';
-        if (/^hdr10$/.test(value)) return 'hdr10';
-        if (/^hdr$/.test(value)) return 'hdr';
-        if (/^(?:h 26[45]|h26[45]|hevc|avc|x26[45]|av1|vp9|mpeg 2|10 bit|10bit|8 bit|8bit)$/.test(value)) return 'codec';
-        // Object-based audio gets its own kinds; other audio keeps the generic 'audio'.
-        if (/^atmos$/.test(value)) return 'atmos';
-        if (/^dts x$/.test(value)) return 'dtsx';
-        if (/^(?:dts|dts hd|dts hd ma|truehd|dd|ddp|eac3|ac3|aac|flac|opus)$/.test(value)) return 'audio';
-        return '';
+" + tokenClassifier + @"
     }
 
     function appendToken(element, token) {
