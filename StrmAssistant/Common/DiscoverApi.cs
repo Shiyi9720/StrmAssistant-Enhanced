@@ -1,3 +1,4 @@
+using MediaBrowser.Controller;
 using MediaBrowser.Controller.Channels;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
@@ -44,6 +45,7 @@ namespace StrmAssistant.Common
         private readonly ILibraryManager _libraryManager;
         private readonly IUserDataManager _userDataManager;
         private readonly ITaskManager _taskManager;
+        private readonly IServerApplicationHost _appHost;
         private readonly ILogger _logger;
         private readonly object _gate = new object();
         private readonly object _subscribeGate = new object();
@@ -59,11 +61,12 @@ namespace StrmAssistant.Common
         private string _settingsSignature;
 
         public DiscoverApi(ILibraryManager libraryManager, IUserDataManager userDataManager,
-            ITaskManager taskManager)
+            ITaskManager taskManager, IServerApplicationHost appHost)
         {
             _libraryManager = libraryManager;
             _userDataManager = userDataManager;
             _taskManager = taskManager;
+            _appHost = appHost;
             _logger = Plugin.Instance?.Logger;
 
             if (_userDataManager != null) _userDataManager.UserDataSaved += OnUserDataSaved;
@@ -170,7 +173,7 @@ namespace StrmAssistant.Common
                     MediaType = ChannelMediaType.Video,
                     Overview = "豆瓣合集 " + spec.Id + " · 配置数量 " + spec.Count +
                                (cached != null ? " · 已缓存 " + cached.Count + " 条" : string.Empty),
-                    ImageUrl = image,
+                    ImageUrl = BuildImageUrl(image),
                     ProviderIds = new ProviderIdDictionary { ["DoubanCollection"] = spec.Id }
                 });
             }
@@ -211,7 +214,7 @@ namespace StrmAssistant.Common
                     : "movie";
                 var year = ParseYear(item.Year) ?? DiscoverText.YearFromSubtitle(item.Subtitle);
                 var match = index.Match(item.DoubanId, item.Title, year, kind);
-                var overview = DiscoverEntryProjection.BuildOverview(null, item.Subtitle, match);
+                var overview = DiscoverEntryProjection.BuildOverview(item.Description, item.Subtitle, match);
                 if (options.SubscribeEnabled)
                 {
                     overview += "\n\n在条目详情页点心形收藏即可订阅到 MoviePilot。";
@@ -231,7 +234,7 @@ namespace StrmAssistant.Common
                     Tagline = DiscoverEntryProjection.BuildTagline(match),
                     CommunityRating = item.Rating.HasValue ? (float?)item.Rating.Value : null,
                     ProductionYear = year,
-                    ImageUrl = item.CoverUrl,
+                    ImageUrl = BuildImageUrl(item.CoverUrl),
                     ProviderIds = new ProviderIdDictionary
                     {
                         ["Douban"] = item.DoubanId,
@@ -248,6 +251,19 @@ namespace StrmAssistant.Common
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Emby fetches the channel item image without a Referer, which Douban's CDN rejects
+        /// with 418. Point the item at the plugin's own relay so the image renders.
+        /// </summary>
+        private string BuildImageUrl(string coverUrl)
+        {
+            if (!DiscoverImageProxy.TryNormalize(coverUrl, out _)) return null;
+
+            var port = _appHost?.HttpPort ?? 8096;
+            return "http://127.0.0.1:" + port + DiscoverImageProxy.Route + "?Url=" +
+                   Uri.EscapeDataString(coverUrl.Trim());
         }
 
         private static int? ParseYear(string value)

@@ -1002,8 +1002,12 @@ namespace StrmAssistant.Common
                 Title = subject.title,
                 OriginalTitle = subject.original_title,
                 Year = subject.year,
-                CoverUrl = NormalizeCoverUrl(subject.cover?.url),
+                CoverUrl = NormalizeCoverUrl(subject.cover?.url ?? subject.cover_url ??
+                                             subject.pic?.large ?? subject.pic?.normal),
                 Subtitle = subject.card_subtitle,
+                Description = string.IsNullOrWhiteSpace(subject.description)
+                    ? subject.comment
+                    : subject.description,
                 Rating = subject.rating?.value,
                 Kind = subject.is_show == true ||
                        string.Equals(subject.type, "tv", StringComparison.OrdinalIgnoreCase)
@@ -1333,7 +1337,11 @@ namespace StrmAssistant.Common
             public string card_subtitle { get; set; }
             public string type { get; set; }
             public bool? is_show { get; set; }
+            public string cover_url { get; set; }
+            public string description { get; set; }
+            public string comment { get; set; }
             public DoubanCover cover { get; set; }
+            public DoubanPic pic { get; set; }
             public DoubanRating rating { get; set; }
         }
 
@@ -1383,6 +1391,7 @@ namespace StrmAssistant.Common
         public string Subtitle { get; set; }
         public double? Rating { get; set; }
         public string Kind { get; set; }
+        public string Description { get; set; }
     }
 
     public class DoubanTrailer

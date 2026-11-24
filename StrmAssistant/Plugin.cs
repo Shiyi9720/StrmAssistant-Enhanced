@@ -340,7 +340,7 @@ namespace StrmAssistant
             BoxSetHomeVisibilityStore = new BoxSetHomeVisibilityStore(jsonSerializer);
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
             DoubanCacheApi = new DoubanCacheApi(jsonSerializer, httpClient);
-            DiscoverApi = new DiscoverApi(libraryManager, userDataManager, taskManager);
+            DiscoverApi = new DiscoverApi(libraryManager, userDataManager, taskManager, serverApplicationHost);
             IntroDbApi = new IntroDbApi(libraryManager, itemRepository, jsonSerializer, httpClient);
             FingerprintLibraryApi = new FingerprintLibraryApi(libraryManager, jsonSerializer);
             SearchIndexService = new SearchIndexService(libraryManager, jsonSerializer, httpClient);
@@ -825,7 +825,7 @@ namespace StrmAssistant
 
         private void OnUserDataSaved(object sender, UserDataSaveEventArgs e)
         {
-            if (e.UserData.IsFavorite)
+            if (e.UserData?.IsFavorite == true)
             {
                 if (_currentUnlockIntroSkip && _currentCatchupMode && IsCatchupTaskSelected(CatchupTask.Fingerprint) &&
                     FingerprintApi.IsLibraryInScope(e.Item) && (e.Item is Episode || e.Item is Series))

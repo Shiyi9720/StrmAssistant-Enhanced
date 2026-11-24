@@ -19,6 +19,7 @@ namespace StrmAssistant.Verification
             TrailerRuntime(runner);
             SubscribePayloads(runner);
             ResponseParsing(runner);
+            ImageProxy(runner);
         }
 
         private static void CollectionSpecs(TestRunner runner)
@@ -165,6 +166,25 @@ namespace StrmAssistant.Verification
             runner.Check("api url",
                 DiscoverSubscribe.BuildApiUrl("http://mp:3000/", "abc") ==
                 "http://mp:3000/api/v1/subscribe/?apikey=abc");
+        }
+
+        private static void ImageProxy(TestRunner runner)
+        {
+            runner.Section("D8. Poster relay accepts only Douban hosts");
+
+            runner.Check("doubanio image accepted",
+                DiscoverImageProxy.TryNormalize(
+                    "https://img9.doubanio.com/view/photo/m_ratio_poster/public/p1.jpg", out var ok) &&
+                ok.Host == "img9.doubanio.com");
+            runner.Check("douban.com accepted",
+                DiscoverImageProxy.TryNormalize("https://m.douban.com/a.jpg", out _));
+            runner.Check("foreign host rejected",
+                !DiscoverImageProxy.TryNormalize("https://example.com/a.jpg", out _));
+            runner.Check("lookalike host rejected",
+                !DiscoverImageProxy.TryNormalize("https://doubanio.com.evil.test/a.jpg", out _));
+            runner.Check("file scheme rejected",
+                !DiscoverImageProxy.TryNormalize("file:///etc/passwd", out _));
+            runner.Check("empty rejected", !DiscoverImageProxy.TryNormalize(null, out _));
         }
 
         private static void ResponseParsing(TestRunner runner)
