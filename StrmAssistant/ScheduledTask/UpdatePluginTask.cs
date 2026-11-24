@@ -104,11 +104,13 @@ namespace StrmAssistant.ScheduledTask
 
                 if (currentVersion == null || remoteVersion == null)
                 {
-                    // Not an error path on its own, but a silent skip hides a broken tag/assembly
-                    // version, so surface it instead of leaving it at Info.
-                    _logger?.Warn("Skip auto update: version is not comparable ({0} -> {1})",
-                        Plugin.Instance.CurrentVersion, apiResult?.tag_name);
-                    return;
+                    // A missing tag_name (empty body, rate-limit or error payload) or an
+                    // uncomparable assembly version used to be logged and skipped, so the task
+                    // still reported Completed without downloading anything and the caller could
+                    // not tell "nothing to do" from "the check did not work". Fail the run.
+                    throw new InvalidDataException(
+                        $"Cannot compare plugin versions: current '{Plugin.Instance.CurrentVersion}', " +
+                        $"remote '{apiResult?.tag_name}'");
                 }
 
                 if (currentVersion.CompareTo(remoteVersion) < 0)

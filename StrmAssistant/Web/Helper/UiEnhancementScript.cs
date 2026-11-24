@@ -95,6 +95,15 @@ namespace StrmAssistant.Web.Helper
             var downloading = E(Resources.Update_Downloading ?? "发现新版本，正在下载…");
             var needRestart = E(Resources.Update_NeedRestart ?? "已下载新版本，请重启 Emby 生效");
             var failed = E(Resources.Update_Failed ?? "检查失败");
+            var unknownVersion = E(Resources.Update_UnknownVersion ?? "无法读取当前版本");
+
+            // The script is generated per request, so the running assembly version is known
+            // right here. /Plugins cannot be used to find it: Emby reports the build tag
+            // ("public-ip-xxxx") as Version there, and the plugin name is localized, so neither
+            // the version nor a name prefix identifies this plugin reliably.
+            var currentVersion = PluginVersionText.Normalize(Plugin.Instance?.CurrentVersion);
+            // Only a numeric version can be compared; a build tag is reported as unreadable.
+            var hasCurrentVersion = currentVersion.Length > 0 && char.IsDigit(currentVersion[0]);
 
             return @"
 (function () {
@@ -102,20 +111,37 @@ namespace StrmAssistant.Web.Helper
     try {
     var labels = {
         check: '@@CHECK@@', checking: '@@CHECKING@@', upToDate: '@@UPTODATE@@',
-        downloading: '@@DOWNLOADING@@', needRestart: '@@NEEDRESTART@@', failed: '@@FAILED@@'
+        downloading: '@@DOWNLOADING@@', needRestart: '@@NEEDRESTART@@', failed: '@@FAILED@@',
+        unknownVersion: '@@UNKNOWNVERSION@@'
     };
+    // Injected by the server from the running assembly; never fetched from /Plugins here.
+    var CURRENT_VERSION = '@@CURRENT@@';
+    var HAS_CURRENT_VERSION = @@HASCURRENT@@;
     var box = null, btn = null, status = null, apiClient = null, busy = false, fallbackTimer = null;
     var REPO = 'Shiyi9720/StrmAssistant-Enhanced';
 
-    function withApiClient(cb) {
+    function withApiClient(cb, onFail) {
         if (apiClient) { cb(apiClient); return; }
+        var settled = false;
+        function fail() {
+            if (settled) return;
+            settled = true;
+            if (onFail) onFail();
+        }
         try {
             require(['connectionManager']).then(function (m) {
-                var cm = m && m[0];
-                var c = cm && cm.currentApiClient && cm.currentApiClient();
-                if (c) { apiClient = c; cb(c); }
-            }, function () { });
-        } catch (e) { }
+                if (settled) return;
+                var c = null;
+                try {
+                    var cm = m && m[0];
+                    c = cm && cm.currentApiClient && cm.currentApiClient();
+                } catch (e) { fail(); return; }
+                if (!c) { fail(); return; }
+                settled = true;
+                apiClient = c;
+                cb(c);
+            }, fail);
+        } catch (e) { fail(); }
     }
 
     function onSettingsPage() {
@@ -136,23 +162,17 @@ namespace StrmAssistant.Web.Helper
         if (btn) btn.disabled = false;
     }
 
-    function currentVersion() {
-        return new Promise(function (resolve) {
-            withApiClient(function (c) {
-                c.getJSON(c.getUrl('Plugins')).then(function (list) {
-                    var p = (list || []).filter(function (x) { return x.Name && x.Name.indexOf('Strm') === 0; })[0] || {};
-                    resolve(p.Version || '');
-                }, function () { resolve(''); });
-            });
-        });
-    }
-
     function latestTag() {
-        return fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {
-            headers: { 'Accept': 'application/vnd.github+json' }
-        }).then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (j) { return j && j.tag_name ? String(j.tag_name).replace(/^v/i, '') : null; })
-          .catch(function () { return null; });
+        try {
+            return fetch('https://api.github.com/repos/' + REPO + '/releases/latest', {
+                headers: { 'Accept': 'application/vnd.github+json' }
+            }).then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (j) { return j && j.tag_name ? String(j.tag_name).replace(/^v/i, '') : null; })
+              .catch(function () { return null; });
+        } catch (e) {
+            // No fetch (old web client) or a synchronous throw: treat as unreachable.
+            return Promise.resolve(null);
+        }
     }
 
     function parse(v) {
@@ -181,7 +201,7 @@ namespace StrmAssistant.Web.Helper
                 c.ajax({ type: 'POST', url: c.getUrl('ScheduledTasks/Running/' + t.Id) })
                     .then(function () { cb(c, t); }, function () { cb(c, null); });
             }, function () { cb(c, null); });
-        });
+        }, function () { cb(null, null); });
     }
 
     function pollTask(c, id, tries, done) {
@@ -202,18 +222,26 @@ namespace StrmAssistant.Web.Helper
         if (btn) btn.disabled = true;
         setStatus(labels.checking, '#ff9800');
 
-        currentVersion().then(function (cur) {
-            latestTag().then(function (latest) {
-                if (!latest) { finish(labels.failed + ' (GitHub 不可达)', '#e57373'); return; }
-                if (!isNewer(latest, cur)) { finish(labels.upToDate + ' (' + cur + ')', '#4caf50'); return; }
+        // An unknown current version is not 'up to date': without it no comparison is possible.
+        if (!HAS_CURRENT_VERSION || !parse(CURRENT_VERSION)) {
+            finish(labels.unknownVersion + (CURRENT_VERSION ? ' (' + CURRENT_VERSION + ')' : ''), '#e57373');
+            return;
+        }
 
-                setStatus(labels.downloading + ' ' + latest, '#ff9800');
-                runTask(function (c, t) {
-                    if (!t) { finish(labels.failed + ' (task not found)', '#e57373'); return; }
-                    pollTask(c, t.Id, 45, function (ok, err) {
-                        if (ok) finish(labels.needRestart + ' (' + latest + ')', '#4caf50');
-                        else finish(labels.failed + (err ? ': ' + err : ''), '#e57373');
-                    });
+        latestTag().then(function (latest) {
+            if (!latest) { finish(labels.failed + ' (GitHub 不可达)', '#e57373'); return; }
+            if (!isNewer(latest, CURRENT_VERSION)) {
+                finish(labels.upToDate + ' (' + CURRENT_VERSION + ')', '#4caf50');
+                return;
+            }
+
+            setStatus(labels.downloading + ' ' + latest, '#ff9800');
+            runTask(function (c, t) {
+                if (!c) { finish(labels.failed + ' (API 不可用)', '#e57373'); return; }
+                if (!t) { finish(labels.failed + ' (task not found)', '#e57373'); return; }
+                pollTask(c, t.Id, 45, function (ok, err) {
+                    if (ok) finish(labels.needRestart + ' (' + latest + ')', '#4caf50');
+                    else finish(labels.failed + (err ? ': ' + err : ''), '#e57373');
                 });
             });
         });
@@ -302,7 +330,10 @@ namespace StrmAssistant.Web.Helper
                 .Replace("@@UPTODATE@@", upToDate)
                 .Replace("@@DOWNLOADING@@", downloading)
                 .Replace("@@NEEDRESTART@@", needRestart)
-                .Replace("@@FAILED@@", failed);
+                .Replace("@@FAILED@@", failed)
+                .Replace("@@UNKNOWNVERSION@@", unknownVersion)
+                .Replace("@@CURRENT@@", E(currentVersion))
+                .Replace("@@HASCURRENT@@", hasCurrentVersion ? "true" : "false");
         }
 
         private static string GetStyleScript(bool hideSearchSuggestions, bool extendedVersionTokens)

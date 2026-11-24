@@ -46,6 +46,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "Discover", DiscoverTests.Run);
             RunGroup(runner, "ExternalAudioPlan", ExternalAudioPlanTests.Run);
             RunGroup(runner, "UiBehaviorFlags", UiBehaviorFlagsTests.Run);
+            RunGroup(runner, "PluginVersionText", PluginVersionTextTests.Run);
 
             return runner.Finish();
         }

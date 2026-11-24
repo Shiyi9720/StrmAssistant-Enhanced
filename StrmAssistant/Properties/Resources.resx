@@ -1917,6 +1917,9 @@
   <data name="Update_NeedRestart" xml:space="preserve">
     <value>New version downloaded. Restart Emby to apply.</value>
   </data>
+  <data name="Update_UnknownVersion" xml:space="preserve">
+    <value>Unable to read the current version</value>
+  </data>
   <data name="SearchOptions_SingleCharacterSearch_Single_Character_Search" xml:space="preserve">
     <value>Single Character Search</value>
   </data>

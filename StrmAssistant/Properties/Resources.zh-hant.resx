@@ -1832,6 +1832,9 @@
   <data name="Update_NeedRestart" xml:space="preserve">
     <value>已下載新版本，請重啟 Emby 生效</value>
   </data>
+  <data name="Update_UnknownVersion" xml:space="preserve">
+    <value>無法讀取目前版本</value>
+  </data>
   <data name="SearchOptions_SingleCharacterSearch_Single_Character_Search" xml:space="preserve">
     <value>單字搜尋</value>
   </data>

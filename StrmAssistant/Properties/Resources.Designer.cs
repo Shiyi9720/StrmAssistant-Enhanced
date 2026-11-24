@@ -4905,6 +4905,15 @@ namespace StrmAssistant.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Update_UnknownVersion.
+        /// </summary>
+        public static string Update_UnknownVersion {
+            get {
+                return ResourceManager.GetString("Update_UnknownVersion", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to SearchOptions_SingleCharacterSearch_Single_Character_Search.
         /// </summary>
         public static string SearchOptions_SingleCharacterSearch_Single_Character_Search {
