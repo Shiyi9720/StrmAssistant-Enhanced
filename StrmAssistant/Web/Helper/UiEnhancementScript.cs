@@ -3854,7 +3854,7 @@ namespace StrmAssistant.Web.Helper
             withApiClient(function (client) {
                 client.ajax({
                     type: 'POST',
-                    url: client.getUrl('StrmAssistant/Dashboard/Cancel'),
+                    url: client.getUrl('StrmAssistant/DashboardCancel'),
                     data: JSON.stringify({ Key: task.Key }),
                     contentType: 'application/json',
                     dataType: 'json'

@@ -13,7 +13,7 @@ namespace StrmAssistant.Web.Api
     }
 
     /// <summary>Cancels a running scheduled task shown on the dashboard.</summary>
-    [Route("/StrmAssistant/Dashboard/Cancel", "POST")]
+    [Route("/StrmAssistant/DashboardCancel", "POST")]
     [Authenticated]
     public class CancelDashboardTask : IReturn<CancelDashboardTaskResponse>
     {
