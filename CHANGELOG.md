@@ -1,5 +1,12 @@
 # 更新日志
 
+## 1.1.1
+
+**修复（仅此一项，无功能变更）**
+
+- 「刷新探索发现频道」（Refresh Internet Channels）时日志刷出 11 条 `Plugin event handler failed`。根因：频道条目（探索发现 / 豆瓣电影Top250）没有文件 `Path`，`MediaInfoApi.GetMediaInfoJsonPath` 里 `Path.Combine(null, …)` 抛 `ArgumentNullException(path1)`。现在 `Path` 为空/空白时直接返回，不抛异常、不记 Error；`SerializeMediaInfo` / `DeserializeMediaInfo` / `DeleteMediaInfoJson` / `DeserializeIntroMarker` 四个调用点同步判空，`DeserializeChapterInfo` 无 `Path` 时只跳过本地缩略图恢复，章节照常保存
+- 有 `Path` 的条目逻辑不变；验证工程 755 条用例保持全过
+
 ## 1.1.0
 
 本版把三个批次的能力合并进旧插件「神医助手」（13 个功能提交 + 5 个修复提交），并新增两个默认关闭的开关，把上一轮回归中「默认即生效、无独立开关」的两处 UI 改动收进开关。
