@@ -71,6 +71,7 @@ namespace StrmAssistant
         public static BoxSetHomeVisibilityStore BoxSetHomeVisibilityStore { get; private set; }
         public static DoubanApi DoubanApi { get; private set; }
         public static DoubanCacheApi DoubanCacheApi { get; private set; }
+        public static DiscoverApi DiscoverApi { get; private set; }
         public static IntroDbApi IntroDbApi { get; private set; }
         public static DiscMediaInfoApi DiscMediaInfoApi { get; private set; }
         public static DistributedExtractApi DistributedExtractApi { get; private set; }
@@ -128,6 +129,7 @@ namespace StrmAssistant
         private bool _currentDistinguishChinesePosters;
         private bool _currentPreferOriginalPoster;
         private string _currentLocalDiscoveryAddress;
+        private string _currentDiscoverChannelName;
         private bool _currentCrossLibraryFavoriteSeparation;
         private ChineseMetadataOrderOption _currentChineseMetadataOrder;
         private bool _currentConvertSimplifiedToTraditional;
@@ -281,6 +283,7 @@ namespace StrmAssistant
             _currentDistinguishChinesePosters = GetOptions().MetadataEnhanceOptions.DistinguishChinesePosters;
             _currentPreferOriginalPoster = GetOptions().MetadataEnhanceOptions.PreferOriginalPoster;
             _currentLocalDiscoveryAddress = GetOptions().NetworkOptions.LocalDiscoveryAddress;
+            _currentDiscoverChannelName = GetOptions().DiscoverOptions?.ChannelName;
             _currentCrossLibraryFavoriteSeparation = GetOptions().ExperienceEnhanceOptions.VersionFavoriteOptions
                 .EnableCrossLibraryFavoriteSeparation;
             _currentChineseMetadataOrder = GetOptions().MetadataEnhanceOptions.ChineseMetadataOrder;
@@ -337,6 +340,7 @@ namespace StrmAssistant
             BoxSetHomeVisibilityStore = new BoxSetHomeVisibilityStore(jsonSerializer);
             DoubanApi = new DoubanApi(providerManager, fileSystem, libraryManager, jsonSerializer, httpClient);
             DoubanCacheApi = new DoubanCacheApi(jsonSerializer, httpClient);
+            DiscoverApi = new DiscoverApi(libraryManager, userDataManager, taskManager);
             IntroDbApi = new IntroDbApi(libraryManager, itemRepository, jsonSerializer, httpClient);
             FingerprintLibraryApi = new FingerprintLibraryApi(libraryManager, jsonSerializer);
             SearchIndexService = new SearchIndexService(libraryManager, jsonSerializer, httpClient);
@@ -1585,6 +1589,12 @@ namespace StrmAssistant
             }
 
             SearchIndexService.OnOptionsSaved();
+
+            // 探索发现频道：设置一保存就生效（频道每次请求都读选项），并清理改名后残留的频道实体。
+            var discoverChannelName = options.DiscoverOptions?.ChannelName;
+            DiscoverApi?.RemoveStaleChannel(_currentDiscoverChannelName);
+            _currentDiscoverChannelName = discoverChannelName;
+            DiscoverApi?.InvalidateCollections();
 
             if (suppress) _currentSuppressOnOptionsSaved = false;
 

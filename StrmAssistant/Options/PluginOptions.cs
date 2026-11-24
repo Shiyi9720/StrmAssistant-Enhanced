@@ -130,6 +130,9 @@ namespace StrmAssistant.Options
         [DisplayNameL("SearchOptions_EditorTitle_Chinese_Search", typeof(Resources))]
         public SearchOptions SearchOptions { get; set; } = new SearchOptions();
 
+        [DisplayName("探索发现频道")]
+        public DiscoverOptions DiscoverOptions { get; set; } = new DiscoverOptions();
+
         [DisplayNameL("AboutOptions_EditorTitle_About", typeof(Resources))]
         public AboutOptions AboutOptions { get; set; } = new AboutOptions();
 

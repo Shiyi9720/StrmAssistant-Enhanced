@@ -890,6 +890,30 @@ namespace StrmAssistant.Common
         /// Returns Douban's hot movie list. The mobile collection endpoints are public and can
         /// rate limit or disappear; callers receive an empty list instead of an exception.
         /// </summary>
+        /// <summary>
+        /// Fetches one configurable Douban subject collection. The 探索发现 channel uses this
+        /// (instead of the fixed hot/showing lists above) so a user can expose any curated
+        /// collection by its <c>subject_collection</c> identifier.
+        /// </summary>
+        public async Task<List<DoubanRecommendation>> GetCollectionAsync(string collectionId, int count,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(collectionId)) return new List<DoubanRecommendation>();
+
+            count = Math.Max(1, Math.Min(count, 100));
+            var url = DoubanApiBase + "/subject_collection/" +
+                      Uri.EscapeDataString(collectionId.Trim()) +
+                      "/items?start=0&count=" + count;
+
+            var response = await GetJsonAsync<DoubanSubjectCollectionResponse>(url, cancellationToken)
+                .ConfigureAwait(false);
+
+            return response?.subject_collection_items?
+                .Select(ConvertSubject)
+                .Where(item => item != null)
+                .ToList() ?? new List<DoubanRecommendation>();
+        }
+
         public async Task<List<DoubanRecommendation>> GetRecommendationsAsync(string kind, int limit,
             CancellationToken cancellationToken)
         {
@@ -980,7 +1004,11 @@ namespace StrmAssistant.Common
                 Year = subject.year,
                 CoverUrl = NormalizeCoverUrl(subject.cover?.url),
                 Subtitle = subject.card_subtitle,
-                Rating = subject.rating?.value
+                Rating = subject.rating?.value,
+                Kind = subject.is_show == true ||
+                       string.Equals(subject.type, "tv", StringComparison.OrdinalIgnoreCase)
+                    ? "tv"
+                    : "movie"
             };
         }
 
@@ -1303,6 +1331,8 @@ namespace StrmAssistant.Common
             public string original_title { get; set; }
             public string year { get; set; }
             public string card_subtitle { get; set; }
+            public string type { get; set; }
+            public bool? is_show { get; set; }
             public DoubanCover cover { get; set; }
             public DoubanRating rating { get; set; }
         }
@@ -1352,6 +1382,7 @@ namespace StrmAssistant.Common
         public string CoverUrl { get; set; }
         public string Subtitle { get; set; }
         public double? Rating { get; set; }
+        public string Kind { get; set; }
     }
 
     public class DoubanTrailer

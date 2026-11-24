@@ -20,6 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\StrmAssistant\Common\DiscoverModels.cs" Link="src\DiscoverModels.cs" />
     <Compile Include="..\..\StrmAssistant\Common\SourceBackoff.cs" Link="src\SourceBackoff.cs" />
     <Compile Include="..\..\StrmAssistant\Common\MetadataDiff.cs" Link="src\MetadataDiff.cs" />
     <Compile Include="..\..\StrmAssistant\Common\ProviderSearchKeys.cs" Link="src\ProviderSearchKeys.cs" />
