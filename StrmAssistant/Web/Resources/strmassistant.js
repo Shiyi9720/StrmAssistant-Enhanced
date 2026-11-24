@@ -535,11 +535,103 @@
                     contentType: "application/json"
                 }).finally(() => {
                     loading.hide();
-                    const confirmMessage = (locale === 'zh-cn') ? commandName + '\u6210\u529F' : 
+                    const confirmMessage = (locale === 'zh-cn') ? commandName + '\u6210\u529F' :
                         (['zh-hk', 'zh-tw'].includes(locale) ? commandName + '\u6210\u529F' : commandName + ' Success');
                     toast(confirmMessage);
                 });
             });
+        },
+
+        clear_chapter_images_bif: function (itemId, itemName) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u6E05\u9664\u7AE0\u8282\u56FE\uFF08\u542B BIF\uFF09' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u6E05\u9664\u7AE0\u7BC0\u5716\uFF08\u542B BIF\uFF09' :
+                    'Clear Chapter Images (incl. BIF)');
+            const confirmText = locale === 'zh-cn' ? '\u786E\u5B9A\u8981\u6E05\u9664 {0} \u7684\u7AE0\u8282\u56FE\u4E0E BIF \u63D0\u53D6\u5417\uFF1F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u78BA\u5B9A\u8981\u6E05\u9664 {0} \u7684\u7AE0\u7BC0\u5716\u8207 BIF \u64F7\u53D6\u55CE\uFF1F' :
+                    'Clear chapter images and BIF thumbnails for {0}?');
+            const successText = locale === 'zh-cn' ? '\u7AE0\u8282\u56FE\u4E0E BIF \u6E05\u9664\u6210\u529F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u7AE0\u7BC0\u5716\u8207 BIF \u6E05\u9664\u6210\u529F' :
+                    'Clear Chapter Images and BIF Success');
+            const failureText = locale === 'zh-cn' ? '\u64CD\u4F5C\u5931\u8D25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64CD\u4F5C\u5931\u6557' : 'Operation Failed');
+
+            return clearItemResource(itemId, itemName, 'ClearChapterImagesAndBif', title, confirmText,
+                successText, failureText);
+        },
+
+        unlock_all_fields: function (itemId, itemName) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u89E3\u9501\u5168\u90E8\u5B57\u6BB5' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u89E3\u9396\u5168\u90E8\u6B04\u4F4D' : 'Unlock All Fields');
+            const confirmText = locale === 'zh-cn' ? '\u786E\u5B9A\u8981\u89E3\u9501 {0} \u53CA\u5176\u5B50\u6761\u76EE\u7684\u5168\u90E8\u5B57\u6BB5\u5417\uFF1F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u78BA\u5B9A\u8981\u89E3\u9396 {0} \u53CA\u5176\u5B50\u689D\u76EE\u7684\u5168\u90E8\u6B04\u4F4D\u55CE\uFF1F' :
+                    'Unlock all metadata fields of {0} and its children?');
+            const successText = locale === 'zh-cn' ? '\u89E3\u9501\u6210\u529F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u89E3\u9396\u6210\u529F' : 'Unlock Success');
+            const failureText = locale === 'zh-cn' ? '\u64CD\u4F5C\u5931\u8D25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64CD\u4F5C\u5931\u6557' : 'Operation Failed');
+
+            return confirm({
+                text: confirmText.replace('{0}', itemName),
+                title: title,
+                confirmText: title,
+                primary: 'cancel'
+            }).then(function () {
+                loading.show();
+
+                const apiClient = connectionManager.currentApiClient();
+
+                return apiClient.ajax({
+                    type: 'POST',
+                    url: apiClient.getUrl(`Items/${itemId}/UnlockAllFields`),
+                    data: {},
+                    contentType: 'application/json'
+                }).then(function () {
+                    toast(successText);
+                }, function () {
+                    toast(failureText);
+                }).finally(function () {
+                    loading.hide();
+                });
+            }, function () { });
+        },
+
+        dedupe_people: function (itemId, itemName) {
+            const locale = globalize.getCurrentLocale().toLowerCase();
+            const title = locale === 'zh-cn' ? '\u5220\u9664\u91CD\u590D\u6F14\u5458' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u522A\u9664\u91CD\u8907\u6F14\u54E1' : 'Remove Duplicate Actors');
+            const confirmText = locale === 'zh-cn' ? '\u786E\u5B9A\u8981\u5220\u9664 {0} \u4E2D\u540C\u540D\u540C\u7C7B\u578B\u7684\u91CD\u590D\u6F14\u5458\u5417\uFF1F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u78BA\u5B9A\u8981\u522A\u9664 {0} \u4E2D\u540C\u540D\u540C\u985E\u578B\u7684\u91CD\u8907\u6F14\u54E1\u55CE\uFF1F' :
+                    'Remove duplicate actors (same name and type) from {0}?');
+            const successText = locale === 'zh-cn' ? '\u91CD\u590D\u6F14\u5458\u5220\u9664\u6210\u529F' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u91CD\u8907\u6F14\u54E1\u522A\u9664\u6210\u529F' : 'Remove Duplicate Actors Success');
+            const failureText = locale === 'zh-cn' ? '\u64CD\u4F5C\u5931\u8D25' :
+                (['zh-hk', 'zh-tw'].includes(locale) ? '\u64CD\u4F5C\u5931\u6557' : 'Operation Failed');
+
+            return confirm({
+                text: confirmText.replace('{0}', itemName),
+                title: title,
+                confirmText: title,
+                primary: 'cancel'
+            }).then(function () {
+                loading.show();
+
+                const apiClient = connectionManager.currentApiClient();
+
+                return apiClient.ajax({
+                    type: 'POST',
+                    url: apiClient.getUrl(`Items/${itemId}/DedupePeople`),
+                    data: {},
+                    contentType: 'application/json'
+                }).then(function () {
+                    toast(successText);
+                }, function () {
+                    toast(failureText);
+                }).finally(function () {
+                    loading.hide();
+                });
+            }, function () { });
         }
     };
 });

@@ -269,6 +269,21 @@ const strmAssistantCommandSource = {
                 result.push({ name: clearChapterImagesName, id: 'clear_chapter_images', icon: 'image' });
                 result.push({ name: clearBifName, id: 'clear_bif', icon: 'photo_library' });
                 result.push({ name: clearMediaInfoName, id: 'clear_media_info', icon: 'info' });
+                const clearChapterImagesBifName = locale === 'zh-cn' ? '清除章节图（含 BIF）' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '清除章節圖（含 BIF）' : 'Clear Chapter Images (incl. BIF)');
+                result.push({ name: clearChapterImagesBifName, id: 'clear_chapter_images_bif', icon: 'collections' });
+            }
+            if (options.items[0].hasOwnProperty('LockData') && options.items[0].Type !== 'CollectionFolder' &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                const unlockAllFieldsName = locale === 'zh-cn' ? '解锁全部字段' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '解鎖全部欄位' : 'Unlock All Fields');
+                result.push({ name: unlockAllFieldsName, id: 'unlock_all_fields', icon: 'lock_open' });
+            }
+            if (['Movie', 'Series', 'Episode'].includes(options.items[0].Type) &&
+                (options.user && options.user.Policy.IsAdministrator || false)) {
+                const dedupePeopleName = locale === 'zh-cn' ? '删除重复演员' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '刪除重複演員' : 'Remove Duplicate Actors');
+                result.push({ name: dedupePeopleName, id: 'dedupe_people', icon: 'group_work' });
             }
             return result;
         }
@@ -286,6 +301,19 @@ const strmAssistantCommandSource = {
             if (isAdmin && options.items.every(item => item.hasOwnProperty('LockData') && item.Type !== 'VirtualFolder')) {
                 result.push({ name: lockCommandName, id: 'lock', icon: 'lock' });
                 result.push({ name: unlockCommandName, id: 'unlock', icon: 'lock_open' });
+            }
+            if (isAdmin && options.items.every(item => ['Movie', 'Episode', 'MusicVideo', 'Video', 'Trailer'].includes(item.Type))) {
+                const clearChapterImagesBifName = locale === 'zh-cn' ? '清除章节图（含 BIF）' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '清除章節圖（含 BIF）' : 'Clear Chapter Images (incl. BIF)');
+                const clearMediaInfoName = locale === 'zh-cn' ? '清除媒体信息' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '清除媒體資訊' : 'Clear Media Info');
+                result.push({ name: clearChapterImagesBifName, id: 'clear_chapter_images_bif', icon: 'collections' });
+                result.push({ name: clearMediaInfoName, id: 'clear_media_info', icon: 'info' });
+            }
+            if (isAdmin && options.items.every(item => item.hasOwnProperty('LockData') && item.Type !== 'VirtualFolder')) {
+                const unlockAllFieldsName = locale === 'zh-cn' ? '解锁全部字段' :
+                    (['zh-hk', 'zh-tw'].includes(locale) ? '解鎖全部欄位' : 'Unlock All Fields');
+                result.push({ name: unlockAllFieldsName, id: 'unlock_all_fields', icon: 'lock_open' });
             }
             return result;
         }
@@ -306,6 +334,9 @@ const strmAssistantCommandSource = {
             clear_chapter_images: 'clear_chapter_images',
             clear_bif: 'clear_bif',
             clear_media_info: 'clear_media_info',
+            clear_chapter_images_bif: 'clear_chapter_images_bif',
+            unlock_all_fields: 'unlock_all_fields',
+            dedupe_people: 'dedupe_people',
             split_multi_version: 'splitMultiVersion'
         };
         if (command.startsWith('delver_')) {
@@ -350,6 +381,10 @@ const strmAssistantCommandSource = {
                         return responses[0].traverseMany(targets);
                     }
                     return responses[0][actions[command]](targets[0]);
+                }
+                if (items.length > 1 && typeof responses[0][actions[command]] === 'function') {
+                    return Promise.all(items.map(item =>
+                        responses[0][actions[command]](item.Id, item.Name)));
                 }
                 return responses[0][actions[command]](items[0].Id, items[0].Name);
             });

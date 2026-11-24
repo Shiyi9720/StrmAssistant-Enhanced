@@ -1,7 +1,9 @@
 ﻿using MediaBrowser.Controller.Api;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using StrmAssistant.Web.Api;
+using System;
 
 namespace StrmAssistant.Web.Service
 {
@@ -42,6 +44,60 @@ namespace StrmAssistant.Web.Service
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Unlocks the whole-item lock and every individual field lock, for the item and every
+        /// child under it. All versions sharing the presentation key are covered, so the
+        /// separate version rows an item can have stay consistent.
+        /// </summary>
+        public void Post(UnlockAllFields request)
+        {
+            var itemById = _libraryManager.GetItemById(request.Id);
+
+            if (itemById is null) return;
+
+            var items = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                PresentationUniqueKey = itemById.PresentationUniqueKey
+            });
+
+            foreach (var item in items)
+            {
+                Unlock(item);
+
+                if (item is Folder folder)
+                {
+                    foreach (var child in folder.GetItemList(new InternalItemsQuery { Recursive = true }))
+                    {
+                        Unlock(child);
+                    }
+                }
+            }
+        }
+
+        private static void Unlock(BaseItem item)
+        {
+            if (item is null) return;
+
+            var changed = false;
+
+            if (item.IsLocked)
+            {
+                item.IsLocked = false;
+                changed = true;
+            }
+
+            if (item.LockedFields != null && item.LockedFields.Length > 0)
+            {
+                item.LockedFields = Array.Empty<MetadataFields>();
+                changed = true;
+            }
+
+            if (changed)
+            {
+                item.UpdateToRepository(ItemUpdateType.MetadataEdit);
             }
         }
     }
