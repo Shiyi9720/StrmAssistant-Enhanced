@@ -37,6 +37,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "ProviderSearchKeys", ProviderSearchKeysTests.Run);
             RunGroup(runner, "TagListMatcher", TagListMatcherTests.Run);
             RunGroup(runner, "DashboardStats", DashboardStatsTests.Run);
+            RunGroup(runner, "PersonRefreshRules", PersonRefreshRulesTests.Run);
 
             return runner.Finish();
         }

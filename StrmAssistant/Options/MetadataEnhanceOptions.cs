@@ -289,6 +289,10 @@ namespace StrmAssistant.Options
         [DescriptionL("MetadataEnhanceOptions_RefreshPersonRequireChineseLanguage_Require_the_server_preferred_metadata_language_to_be_Chinese_for_automatic_runs__Manual_runs_can_always_be_triggered__Default_is_ON_", typeof(Resources))]
         public bool RefreshPersonRequireChineseLanguage { get; set; } = true;
 
+        [DisplayName("演员刷新增强")]
+        [Description("按 TMDB 人物 ID 合并同一演员的多条人物记录（一次请求写回全部），只写需要变更的姓名/简介与生卒日期（不覆盖已有中文简介、不做整条刷新），并为没有头像的人物预先下载头像。默认关闭，关闭时保持原有行为。")]
+        public bool RefreshPersonEnhancedMode { get; set; } = false;
+
         [DisplayNameL("MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Max_Concurrent_Count", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_RefreshPersonMaxConcurrentCount_Number_of_persons_refreshed_in_parallel__It_must_be_between_1_and_4__Default_is_1_", typeof(Resources))]
         [Required, MinValue(1), MaxValue(4)]

@@ -4,12 +4,15 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Tasks;
 using StrmAssistant.Common;
 using StrmAssistant.Options;
 using StrmAssistant.Properties;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -25,13 +28,18 @@ namespace StrmAssistant.ScheduledTask
 
         private ILogger _logger => Plugin.Instance?.Logger;
         private readonly ILibraryManager _libraryManager;
+        private readonly IProviderManager _providerManager;
+        private readonly IFileSystem _fileSystem;
 
         private static readonly HashSet<string> ProviderIdCheckKeys =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "tmdb", "imdb", "tvdb" };
 
-        public RefreshPersonTask(ILibraryManager libraryManager)
+        public RefreshPersonTask(ILibraryManager libraryManager, IProviderManager providerManager,
+            IFileSystem fileSystem)
         {
             _libraryManager = libraryManager;
+            _providerManager = providerManager;
+            _fileSystem = fileSystem;
         }
 
         public async Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
@@ -51,6 +59,7 @@ namespace StrmAssistant.ScheduledTask
             var maxConcurrentCount = Math.Max(1, Math.Min(4, options.RefreshPersonMaxConcurrentCount));
             var requestIntervalMs = Math.Max(0, Math.Min(10000, options.RefreshPersonRequestIntervalMs));
             var requireChineseLanguage = options.RefreshPersonRequireChineseLanguage;
+            var enhancedMode = options.RefreshPersonEnhancedMode;
 
             _logger?.Info("Refresh Person Mode: " + refreshPersonMode);
             _logger?.Info("Refresh Person Scope: " + refreshScope);
@@ -61,6 +70,7 @@ namespace StrmAssistant.ScheduledTask
             _logger?.Info("Refresh Person Skip Recently Refreshed: " + skipRecentlyRefreshed + " (" +
                           recentRefreshDays + " days)");
             _logger?.Info("Refresh Person Require Chinese Server Language: " + requireChineseLanguage);
+            _logger?.Info("Refresh Person Enhanced Mode: " + enhancedMode);
 
             if (refreshPersonMode == RefreshPersonModeOption.Off)
             {
@@ -92,6 +102,10 @@ namespace StrmAssistant.ScheduledTask
 
             var cutoff = DateTimeOffset.UtcNow.AddDays(-recentRefreshDays);
             var requestRateLimiter = new RequestRateLimiter(requestIntervalMs);
+            var metadataCache = enhancedMode
+                ? new ConcurrentDictionary<string, Lazy<Task<MetadataResult<Person>>>>(
+                    StringComparer.Ordinal)
+                : null;
             var mainCastLookup = refreshScope == RefreshPersonScopeOption.MainCast
                 ? BuildMainCastLookup(cancellationToken)
                 : null;
@@ -104,17 +118,22 @@ namespace StrmAssistant.ScheduledTask
                 .ToList();
             _logger?.Info("RefreshPerson - Number of Persons Before: " + personItems.Count);
 
-            var duplicatePersonItems = personItems
-                .Where(item => !item.IsLocked && item.ProviderIds != null)
-                .SelectMany(item => item.ProviderIds
-                    .Where(kvp => ProviderIdCheckKeys.Contains(kvp.Key))
-                    .Select(kvp => new { kvp.Key, kvp.Value, item }))
-                .GroupBy(kvp => new { kvp.Key, kvp.Value })
-                .Where(group => group.Count() > 1)
-                .SelectMany(group => group.Select(g => g.item))
-                .GroupBy(i => i.InternalId)
-                .Select(g => g.First())
-                .ToList();
+            // Enhanced mode merges rows per TMDB id instead of deleting them: a duplicate row can
+            // be linked to episodes from a different season, so deleting it loses that credit.
+            // The legacy mode keeps the old delete-duplicates behaviour untouched.
+            var duplicatePersonItems = enhancedMode
+                ? new List<Person>()
+                : personItems
+                    .Where(item => !item.IsLocked && item.ProviderIds != null)
+                    .SelectMany(item => item.ProviderIds
+                        .Where(kvp => ProviderIdCheckKeys.Contains(kvp.Key))
+                        .Select(kvp => new { kvp.Key, kvp.Value, item }))
+                    .GroupBy(kvp => new { kvp.Key, kvp.Value })
+                    .Where(group => group.Count() > 1)
+                    .SelectMany(group => group.Select(g => g.item))
+                    .GroupBy(i => i.InternalId)
+                    .Select(g => g.First())
+                    .ToList();
 
             if (duplicatePersonItems.Count > 0)
             {
@@ -313,87 +332,169 @@ namespace StrmAssistant.ScheduledTask
                         {
                             cancellationToken.ThrowIfCancellationRequested();
 
-                            var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
                             var hasTmdbId = taskItem.HasProviderId(MetadataProviders.Tmdb);
 
-                            if (!metadataRefreshSkip)
+                            if (enhancedMode)
                             {
-                                MetadataResult<Person> result = null;
+                                var tmdbId = taskItem.ProviderIds != null &&
+                                             taskItem.ProviderIds.TryGetValue("Tmdb", out var providerTmdb)
+                                    ? providerTmdb
+                                    : null;
+                                var groupKey = PersonRefreshRules.GroupKey(tmdbId, taskItem.InternalId);
 
-                                try
+                                if (!metadataRefreshSkip)
                                 {
-                                    await requestRateLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
-                                    result = await Plugin.MetadataApi
-                                        .GetPersonMetadataFromMovieDb(taskItem, serverPreferredMetadataLanguage,
-                                            refreshOptions.DirectoryService, cancellationToken).ConfigureAwait(false);
-                                }
-                                catch (OperationCanceledException)
-                                {
-                                    throw;
-                                }
-                                catch (Exception e)
-                                {
-                                    failureReason = RefreshFailureReason.RequestFailed;
-                                    _logger?.ErrorException("RefreshPerson - Request Failed: " + taskItem.Name, e);
-                                }
+                                    MetadataResult<Person> result = null;
 
-                                if (failureReason == RefreshFailureReason.None)
-                                {
-                                    if (result?.Item != null)
+                                    try
                                     {
-                                        var newName = result.Item.Name;
-                                        var newOverview = result.Item.Overview;
-                                        var hasChineseName = IsChinese(newName);
-                                        var hasChineseOverview = IsChinese(newOverview);
+                                        // One TMDB request per actor: every Person row with the same
+                                        // TMDB id shares the same Lazy<Task<>>.
+                                        var lazy = metadataCache.GetOrAdd(groupKey, _ =>
+                                            new Lazy<Task<MetadataResult<Person>>>(() =>
+                                                FetchPersonMetadataAsync(taskItem,
+                                                    serverPreferredMetadataLanguage, requestRateLimiter,
+                                                    cancellationToken),
+                                                LazyThreadSafetyMode.ExecutionAndPublication));
+                                        result = await lazy.Value.ConfigureAwait(false);
+                                    }
+                                    catch (OperationCanceledException)
+                                    {
+                                        throw;
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        failureReason = RefreshFailureReason.RequestFailed;
+                                        _logger?.ErrorException(
+                                            "RefreshPerson - Request Failed: " + taskItem.Name, e);
+                                    }
 
-                                        if (!hasChineseName && !hasChineseOverview)
+                                    if (failureReason == RefreshFailureReason.None)
+                                    {
+                                        if (result?.Item != null)
                                         {
-                                            failureReason = RefreshFailureReason.NoChineseData;
-                                            _logger?.Debug("RefreshPerson - No Chinese Data: " + taskItem.Name);
-                                        }
-                                        else
-                                        {
-                                            var metadataApplied = false;
+                                            var applied = ApplyEnhancedPersonMetadata(taskItem, result.Item);
 
-                                            if (!taskItem.IsFieldLocked(MetadataFields.Name) &&
-                                                !string.IsNullOrEmpty(newName))
+                                            if (applied.NoChineseData)
                                             {
-                                                taskItem.Name = Plugin.MetadataApi.ProcessPersonInfo(newName, true);
-                                                metadataApplied = true;
+                                                failureReason = RefreshFailureReason.NoChineseData;
+                                                _logger?.Debug(
+                                                    "RefreshPerson - No Chinese Data: " + taskItem.Name);
                                             }
-
-                                            if (!taskItem.IsFieldLocked(MetadataFields.Overview) &&
-                                                !string.IsNullOrEmpty(newOverview))
+                                            else if (applied.Applied)
                                             {
-                                                taskItem.Overview =
-                                                    Plugin.MetadataApi.ProcessPersonInfo(newOverview, false);
-                                                metadataApplied = true;
-                                            }
-
-                                            if (metadataApplied)
-                                            {
-                                                _libraryManager.UpdateItems(new List<BaseItem> { taskItem }, null,
+                                                _libraryManager.UpdateItems(
+                                                    new List<BaseItem> { taskItem }, null,
                                                     ItemUpdateType.MetadataDownload, true, false, null,
                                                     CancellationToken.None);
                                                 didWork = true;
                                             }
                                         }
-                                    }
-                                    else
-                                    {
-                                        failureReason = hasTmdbId
-                                            ? RefreshFailureReason.RequestFailed
-                                            : RefreshFailureReason.NoId;
+                                        else
+                                        {
+                                            failureReason = hasTmdbId
+                                                ? RefreshFailureReason.RequestFailed
+                                                : RefreshFailureReason.NoId;
+                                        }
                                     }
                                 }
-                            }
 
-                            if (!imageRefreshSkip)
+                                // Only fetch an avatar when the person has none; unlike the legacy
+                                // path this never runs a full RefreshMetadata over the overview.
+                                if (!imageRefreshSkip &&
+                                    await EnsurePersonAvatarAsync(taskItem, cancellationToken)
+                                        .ConfigureAwait(false))
+                                {
+                                    didWork = true;
+                                }
+                            }
+                            else
                             {
-                                await requestRateLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
-                                await taskItem.RefreshMetadata(refreshOptions, cancellationToken)
-                                    .ConfigureAwait(false);
-                                didWork = true;
+                                var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
+
+                                if (!metadataRefreshSkip)
+                                {
+                                    MetadataResult<Person> result = null;
+
+                                    try
+                                    {
+                                        await requestRateLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
+                                        result = await Plugin.MetadataApi
+                                            .GetPersonMetadataFromMovieDb(taskItem,
+                                                serverPreferredMetadataLanguage,
+                                                refreshOptions.DirectoryService, cancellationToken)
+                                            .ConfigureAwait(false);
+                                    }
+                                    catch (OperationCanceledException)
+                                    {
+                                        throw;
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        failureReason = RefreshFailureReason.RequestFailed;
+                                        _logger?.ErrorException("RefreshPerson - Request Failed: " + taskItem.Name, e);
+                                    }
+
+                                    if (failureReason == RefreshFailureReason.None)
+                                    {
+                                        if (result?.Item != null)
+                                        {
+                                            var newName = result.Item.Name;
+                                            var newOverview = result.Item.Overview;
+                                            var hasChineseName = IsChinese(newName);
+                                            var hasChineseOverview = IsChinese(newOverview);
+
+                                            if (!hasChineseName && !hasChineseOverview)
+                                            {
+                                                failureReason = RefreshFailureReason.NoChineseData;
+                                                _logger?.Debug("RefreshPerson - No Chinese Data: " + taskItem.Name);
+                                            }
+                                            else
+                                            {
+                                                var metadataApplied = false;
+
+                                                if (!taskItem.IsFieldLocked(MetadataFields.Name) &&
+                                                    !string.IsNullOrEmpty(newName))
+                                                {
+                                                    taskItem.Name =
+                                                        Plugin.MetadataApi.ProcessPersonInfo(newName, true);
+                                                    metadataApplied = true;
+                                                }
+
+                                                if (!taskItem.IsFieldLocked(MetadataFields.Overview) &&
+                                                    !string.IsNullOrEmpty(newOverview))
+                                                {
+                                                    taskItem.Overview =
+                                                        Plugin.MetadataApi.ProcessPersonInfo(newOverview, false);
+                                                    metadataApplied = true;
+                                                }
+
+                                                if (metadataApplied)
+                                                {
+                                                    _libraryManager.UpdateItems(
+                                                        new List<BaseItem> { taskItem }, null,
+                                                        ItemUpdateType.MetadataDownload, true, false, null,
+                                                        CancellationToken.None);
+                                                    didWork = true;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            failureReason = hasTmdbId
+                                                ? RefreshFailureReason.RequestFailed
+                                                : RefreshFailureReason.NoId;
+                                        }
+                                    }
+                                }
+
+                                if (!imageRefreshSkip)
+                                {
+                                    await requestRateLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
+                                    await taskItem.RefreshMetadata(refreshOptions, cancellationToken)
+                                        .ConfigureAwait(false);
+                                    didWork = true;
+                                }
                             }
                         }
                         catch (OperationCanceledException)
@@ -491,6 +592,118 @@ namespace StrmAssistant.ScheduledTask
             }
 
             _logger?.Info("RefreshPerson - Scheduled Task Complete");
+        }
+
+        private async Task<MetadataResult<Person>> FetchPersonMetadataAsync(Person person, string language,
+            RequestRateLimiter rateLimiter, CancellationToken cancellationToken)
+        {
+            await rateLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            var refreshOptions = Plugin.MetadataApi.GetMetadataFullRefreshOptions();
+
+            return await Plugin.MetadataApi.GetPersonMetadataFromMovieDb(person, language,
+                refreshOptions.DirectoryService, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Writes only the fields that need changing. An existing Chinese overview is kept, and
+        /// birth/death dates are filled in. Returns whether anything changed and whether the
+        /// provider simply had no Chinese data.
+        /// </summary>
+        private static EnhancedPersonResult ApplyEnhancedPersonMetadata(Person person, Person fetched)
+        {
+            var newName = fetched.Name;
+            var newOverview = fetched.Overview;
+            var birthDate = fetched.PremiereDate;
+            var deathDate = fetched.EndDate;
+
+            var hasChineseName = IsChinese(newName);
+            var hasChineseOverview = IsChinese(newOverview);
+
+            if (!hasChineseName && !hasChineseOverview && !birthDate.HasValue && !deathDate.HasValue)
+            {
+                return new EnhancedPersonResult { NoChineseData = true };
+            }
+
+            var applied = false;
+
+            if (PersonRefreshRules.ShouldApplyName(newName, person.Name,
+                    person.IsFieldLocked(MetadataFields.Name), hasChineseName))
+            {
+                person.Name = Plugin.MetadataApi.ProcessPersonInfo(newName, true);
+                applied = true;
+            }
+
+            if (PersonRefreshRules.ShouldApplyOverview(newOverview, person.Overview,
+                    person.IsFieldLocked(MetadataFields.Overview), hasChineseOverview, IsChinese))
+            {
+                person.Overview = Plugin.MetadataApi.ProcessPersonInfo(newOverview, false);
+                applied = true;
+            }
+
+            if (PersonRefreshRules.ShouldApplyDate(birthDate, person.PremiereDate))
+            {
+                person.PremiereDate = birthDate;
+                applied = true;
+            }
+
+            if (PersonRefreshRules.ShouldApplyDate(deathDate, person.EndDate))
+            {
+                person.EndDate = deathDate;
+                applied = true;
+            }
+
+            return new EnhancedPersonResult { Applied = applied };
+        }
+
+        /// <summary>
+        /// Downloads one headshot for a person that has none, so the people list does not have to
+        /// fetch it from TMDB on first render. Failures are per-person and never fail the run.
+        /// </summary>
+        private async Task<bool> EnsurePersonAvatarAsync(Person person, CancellationToken cancellationToken)
+        {
+            if (person.HasImage(ImageType.Primary)) return false;
+            if (_providerManager is null || _fileSystem is null) return false;
+
+            try
+            {
+                var libraryOptions = _libraryManager.GetLibraryOptions(person);
+                var directoryService = new DirectoryService(_logger, _fileSystem);
+                var images = await _providerManager.GetAvailableRemoteImages(person, libraryOptions,
+                        new RemoteImageQuery
+                        {
+                            ImageType = ImageType.Primary,
+                            IncludeAllLanguages = true
+                        }, directoryService, cancellationToken)
+                    .ConfigureAwait(false);
+
+                var image = images?.FirstOrDefault(item => !string.IsNullOrWhiteSpace(item?.Url));
+
+                if (image is null) return false;
+
+                await _providerManager.SaveImage(person, libraryOptions, image.Url,
+                        ImageType.Primary, null, Array.Empty<long>(), directoryService, false,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                _logger?.Info("RefreshPerson - Avatar saved: " + person.Name);
+                return true;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("RefreshPerson - Avatar failed for " + person.Name + ": " + e.Message);
+                return false;
+            }
+        }
+
+        private struct EnhancedPersonResult
+        {
+            public bool Applied;
+            public bool NoChineseData;
         }
 
         private static DateTimeOffset GetLastTouched(BaseItem item)
