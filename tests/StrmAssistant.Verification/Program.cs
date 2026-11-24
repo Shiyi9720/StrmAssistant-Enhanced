@@ -38,6 +38,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "TagListMatcher", TagListMatcherTests.Run);
             RunGroup(runner, "DashboardStats", DashboardStatsTests.Run);
             RunGroup(runner, "PersonRefreshRules", PersonRefreshRulesTests.Run);
+            RunGroup(runner, "DoubanCastRules", DoubanCastRulesTests.Run);
 
             return runner.Finish();
         }

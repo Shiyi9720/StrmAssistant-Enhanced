@@ -223,51 +223,85 @@ namespace StrmAssistant.Common
                     ? celebrities.directors
                     : detail.directors;
 
-                var existingNames = new HashSet<string>(
-                    existing.Where(person => !string.IsNullOrWhiteSpace(person.Name))
-                        .Select(person => person.Name.Trim()),
-                    StringComparer.OrdinalIgnoreCase);
-                var additions = new List<PersonInfo>();
+                var localize = Plugin.Instance.GetPluginOptions().MetadataEnhanceOptions
+                    .EnableDoubanCastLocalization;
+                var latinNameMap = localize
+                    ? DoubanCastRules.BuildLatinNameMap(
+                        (actors ?? new List<DoubanPerson>())
+                        .Concat(directors ?? new List<DoubanPerson>())
+                        .Where(person => person != null)
+                        .Select(person => (person.name, person.latin_name)))
+                    : null;
+
+                // UpdatePeople replaces the whole list (it deletes the old rows first), so the
+                // existing people are carried over verbatim except for the localized names.
+                var merged = new List<PersonInfo>();
+                var existingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var renamed = 0;
+
+                foreach (var person in existing)
+                {
+                    if (person == null || string.IsNullOrWhiteSpace(person.Name)) continue;
+
+                    var name = person.Name.Trim();
+
+                    if (localize &&
+                        DoubanCastRules.TryResolveChineseName(name, latinNameMap, out var chineseName))
+                    {
+                        name = chineseName;
+                        renamed++;
+                    }
+
+                    if (!existingNames.Add(name)) continue;
+
+                    person.Name = name;
+                    merged.Add(person);
+                }
+
+                var actorLimit = localize ? DoubanCastRules.ActorLimit : 10;
+                var additions = 0;
 
                 foreach (var actor in (actors ?? new List<DoubanPerson>())
                              .Where(person => person != null && !string.IsNullOrWhiteSpace(person.name))
-                             .Take(10))
+                             .Take(actorLimit))
                 {
                     var name = actor.name.Trim();
 
                     if (!existingNames.Add(name)) continue;
 
-                    additions.Add(new PersonInfo
+                    merged.Add(new PersonInfo
                     {
                         Name = name,
                         Role = CleanRole(actor.character),
                         Type = PersonType.Actor
                     });
+                    additions++;
                 }
 
                 foreach (var director in (directors ?? new List<DoubanPerson>())
                              .Where(person => person != null && !string.IsNullOrWhiteSpace(person.name))
-                             .Take(10))
+                             .Take(DoubanCastRules.DirectorLimit))
                 {
                     var name = director.name.Trim();
 
                     if (!existingNames.Add(name)) continue;
 
-                    additions.Add(new PersonInfo
+                    merged.Add(new PersonInfo
                     {
                         Name = name,
                         Role = CleanRole(director.character),
                         Type = PersonType.Director
                     });
+                    additions++;
                 }
 
-                if (additions.Count == 0) return;
+                if (additions == 0 && renamed == 0) return;
 
-                _libraryManager.UpdatePeople(item, existing.Concat(additions).ToList());
+                _libraryManager.UpdatePeople(item, merged);
                 item.UpdateToRepository(ItemUpdateType.MetadataEdit);
 
-                _logger?.Info("DoubanSupplement - Cast updated: " + item.Name + " (+" +
-                              additions.Count + ")");
+                _logger?.Info("DoubanSupplement - Cast updated: " + item.Name + " (+" + additions +
+                              ", localized " + renamed + ", total " + merged.Count + ")");
             }
             catch (OperationCanceledException)
             {

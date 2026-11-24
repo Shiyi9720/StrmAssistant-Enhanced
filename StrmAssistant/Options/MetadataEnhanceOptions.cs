@@ -217,6 +217,11 @@ namespace StrmAssistant.Options
         [VisibleCondition(nameof(EnableDoubanSupplement), SimpleCondition.IsTrue)]
         public bool EnableDoubanCast { get; set; } = false;
 
+        [DisplayName("豆瓣客串演员中文化")]
+        [Description("用豆瓣演职员的中文名替换已有英文名的演员/导演（按 latin_name 匹配），并补足最多 20 位演员与 10 位导演。需要同时开启豆瓣补充与豆瓣演职员。默认关闭。")]
+        [VisibleCondition(nameof(EnableDoubanCast), SimpleCondition.IsTrue)]
+        public bool EnableDoubanCastLocalization { get; set; } = false;
+
         [DisplayNameL("MetadataEnhanceOptions_EnableDoubanSeason_Enable_Douban_Season_Supplement", typeof(Resources))]
         [DescriptionL("MetadataEnhanceOptions_EnableDoubanSeason_Fill_missing_season_and_episode_information_for_series_from_Douban__Existing_values_are_never_overwritten__Default_is_OFF_", typeof(Resources))]
         [VisibleCondition(nameof(EnableDoubanSupplement), SimpleCondition.IsTrue)]
