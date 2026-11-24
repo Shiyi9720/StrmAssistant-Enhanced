@@ -43,6 +43,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "CertificationFallback", CertificationFallbackTests.Run);
             RunGroup(runner, "LocalMetadataItemRules", LocalMetadataItemRulesTests.Run);
             RunGroup(runner, "Discover", DiscoverTests.Run);
+            RunGroup(runner, "ExternalAudioPlan", ExternalAudioPlanTests.Run);
 
             return runner.Finish();
         }

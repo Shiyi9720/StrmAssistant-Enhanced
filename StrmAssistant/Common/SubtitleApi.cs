@@ -648,6 +648,93 @@ namespace StrmAssistant.Common
             }
         }
 
+        /// <summary>
+        /// True when the audio files next to the media file no longer match the external audio
+        /// streams on the item. Called after a media-info refresh so extraction itself applies
+        /// the external-audio scan, not only the (optional) subtitle refresh path.
+        /// </summary>
+        public bool HasExternalAudioChanged(BaseItem item, IDirectoryService directoryService,
+            bool clearCache)
+        {
+            if (!IsExternalAudioScanEnabled() || item is null || !item.IsFileProtocol) return false;
+
+            try
+            {
+                var current = item.GetMediaStreams()
+                    .Where(i => i.Type == MediaStreamType.Audio && i.IsExternal &&
+                                i.Protocol == MediaProtocol.File)
+                    .Select(i => i.Path);
+                var scanned = GetExternalMediaStreams(item, 0, directoryService, clearCache)
+                    .Where(i => i.Type == MediaStreamType.Audio)
+                    .Select(i => i.Path);
+
+                return ExternalAudioPlan.HasChanged(current, scanned);
+            }
+            catch (Exception e)
+            {
+                _logger?.Debug("ExternalAudio - Failed to compare audio files" + Environment.NewLine + e);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Merges the audio files stored next to the media file into the item's streams. Only
+        /// external file-backed audio streams are replaced; internal audio tracks are kept, so
+        /// re-running the extraction is idempotent. Extensions Emby's AudioTrackResolver does not
+        /// know (for example .dtshd) are added from the configured extension list.
+        /// </summary>
+        public async Task UpdateExternalAudio(BaseItem item, MetadataRefreshOptions refreshOptions,
+            bool clearCache, bool persistMediaInfo)
+        {
+            if (!IsExternalAudioScanEnabled() || item is null || !item.IsFileProtocol) return;
+
+            var directoryService = refreshOptions.DirectoryService;
+
+            List<MediaStream> scanned;
+            try
+            {
+                scanned = GetExternalMediaStreams(item, 0, directoryService, clearCache)
+                    .Where(i => i.Type == MediaStreamType.Audio)
+                    .ToList();
+            }
+            catch (Exception e)
+            {
+                _logger?.Warn("ExternalAudio - Scan failed: " + item.Path + Environment.NewLine + e);
+                return;
+            }
+
+            var streams = item.GetMediaStreams()
+                .FindAll(i => !(i.IsExternal && i.Protocol == MediaProtocol.File &&
+                                i.Type == MediaStreamType.Audio));
+            var startIndex = streams.Count == 0 ? 0 : streams.Max(i => i.Index) + 1;
+
+            foreach (var externalTrack in scanned)
+            {
+                externalTrack.Index = startIndex++;
+
+                var result = await UpdateExternalSubtitleStream(item, externalTrack, refreshOptions,
+                    CancellationToken.None).ConfigureAwait(false);
+
+                if (!result)
+                {
+                    _logger?.Warn("No result when probing external audio file: {0}", externalTrack.Path);
+                }
+
+                streams.Add(externalTrack);
+                _logger?.Info("ExternalAudio - Audio Processed: " + externalTrack.Path);
+            }
+
+            _itemRepository.SaveMediaStreams(item.InternalId, streams, CancellationToken.None);
+            Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(item, "External Audio Update");
+
+            if (persistMediaInfo && Plugin.LibraryApi.IsLibraryInScope(item))
+            {
+                await Plugin.MediaInfoApi.SerializeMediaInfo(item.InternalId, directoryService, true,
+                    "External Audio Update").ConfigureAwait(false);
+            }
+        }
+
         public async Task<SubtitleDownloadOutcome> DownloadSubtitles(BaseItem item,
             CancellationToken cancellationToken)
         {

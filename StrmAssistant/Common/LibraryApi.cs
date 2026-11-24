@@ -1015,6 +1015,18 @@ namespace StrmAssistant.Common
                 .RefreshSingleItem(taskItem, refreshOptions, collectionFolders, dummyLibraryOptions, cancellationToken)
                 .ConfigureAwait(false);
 
+            // External audio tracks (including extensions Emby's resolver does not know, such as
+            // .dtshd) are merged right after the refresh so the streams are part of the item and
+            // of the JSON that is persisted below. The dedicated subtitle/audio path already
+            // covers restore, disc and distributed extraction.
+            if (taskItem is Video &&
+                Plugin.SubtitleApi.HasExternalAudioChanged(taskItem, directoryService, true))
+            {
+                await Plugin.SubtitleApi
+                    .UpdateExternalAudio(taskItem, refreshOptions, false, false)
+                    .ConfigureAwait(false);
+            }
+
             Plugin.MediaInfoApi.RemoveBlacklistedSubtitleStreams(taskItem, source);
 
             if (persistMediaInfo)
