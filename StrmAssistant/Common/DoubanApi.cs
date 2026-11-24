@@ -732,7 +732,13 @@ namespace StrmAssistant.Common
                       "&start=0&count=10";
 
             var response = await GetJsonAsync<DoubanSearchResponse>(url, cancellationToken).ConfigureAwait(false);
-            var targets = response?.items?.Select(i => i.target).Where(t => t != null && !string.IsNullOrEmpty(t.id))
+
+            // Douban's current payload puts the matching subjects under "subjects.items";
+            // "contents.items" holds articles and the root "items" is the legacy shape. Try them
+            // in that order so a current response and an older mirror both work.
+            var items = response?.subjects?.items ?? response?.contents?.items ?? response?.items;
+
+            var targets = items?.Select(i => i.target).Where(t => t != null && !string.IsNullOrEmpty(t.id))
                 .ToList();
 
             if (targets is null || targets.Count == 0) return null;
@@ -1172,6 +1178,13 @@ namespace StrmAssistant.Common
 
         // Douban's mobile endpoints return lower case field names.
         private class DoubanSearchResponse
+        {
+            public List<DoubanSearchItem> items { get; set; }
+            public DoubanSearchContents contents { get; set; }
+            public DoubanSearchContents subjects { get; set; }
+        }
+
+        private class DoubanSearchContents
         {
             public List<DoubanSearchItem> items { get; set; }
         }
