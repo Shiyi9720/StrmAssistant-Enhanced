@@ -33,6 +33,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "ScheduledTaskFailurePolicy", ScheduledTaskFailurePolicyTests.Run);
             RunGroup(runner, "PluginUpdateInstaller", PluginUpdateInstallerTests.Run);
             RunGroup(runner, "DiscMainVideoResolver", DiscMainVideoResolverTests.Run);
+            RunGroup(runner, "MetadataDiff", MetadataDiffTests.Run);
 
             return runner.Finish();
         }

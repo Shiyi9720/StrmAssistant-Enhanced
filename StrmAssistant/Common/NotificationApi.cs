@@ -9,7 +9,9 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Session;
 using StrmAssistant.Properties;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,6 +33,14 @@ namespace StrmAssistant.Common
         private readonly Dictionary<string, PendingSeriesChange> _pendingSeriesChanges =
             new Dictionary<string, PendingSeriesChange>();
         private Timer _seriesNotificationTimer;
+
+        /// <summary>
+        /// Before-images for the metadata.update field diff. Only populated while the metadata
+        /// notification switch is on; a bounded size keeps a long-running server safe.
+        /// </summary>
+        private const int SnapshotCapacity = 20000;
+        private readonly ConcurrentDictionary<long, MetadataSnapshot> _snapshots =
+            new ConcurrentDictionary<long, MetadataSnapshot>();
 
         private sealed class PendingSeriesChange
         {
@@ -302,9 +312,23 @@ namespace StrmAssistant.Common
             _notificationManager.SendNotification(request);
         }
 
-        public void MetadataUpdateSendNotification(BaseItem item)
+        /// <summary>
+        /// metadata.update with a field diff. The before-image comes from
+        /// <see cref="RememberSnapshot"/> (captured on ItemAdded) and the first observation after
+        /// startup has none, so <paramref name="changes"/> is empty for it and the notification
+        /// reports "无可比较的字段变化" rather than inventing a diff.
+        /// </summary>
+        public void MetadataUpdateSendNotification(BaseItem item, List<string> changes)
         {
             Resources.Culture = Thread.CurrentThread.CurrentUICulture;
+
+            var diff = changes is null || changes.Count == 0
+                ? "（无可比较的字段变化）"
+                : string.Join(Environment.NewLine, changes);
+
+            var description = string.Format(
+                Resources.Notification_MetadataUpdate_Description.Replace("\\n", Environment.NewLine),
+                Describe(item), item.Path) + Environment.NewLine + diff;
 
             var request = new NotificationRequest
             {
@@ -312,12 +336,73 @@ namespace StrmAssistant.Common
                         Resources.Notification_MetadataUpdate_EventName,
                 EventId = "metadata.update",
                 Item = item,
-                Description = string.Format(
-                    Resources.Notification_MetadataUpdate_Description.Replace("\\n", Environment.NewLine),
-                    item.Name, item.Path)
+                Description = description
             };
 
             _notificationManager.SendNotification(request);
+
+            // Refresh the before-image so a burst of edits reports each step, not the delta
+            // against a stale snapshot.
+            RememberSnapshot(item);
+        }
+
+        /// <summary>Captures a before-image of an item's metadata for the field diff.</summary>
+        public void RememberSnapshot(BaseItem item)
+        {
+            if (item is null) return;
+
+            _snapshots[item.InternalId] = MetadataSnapshot.FromItem(item);
+            TrimSnapshots();
+        }
+
+        /// <summary>Reads (without replacing) the stored before-image of an item.</summary>
+        public MetadataSnapshot TakeSnapshot(long internalId)
+        {
+            return _snapshots.TryGetValue(internalId, out var snapshot) ? snapshot : null;
+        }
+
+        public void ForgetSnapshot(long internalId)
+        {
+            _snapshots.TryRemove(internalId, out _);
+        }
+
+        private void TrimSnapshots()
+        {
+            if (_snapshots.Count <= SnapshotCapacity) return;
+
+            // A clear is acceptable here: the only cost is one missed diff per item.
+            _snapshots.Clear();
+        }
+
+        /// <summary>
+        /// Season/episode context for a notification description, so a series-level notification
+        /// no longer hides which episode changed (mirrors the rewrite project's Describe).
+        /// </summary>
+        public static string Describe(BaseItem item)
+        {
+            if (item is null) return string.Empty;
+
+            if (item is Episode episode)
+            {
+                var series = episode.SeriesName ?? episode.Series?.Name ?? string.Empty;
+                var season = episode.ParentIndexNumber;
+                var number = episode.IndexNumber;
+                var code = season.HasValue && number.HasValue && season.Value > 0
+                    ? string.Format(CultureInfo.InvariantCulture, "S{0:00}E{1:00}", season.Value,
+                        number.Value)
+                    : string.Empty;
+
+                return (series + " " + code + " " + episode.Name).Trim();
+            }
+
+            if (item is Season seasonItem)
+            {
+                var series = seasonItem.SeriesName ?? seasonItem.Series?.Name ?? string.Empty;
+
+                return (series + " 第" + (seasonItem.IndexNumber ?? 0) + "季").Trim();
+            }
+
+            return item.Name ?? string.Empty;
         }
 
         public void ImageUpdateSendNotification(BaseItem item)

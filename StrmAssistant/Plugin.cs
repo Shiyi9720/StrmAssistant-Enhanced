@@ -583,6 +583,13 @@ namespace StrmAssistant
                 {
                     NotificationApi.SeriesItemChangedSendNotification(e.Item, true);
                 }
+
+                // Capture the metadata before-image so a later refresh that turns the diff on
+                // has something to compare against. Only kept while the switch is on.
+                if (GetOptions().NotificationOptions.EnableMetadataNotification)
+                {
+                    NotificationApi.RememberSnapshot(e.Item);
+                }
             }
             catch (Exception ex)
             {
@@ -690,6 +697,7 @@ namespace StrmAssistant
         {
             ItemBlacklist.InvalidateInstanceCache();
             SearchIndexService.NotifyItemRemoved(e.Item.InternalId);
+            NotificationApi.ForgetSnapshot(e.Item.InternalId);
 
             try
             {
@@ -753,11 +761,14 @@ namespace StrmAssistant
                 if (!options.EnableMetadataNotification && !options.EnableImageNotification) return;
 
                 if (!(e.Item is Video || e.Item is Audio || e.Item is Series || e.Item is Season ||
-                      e.Item is MusicAlbum)) return;
+                      e.Item is MusicAlbum || e.Item is Episode)) return;
 
                 if (options.EnableMetadataNotification && metadataUpdated)
                 {
-                    NotificationApi.MetadataUpdateSendNotification(e.Item);
+                    var before = NotificationApi.TakeSnapshot(e.Item.InternalId);
+                    var after = MetadataSnapshot.FromItem(e.Item);
+                    var changes = MetadataDiff.Compare(before?.Values, after?.Values);
+                    NotificationApi.MetadataUpdateSendNotification(e.Item, changes);
                 }
 
                 if (options.EnableImageNotification && (updateReason & ItemUpdateType.ImageUpdate) != 0)
