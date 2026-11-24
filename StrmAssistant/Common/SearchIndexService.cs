@@ -29,9 +29,10 @@ namespace StrmAssistant.Common
     /// </summary>
     public sealed class SearchIndexService
     {
-        // 5: pinyin keys include alternate readings of polyphonic characters. Bumping the
-        // version makes an existing index file rebuild instead of loading keys that lack them.
-        internal const int CurrentVersion = 5;
+        // 6: external-id keys now carry provider prefixes (douban:/bgm:/tmdb:/imdb:/tvdb:), so
+        // an old index lacks them; bumping the version forces a rebuild instead of serving the
+        // bare-id-only keys. (5 was polyphonic pinyin readings.)
+        internal const int CurrentVersion = 6;
 
         public const int TierExact = 0;
         public const int TierPrefix = 1;
@@ -484,6 +485,14 @@ namespace StrmAssistant.Common
                 {
                     canonicalKey = "imdbid";
                 }
+                else if (key == "tmdb" || key == "tmdbid")
+                {
+                    canonicalKey = "tmdbid";
+                }
+                else if (key == "tvdb" || key == "tvdbid")
+                {
+                    canonicalKey = "tvdbid";
+                }
 
                 if (canonicalKey != null)
                 {
@@ -643,7 +652,13 @@ namespace StrmAssistant.Common
 
             foreach (var providerId in entry.ProviderIds ?? Enumerable.Empty<KeyValuePair<string, string>>())
             {
-                AddKey(SearchTextHelper.Compact(providerId.Value), SearchKeyKind.ExternalId, false);
+                // Bare id plus provider-prefixed aliases (douban1291546, bgm123456, tmdb550...).
+                // A user typing "douban:1291546" compacts to the same key, so the prefix works
+                // without a separate query parser.
+                foreach (var key in ProviderSearchKeys.KeysFor(providerId.Key, providerId.Value))
+                {
+                    AddKey(key, SearchKeyKind.ExternalId, false);
+                }
             }
 
             return new IndexedItem

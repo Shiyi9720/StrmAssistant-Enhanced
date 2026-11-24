@@ -22,6 +22,7 @@
   <ItemGroup>
     <Compile Include="..\..\StrmAssistant\Common\SourceBackoff.cs" Link="src\SourceBackoff.cs" />
     <Compile Include="..\..\StrmAssistant\Common\MetadataDiff.cs" Link="src\MetadataDiff.cs" />
+    <Compile Include="..\..\StrmAssistant\Common\ProviderSearchKeys.cs" Link="src\ProviderSearchKeys.cs" />
     <Compile Include="..\..\StrmAssistant\Common\DvP7Api.cs" Link="src\DvP7Api.cs" />
     <Compile Include="..\..\StrmAssistant\Common\ResumePositionMath.cs" Link="src\ResumePositionMath.cs" />
     <Compile Include="..\..\StrmAssistant\Common\CustomFfprobeApi.cs" Link="src\CustomFfprobeApi.cs" />

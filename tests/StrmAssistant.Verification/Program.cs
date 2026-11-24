@@ -34,6 +34,7 @@ namespace StrmAssistant.Verification
             RunGroup(runner, "PluginUpdateInstaller", PluginUpdateInstallerTests.Run);
             RunGroup(runner, "DiscMainVideoResolver", DiscMainVideoResolverTests.Run);
             RunGroup(runner, "MetadataDiff", MetadataDiffTests.Run);
+            RunGroup(runner, "ProviderSearchKeys", ProviderSearchKeysTests.Run);
 
             return runner.Finish();
         }
