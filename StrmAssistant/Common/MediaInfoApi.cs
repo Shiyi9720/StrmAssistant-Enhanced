@@ -365,18 +365,24 @@ namespace StrmAssistant.Common
 
         public static string GetMediaInfoJsonPath(BaseItem item)
         {
+            // Channel entries (Discover / Douban Top250) carry no file path. There is no sidecar to
+            // locate for them, and Path.Combine would throw ArgumentNullException(path1) on the
+            // empty folder, which surfaced as "Plugin event handler failed" on every channel refresh.
+            var containingFolderPath = item?.ContainingFolderPath;
+            if (string.IsNullOrWhiteSpace(containingFolderPath)) return null;
+
             var jsonRootFolder = Plugin.Instance.GetPluginOptions().MediaInfoExtractOptions.MediaInfoJsonRootFolder;
 
-            var relativePath = item.ContainingFolderPath;
-            if (!string.IsNullOrEmpty(jsonRootFolder) && Path.IsPathRooted(item.ContainingFolderPath))
+            var relativePath = containingFolderPath;
+            if (!string.IsNullOrEmpty(jsonRootFolder) && Path.IsPathRooted(containingFolderPath))
             {
-                relativePath = Path.GetRelativePath(Path.GetPathRoot(item.ContainingFolderPath)!,
-                    item.ContainingFolderPath);
+                relativePath = Path.GetRelativePath(Path.GetPathRoot(containingFolderPath)!,
+                    containingFolderPath);
             }
 
             var mediaInfoJsonPath = !string.IsNullOrEmpty(jsonRootFolder)
                 ? Path.Combine(jsonRootFolder, relativePath, item.FileNameWithoutExtension + MediaInfoFileExtension)
-                : Path.Combine(item.ContainingFolderPath!, item.FileNameWithoutExtension + MediaInfoFileExtension);
+                : Path.Combine(containingFolderPath, item.FileNameWithoutExtension + MediaInfoFileExtension);
 
             return mediaInfoJsonPath;
         }
@@ -402,6 +408,8 @@ namespace StrmAssistant.Common
             string source)
         {
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
+            if (string.IsNullOrEmpty(mediaInfoJsonPath)) return false;
+
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
             if (overwrite || file?.Exists != true)
@@ -533,6 +541,8 @@ namespace StrmAssistant.Common
             if (!musicSidecarMode && Plugin.LibraryApi.HasMediaInfo(workItem)) return true;
 
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
+            if (string.IsNullOrEmpty(mediaInfoJsonPath)) return false;
+
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
             if (file?.Exists == true)
@@ -652,6 +662,7 @@ namespace StrmAssistant.Common
         public void DeleteMediaInfoJson(BaseItem item, IDirectoryService directoryService, string source)
         {
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
+            if (string.IsNullOrEmpty(mediaInfoJsonPath)) return;
 
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
@@ -694,6 +705,8 @@ namespace StrmAssistant.Common
         public async Task<bool> DeserializeIntroMarker(Episode item, IDirectoryService directoryService, string source)
         {
             var mediaInfoJsonPath = GetMediaInfoJsonPath(item);
+            if (string.IsNullOrEmpty(mediaInfoJsonPath)) return false;
+
             var file = directoryService.GetFile(mediaInfoJsonPath);
 
             if (file?.Exists == true)
@@ -751,7 +764,9 @@ namespace StrmAssistant.Common
         {
             var thumbnailResult = false;
 
-            if (Plugin.Instance.IsModSupported || !item.IsShortcut)
+            // No file path means no local thumbnail set to restore (channel entries). The chapters
+            // themselves are still saved below, so only the thumbnail step is skipped.
+            if ((Plugin.Instance.IsModSupported || !item.IsShortcut) && !string.IsNullOrWhiteSpace(item.Path))
             {
                 var localThumbnailSets =
                     Video.GetLocalThumbnailSetInfos(item.Path, item.Id, false, directoryService);
